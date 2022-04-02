@@ -1,0 +1,18 @@
+#pragma once
+
+#include "core/Object3D.h"
+
+class Camera : public Object3D
+{
+public:
+	Camera();
+	~Camera();
+	
+	glm::mat4 matrixWorldInverse;
+	glm::mat4 projectionMatrix;
+	glm::mat4 projectionMatrixInverse;
+
+	virtual void updateMatrixWorld(bool force) override;
+	virtual void updateWorldMatrix(bool updateParents, bool updateChildren) override;
+	virtual glm::vec3 getWorldDirection() override;
+};

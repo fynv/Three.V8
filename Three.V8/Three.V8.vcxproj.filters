@@ -1,0 +1,84 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Header Files\core">
+      <UniqueIdentifier>{3625f829-255c-44ba-a16c-0152ccc68ad6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\cameras">
+      <UniqueIdentifier>{418473b9-e1fb-4195-94ae-9610caa28d04}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\scenes">
+      <UniqueIdentifier>{e4817e5a-5a0c-4f11-babd-73cf54549be8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\renderers">
+      <UniqueIdentifier>{0dd48f1c-a387-492a-bf49-84f511765586}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\backgrounds">
+      <UniqueIdentifier>{50a1a037-db8a-4ac9-9a25-38b9466f974a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\models">
+      <UniqueIdentifier>{6d55a7a6-5bed-4718-938e-4b9aa1fbcd9e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\utils">
+      <UniqueIdentifier>{8bd7890d-738f-476c-877c-e9c4d97c956d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="binding.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="core\Object3D.hpp">
+      <Filter>Header Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="WrapperUtils.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cameras\Camera.hpp">
+      <Filter>Header Files\cameras</Filter>
+    </ClInclude>
+    <ClInclude Include="cameras\PerspectiveCamera.hpp">
+      <Filter>Header Files\cameras</Filter>
+    </ClInclude>
+    <ClInclude Include="backgrounds\Background.hpp">
+      <Filter>Header Files\backgrounds</Filter>
+    </ClInclude>
+    <ClInclude Include="scenes\Scene.hpp">
+      <Filter>Header Files\scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\GLRenderer.hpp">
+      <Filter>Header Files\renderers</Filter>
+    </ClInclude>
+    <ClInclude Include="models\SimpleModel.hpp">
+      <Filter>Header Files\models</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\Image.hpp">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="GamePlayer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="binding.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GamePlayer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,156 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Header Files\scenes">
+      <UniqueIdentifier>{b291b702-d08b-4fe1-a17d-2958afa085f4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\scenes">
+      <UniqueIdentifier>{9fbea370-bc9f-40d4-8c3d-106f3f5184c2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\backgrounds">
+      <UniqueIdentifier>{0ed6576a-c1d7-4d13-b3ce-a03537c5a997}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\backgrounds">
+      <UniqueIdentifier>{a1b3476f-fc71-4fa2-8677-803c952a8540}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\cameras">
+      <UniqueIdentifier>{b47903d6-fe11-4631-bb9a-7d1d3b36a574}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\cameras">
+      <UniqueIdentifier>{6faf4849-0041-48f0-a114-b6553d6da7a9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\core">
+      <UniqueIdentifier>{72716b2b-9040-49c7-af97-cc59c8faa802}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\core">
+      <UniqueIdentifier>{f44ce9c6-fd77-444a-92cb-75ae9903103e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\geometries">
+      <UniqueIdentifier>{8dfac679-9f31-4a0c-aac1-3ee040c09340}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\renderers">
+      <UniqueIdentifier>{5c95fa35-5e89-4ec0-8094-70274da49b21}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\renderers">
+      <UniqueIdentifier>{8d56beb0-422b-45ea-91b8-5be32318155e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\models">
+      <UniqueIdentifier>{e30727c2-d99e-47eb-aeaa-37226fceba1d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\models">
+      <UniqueIdentifier>{bb7dd8b1-ae93-4305-ace6-b9da04fcdd9d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\geometries">
+      <UniqueIdentifier>{bcf6ffdf-82bc-4fa7-9626-b572a64c6f31}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\materials">
+      <UniqueIdentifier>{03593f5c-660c-4076-ae55-1be94de8c5ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\materials">
+      <UniqueIdentifier>{0d17de8f-9198-4f1a-94ef-dfb93afc1bfd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\utils">
+      <UniqueIdentifier>{e037f2ac-6ba3-41a5-80b1-50946a9a118d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\utils">
+      <UniqueIdentifier>{fb865a54-2efe-4ae8-b1ea-e30dfa26c823}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\thirdparty">
+      <UniqueIdentifier>{f4cfb443-45ea-4ab5-8ad6-ef331b989e92}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="scenes\Scene.cpp">
+      <Filter>Source Files\scenes</Filter>
+    </ClCompile>
+    <ClCompile Include="backgrounds\Background.cpp">
+      <Filter>Source Files\backgrounds</Filter>
+    </ClCompile>
+    <ClCompile Include="core\Object3D.cpp">
+      <Filter>Source Files\core</Filter>
+    </ClCompile>
+    <ClCompile Include="cameras\Camera.cpp">
+      <Filter>Source Files\cameras</Filter>
+    </ClCompile>
+    <ClCompile Include="cameras\PerspectiveCamera.cpp">
+      <Filter>Source Files\cameras</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\GLRenderer.cpp">
+      <Filter>Source Files\renderers</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\GLUtils.cpp">
+      <Filter>Source Files\renderers</Filter>
+    </ClCompile>
+    <ClCompile Include="models\SimpleModel.cpp">
+      <Filter>Source Files\models</Filter>
+    </ClCompile>
+    <ClCompile Include="geometries\Geometry1.cpp">
+      <Filter>Source Files\geometries</Filter>
+    </ClCompile>
+    <ClCompile Include="materials\Material.cpp">
+      <Filter>Source Files\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="materials\MeshStandardMaterial.cpp">
+      <Filter>Source Files\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\Image.cpp">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\thirdparty\glew\glew.c">
+      <Filter>Source Files\thirdparty</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="scenes\Scene.h">
+      <Filter>Header Files\scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="backgrounds\Background.h">
+      <Filter>Header Files\backgrounds</Filter>
+    </ClInclude>
+    <ClInclude Include="core\Object3D.h">
+      <Filter>Header Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="cameras\Camera.h">
+      <Filter>Header Files\cameras</Filter>
+    </ClInclude>
+    <ClInclude Include="cameras\PerspectiveCamera.h">
+      <Filter>Header Files\cameras</Filter>
+    </ClInclude>
+    <ClInclude Include="geometries\Geometry1.h">
+      <Filter>Header Files\geometries</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\GLRenderer.h">
+      <Filter>Header Files\renderers</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\GLUtils.h">
+      <Filter>Header Files\renderers</Filter>
+    </ClInclude>
+    <ClInclude Include="models\SimpleModel.h">
+      <Filter>Header Files\models</Filter>
+    </ClInclude>
+    <ClInclude Include="materials\Material.h">
+      <Filter>Header Files\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="materials\MeshStandardMaterial.h">
+      <Filter>Header Files\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\Utils.h">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\Image.h">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

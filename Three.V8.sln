@@ -1,0 +1,42 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.32228.343
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ThreeEngine", "ThreeEngine\ThreeEngine.vcxproj", "{030C6452-10BF-48A4-B80F-0D4A996B83AE}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Three.V8", "Three.V8\Three.V8.vcxproj", "{CCBE3960-DAD2-49AF-952F-A8A86D75F190}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Three.V8.CLR", "Three.V8.CLR\Three.V8.CLR.vcxproj", "{8ACCB6BD-C7B1-4A80-91D5-53CF222B716A}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Test.Cpp", "Test.Cpp\Test.Cpp.vcxproj", "{3F00C726-809A-4269-9281-33B6AACE99F9}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Test.V8", "Test.V8\Test.V8.vcxproj", "{67D5CD91-A728-4719-8E9C-8610CF661CEB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GamePlayer", "GamePlayer\GamePlayer.csproj", "{3765E14C-74FC-463A-A843-D5B67FE8A7C2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{030C6452-10BF-48A4-B80F-0D4A996B83AE}.Release|x64.ActiveCfg = Release|x64
+		{030C6452-10BF-48A4-B80F-0D4A996B83AE}.Release|x64.Build.0 = Release|x64
+		{CCBE3960-DAD2-49AF-952F-A8A86D75F190}.Release|x64.ActiveCfg = Release|x64
+		{CCBE3960-DAD2-49AF-952F-A8A86D75F190}.Release|x64.Build.0 = Release|x64
+		{8ACCB6BD-C7B1-4A80-91D5-53CF222B716A}.Release|x64.ActiveCfg = Release|x64
+		{8ACCB6BD-C7B1-4A80-91D5-53CF222B716A}.Release|x64.Build.0 = Release|x64
+		{3F00C726-809A-4269-9281-33B6AACE99F9}.Release|x64.ActiveCfg = Release|x64
+		{3F00C726-809A-4269-9281-33B6AACE99F9}.Release|x64.Build.0 = Release|x64
+		{67D5CD91-A728-4719-8E9C-8610CF661CEB}.Release|x64.ActiveCfg = Release|x64
+		{67D5CD91-A728-4719-8E9C-8610CF661CEB}.Release|x64.Build.0 = Release|x64
+		{3765E14C-74FC-463A-A843-D5B67FE8A7C2}.Release|x64.ActiveCfg = Release|Any CPU
+		{3765E14C-74FC-463A-A843-D5B67FE8A7C2}.Release|x64.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {EF9C4E5C-1E72-4057-82BC-33B46A21617A}
+	EndGlobalSection
+EndGlobal
