@@ -31,7 +31,7 @@ Building is straightforward using Visual Studio 2019. Just make sure to resolve 
 
 Run the executable "GamePlayer\bin\Release\GamePlayer.exe":
 
-![screenshot.png](docs\screenshot.png)
+![screenshot.png](docs/screenshot.png)
 
 The script "../../../game/bundle.js" is loaded by default. You can load your own script by clicking the button "Load Script".
 
