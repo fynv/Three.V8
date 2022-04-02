@@ -13,11 +13,12 @@ namespace GamePlayer
         private CV8VM v8vm;
         private CGLControl glControl = null;
         private CGamePlayer game_player = null;
+        private string default_script = "../../../game/bundle.js";
 
         private void glControl_Load(object sender, System.EventArgs e)
         {
             game_player = new CGamePlayer(v8vm, glControl.Width, glControl.Height);
-            game_player.LoadScript("../../../game/bundle.js");
+            game_player.LoadScript(default_script);
         }
 
         public MainWindow(CV8VM v8vm)

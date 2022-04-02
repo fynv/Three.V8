@@ -2424,7 +2424,7 @@ function init(width, height)
     //box.setColor(0.8, 0.4, 0.4);
     {
         let img = new Image();
-        img.loadFile("assets/uv-test-bw.png");        
+        img.loadFile("assets/textures/uv-test-bw.png");        
         box.setColorTexture(img);
         img.dispose();
     }
@@ -2437,7 +2437,7 @@ function init(width, height)
     //sphere.setColor(0.4, 0.8, 0.4);
     {
         let img = new Image();
-        img.loadFile("assets/uv-test-col.png");        
+        img.loadFile("assets/textures/uv-test-col.png");        
         sphere.setColorTexture(img);
         img.dispose();
     }
