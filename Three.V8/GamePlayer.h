@@ -8,8 +8,16 @@ public:
 	GamePlayer(V8VM* v8vm, int width, int height);
 	~GamePlayer();
 
+	int width() const { return m_width; }
+	int height() const { return m_height; }
+
 	void Draw(int width, int height);
 	void LoadScript(const char* dir, const char* filename);
+
+	void OnMouseDown(int button, int clicks, int delta, int x, int y);
+	void OnMouseUp(int button, int clicks, int delta, int x, int y);
+	void OnMouseMove(int button, int clicks, int delta, int x, int y);
+	void OnMouseWheel(int button, int clicks, int delta, int x, int y);
 
 private:
 	int m_width = -1;
@@ -21,7 +29,6 @@ private:
 
 	V8VM* m_v8vm;
 	std::unique_ptr<GameContext> m_context;
-	v8::Function* m_callback_render = nullptr;
 
 	void _unloadScript();
 };

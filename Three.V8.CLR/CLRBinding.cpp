@@ -207,4 +207,24 @@ namespace CLRBinding
 		const char* cname = (const char*)(void*)Marshal::StringToHGlobalAnsi(name);
 		m_native->LoadScript(cpath, cname);
 	}
+
+	void CGamePlayer::OnMouseDown(MouseEventArgs e)
+	{
+		m_native->OnMouseDown(e.button, e.clicks, e.delta, e.x, e.y);
+	}
+
+	void CGamePlayer::OnMouseUp(MouseEventArgs e)
+	{
+		m_native->OnMouseUp(e.button, e.clicks, e.delta, e.x, e.y);
+	}
+
+	void CGamePlayer::OnMouseMove(MouseEventArgs e)
+	{
+		m_native->OnMouseMove(e.button, e.clicks, e.delta, e.x, e.y);
+	}
+
+	void CGamePlayer::OnMouseWheel(MouseEventArgs e)
+	{
+		m_native->OnMouseWheel(e.button, e.clicks, e.delta, e.x, e.y);
+	}
 }

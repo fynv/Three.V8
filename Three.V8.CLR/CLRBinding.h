@@ -68,6 +68,15 @@ namespace CLRBinding
 		bool m_finalized = false;
 	};
 
+	public value struct MouseEventArgs
+	{
+		int button;
+		int clicks;
+		int delta;
+		int x;
+		int y;
+	};
+
 	public ref class CGamePlayer
 	{
 	public:
@@ -84,6 +93,12 @@ namespace CLRBinding
 
 		void Draw(int width, int height);
 		void LoadScript(String^ fullpath);
+
+		void OnMouseDown(MouseEventArgs e);
+		void OnMouseUp(MouseEventArgs e);
+		void OnMouseMove(MouseEventArgs e);
+		void OnMouseWheel(MouseEventArgs e);
+
 
 	private:
 		GamePlayer* m_native = nullptr;

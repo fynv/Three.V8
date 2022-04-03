@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Windows;
-using CLRBinding;
 using Microsoft.Win32;
+using CLRBinding;
 
 namespace GamePlayer
 {
@@ -30,6 +30,10 @@ namespace GamePlayer
             glControl.Load += glControl_Load;
             glControl.Paint += GLControl_Paint;
             glControl.Dock = System.Windows.Forms.DockStyle.Fill;
+            glControl.MouseDown += GLControl_MouseDown;
+            glControl.MouseUp += GLControl_MouseUp;
+            glControl.MouseMove += GLControl_MouseMove;
+            glControl.MouseWheel += GLControl_MouseWheel;
             wf_host.Child = glControl;
         }
 
@@ -54,6 +58,63 @@ namespace GamePlayer
             {
                 game_player.LoadScript(openFileDialog.FileName);
             }
+        }
+
+        private MouseEventArgs convert_args(System.Windows.Forms.MouseEventArgs e)
+        {
+            int button = -1;
+            if (e.Button == System.Windows.Forms.MouseButtons.Left)
+            {
+                button = 0;
+            }
+            else if (e.Button == System.Windows.Forms.MouseButtons.Middle)
+            {
+                button = 1;
+            }
+            else if (e.Button == System.Windows.Forms.MouseButtons.Right)
+            {
+                button = 2;
+            }
+            else if (e.Button == System.Windows.Forms.MouseButtons.XButton1)
+            {
+                button = 3;
+            }
+            else if (e.Button == System.Windows.Forms.MouseButtons.XButton2)
+            {
+                button = 4;
+            }
+
+            MouseEventArgs args;
+            args.button = button;
+            args.clicks = e.Clicks;
+            args.delta = e.Delta;
+            args.x = e.X;
+            args.y = e.Y;
+            return args;
+        }
+
+        private void GLControl_MouseDown(object sender, System.Windows.Forms.MouseEventArgs e)
+        {
+            if (game_player == null) return;
+            game_player.OnMouseDown(convert_args(e));
+        }
+
+        private void GLControl_MouseUp(object sender, System.Windows.Forms.MouseEventArgs e)
+        {
+            if (game_player == null) return;
+            game_player.OnMouseUp(convert_args(e));
+        }
+
+        private void GLControl_MouseMove(object sender, System.Windows.Forms.MouseEventArgs e)
+        {
+            if (game_player == null) return;
+            game_player.OnMouseMove(convert_args(e));
+        }
+
+        private void GLControl_MouseWheel(object sender, System.Windows.Forms.MouseEventArgs e)
+        {
+            if (game_player == null) return;
+            game_player.OnMouseWheel(convert_args(e));
         }
     }
 }

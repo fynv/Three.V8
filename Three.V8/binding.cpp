@@ -33,17 +33,6 @@ void V8VM::RunVM(void (*callback)(void*), void* data)
 	callback(data);
 }
 
-GameContext::GameContext(V8VM* vm, const char* filename): m_vm(vm)
-{
-	_create_context();
-	v8::Context::Scope context_scope(m_context);
-	_run_script(filename);
-}
-
-GameContext::~GameContext()
-{
-
-}
 
 #include "core/Object3D.hpp"
 #include "cameras/Camera.hpp"
@@ -54,31 +43,72 @@ GameContext::~GameContext()
 #include "models/SimpleModel.hpp"
 #include "utils/Image.hpp"
 
-void GameContext::_create_context()
+
+GlobalDefinitions GameContext::s_globals =
+{
+	{
+		{"print", GameContext::Print},
+		{"setCallback", GameContext::SetCallback},
+		{"now", GameContext::Now},
+	},
+	{
+		{ "Object3D", WrapperObject3D::New,  WrapperObject3D::create_template },
+		{ "Camera", WrapperCamera::New,  WrapperCamera::create_template },
+		{ "PerspectiveCamera", WrapperPerspectiveCamera::New,  WrapperPerspectiveCamera::create_template },
+		{ "ColorBackground", WrapperColorBackground::New,  WrapperColorBackground::create_template },
+		{ "Scene", WrapperScene::New,  WrapperScene::create_template },
+		{ "GLRenderer", WrapperGLRenderer::New,  WrapperGLRenderer::create_template },
+		{ "SimpleModel", WrapperSimpleModel::New,  WrapperSimpleModel::create_template },
+		{ "Image", WrapperImage::New,  WrapperImage::create_template }
+	}
+};
+
+GameContext::GameContext(V8VM* vm, const std::vector<GlobalObjectWrapper>& global_objs, const char* filename): m_vm(vm)
+{
+	_create_context(global_objs);
+	v8::Context::Scope context_scope(m_context.Get(m_vm->m_isolate));
+	_run_script(filename);
+}
+
+GameContext::~GameContext()
+{
+
+}
+
+void GameContext::_create_context(const std::vector<GlobalObjectWrapper>& global_objs)
 {
 	v8::Isolate* isolate = m_vm->m_isolate;
-	v8::EscapableHandleScope handle_scope(isolate);
+	v8::HandleScope handle_scope(isolate);
 
 	v8::Local<v8::ObjectTemplate> global_tmpl = v8::ObjectTemplate::New(isolate);
-	global_tmpl->SetInternalFieldCount(1);
-	global_tmpl->Set(isolate, "print", v8::FunctionTemplate::New(isolate, Print));
-	global_tmpl->Set(isolate, "setCallback", v8::FunctionTemplate::New(isolate, SetCallback));
-	global_tmpl->Set(isolate, "now", v8::FunctionTemplate::New(isolate, Now));
+	global_tmpl->SetInternalFieldCount(1);	
 
-	global_tmpl->Set(isolate, "Object3D", WrapperObject3D::create_template(isolate));
-	global_tmpl->Set(isolate, "Camera", WrapperCamera::create_template(isolate));
-	global_tmpl->Set(isolate, "PerspectiveCamera", WrapperPerspectiveCamera::create_template(isolate));
-	global_tmpl->Set(isolate, "ColorBackground", WrapperColorBackground::create_template(isolate));
-	global_tmpl->Set(isolate, "Scene", WrapperScene::create_template(isolate));
-	global_tmpl->Set(isolate, "GLRenderer", WrapperGLRenderer::create_template(isolate));
-	global_tmpl->Set(isolate, "SimpleModel", WrapperSimpleModel::create_template(isolate));
-	global_tmpl->Set(isolate, "Image", WrapperImage::create_template(isolate));
+	for (size_t i = 0; i < s_globals.funcs.size(); i++)
+	{
+		const FunctionDefinition& func = s_globals.funcs[i];
+		global_tmpl->Set(isolate, func.name.c_str(), v8::FunctionTemplate::New(isolate, func.func));
+	}
 
+	for (size_t i = 0; i < s_globals.classes.size(); i++)
+	{
+		const ClassDefinition& cls = s_globals.classes[i];
+		global_tmpl->Set(isolate, cls.name.c_str(), cls.creator(isolate, cls.constructor));
+	}
+	
 	v8::Local<v8::Context> context = v8::Context::New(isolate, NULL, global_tmpl);
 	v8::Local<v8::Object> global_obj = context->Global();
 	global_obj->SetInternalField(0, v8::External::New(isolate, this));
 
-	m_context = handle_scope.Escape(context);
+	for (size_t i = 0; i < global_objs.size(); i++)
+	{
+		const GlobalObjectWrapper& wobj = global_objs[i];
+		v8::Local<v8::ObjectTemplate> templ = wobj.creator(isolate);
+		v8::Local<v8::Object> obj = templ->NewInstance(context).ToLocalChecked();
+		obj->SetInternalField(0, v8::External::New(isolate, wobj.ptr));
+		global_obj->Set(context, v8::String::NewFromUtf8(isolate, wobj.name.c_str()).ToLocalChecked(), obj);
+	}
+
+	m_context = ContextT(isolate, context);
 }
 
 // Extracts a C string from a V8 Utf8Value.

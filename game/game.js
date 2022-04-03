@@ -1,6 +1,8 @@
 import { Vector3 } from "./math/Vector3.js";
 import { Matrix4 } from "./math/Matrix4.js";
 import { Clock } from "./utils/Clock.js";
+import { EventDispatcher } from "./controls/EventDispatcher.js";
+import { OrbitControls } from "./controls/OrbitControls.js";
 
 /*const getCircularReplacer = () => {
   const seen = new WeakSet();
@@ -15,9 +17,19 @@ import { Clock } from "./utils/Clock.js";
   };
 };*/
 
-let renderer, scene, camera, bg, box, sphere, clock;
+class View extends EventDispatcher{
+    constructor(width, height) {
+        super();
+        this.clientWidth = width;
+        this.clientHeight = height;
+    }
+}
+
+let view, renderer, scene, camera, bg, box, sphere, clock, controls;
 
 function init(width, height) {
+    view = new View(width, height);
+
     renderer = new GLRenderer();
     camera = new PerspectiveCamera(45.0, width / height, 0.1, 100.0);
     camera.setPosition(0.0, 0.0, 7.0);
@@ -57,6 +69,10 @@ function init(width, height) {
     scene.add(sphere);
 
     clock = new Clock();
+
+    /*controls = new OrbitControls(camera, view);
+    controls.enableDamping = true;*/
+
 }
 
 function dispose() {
@@ -71,15 +87,57 @@ const rotation = new Matrix4();
 
 function render(width, height, size_changed) {
     if (size_changed) {
+        view.clientWidth = width;
+        view.clientHeight = height;
         camera.aspect = width / height;
         camera.updateProjectionMatrix();
     }
     let delta = clock.getDelta();
-    rotation.makeRotationAxis(axis, delta * 0.5);
-    camera.applyMatrix4(rotation);
+    /*rotation.makeRotationAxis(axis, delta * 0.5);
+    camera.applyMatrix4(rotation);*/
+
+    /*if (controls.hasOwnProperty('update'))
+    {
+        controls.update();
+    }*/
     renderer.render(width, height, scene, camera);
 }
 
 setCallback('init', init);
 setCallback('dispose', dispose);
 setCallback('render', render);
+
+function makeMouseEvent(e, type)
+{
+    let event = {
+        type: type,
+    };
+
+    return event;
+}
+
+function OnMouseDown(e) {
+    let event = makeMouseEvent(e, "pointerdown");
+    view.dispatchEvent(event);
+}
+
+function OnMouseUp(e) {
+    let event = makeMouseEvent(e, "pointerup");
+    view.dispatchEvent(event);
+}
+
+function OnMouseMove(e) {
+    let event = makeMouseEvent(e, "pointermove");
+    view.dispatchEvent(event);
+}
+
+function OnMouseWheel(e) {
+    let event = makeMouseEvent(e, "wheel");
+    view.dispatchEvent(event);
+}
+
+setCallback('OnMouseDown', OnMouseDown);
+setCallback('OnMouseUp', OnMouseUp);
+setCallback('OnMouseMove', OnMouseMove);
+setCallback('OnMouseWheel', OnMouseWheel);
+

@@ -2388,6 +2388,90 @@ class Clock {
 
 }
 
+/**
+ * https://github.com/mrdoob/eventdispatcher.js/
+ */
+
+class EventDispatcher {
+
+	addEventListener( type, listener ) {
+
+		if ( this._listeners === undefined ) this._listeners = {};
+
+		const listeners = this._listeners;
+
+		if ( listeners[ type ] === undefined ) {
+
+			listeners[ type ] = [];
+
+		}
+
+		if ( listeners[ type ].indexOf( listener ) === - 1 ) {
+
+			listeners[ type ].push( listener );
+
+		}
+
+	}
+
+	hasEventListener( type, listener ) {
+
+		if ( this._listeners === undefined ) return false;
+
+		const listeners = this._listeners;
+
+		return listeners[ type ] !== undefined && listeners[ type ].indexOf( listener ) !== - 1;
+
+	}
+
+	removeEventListener( type, listener ) {
+
+		if ( this._listeners === undefined ) return;
+
+		const listeners = this._listeners;
+		const listenerArray = listeners[ type ];
+
+		if ( listenerArray !== undefined ) {
+
+			const index = listenerArray.indexOf( listener );
+
+			if ( index !== - 1 ) {
+
+				listenerArray.splice( index, 1 );
+
+			}
+
+		}
+
+	}
+
+	dispatchEvent( event ) {
+		if ( this._listeners === undefined ) return;
+
+		const listeners = this._listeners;
+		const listenerArray = listeners[event.type];		
+
+		if ( listenerArray !== undefined ) {
+
+			event.target = this;
+
+			// Make a copy, in case listeners are removed while iterating.
+			const array = listenerArray.slice( 0 );
+
+			for ( let i = 0, l = array.length; i < l; i ++ ) {
+
+				array[ i ].call( this, event );
+
+			}
+
+			event.target = null;
+
+		}
+
+	}
+
+}
+
 /*const getCircularReplacer = () => {
   const seen = new WeakSet();
   return (key, value) => {
@@ -2401,9 +2485,19 @@ class Clock {
   };
 };*/
 
-let renderer, scene, camera, bg, box, sphere, clock;
+class View extends EventDispatcher{
+    constructor(width, height) {
+        super();
+        this.clientWidth = width;
+        this.clientHeight = height;
+    }
+}
+
+let view, renderer, scene, camera, bg, box, sphere, clock;
 
 function init(width, height) {
+    view = new View(width, height);
+
     renderer = new GLRenderer();
     camera = new PerspectiveCamera(45.0, width / height, 0.1, 100.0);
     camera.setPosition(0.0, 0.0, 7.0);
@@ -2443,6 +2537,10 @@ function init(width, height) {
     scene.add(sphere);
 
     clock = new Clock();
+
+    /*controls = new OrbitControls(camera, view);
+    controls.enableDamping = true;*/
+
 }
 
 function dispose() {
@@ -2452,20 +2550,61 @@ function dispose() {
     renderer.dispose();
 }
 
-const axis = new Vector3(0, 1, 0);
-const rotation = new Matrix4();
+new Vector3(0, 1, 0);
+new Matrix4();
 
 function render(width, height, size_changed) {
     if (size_changed) {
+        view.clientWidth = width;
+        view.clientHeight = height;
         camera.aspect = width / height;
         camera.updateProjectionMatrix();
     }
-    let delta = clock.getDelta();
-    rotation.makeRotationAxis(axis, delta * 0.5);
-    camera.applyMatrix4(rotation);
+    clock.getDelta();
+    /*rotation.makeRotationAxis(axis, delta * 0.5);
+    camera.applyMatrix4(rotation);*/
+
+    /*if (controls.hasOwnProperty('update'))
+    {
+        controls.update();
+    }*/
     renderer.render(width, height, scene, camera);
 }
 
 setCallback('init', init);
 setCallback('dispose', dispose);
 setCallback('render', render);
+
+function makeMouseEvent(e, type)
+{
+    let event = {
+        type: type,
+    };
+
+    return event;
+}
+
+function OnMouseDown(e) {
+    let event = makeMouseEvent(e, "pointerdown");
+    view.dispatchEvent(event);
+}
+
+function OnMouseUp(e) {
+    let event = makeMouseEvent(e, "pointerup");
+    view.dispatchEvent(event);
+}
+
+function OnMouseMove(e) {
+    let event = makeMouseEvent(e, "pointermove");
+    view.dispatchEvent(event);
+}
+
+function OnMouseWheel(e) {
+    let event = makeMouseEvent(e, "wheel");
+    view.dispatchEvent(event);
+}
+
+setCallback('OnMouseDown', OnMouseDown);
+setCallback('OnMouseUp', OnMouseUp);
+setCallback('OnMouseMove', OnMouseMove);
+setCallback('OnMouseWheel', OnMouseWheel);
