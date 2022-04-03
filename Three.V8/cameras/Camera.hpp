@@ -38,7 +38,6 @@ void WrapperCamera::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	Camera* self = new Camera();
 	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));
-	WrapperObject3D::Init(info.GetIsolate(), info.This());
 }
 
 

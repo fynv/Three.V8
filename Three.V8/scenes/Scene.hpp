@@ -28,7 +28,6 @@ void WrapperScene::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	Scene* self = new Scene();
 	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));
-	WrapperObject3D::Init(info.GetIsolate(), info.This());
 }
 
 void WrapperScene::GetBackground(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)

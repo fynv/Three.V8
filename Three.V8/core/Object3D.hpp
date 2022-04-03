@@ -8,7 +8,6 @@ class WrapperObject3D
 public:	
 	static v8::Local<v8::FunctionTemplate> create_template(v8::Isolate* isolate, v8::FunctionCallback constructor = New);
 	static void New(const v8::FunctionCallbackInfo<v8::Value>& info);
-	static void Init(v8::Isolate* isolate, v8::Local<v8::Object> holder);
 
 private:	
 	static void Dispose(const v8::FunctionCallbackInfo<v8::Value>& info);
@@ -142,19 +141,10 @@ v8::Local<v8::FunctionTemplate> WrapperObject3D::create_template(v8::Isolate* is
 	return templ;
 }
 
-void WrapperObject3D::Init(v8::Isolate* isolate, v8::Local<v8::Object> holder)
-{
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Array> arr = v8::Array::New(isolate);
-	holder->Set(context, v8::String::NewFromUtf8(isolate, "_children").ToLocalChecked(), arr);
-}
-
 void WrapperObject3D::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	Object3D* self = new Object3D();
 	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));
-	Init(info.GetIsolate(), info.This());
 }
 
 void WrapperObject3D::Dispose(const v8::FunctionCallbackInfo<v8::Value>& info)
@@ -214,7 +204,16 @@ void WrapperObject3D::GetChildren(v8::Local<v8::String> property, const v8::Prop
 	v8::HandleScope handle_scope(isolate);
 	v8::Local<v8::Context> context = isolate->GetCurrentContext();
 	v8::Local<v8::Object> holder = info.Holder();
-	v8::Local<v8::Value> children = holder->Get(context, v8::String::NewFromUtf8(isolate, "_children").ToLocalChecked()).ToLocalChecked();
+	v8::Local<v8::Value> children;
+	if (holder->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "_children").ToLocalChecked()).ToChecked())
+	{
+		children = holder->Get(context, v8::String::NewFromUtf8(isolate, "_children").ToLocalChecked()).ToLocalChecked();
+	}
+	else
+	{
+		children = v8::Array::New(isolate);
+		holder->Set(context, v8::String::NewFromUtf8(isolate, "_children").ToLocalChecked(), children);
+	}
 	info.GetReturnValue().Set(children);
 }
 
@@ -689,7 +688,7 @@ void WrapperObject3D::Add(const v8::FunctionCallbackInfo<v8::Value>& info)
 	}
 
 	holder_object->Set(context, v8::String::NewFromUtf8(isolate, "_parent").ToLocalChecked(), holder);
-	v8::Local<v8::Array> children = holder->Get(context, v8::String::NewFromUtf8(isolate, "_children").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
+	v8::Local<v8::Array> children = holder->Get(context, v8::String::NewFromUtf8(isolate, "children").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
 	children->Set(context, children->Length(), holder_object);
 
 	info.GetReturnValue().Set(holder);
@@ -708,7 +707,7 @@ void WrapperObject3D::Remove(const v8::FunctionCallbackInfo<v8::Value>& info)
 
 	self->remove(object);
 
-	v8::Local<v8::Array> children = holder->Get(context, v8::String::NewFromUtf8(isolate, "_children").ToLocalChecked()).ToLocalChecked().As<v8::Array>();	
+	v8::Local<v8::Array> children = holder->Get(context, v8::String::NewFromUtf8(isolate, "children").ToLocalChecked()).ToLocalChecked().As<v8::Array>();	
 
 	for (unsigned i = 0; i < children->Length(); i++)
 	{
@@ -757,7 +756,7 @@ void WrapperObject3D::Clear(const v8::FunctionCallbackInfo<v8::Value>& info)
 	Object3D* self = (Object3D*)v8::Local<v8::External>::Cast(holder->GetInternalField(0))->Value();
 	self->clear();
 
-	v8::Local<v8::Array> children = holder->Get(context, v8::String::NewFromUtf8(isolate, "_children").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
+	v8::Local<v8::Array> children = holder->Get(context, v8::String::NewFromUtf8(isolate, "children").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
 
 	for (unsigned i = 0; i < children->Length(); i++)
 	{
@@ -796,7 +795,7 @@ void WrapperObject3D::GetObjectByName(const v8::FunctionCallbackInfo<v8::Value>&
 		return;
 	}
 
-	v8::Local<v8::Array> children = holder->Get(context, v8::String::NewFromUtf8(isolate, "_children").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
+	v8::Local<v8::Array> children = holder->Get(context, v8::String::NewFromUtf8(isolate, "children").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
 	for (unsigned i = 0; i < children->Length(); i++)
 	{
 		v8::Local<v8::Object> obj_i = children->Get(context, i).ToLocalChecked().As<v8::Object>();
@@ -828,7 +827,7 @@ void WrapperObject3D::Traverse(const v8::FunctionCallbackInfo<v8::Value>& info)
 	args[0] = holder;
 	callback->Call(context, context->Global(), 1, args);
 
-	v8::Local<v8::Array> children = holder->Get(context, v8::String::NewFromUtf8(isolate, "_children").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
+	v8::Local<v8::Array> children = holder->Get(context, v8::String::NewFromUtf8(isolate, "children").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
 	for (unsigned i = 0; i < children->Length(); i++)
 	{
 		v8::Local<v8::Object> obj_i = children->Get(context, i).ToLocalChecked().As<v8::Object>();
