@@ -67,9 +67,6 @@
     <Filter Include="Source Files\utils">
       <UniqueIdentifier>{fb865a54-2efe-4ae8-b1ea-e30dfa26c823}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\thirdparty">
-      <UniqueIdentifier>{f4cfb443-45ea-4ab5-8ad6-ef331b989e92}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="scenes\Scene.cpp">
@@ -107,9 +104,6 @@
     </ClCompile>
     <ClCompile Include="utils\Image.cpp">
       <Filter>Source Files\utils</Filter>
-    </ClCompile>
-    <ClCompile Include="..\thirdparty\glew\glew.c">
-      <Filter>Source Files\thirdparty</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
