@@ -146,14 +146,13 @@ namespace CLRBinding
 
 	static void s_vm_callback(void* ptr)
 	{
-		VMCallbackData* data = (VMCallbackData*)ptr;
-		VMCallback^ callback;
+		VMCallbackData* data = (VMCallbackData*)ptr;	
+
 		GCHandle handle_callback = GCHandle::FromIntPtr((IntPtr)data->p_delegate);
-		callback = (VMCallback^)handle_callback.Target;
+		VMCallback^ callback = (VMCallback^)handle_callback.Target;		
 		
-		Object^ callback_data;
 		GCHandle handle_data = GCHandle::FromIntPtr((IntPtr)data->data);
-		callback_data = (Object^)handle_data.Target;
+		Object^ callback_data = (Object^)handle_data.Target;
 		
 		callback(callback_data);
 	}
@@ -184,13 +183,38 @@ namespace CLRBinding
 		handle_callback.Free();
 	}
 
-	CGamePlayer::CGamePlayer(CV8VM^ v8vm, int width, int height)
+	static void SetMouseCapture(void* pwin)
 	{
-		m_native = new GamePlayer(v8vm->native(), width, height);
+		GCHandle handle_win = GCHandle::FromIntPtr((IntPtr)pwin);
+		Control^ win = (Control^)handle_win.Target;
+		win->Capture = true;
+	}
+
+	static void ReleaseMouseCapture(void* pwin)
+	{
+		GCHandle handle_win = GCHandle::FromIntPtr((IntPtr)pwin);
+		Control^ win = (Control^)handle_win.Target;
+		win->Capture = false;
+	}
+
+	CGamePlayer::CGamePlayer(CV8VM^ v8vm, Control^ window)
+	{
+		m_native = new GamePlayer(v8vm->native(), window->Width, window->Height);
+
+		m_handle_win = GCHandle::Alloc(window, GCHandleType::Normal);
+		WindowCalls wincalls;
+		wincalls.window = (void*)GCHandle::ToIntPtr(m_handle_win);
+		wincalls.SetMouseCapture = SetMouseCapture;
+		wincalls.ReleaseMouseCapture = ReleaseMouseCapture;
+		m_native->SetWindowCalls(wincalls);
 	}
 
 	CGamePlayer::!CGamePlayer()
 	{
+		if (m_handle_win.IsAllocated)
+		{
+			m_handle_win.Free();
+		}
 		delete m_native;
 	}
 
@@ -227,4 +251,5 @@ namespace CLRBinding
 	{
 		m_native->OnMouseWheel(e.button, e.clicks, e.delta, e.x, e.y);
 	}
+
 }

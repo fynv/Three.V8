@@ -17,13 +17,22 @@ import { OrbitControls } from "./controls/OrbitControls.js";
   };
 };*/
 
-class View extends EventDispatcher{
-    get clientWidth()
-    {
+class View extends EventDispatcher {
+
+    get clientWidth() {
         return gamePlayer.width;
     }
+
     get clientHeight() {
         return gamePlayer.height;
+    }
+
+    setPointerCapture() {
+        gamePlayer.setMouseCapture();
+    }
+
+    releasePointerCapture() {
+        gamePlayer.releaseMouseCapture();
     }
 }
 
@@ -72,8 +81,8 @@ function init(width, height) {
 
     clock = new Clock();
 
-    /*controls = new OrbitControls(camera, view);
-    controls.enableDamping = true;*/
+    controls = new OrbitControls(camera, view);
+    controls.enableDamping = true;
 
 }
 
@@ -96,10 +105,10 @@ function render(width, height, size_changed) {
     /*rotation.makeRotationAxis(axis, delta * 0.5);
     camera.applyMatrix4(rotation);*/
 
-    /*if (controls.hasOwnProperty('update'))
+    if (controls.hasOwnProperty('update'))
     {
         controls.update();
-    }*/
+    }
     renderer.render(width, height, scene, camera);
 }
 
@@ -111,6 +120,11 @@ function makeMouseEvent(e, type)
 {
     let event = {
         type: type,
+        pointerId: 0,
+        clientX: e.x,
+        clientY: e.y,
+        deltaY: e.delta,
+        button: e.button
     };
 
     return event;

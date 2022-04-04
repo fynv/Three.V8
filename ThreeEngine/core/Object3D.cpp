@@ -182,6 +182,18 @@ glm::vec3 Object3D::worldToLocal(const glm::vec3& vector) const
 	return glm::inverse(matrixWorld) * glm::vec4(vector, 1.0f);
 }
 
+void Object3D::lookAt(const glm::vec3& target)
+{
+	this->updateWorldMatrix(true, false);
+	glm::vec3 position = this->matrixWorld[3];
+	glm::mat4 m1 = glm::inverse(glm::lookAt(target, position, this->up));
+	this->set_quaternion(m1);
+	if (this->parent != nullptr)
+	{
+		glm::quat q = parent->matrixWorld;
+		this->set_quaternion(q * this->quaternion);
+	}
+}
 
 Object3D& Object3D::add(Object3D* object)
 {

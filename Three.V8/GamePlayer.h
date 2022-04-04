@@ -2,6 +2,13 @@
 
 #include "binding.h"
 
+struct WindowCalls
+{
+	void* window = nullptr;
+	void (*SetMouseCapture)(void* window) = nullptr;
+	void (*ReleaseMouseCapture)(void* window) = nullptr;
+};
+
 class GamePlayer
 {
 public:
@@ -17,7 +24,15 @@ public:
 	void OnMouseDown(int button, int clicks, int delta, int x, int y);
 	void OnMouseUp(int button, int clicks, int delta, int x, int y);
 	void OnMouseMove(int button, int clicks, int delta, int x, int y);
-	void OnMouseWheel(int button, int clicks, int delta, int x, int y);
+	void OnMouseWheel(int button, int clicks, int delta, int x, int y);	
+
+	// window calls
+	void SetWindowCalls(const WindowCalls& windowCalls)
+	{
+		m_windowCalls = windowCalls;
+	}
+	void SetMouseCapture();
+	void ReleaseMouseCapture();
 
 private:
 	int m_width = -1;
@@ -31,5 +46,8 @@ private:
 	std::unique_ptr<GameContext> m_context;
 
 	void _unloadScript();
+
+	WindowCalls m_windowCalls;
+	
 };
 

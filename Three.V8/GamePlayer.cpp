@@ -190,3 +190,19 @@ void GamePlayer::OnMouseWheel(int button, int clicks, int delta, int x, int y)
 		}
 	}
 }
+
+void GamePlayer::SetMouseCapture()
+{
+	if (m_windowCalls.window != nullptr && m_windowCalls.SetMouseCapture != nullptr)
+	{
+		m_windowCalls.SetMouseCapture(m_windowCalls.window);
+	}
+}
+
+void GamePlayer::ReleaseMouseCapture()
+{
+	if (m_windowCalls.window != nullptr && m_windowCalls.ReleaseMouseCapture != nullptr)
+	{
+		m_windowCalls.ReleaseMouseCapture(m_windowCalls.window);
+	}
+}

@@ -11,10 +11,16 @@ public:
 
 	void GetSize(int& width, int& height);
 
-	void MainLoop();
-	void SetPaintCallback(void(*paint)(int, int, void*), void* userData);
+	void MainLoop();	
 	void SetFramerate(float fps);
 	void PostAction(void(*act)(void*), void* userData);
+
+protected:
+	virtual void paint(int width, int height) {}
+	virtual void mouseDown(int button, int clicks, int delta, int x, int y) {}
+	virtual void mouseUp(int button, int clicks, int delta, int x, int y) {}
+	virtual void mouseMove(int button, int clicks, int delta, int x, int y) {}
+	virtual void mouseWheel(int button, int clicks, int delta, int x, int y) {} 
 
 private:
 	static GLMain*& from_hwnd(HWND hwnd);
@@ -24,9 +30,6 @@ private:
 	HWND m_hWnd;
 	HDC m_hdc;
 	HGLRC m_hrc;
-
-	void(*m_paint_callback)(int, int, void*) = nullptr;
-	void* m_paint_callback_data = nullptr;
 
 	uint32_t m_interval = 0;
 	uint64_t m_time_scheduled;

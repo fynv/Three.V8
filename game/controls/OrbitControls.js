@@ -4,6 +4,7 @@ import { Quaternion } from "../math/Quaternion.js";
 import { Spherical } from "../math/Spherical.js";
 import { Vector2 } from "../math/Vector2.js";
 import { Vector3 } from "../math/Vector3.js";
+import { Matrix4 } from "../math/Matrix4.js";
 
 
 // This set of controls performs orbiting, dollying (zooming), and panning.
@@ -26,8 +27,7 @@ class OrbitControls extends EventDispatcher {
 		if ( domElement === undefined ) console.warn( 'THREE.OrbitControls: The second parameter "domElement" is now mandatory.' );
 
 		this.object = object;
-		this.domElement = domElement;
-		this.domElement.style.touchAction = 'none'; // disable touch scroll
+		this.domElement = domElement;		
 
 		// Set to false to disable this control
 		this.enabled = true;
@@ -89,8 +89,10 @@ class OrbitControls extends EventDispatcher {
 
 		// for reset
 		this.target0 = this.target.clone();
-		this.position0 = this.object.position.clone();
-		this.zoom0 = this.object.zoom;
+		this.position0 = this.object.getPosition(new Vector3());
+
+		// this.zoom0 = this.object.zoom;
+		this.zoom0 = 1.0;
 
 		// the target DOM element for key events
 		this._domElementKeyEvents = null;
@@ -112,8 +114,8 @@ class OrbitControls extends EventDispatcher {
 		};
 
 		this.getDistance = function () {
-
-			return this.object.position.distanceTo( this.target );
+			let position = this.object.getPosition(new Vector3());
+			return position.distanceTo( this.target );
 
 		};
 
@@ -126,17 +128,21 @@ class OrbitControls extends EventDispatcher {
 
 		this.saveState = function () {
 
-			scope.target0.copy( scope.target );
-			scope.position0.copy( scope.object.position );
-			scope.zoom0 = scope.object.zoom;
+			scope.target0.copy(scope.target);
+			this.object.getPosition(scope.position0);
+
+			// scope.zoom0 = scope.object.zoom;
+			scope.zoom0 = 1.0;
 
 		};
 
 		this.reset = function () {
 
-			scope.target.copy( scope.target0 );
-			scope.object.position.copy( scope.position0 );
-			scope.object.zoom = scope.zoom0;
+			scope.target.copy(scope.target0);
+
+			this.object.getPosition(scope.position0);			
+
+			// scope.object.zoom = scope.zoom0;
 
 			scope.object.updateProjectionMatrix();
 			scope.dispatchEvent( _changeEvent );
@@ -153,7 +159,8 @@ class OrbitControls extends EventDispatcher {
 			const offset = new Vector3();
 
 			// so camera.up is the orbit axis
-			const quat = new Quaternion().setFromUnitVectors( object.up, new Vector3( 0, 1, 0 ) );
+			let camera_up = object.getUp(new Vector3());
+			const quat = new Quaternion().setFromUnitVectors(camera_up, new Vector3(0, 1, 0));
 			const quatInverse = quat.clone().invert();
 
 			const lastPosition = new Vector3();
@@ -163,7 +170,7 @@ class OrbitControls extends EventDispatcher {
 
 			return function update() {
 
-				const position = scope.object.position;
+				const position = scope.object.getPosition(new Vector3());
 
 				offset.copy( position ).sub( scope.target );
 
@@ -244,7 +251,8 @@ class OrbitControls extends EventDispatcher {
 				// rotate offset back to "camera-up-vector-is-up" space
 				offset.applyQuaternion( quatInverse );
 
-				position.copy( scope.target ).add( offset );
+				position.copy(scope.target).add(offset);
+				scope.object.setPosition(position)
 
 				scope.object.lookAt( scope.target );
 
@@ -269,14 +277,16 @@ class OrbitControls extends EventDispatcher {
 				// min(camera displacement, camera rotation in radians)^2 > EPS
 				// using small-angle approximation cos(x/2) = 1 - x^2 / 8
 
+				const quaternion = scope.object.getQuaternion(new Quaternion());
+
 				if ( zoomChanged ||
-					lastPosition.distanceToSquared( scope.object.position ) > EPS ||
-					8 * ( 1 - lastQuaternion.dot( scope.object.quaternion ) ) > EPS ) {
+					lastPosition.distanceToSquared(position) > EPS ||
+					8 * (1 - lastQuaternion.dot(quaternion) ) > EPS ) {
 
 					scope.dispatchEvent( _changeEvent );
 
-					lastPosition.copy( scope.object.position );
-					lastQuaternion.copy( scope.object.quaternion );
+					lastPosition.copy(position );
+					lastQuaternion.copy(quaternion);
 					zoomChanged = false;
 
 					return true;
@@ -405,9 +415,9 @@ class OrbitControls extends EventDispatcher {
 					v.setFromMatrixColumn( objectMatrix, 1 );
 
 				} else {
-
+					let up = scope.object.getUp(new Vector3());
 					v.setFromMatrixColumn( objectMatrix, 0 );
-					v.crossVectors( scope.object.up, v );
+					v.crossVectors(up, v );
 
 				}
 
@@ -431,22 +441,24 @@ class OrbitControls extends EventDispatcher {
 				if ( scope.object.isPerspectiveCamera ) {
 
 					// perspective
-					const position = scope.object.position;
+					const position = scope.object.getPosition(new Vector3());
 					offset.copy( position ).sub( scope.target );
 					let targetDistance = offset.length();
 
 					// half of the fov is center to top of screen
 					targetDistance *= Math.tan( ( scope.object.fov / 2 ) * Math.PI / 180.0 );
 
+					const matrix = scope.object.getMatrix(new Matrix4());
 					// we use only clientHeight here so aspect ratio does not distort speed
-					panLeft( 2 * deltaX * targetDistance / element.clientHeight, scope.object.matrix );
-					panUp( 2 * deltaY * targetDistance / element.clientHeight, scope.object.matrix );
+					panLeft(2 * deltaX * targetDistance / element.clientHeight, matrix );
+					panUp(2 * deltaY * targetDistance / element.clientHeight, matrix );
 
-				} else if ( scope.object.isOrthographicCamera ) {
+				} else if (scope.object.isOrthographicCamera) {
 
+					const matrix = scope.object.getMatrix(new Matrix4());
 					// orthographic
-					panLeft( deltaX * ( scope.object.right - scope.object.left ) / scope.object.zoom / element.clientWidth, scope.object.matrix );
-					panUp( deltaY * ( scope.object.top - scope.object.bottom ) / scope.object.zoom / element.clientHeight, scope.object.matrix );
+					panLeft(deltaX * (scope.object.right - scope.object.left) / scope.object.zoom / element.clientWidth, matrix );
+					panUp(deltaY * (scope.object.top - scope.object.bottom) / scope.object.zoom / element.clientHeight, matrix );
 
 				} else {
 
@@ -625,7 +637,7 @@ class OrbitControls extends EventDispatcher {
 			if ( needsUpdate ) {
 
 				// prevent the browser from scrolling on cursor keys
-				event.preventDefault();
+				// event.preventDefault();
 
 				scope.update();
 
@@ -794,7 +806,7 @@ class OrbitControls extends EventDispatcher {
 
 			if ( pointers.length === 0 ) {
 
-				scope.domElement.setPointerCapture( event.pointerId );
+				scope.domElement.setPointerCapture();
 
 				scope.domElement.addEventListener( 'pointermove', onPointerMove );
 				scope.domElement.addEventListener( 'pointerup', onPointerUp );
@@ -839,7 +851,7 @@ class OrbitControls extends EventDispatcher {
 
 		    if ( pointers.length === 0 ) {
 
-		        scope.domElement.releasePointerCapture( event.pointerId );
+		        scope.domElement.releasePointerCapture();
 
 		        scope.domElement.removeEventListener( 'pointermove', onPointerMove );
 		        scope.domElement.removeEventListener( 'pointerup', onPointerUp );
@@ -993,7 +1005,7 @@ class OrbitControls extends EventDispatcher {
 
 			if ( scope.enabled === false || scope.enableZoom === false || state !== STATE.NONE ) return;
 
-			event.preventDefault();
+			// event.preventDefault();
 
 			scope.dispatchEvent( _startEvent );
 
@@ -1153,7 +1165,7 @@ class OrbitControls extends EventDispatcher {
 
 			if ( scope.enabled === false ) return;
 
-			event.preventDefault();
+			// event.preventDefault();
 
 		}
 

@@ -14,6 +14,8 @@ public:
 	std::string name;
 	Object3D* parent = nullptr;
 	std::vector<Object3D*> children;
+
+	glm::vec3 up = { 0.0f, 1.0f, 0.0f };
 	glm::vec3 position;
 	glm::vec3 rotation;
 	glm::quat quaternion;
@@ -48,6 +50,8 @@ public:
 
 	glm::vec3 localToWorld(const glm::vec3& vector) const;
 	glm::vec3 worldToLocal(const glm::vec3& vector) const;
+
+	virtual void lookAt(const glm::vec3& target);
 
 	Object3D& add(Object3D* object);
 	Object3D& remove(Object3D* object);

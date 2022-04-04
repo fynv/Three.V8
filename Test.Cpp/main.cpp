@@ -13,7 +13,6 @@ public:
 		glewInit();
 		m_game = std::unique_ptr<Game>(new Game(width, height));
 		this->SetFramerate(60.0f);
-		this->SetPaintCallback(s_paint, this);
 	}
 
 	~AppMain()
@@ -26,13 +25,13 @@ public:
 	{
 		GLMain::MainLoop();
 	}
-
-private:
-	static void s_paint(int width, int height, void* ptr)
+protected:
+	virtual void paint(int width, int height) override
 	{
-		AppMain* self = (AppMain*)ptr;
-		self->m_game->Draw(width, height);
+		m_game->Draw(width, height);
 	}
+
+private:	
 	std::unique_ptr<Game> m_game;
 };
 

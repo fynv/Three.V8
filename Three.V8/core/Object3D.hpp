@@ -19,6 +19,10 @@ private:
 	static void SetParent(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
 	static void GetChildren(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 
+	static void GetUp(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void GetUp(const v8::FunctionCallbackInfo<v8::Value>& info);
+	static void SetUp(const v8::FunctionCallbackInfo<v8::Value>& info);
+
 	static void GetPosition(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void GetPosition(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void SetPosition(const v8::FunctionCallbackInfo<v8::Value>& info);
@@ -65,6 +69,8 @@ private:
 	static void GetWorldScale(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void GetWorldDirection(const v8::FunctionCallbackInfo<v8::Value>& info);
 
+	static void LookAt(const v8::FunctionCallbackInfo<v8::Value>& info);
+
 	static void Add(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void Remove(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void RemoveFromParent(const v8::FunctionCallbackInfo<v8::Value>& info);
@@ -83,6 +89,10 @@ v8::Local<v8::FunctionTemplate> WrapperObject3D::create_template(v8::Isolate* is
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "name").ToLocalChecked(), GetName, SetName);
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "parent").ToLocalChecked(), GetParent, SetParent);
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "children").ToLocalChecked(), GetChildren, 0);
+
+	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "up").ToLocalChecked(), GetUp, 0);
+	templ->InstanceTemplate()->Set(isolate, "getUp", v8::FunctionTemplate::New(isolate, GetUp));
+	templ->InstanceTemplate()->Set(isolate, "setUp", v8::FunctionTemplate::New(isolate, SetUp));
 
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "position").ToLocalChecked(), GetPosition, 0);
 	templ->InstanceTemplate()->Set(isolate, "getPosition", v8::FunctionTemplate::New(isolate, GetPosition));
@@ -129,6 +139,8 @@ v8::Local<v8::FunctionTemplate> WrapperObject3D::create_template(v8::Isolate* is
 	templ->InstanceTemplate()->Set(isolate, "getWorldQuaternion", v8::FunctionTemplate::New(isolate, GetWorldQuaternion));
 	templ->InstanceTemplate()->Set(isolate, "getWorldScale", v8::FunctionTemplate::New(isolate, GetWorldScale));
 	templ->InstanceTemplate()->Set(isolate, "getWorldDirection", v8::FunctionTemplate::New(isolate, GetWorldDirection));
+
+	templ->InstanceTemplate()->Set(isolate, "lookAt", v8::FunctionTemplate::New(isolate, LookAt));
 
 	templ->InstanceTemplate()->Set(isolate, "add", v8::FunctionTemplate::New(isolate, Add));
 	templ->InstanceTemplate()->Set(isolate, "remove", v8::FunctionTemplate::New(isolate, Remove));
@@ -215,6 +227,45 @@ void WrapperObject3D::GetChildren(v8::Local<v8::String> property, const v8::Prop
 		holder->Set(context, v8::String::NewFromUtf8(isolate, "_children").ToLocalChecked(), children);
 	}
 	info.GetReturnValue().Set(children);
+}
+
+
+void WrapperObject3D::GetUp(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+	v8::HandleScope handle_scope(info.GetIsolate());
+	v8::Isolate* isolate = info.GetIsolate();
+	Object3D* self = get_self<Object3D>(info);
+	v8::Local<v8::Object> up = v8::Object::New(isolate);
+	vec3_to_jvec3(isolate, self->up, up);
+	info.GetReturnValue().Set(up);
+}
+
+void WrapperObject3D::GetUp(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	v8::Isolate* isolate = info.GetIsolate();
+	v8::HandleScope handle_scope(isolate);
+	Object3D* self = get_self<Object3D>(info);
+	v8::Local<v8::Object> out = info[0].As<v8::Object>();
+	vec3_to_jvec3(isolate, self->up, out);
+	info.GetReturnValue().Set(out);
+}
+
+void WrapperObject3D::SetUp(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	v8::Isolate* isolate = info.GetIsolate();
+	v8::HandleScope handle_scope(isolate);
+	Object3D* self = get_self<Object3D>(info);
+	if (info[0]->IsNumber())
+	{
+		self->up.x = (float)info[0].As<v8::Number>()->Value();
+		self->up.y = (float)info[1].As<v8::Number>()->Value();
+		self->up.z = (float)info[2].As<v8::Number>()->Value();
+	}
+	else
+	{
+		v8::Local<v8::Object> in = info[0].As<v8::Object>();
+		jvec3_to_vec3(isolate, in, self->up);
+	}
 }
 
 void WrapperObject3D::GetPosition(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
@@ -663,6 +714,26 @@ void WrapperObject3D::GetWorldDirection(const v8::FunctionCallbackInfo<v8::Value
 	glm::vec3 vector = self->getWorldDirection();
 	vec3_to_jvec3(isolate, vector, jvector);
 	info.GetReturnValue().Set(jvector);
+}
+
+void WrapperObject3D::LookAt(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	v8::Isolate* isolate = info.GetIsolate();
+	v8::HandleScope handle_scope(isolate);
+	Object3D* self = get_self<Object3D>(info);
+	glm::vec3 target;
+	if (info[0]->IsNumber())
+	{
+		target.x = (float)info[0].As<v8::Number>()->Value();
+		target.y = (float)info[1].As<v8::Number>()->Value();
+		target.z = (float)info[2].As<v8::Number>()->Value();
+	}
+	else
+	{
+		v8::Local<v8::Object> in = info[0].As<v8::Object>();
+		jvec3_to_vec3(isolate, in, target);
+	}
+	self->lookAt(target);
 }
 
 void WrapperObject3D::Add(const v8::FunctionCallbackInfo<v8::Value>& info)

@@ -17,7 +17,7 @@ namespace GamePlayer
 
         private void glControl_Load(object sender, System.EventArgs e)
         {
-            game_player = new CGamePlayer(v8vm, glControl.Width, glControl.Height);
+            game_player = new CGamePlayer(v8vm, glControl);       
             game_player.LoadScript(default_script);
         }
 

@@ -11,6 +11,8 @@ public:
 	static void New(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 private:
+	static void GetIsPerspectiveCamera(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
+
 	static void GetFov(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void SetFov(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
 
@@ -31,6 +33,7 @@ private:
 v8::Local<v8::FunctionTemplate> WrapperPerspectiveCamera::create_template(v8::Isolate* isolate, v8::FunctionCallback constructor)
 {
 	v8::Local<v8::FunctionTemplate> templ = WrapperCamera::create_template(isolate, constructor);
+	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "isPerspectiveCamera").ToLocalChecked(), GetIsPerspectiveCamera, 0);
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "fov").ToLocalChecked(), GetFov, SetFov);
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "aspect").ToLocalChecked(), GetAspect, SetAspect);
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "near").ToLocalChecked(), GetNear, SetNear);
@@ -64,6 +67,13 @@ void WrapperPerspectiveCamera::New(const v8::FunctionCallbackInfo<v8::Value>& in
 	}
 	PerspectiveCamera* self = new PerspectiveCamera(fov, aspect, z_near, z_far);
 	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));
+}
+
+void WrapperPerspectiveCamera::GetIsPerspectiveCamera(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+	v8::HandleScope handle_scope(info.GetIsolate());
+	v8::Local<v8::Boolean> ret = v8::Boolean::New(info.GetIsolate(), true);
+	info.GetReturnValue().Set(ret);
 }
 
 void WrapperPerspectiveCamera::GetFov(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)

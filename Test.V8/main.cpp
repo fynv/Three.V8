@@ -15,8 +15,7 @@ public:
 	{
 		glewInit();
 		m_game_player = std::unique_ptr<GamePlayer>(new GamePlayer(v8vm, width, height));
-		this->SetFramerate(60.0f);
-		this->SetPaintCallback(s_paint, this);
+		this->SetFramerate(60.0f);		
 	}
 
 	~AppMain()
@@ -34,12 +33,33 @@ public:
 		GLMain::MainLoop();
 	}
 
-private:
-	static void s_paint(int width, int height, void* ptr)
+protected:
+	virtual void paint(int width, int height) override
 	{
-		AppMain* self = (AppMain*)ptr;
-		self->m_game_player->Draw(width, height);
+		m_game_player->Draw(width, height);
 	}
+
+	virtual void mouseDown(int button, int clicks, int delta, int x, int y) override
+	{
+		m_game_player->OnMouseDown(button, clicks, delta, x, y);
+	}
+
+	virtual void mouseUp(int button, int clicks, int delta, int x, int y) override
+	{
+		m_game_player->OnMouseUp(button, clicks, delta, x, y);
+	}
+
+	virtual void mouseMove(int button, int clicks, int delta, int x, int y) override
+	{
+		m_game_player->OnMouseMove(button, clicks, delta, x, y);
+	}
+
+	virtual void mouseWheel(int button, int clicks, int delta, int x, int y) override
+	{
+		m_game_player->OnMouseWheel(button, clicks, delta, x, y);
+	}
+
+private:	
 	std::unique_ptr<GamePlayer> m_game_player;
 };
 

@@ -1,6 +1,7 @@
 #include "GLMain.h"
 #include "utils/Utils.h"
 #include <unordered_map>
+#include <windowsx.h>
 
 #pragma comment(lib, "opengl32.lib")
 #pragma comment(lib, "gdi32.lib")
@@ -133,12 +134,6 @@ void GLMain::MainLoop()
 	}
 }
 
-void GLMain::SetPaintCallback(void(*paint)(int, int, void*), void* userData)
-{
-	m_paint_callback = paint;
-	m_paint_callback_data = userData;
-}
-
 void GLMain::SetFramerate(float fps)
 {
 	m_interval = (unsigned)(1000.0f / fps);
@@ -178,8 +173,7 @@ LRESULT CALLBACK GLMain::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		GetClientRect(hWnd, &rect);
 		int width = rect.right - rect.left;
 		int height = rect.bottom - rect.top;
-		if (self->m_paint_callback != nullptr)
-			self->m_paint_callback(width, height, self->m_paint_callback_data);
+		self->paint(width, height);
 		SwapBuffers(self->m_hdc);
 
 		PAINTSTRUCT ps;
@@ -210,6 +204,67 @@ LRESULT CALLBACK GLMain::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 			}
 		}
 
+		return 0;
+	}
+	case WM_LBUTTONDOWN:
+	{
+		int x = GET_X_LPARAM(lParam);
+		int y = GET_Y_LPARAM(lParam);
+		self->mouseDown(0, 1, 0, x, y);
+		return 0;
+	}
+	case WM_MBUTTONDOWN:
+	{
+		int x = GET_X_LPARAM(lParam);
+		int y = GET_Y_LPARAM(lParam);
+		self->mouseDown(1, 1, 0, x, y);
+		return 0;
+	}
+	case WM_RBUTTONDOWN:
+	{
+		int x = GET_X_LPARAM(lParam);
+		int y = GET_Y_LPARAM(lParam);
+		self->mouseDown(2, 1, 0, x, y);
+		return 0;
+	}
+	case WM_LBUTTONUP:
+	{
+		int x = GET_X_LPARAM(lParam);
+		int y = GET_Y_LPARAM(lParam);
+		self->mouseUp(0, 1, 0, x, y);
+		return 0;
+	}
+	case WM_MBUTTONUP:
+	{
+		int x = GET_X_LPARAM(lParam);
+		int y = GET_Y_LPARAM(lParam);
+		self->mouseUp(1, 1, 0, x, y);
+		return 0;
+	}
+	case WM_RBUTTONUP:
+	{
+		int x = GET_X_LPARAM(lParam);
+		int y = GET_Y_LPARAM(lParam);
+		self->mouseUp(2, 1, 0, x, y);
+		return 0;
+	}
+	case WM_MOUSEMOVE:
+	{
+		int x = GET_X_LPARAM(lParam);
+		int y = GET_Y_LPARAM(lParam);
+		int button = -1;
+		if (wParam == MK_LBUTTON) button = 0;
+		if (wParam == MK_MBUTTON) button = 1;
+		if (wParam == MK_RBUTTON) button = 2;
+		self->mouseMove(button, 0, 0, x, y);
+		return 0;
+	}
+	case WM_MOUSEWHEEL:
+	{
+		int x = GET_X_LPARAM(lParam);
+		int y = GET_Y_LPARAM(lParam);
+		int zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+		self->mouseWheel(-1, 0, zDelta, x, y);
 		return 0;
 	}
 	case WM_DESTROY:

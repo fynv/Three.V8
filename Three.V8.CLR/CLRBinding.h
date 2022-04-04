@@ -80,7 +80,7 @@ namespace CLRBinding
 	public ref class CGamePlayer
 	{
 	public:
-		CGamePlayer(CV8VM^ v8vm, int width, int height);
+		CGamePlayer(CV8VM^ v8vm, Control^ window);
 		!CGamePlayer();
 		~CGamePlayer()
 		{
@@ -99,10 +99,10 @@ namespace CLRBinding
 		void OnMouseMove(MouseEventArgs e);
 		void OnMouseWheel(MouseEventArgs e);
 
-
 	private:
 		GamePlayer* m_native = nullptr;
 		bool m_finalized = false;
+		GCHandle m_handle_win;
 	};
 
 
