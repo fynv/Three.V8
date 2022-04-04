@@ -137,6 +137,7 @@
     <ClInclude Include="cameras\PerspectiveCamera.hpp" />
     <ClInclude Include="core\Object3D.hpp" />
     <ClInclude Include="GamePlayer.h" />
+    <ClInclude Include="GamePlayer.hpp" />
     <ClInclude Include="models\SimpleModel.hpp" />
     <ClInclude Include="renderers\GLRenderer.hpp" />
     <ClInclude Include="scenes\Scene.hpp" />

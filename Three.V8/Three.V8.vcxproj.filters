@@ -72,6 +72,9 @@
     <ClInclude Include="GamePlayer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="GamePlayer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="binding.cpp">

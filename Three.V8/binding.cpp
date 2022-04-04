@@ -42,6 +42,7 @@ void V8VM::RunVM(void (*callback)(void*), void* data)
 #include "renderers/GLRenderer.hpp"
 #include "models/SimpleModel.hpp"
 #include "utils/Image.hpp"
+#include "GamePlayer.hpp"
 
 
 GlobalDefinitions GameContext::s_globals =
@@ -63,9 +64,11 @@ GlobalDefinitions GameContext::s_globals =
 	}
 };
 
-GameContext::GameContext(V8VM* vm, const std::vector<GlobalObjectWrapper>& global_objs, const char* filename): m_vm(vm)
+GameContext::GameContext(V8VM* vm, GamePlayer* gamePlayer, const char* filename)
+	: m_vm(vm)
+	, m_gamePlayer(gamePlayer)
 {
-	_create_context(global_objs);
+	_create_context();
 	v8::Context::Scope context_scope(m_context.Get(m_vm->m_isolate));
 	_run_script(filename);
 }
@@ -75,7 +78,7 @@ GameContext::~GameContext()
 
 }
 
-void GameContext::_create_context(const std::vector<GlobalObjectWrapper>& global_objs)
+void GameContext::_create_context()
 {
 	v8::Isolate* isolate = m_vm->m_isolate;
 	v8::HandleScope handle_scope(isolate);
@@ -99,13 +102,12 @@ void GameContext::_create_context(const std::vector<GlobalObjectWrapper>& global
 	v8::Local<v8::Object> global_obj = context->Global();
 	global_obj->SetInternalField(0, v8::External::New(isolate, this));
 
-	for (size_t i = 0; i < global_objs.size(); i++)
+	// gamePlayer
 	{
-		const GlobalObjectWrapper& wobj = global_objs[i];
-		v8::Local<v8::ObjectTemplate> templ = wobj.creator(isolate);
+		v8::Local<v8::ObjectTemplate> templ = WrapperGamePlayer::create_template(isolate);
 		v8::Local<v8::Object> obj = templ->NewInstance(context).ToLocalChecked();
-		obj->SetInternalField(0, v8::External::New(isolate, wobj.ptr));
-		global_obj->Set(context, v8::String::NewFromUtf8(isolate, wobj.name.c_str()).ToLocalChecked(), obj);
+		obj->SetInternalField(0, v8::External::New(isolate, m_gamePlayer));
+		global_obj->Set(context, v8::String::NewFromUtf8(isolate, "gamePlayer").ToLocalChecked(), obj);
 	}
 
 	m_context = ContextT(isolate, context);

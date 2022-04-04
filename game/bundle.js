@@ -2486,17 +2486,19 @@ class EventDispatcher {
 };*/
 
 class View extends EventDispatcher{
-    constructor(width, height) {
-        super();
-        this.clientWidth = width;
-        this.clientHeight = height;
+    get clientWidth()
+    {
+        return gamePlayer.width;
+    }
+    get clientHeight() {
+        return gamePlayer.height;
     }
 }
 
 let view, renderer, scene, camera, bg, box, sphere, clock;
 
 function init(width, height) {
-    view = new View(width, height);
+    view = new View();
 
     renderer = new GLRenderer();
     camera = new PerspectiveCamera(45.0, width / height, 0.1, 100.0);
@@ -2553,10 +2555,8 @@ function dispose() {
 new Vector3(0, 1, 0);
 new Matrix4();
 
-function render(width, height, size_changed) {
+function render(width, height, size_changed) {    
     if (size_changed) {
-        view.clientWidth = width;
-        view.clientHeight = height;
         camera.aspect = width / height;
         camera.updateProjectionMatrix();
     }

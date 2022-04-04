@@ -40,17 +40,11 @@ struct GlobalDefinitions
 	std::vector<ClassDefinition> classes;
 };
 
-struct GlobalObjectWrapper
-{
-	std::string name;
-	void* ptr;
-	v8::Local<v8::ObjectTemplate>(*creator)(v8::Isolate* isolate);
-};
-
+class GamePlayer;
 class GameContext
 {
 public:
-	GameContext(V8VM* vm, const std::vector<GlobalObjectWrapper>& global_objs, const char* filename);
+	GameContext(V8VM* vm, GamePlayer* gamePlayer, const char* filename);
 	~GameContext();
 	
 	V8VM* m_vm;
@@ -61,9 +55,10 @@ public:
 	v8::Function* GetCallback(const char* name);
 	v8::MaybeLocal<v8::Value> InvokeCallback(v8::Function* callback, const std::vector<v8::Local<v8::Value>>& args);
 
-private:	
+private:
+	GamePlayer* m_gamePlayer;
 	static GlobalDefinitions s_globals;
-	void _create_context(const std::vector<GlobalObjectWrapper>& global_objs);
+	void _create_context();
 
 	void _report_exception(v8::TryCatch* handler);
 	bool _execute_string(v8::Local<v8::String> source, v8::Local<v8::Value> name, bool print_result, bool report_exceptions);
