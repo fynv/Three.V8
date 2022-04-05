@@ -4265,19 +4265,6 @@ class OrbitControls extends EventDispatcher {
 
 }
 
-/*const getCircularReplacer = () => {
-  const seen = new WeakSet();
-  return (key, value) => {
-    if (typeof value === "object" && value !== null) {
-      if (seen.has(value)) {
-        return;
-      }
-      seen.add(value);
-    }
-    return value;
-  };
-};*/
-
 class View extends EventDispatcher {
 
     get clientWidth() {
@@ -4297,11 +4284,63 @@ class View extends EventDispatcher {
     }
 }
 
-let view, renderer, scene, camera, bg, box, sphere, clock, controls;
+const view = new View();
+
+function makeMouseEvent(e, type) {
+    let event = {
+        type: type,
+        pointerId: 0,
+        clientX: e.x,
+        clientY: e.y,
+        deltaY: e.delta,
+        button: e.button
+    };
+
+    return event;
+}
+
+function OnMouseDown(e) {
+    let event = makeMouseEvent(e, "pointerdown");
+    view.dispatchEvent(event);
+}
+
+function OnMouseUp(e) {
+    let event = makeMouseEvent(e, "pointerup");
+    view.dispatchEvent(event);
+}
+
+function OnMouseMove(e) {
+    let event = makeMouseEvent(e, "pointermove");
+    view.dispatchEvent(event);
+}
+
+function OnMouseWheel(e) {
+    let event = makeMouseEvent(e, "wheel");
+    view.dispatchEvent(event);
+}
+
+setCallback('OnMouseDown', OnMouseDown);
+setCallback('OnMouseUp', OnMouseUp);
+setCallback('OnMouseMove', OnMouseMove);
+setCallback('OnMouseWheel', OnMouseWheel);
+
+/*const getCircularReplacer = () => {
+  const seen = new WeakSet();
+  return (key, value) => {
+    if (typeof value === "object" && value !== null) {
+      if (seen.has(value)) {
+        return;
+      }
+      seen.add(value);
+    }
+    return value;
+  };
+};*/
+
+
+let renderer, scene, camera, bg, box, sphere, clock, controls;
 
 function init(width, height) {
-    view = new View();
-
     renderer = new GLRenderer();
     camera = new PerspectiveCamera(45.0, width / height, 0.1, 100.0);
     camera.setPosition(0.0, 0.0, 7.0);
@@ -4376,42 +4415,3 @@ function render(width, height, size_changed) {
 setCallback('init', init);
 setCallback('dispose', dispose);
 setCallback('render', render);
-
-function makeMouseEvent(e, type)
-{
-    let event = {
-        type: type,
-        pointerId: 0,
-        clientX: e.x,
-        clientY: e.y,
-        deltaY: e.delta,
-        button: e.button
-    };
-
-    return event;
-}
-
-function OnMouseDown(e) {
-    let event = makeMouseEvent(e, "pointerdown");
-    view.dispatchEvent(event);
-}
-
-function OnMouseUp(e) {
-    let event = makeMouseEvent(e, "pointerup");
-    view.dispatchEvent(event);
-}
-
-function OnMouseMove(e) {
-    let event = makeMouseEvent(e, "pointermove");
-    view.dispatchEvent(event);
-}
-
-function OnMouseWheel(e) {
-    let event = makeMouseEvent(e, "wheel");
-    view.dispatchEvent(event);
-}
-
-setCallback('OnMouseDown', OnMouseDown);
-setCallback('OnMouseUp', OnMouseUp);
-setCallback('OnMouseMove', OnMouseMove);
-setCallback('OnMouseWheel', OnMouseWheel);

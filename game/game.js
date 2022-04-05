@@ -1,8 +1,9 @@
 import { Vector3 } from "./math/Vector3.js";
 import { Matrix4 } from "./math/Matrix4.js";
 import { Clock } from "./utils/Clock.js";
-import { EventDispatcher } from "./controls/EventDispatcher.js";
 import { OrbitControls } from "./controls/OrbitControls.js";
+
+import { view } from "./view.js";
 
 /*const getCircularReplacer = () => {
   const seen = new WeakSet();
@@ -17,30 +18,10 @@ import { OrbitControls } from "./controls/OrbitControls.js";
   };
 };*/
 
-class View extends EventDispatcher {
 
-    get clientWidth() {
-        return gamePlayer.width;
-    }
-
-    get clientHeight() {
-        return gamePlayer.height;
-    }
-
-    setPointerCapture() {
-        gamePlayer.setMouseCapture();
-    }
-
-    releasePointerCapture() {
-        gamePlayer.releaseMouseCapture();
-    }
-}
-
-let view, renderer, scene, camera, bg, box, sphere, clock, controls;
+let renderer, scene, camera, bg, box, sphere, clock, controls;
 
 function init(width, height) {
-    view = new View();
-
     renderer = new GLRenderer();
     camera = new PerspectiveCamera(45.0, width / height, 0.1, 100.0);
     camera.setPosition(0.0, 0.0, 7.0);
@@ -115,43 +96,3 @@ function render(width, height, size_changed) {
 setCallback('init', init);
 setCallback('dispose', dispose);
 setCallback('render', render);
-
-function makeMouseEvent(e, type)
-{
-    let event = {
-        type: type,
-        pointerId: 0,
-        clientX: e.x,
-        clientY: e.y,
-        deltaY: e.delta,
-        button: e.button
-    };
-
-    return event;
-}
-
-function OnMouseDown(e) {
-    let event = makeMouseEvent(e, "pointerdown");
-    view.dispatchEvent(event);
-}
-
-function OnMouseUp(e) {
-    let event = makeMouseEvent(e, "pointerup");
-    view.dispatchEvent(event);
-}
-
-function OnMouseMove(e) {
-    let event = makeMouseEvent(e, "pointermove");
-    view.dispatchEvent(event);
-}
-
-function OnMouseWheel(e) {
-    let event = makeMouseEvent(e, "wheel");
-    view.dispatchEvent(event);
-}
-
-setCallback('OnMouseDown', OnMouseDown);
-setCallback('OnMouseUp', OnMouseUp);
-setCallback('OnMouseMove', OnMouseMove);
-setCallback('OnMouseWheel', OnMouseWheel);
-
