@@ -34,6 +34,9 @@
     <Filter Include="Header Files\utils">
       <UniqueIdentifier>{8bd7890d-738f-476c-877c-e9c4d97c956d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\loaders">
+      <UniqueIdentifier>{1542d9cc-7fea-47e2-baa7-80c096bee73e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -74,6 +77,15 @@
     </ClInclude>
     <ClInclude Include="GamePlayer.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="loaders\ImageLoader.hpp">
+      <Filter>Header Files\loaders</Filter>
+    </ClInclude>
+    <ClInclude Include="loaders\GLTFLoader.hpp">
+      <Filter>Header Files\loaders</Filter>
+    </ClInclude>
+    <ClInclude Include="models\GLTFModel.hpp">
+      <Filter>Header Files\models</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

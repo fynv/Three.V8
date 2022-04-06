@@ -4,8 +4,8 @@
 class Image
 {
 public:
-	Image(int width, int height, bool has_alpha = false);
-	Image(const char* fn, bool keep_alpha = false);
+	Image();
+	Image(int width, int height, bool has_alpha = false);	
 	Image(const Image& in);
 	~Image();
 
@@ -19,10 +19,13 @@ public:
 
 	const Image& operator=(const Image& in);
 
+	friend class ImageLoader;
+
 private:
-	bool m_has_alpha;
-	int m_width, m_height;
-	uint8_t* m_buffer;
+	bool m_has_alpha = false;
+	int m_width = 0;
+	int m_height = 0;
+	uint8_t* m_buffer = nullptr;
 
 
 };

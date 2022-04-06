@@ -2,7 +2,7 @@
 
 #include <memory>
 #include "core/Object3D.h"
-#include "geometries/Geometry1.h"
+#include "models/ModelComponents.h"
 #include "materials/MeshStandardMaterial.h"
 #include "renderers/GLUtils.h"
 
@@ -13,7 +13,7 @@ public:
 	SimpleModel();
 	GLTexture2D texture;
 	MeshStandardMaterial material;
-	Geometry1 geometry;
+	Primitive geometry;
 
 	void set_color(const glm::vec3& color);
 };

@@ -3,6 +3,7 @@
 #include "WrapperUtils.hpp"
 #include "core/Object3D.hpp"
 #include <models/SimpleModel.h>
+#include <models/GeometryCreator.h>
 #include <utils/Image.h>
 
 class WrapperSimpleModel
@@ -50,7 +51,7 @@ void WrapperSimpleModel::CreateBox(const v8::FunctionCallbackInfo<v8::Value>& in
 	float width = (float)info[0].As<v8::Number>()->Value();
 	float height = (float)info[1].As<v8::Number>()->Value();
 	float depth = (float)info[2].As<v8::Number>()->Value();
-	self->geometry.CreateBox(width, height, depth);	
+	GeometryCreator::CreateBox(&self->geometry, width, height, depth);
 }
 
 void WrapperSimpleModel::CreateSphere(const v8::FunctionCallbackInfo<v8::Value>& info)
@@ -68,7 +69,7 @@ void WrapperSimpleModel::CreateSphere(const v8::FunctionCallbackInfo<v8::Value>&
 			heightSegments = (int)info[2].As<v8::Number>()->Value();
 		}
 	}
-	self->geometry.CreateSphere(radius, widthSegments, heightSegments);
+	GeometryCreator::CreateSphere(&self->geometry, radius, widthSegments, heightSegments);
 }
 
 

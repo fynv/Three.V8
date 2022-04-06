@@ -19,44 +19,20 @@ import { view } from "./view.js";
 };*/
 
 
-let renderer, scene, camera, bg, box, sphere, clock, controls;
+let renderer, scene, camera, bg, model, clock, controls;
 
 function init(width, height) {
     renderer = new GLRenderer();
     camera = new PerspectiveCamera(45.0, width / height, 0.1, 100.0);
-    camera.setPosition(0.0, 0.0, 7.0);
+    camera.setPosition(0.0, 0.0, 4.0);
     scene = new Scene();
     bg = new ColorBackground();
     scene.background = bg;
     bg.setColor(0.0, 0.52, 1.0);
 
-    box = new SimpleModel();
-    box.name = "box";
-    box.createBox(2.0, 2.0, 2.0);
-    box.translateX(-1.5);
-
-    let axis = new Vector3(1.0, 1.0, 0.0);
-    axis.normalize();
-    box.rotateOnAxis(axis, 1.0);
-    //box.setColor(0.8, 0.4, 0.4);
-    {
-        let img = imageLoader.loadFile("assets/textures/uv-test-bw.png");
-        box.setColorTexture(img);
-        img.dispose();
-    }
-    scene.add(box);
-
-    sphere = new SimpleModel();
-    sphere.name = "sphere";
-    sphere.createSphere(1.0);
-    sphere.translateX(1.5);
-    //sphere.setColor(0.4, 0.8, 0.4);
-    {
-        let img = imageLoader.loadFile("assets/textures/uv-test-col.png");
-        sphere.setColorTexture(img);
-        img.dispose();
-    }
-    scene.add(sphere);
+    model = gltfLoader.loadModelFromFile("../game/assets/models/Parrot.glb");
+    model.rotateX(3.1416*0.5);
+    scene.add(model);  
 
     clock = new Clock();
 
@@ -66,8 +42,7 @@ function init(width, height) {
 }
 
 function dispose() {
-    sphere.dispose();
-    box.dispose();
+    model.dispose();
     bg.dispose();
     camera.dispose();
     scene.dispose();

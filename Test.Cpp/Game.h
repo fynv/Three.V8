@@ -1,10 +1,11 @@
 #pragma once
 
-#include "renderers/GLRenderer.h"
-#include "scenes/Scene.h"
-#include "backgrounds/Background.h"
-#include "cameras/PerspectiveCamera.h"
-#include "models/SimpleModel.h"
+#include <renderers/GLRenderer.h>
+#include <scenes/Scene.h>
+#include <backgrounds/Background.h>
+#include <cameras/PerspectiveCamera.h>
+#include <models/SimpleModel.h>
+#include <models/GLTFModel.h>
 
 class Game
 {
@@ -27,5 +28,6 @@ private:
 	ColorBackground m_bg;
 	SimpleModel m_box;
 	SimpleModel m_sphere;
+
 };
 

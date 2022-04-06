@@ -37,9 +37,6 @@
     <Filter Include="Source Files\core">
       <UniqueIdentifier>{f44ce9c6-fd77-444a-92cb-75ae9903103e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\geometries">
-      <UniqueIdentifier>{8dfac679-9f31-4a0c-aac1-3ee040c09340}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\renderers">
       <UniqueIdentifier>{5c95fa35-5e89-4ec0-8094-70274da49b21}</UniqueIdentifier>
     </Filter>
@@ -52,9 +49,6 @@
     <Filter Include="Source Files\models">
       <UniqueIdentifier>{bb7dd8b1-ae93-4305-ace6-b9da04fcdd9d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\geometries">
-      <UniqueIdentifier>{bcf6ffdf-82bc-4fa7-9626-b572a64c6f31}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\materials">
       <UniqueIdentifier>{03593f5c-660c-4076-ae55-1be94de8c5ad}</UniqueIdentifier>
     </Filter>
@@ -66,6 +60,12 @@
     </Filter>
     <Filter Include="Source Files\utils">
       <UniqueIdentifier>{fb865a54-2efe-4ae8-b1ea-e30dfa26c823}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\loaders">
+      <UniqueIdentifier>{294e6bd9-9133-469c-a195-8393a7942ddd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\loaders">
+      <UniqueIdentifier>{5564f172-caa3-4240-863c-33c5034716c5}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -93,9 +93,6 @@
     <ClCompile Include="models\SimpleModel.cpp">
       <Filter>Source Files\models</Filter>
     </ClCompile>
-    <ClCompile Include="geometries\Geometry1.cpp">
-      <Filter>Source Files\geometries</Filter>
-    </ClCompile>
     <ClCompile Include="materials\Material.cpp">
       <Filter>Source Files\materials</Filter>
     </ClCompile>
@@ -104,6 +101,15 @@
     </ClCompile>
     <ClCompile Include="utils\Image.cpp">
       <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="loaders\ImageLoader.cpp">
+      <Filter>Source Files\loaders</Filter>
+    </ClCompile>
+    <ClCompile Include="models\GeometryCreator.cpp">
+      <Filter>Source Files\models</Filter>
+    </ClCompile>
+    <ClCompile Include="loaders\GLTFLoader.cpp">
+      <Filter>Source Files\loaders</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -121,9 +127,6 @@
     </ClInclude>
     <ClInclude Include="cameras\PerspectiveCamera.h">
       <Filter>Header Files\cameras</Filter>
-    </ClInclude>
-    <ClInclude Include="geometries\Geometry1.h">
-      <Filter>Header Files\geometries</Filter>
     </ClInclude>
     <ClInclude Include="renderers\GLRenderer.h">
       <Filter>Header Files\renderers</Filter>
@@ -145,6 +148,21 @@
     </ClInclude>
     <ClInclude Include="utils\Image.h">
       <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="models\GLTFModel.h">
+      <Filter>Header Files\models</Filter>
+    </ClInclude>
+    <ClInclude Include="models\ModelComponents.h">
+      <Filter>Header Files\models</Filter>
+    </ClInclude>
+    <ClInclude Include="loaders\ImageLoader.h">
+      <Filter>Header Files\loaders</Filter>
+    </ClInclude>
+    <ClInclude Include="models\GeometryCreator.h">
+      <Filter>Header Files\models</Filter>
+    </ClInclude>
+    <ClInclude Include="loaders\GLTFLoader.h">
+      <Filter>Header Files\loaders</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -34,10 +34,17 @@ struct ClassDefinition
 	v8::Local<v8::FunctionTemplate>(*creator)(v8::Isolate* isolate, v8::FunctionCallback constructor);
 };
 
+struct ObjectDefinition
+{
+	std::string name;
+	v8::Local<v8::ObjectTemplate>(*creator)(v8::Isolate* isolate);
+};
+
 struct GlobalDefinitions
 {
 	std::vector<FunctionDefinition> funcs;
 	std::vector<ClassDefinition> classes;
+	std::vector<ObjectDefinition> objects;
 };
 
 class GamePlayer;

@@ -6,6 +6,7 @@
 #include <string>
 
 #include "utils/Image.h"
+#include "loaders/ImageLoader.h"
 
 GLShader::GLShader(unsigned type, const char* code)
 {
@@ -194,6 +195,7 @@ void GLTexture2D::load_memory_rgb(int width, int height, uint8_t* data, bool is_
 
 void GLTexture2D::load_file(const char* filename, bool is_srgb)
 {
-	Image img(filename);
+	Image img; 
+	ImageLoader::LoadFile(&img, filename);
 	load_memory_rgb(img.width(), img.height(), img.data(), is_srgb);	
 }

@@ -1,26 +1,30 @@
-#include <glm.hpp>
+#include "GeometryCreator.h"
+#include "ModelComponents.h"
 #include <GL/glew.h>
-#include <vector>
 #include <cmath>
-#include "Geometry1.h"
+
 
 const double PI = 3.14159265359;
 
-void Geometry1::create(const std::vector<glm::vec3>& pos, const std::vector<glm::vec3>& norm, const std::vector<glm::vec2>& uv, const std::vector<glm::ivec3>& faces)
+void GeometryCreator::create(Primitive* primitive, const std::vector<glm::vec3>& pos, const std::vector<glm::vec3>& norm, const std::vector<glm::vec2>& uv, const std::vector<glm::ivec3>& faces)
 {
-	num_pos = (int)pos.size();
-	num_face = (int)faces.size();
-	pos_buf = (std::unique_ptr<GLBuffer>)(new GLBuffer(sizeof(glm::vec3)*num_pos, GL_ARRAY_BUFFER));
-	pos_buf->upload(pos.data());
-	normal_buf = (std::unique_ptr<GLBuffer>)(new GLBuffer(sizeof(glm::vec3)*num_pos, GL_ARRAY_BUFFER));
-	normal_buf->upload(norm.data());
-	uv_buf = (std::unique_ptr<GLBuffer>)(new GLBuffer(sizeof(glm::vec2)*num_pos, GL_ARRAY_BUFFER));
-	uv_buf->upload(uv.data());
-	ind_buf = (std::unique_ptr<GLBuffer>)(new GLBuffer(sizeof(glm::ivec3)*num_face, GL_ELEMENT_ARRAY_BUFFER));
-	ind_buf->upload(faces.data());
+	primitive->geometry.resize(1);
+	GeometrySet& geo = primitive->geometry[0];
+	primitive->num_pos = (int)pos.size();
+	primitive->num_face = (int)faces.size();
+	primitive->type_indices = 4;
+
+	geo.pos_buf = (std::unique_ptr<GLBuffer>)(new GLBuffer(sizeof(glm::vec3) * primitive->num_pos, GL_ARRAY_BUFFER));
+	geo.pos_buf->upload(pos.data());
+	geo.normal_buf = (std::unique_ptr<GLBuffer>)(new GLBuffer(sizeof(glm::vec3) * primitive->num_pos, GL_ARRAY_BUFFER));
+	geo.normal_buf->upload(norm.data());
+	primitive->uv_buf = (std::unique_ptr<GLBuffer>)(new GLBuffer(sizeof(glm::vec2) * primitive->num_pos, GL_ARRAY_BUFFER));
+	primitive->uv_buf->upload(uv.data());
+	primitive->index_buf = (std::unique_ptr<GLBuffer>)(new GLBuffer(sizeof(glm::ivec3) * primitive->num_face, GL_ELEMENT_ARRAY_BUFFER));
+	primitive->index_buf->upload(faces.data());
 }
 
-void Geometry1::CreateBox(float width, float height, float depth)
+void GeometryCreator::CreateBox(Primitive* primitive, float width, float height, float depth)
 {
 	float half_w = width * 0.5f;
 	float half_h = height * 0.5f;
@@ -163,10 +167,10 @@ void Geometry1::CreateBox(float width, float height, float depth)
 		faces.push_back({ v_start + 1, v_start + 2, v_start + 3 });
 	}
 
-	create(pos, norm, uv, faces);
+	create(primitive, pos, norm, uv, faces);
 }
 
-void Geometry1::CreateSphere(float radius, int widthSegments, int heightSegments)
+void GeometryCreator::CreateSphere(Primitive* primitive, float radius, int widthSegments, int heightSegments)
 {
 	int count_x = widthSegments + 1;
 	int count_y = heightSegments + 1;
@@ -177,13 +181,13 @@ void Geometry1::CreateSphere(float radius, int widthSegments, int heightSegments
 	std::vector<glm::vec3> norm(vert_count);
 	std::vector<glm::vec2> uv(vert_count);
 	std::vector<glm::ivec3> faces(face_count);
-	
+
 	for (int j = 0; j < count_y; j++)
 	{
 		float v = (float)j / (float)heightSegments;
 		float phi = (0.5f - v) * (float)PI;
 		float cos_phi = cosf(phi);
-		float sin_phi = sinf(phi);	
+		float sin_phi = sinf(phi);
 		for (int i = 0; i < count_x; i++)
 		{
 			float u = (float)i / (float)widthSegments;
@@ -204,9 +208,9 @@ void Geometry1::CreateSphere(float radius, int widthSegments, int heightSegments
 		for (int i = 0; i < widthSegments; i++)
 		{
 			int a = i + j * count_x;
-			int b = (i+1) + j * count_x;
-			int c = i + (j+1) * count_x;
-			int d = (i+1) + (j + 1) * count_x;
+			int b = (i + 1) + j * count_x;
+			int c = i + (j + 1) * count_x;
+			int d = (i + 1) + (j + 1) * count_x;
 
 			int idx = (i + j * widthSegments) * 2;
 			faces[idx] = { c, b, a };
@@ -214,5 +218,6 @@ void Geometry1::CreateSphere(float radius, int widthSegments, int heightSegments
 		}
 	}
 
-	create(pos, norm, uv, faces);
+	create(primitive, pos, norm, uv, faces);
 }
+

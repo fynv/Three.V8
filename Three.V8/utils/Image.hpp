@@ -22,8 +22,7 @@ v8::Local<v8::FunctionTemplate> WrapperImage::create_template(v8::Isolate* isola
 {
 	v8::Local<v8::FunctionTemplate> templ = v8::FunctionTemplate::New(isolate, constructor);
 	templ->InstanceTemplate()->SetInternalFieldCount(1);
-	templ->InstanceTemplate()->Set(isolate, "dispose", v8::FunctionTemplate::New(isolate, Dispose));
-	templ->InstanceTemplate()->Set(isolate, "loadFile", v8::FunctionTemplate::New(isolate, LoadFile));
+	templ->InstanceTemplate()->Set(isolate, "dispose", v8::FunctionTemplate::New(isolate, Dispose));	
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "hasAlpha").ToLocalChecked(), GetHasAlpha, 0);
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "width").ToLocalChecked(), GetWidth, 0);
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "height").ToLocalChecked(), GetHeight, 0);
@@ -32,7 +31,23 @@ v8::Local<v8::FunctionTemplate> WrapperImage::create_template(v8::Isolate* isola
 
 void WrapperImage::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), nullptr));
+	Image* self = nullptr;
+	if (info.Length() > 1)
+	{
+		int width = (int)info[0].As<v8::Number>()->Value();
+		int height = (int)info[1].As<v8::Number>()->Value();
+		bool has_alpha = false;
+		if (info.Length() > 2)
+		{
+			has_alpha = info[2].As<v8::Boolean>()->Value();
+		}
+		self = new Image(width, height, has_alpha);
+	}
+	else
+	{
+		self = new Image();
+	}	
+	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));
 }
 
 
@@ -40,17 +55,6 @@ void WrapperImage::Dispose(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	Image* self = get_self<Image>(info);
 	delete self;
-}
-
-void WrapperImage::LoadFile(const v8::FunctionCallbackInfo<v8::Value>& info)
-{
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::String::Utf8Value filename(isolate, info[0]);
-	Image* self = get_self<Image>(info);
-	delete self;
-	self = new Image(*filename);
-	info.Holder()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));
 }
 
 void WrapperImage::GetHasAlpha(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)

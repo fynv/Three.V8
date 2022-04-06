@@ -1,1 +1,1 @@
-rollup game.js --file bundle.js
+rollup --config rollup.config.js

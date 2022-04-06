@@ -42,8 +42,11 @@ void V8VM::RunVM(void (*callback)(void*), void* data)
 #include "renderers/GLRenderer.hpp"
 #include "models/SimpleModel.hpp"
 #include "utils/Image.hpp"
-#include "GamePlayer.hpp"
+#include "models/GLTFModel.hpp"
 
+#include "GamePlayer.hpp"
+#include "loaders/ImageLoader.hpp"
+#include "loaders/GLTFLoader.hpp"
 
 GlobalDefinitions GameContext::s_globals =
 {
@@ -60,7 +63,12 @@ GlobalDefinitions GameContext::s_globals =
 		{ "Scene", WrapperScene::New,  WrapperScene::create_template },
 		{ "GLRenderer", WrapperGLRenderer::New,  WrapperGLRenderer::create_template },
 		{ "SimpleModel", WrapperSimpleModel::New,  WrapperSimpleModel::create_template },
-		{ "Image", WrapperImage::New,  WrapperImage::create_template }
+		{ "GLTFModel", WrapperGLTFModel::New,  WrapperGLTFModel::create_template },
+		{ "Image", WrapperImage::New,  WrapperImage::create_template },
+	},
+	{
+		{ "imageLoader", WrapperImageLoader::create_template},
+		{ "gltfLoader", WrapperGLTFLoader::create_template},
 	}
 };
 
@@ -108,6 +116,14 @@ void GameContext::_create_context()
 		v8::Local<v8::Object> obj = templ->NewInstance(context).ToLocalChecked();
 		obj->SetInternalField(0, v8::External::New(isolate, m_gamePlayer));
 		global_obj->Set(context, v8::String::NewFromUtf8(isolate, "gamePlayer").ToLocalChecked(), obj);
+	}
+	
+	for (size_t i = 0; i < s_globals.objects.size(); i++)
+	{
+		const ObjectDefinition& d_obj = s_globals.objects[i];
+		v8::Local<v8::ObjectTemplate> templ = d_obj.creator(isolate);
+		v8::Local<v8::Object> obj = templ->NewInstance(context).ToLocalChecked();
+		global_obj->Set(context, v8::String::NewFromUtf8(isolate, d_obj.name.c_str()).ToLocalChecked(), obj);
 	}
 
 	m_context = ContextT(isolate, context);
