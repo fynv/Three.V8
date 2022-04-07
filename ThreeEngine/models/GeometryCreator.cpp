@@ -16,12 +16,21 @@ void GeometryCreator::create(Primitive* primitive, const std::vector<glm::vec3>&
 
 	geo.pos_buf = (std::unique_ptr<GLBuffer>)(new GLBuffer(sizeof(glm::vec3) * primitive->num_pos, GL_ARRAY_BUFFER));
 	geo.pos_buf->upload(pos.data());
+	
+	primitive->cpu_pos = std::unique_ptr<std::vector<glm::vec3>>(new std::vector<glm::vec3>(primitive->num_pos));
+	memcpy(primitive->cpu_pos->data(), pos.data(), geo.pos_buf->m_size);
+
 	geo.normal_buf = (std::unique_ptr<GLBuffer>)(new GLBuffer(sizeof(glm::vec3) * primitive->num_pos, GL_ARRAY_BUFFER));
 	geo.normal_buf->upload(norm.data());
+
 	primitive->uv_buf = (std::unique_ptr<GLBuffer>)(new GLBuffer(sizeof(glm::vec2) * primitive->num_pos, GL_ARRAY_BUFFER));
 	primitive->uv_buf->upload(uv.data());
+
 	primitive->index_buf = (std::unique_ptr<GLBuffer>)(new GLBuffer(sizeof(glm::ivec3) * primitive->num_face, GL_ELEMENT_ARRAY_BUFFER));
 	primitive->index_buf->upload(faces.data());
+
+	primitive->cpu_indices = std::unique_ptr<std::vector<uint8_t>>(new std::vector<uint8_t>(primitive->index_buf->m_size));
+	memcpy(primitive->cpu_indices->data(), faces.data(), primitive->index_buf->m_size);
 }
 
 void GeometryCreator::CreateBox(Primitive* primitive, float width, float height, float depth)

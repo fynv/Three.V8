@@ -31,7 +31,6 @@ function init(width, height) {
     bg.setColor(0.0, 0.52, 1.0);
 
     model = gltfLoader.loadModelFromFile("../game/assets/models/Parrot.glb");
-    model.rotateX(3.1416*0.5);
     scene.add(model);  
 
     clock = new Clock();

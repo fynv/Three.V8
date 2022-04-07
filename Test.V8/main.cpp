@@ -20,7 +20,7 @@ public:
 
 	~AppMain()
 	{
-		GLRenderer::ClearCaches();
+		
 	}
 
 	void LoadScript(const char* dir, const char* filename)

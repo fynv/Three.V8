@@ -7,7 +7,7 @@ class GLMain
 {
 public:
 	GLMain(const wchar_t* title, int width, int height);
-	~GLMain();
+	virtual ~GLMain();
 
 	void GetSize(int& width, int& height);
 

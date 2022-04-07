@@ -67,6 +67,12 @@
     <Filter Include="Source Files\loaders">
       <UniqueIdentifier>{5564f172-caa3-4240-863c-33c5034716c5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\renderers\routines">
+      <UniqueIdentifier>{9ff4f24c-2b2c-4180-8fbd-6a9406528363}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\renderers\routines">
+      <UniqueIdentifier>{0c555197-1a6a-4d3f-bd51-682eccfe6cc1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="scenes\Scene.cpp">
@@ -110,6 +116,12 @@
     </ClCompile>
     <ClCompile Include="loaders\GLTFLoader.cpp">
       <Filter>Source Files\loaders</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\routines\TestRoutine.cpp">
+      <Filter>Source Files\renderers\routines</Filter>
+    </ClCompile>
+    <ClCompile Include="models\Model.cpp">
+      <Filter>Source Files\models</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -163,6 +175,12 @@
     </ClInclude>
     <ClInclude Include="loaders\GLTFLoader.h">
       <Filter>Header Files\loaders</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\routines\TestRoutine.h">
+      <Filter>Header Files\renderers\routines</Filter>
+    </ClInclude>
+    <ClInclude Include="models\Model.h">
+      <Filter>Header Files\models</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -1,3 +1,4 @@
+#include <unordered_map>
 #include <GL/glew.h>
 #include "GLTFLoader.h"
 
@@ -54,6 +55,45 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 	tinygltf::Buffer& buffer_in = model.buffers[0];
 	uint8_t* p_data_in = buffer_in.data.data();
 
+	struct MeshTransform
+	{
+		glm::mat4 mat;
+		glm::mat4 norm_mat;
+	};
+
+	std::unordered_map<int, MeshTransform> mesh_node_map;
+
+	size_t num_nodes = model.nodes.size();
+	for (size_t i = 0; i < num_nodes; i++)
+	{
+		tinygltf::Node& node_in = model.nodes[i];
+		if (node_in.mesh >= 0)
+		{
+			MeshTransform trans;
+			trans.mat = glm::identity<glm::mat4>();
+			
+			if (node_in.translation.size() > 0)
+			{
+				trans.mat = glm::translate(trans.mat, { node_in.translation[0],  node_in.translation[1],  node_in.translation[2] });				
+			}
+			
+			if (node_in.rotation.size() > 0)
+			{
+				glm::quat quaternion(node_in.rotation[3], node_in.rotation[0], node_in.rotation[1], node_in.rotation[2]);
+				trans.mat *= glm::toMat4(quaternion);
+			}
+
+			if (node_in.scale.size() > 0)
+			{
+				trans.mat *= glm::scale(trans.mat, { node_in.scale[0],  node_in.scale[1],  node_in.scale[2] });
+			}
+
+			trans.norm_mat = glm::transpose(glm::inverse(trans.mat));			
+		
+			mesh_node_map[node_in.mesh] = trans;
+		}
+	}
+
 	size_t num_meshes = model.meshes.size();
 	model_out->m_meshs.resize(num_meshes);
 	for (size_t i = 0; i < num_meshes; i++)
@@ -63,6 +103,8 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 
 		size_t num_primitives = mesh_in.primitives.size();
 		mesh_out.primitives.resize(num_primitives);
+
+		MeshTransform trans = mesh_node_map[i];
 
 		for (size_t j = 0; j < num_primitives; j++)
 		{
@@ -98,8 +140,11 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 				{
 					primitive_out.type_indices = 4;
 				}
-				primitive_out.index_buf = Attribute(new GLBuffer(primitive_out.type_indices * primitive_out.num_face * 3, GL_ELEMENT_ARRAY_BUFFER));
+				primitive_out.index_buf = Attribute(new GLBuffer((size_t)primitive_out.type_indices * (size_t)primitive_out.num_face * 3, GL_ELEMENT_ARRAY_BUFFER));
 				primitive_out.index_buf->upload(p_indices);
+
+				primitive_out.cpu_indices = std::unique_ptr<std::vector<uint8_t>>(new std::vector<uint8_t>(primitive_out.index_buf->m_size));
+				memcpy(primitive_out.cpu_indices->data(), p_indices, primitive_out.index_buf->m_size);
 			}
 			else
 			{
@@ -107,8 +152,17 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 			}
 
 			GeometrySet& geometry = primitive_out.geometry[0];
+			primitive_out.cpu_pos = std::unique_ptr<std::vector<glm::vec3>>(new std::vector<glm::vec3>(primitive_out.num_pos));
+			memcpy(primitive_out.cpu_pos->data(), p_pos, sizeof(glm::vec3)* primitive_out.num_pos);
+
+			for (int k = 0; k < primitive_out.num_pos; k++)
+			{
+				glm::vec3& pos = (*primitive_out.cpu_pos)[k];
+				pos = trans.mat * glm::vec4(pos, 1.0f);
+			}
+
 			geometry.pos_buf = Attribute(new GLBuffer(sizeof(glm::vec3) * primitive_out.num_pos));
-			geometry.pos_buf->upload(p_pos);
+			geometry.pos_buf->upload(primitive_out.cpu_pos->data());
 
 			geometry.normal_buf = Attribute(new GLBuffer(sizeof(glm::vec3) * primitive_out.num_pos));
 			if (primitive_in.attributes.find("NORMAL") != primitive_in.attributes.end())
@@ -116,18 +170,29 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 				int id_norm_in = primitive_in.attributes["NORMAL"];
 				tinygltf::Accessor& acc_norm_in = model.accessors[id_norm_in];
 				tinygltf::BufferView& view_norm_in = model.bufferViews[acc_norm_in.bufferView];
-				geometry.normal_buf->upload(p_data_in + view_norm_in.byteOffset + acc_norm_in.byteOffset);
+				glm::vec3* p_norm = (glm::vec3 *)(p_data_in + view_norm_in.byteOffset + acc_norm_in.byteOffset);
+
+				std::vector<glm::vec3> norms(primitive_out.num_pos);
+				memcpy(norms.data(), p_norm, sizeof(glm::vec3)* primitive_out.num_pos);
+
+				for (int k = 0; k < primitive_out.num_pos; k++)
+				{
+					glm::vec3& norm = norms[k];
+					norm = trans.norm_mat * glm::vec4(norm, 0.0f);
+				}
+
+				geometry.normal_buf->upload(norms.data());
 			}
 			else
 			{
 				std::vector<glm::vec3> normal(primitive_out.num_pos);
 				if (primitive_out.type_indices == 2)
 				{
-					g_calc_normal<uint16_t>(primitive_out.num_face, primitive_out.num_pos, (uint16_t*)p_indices, p_pos, normal.data());
+					g_calc_normal<uint16_t>(primitive_out.num_face, primitive_out.num_pos, (uint16_t*)p_indices, primitive_out.cpu_pos->data(), normal.data());
 				}
 				else if (primitive_out.type_indices == 4)
 				{
-					g_calc_normal<uint32_t>(primitive_out.num_face, primitive_out.num_pos, (uint32_t*)p_indices, p_pos, normal.data());
+					g_calc_normal<uint32_t>(primitive_out.num_face, primitive_out.num_pos, (uint32_t*)p_indices, primitive_out.cpu_pos->data(), normal.data());
 				}
 				geometry.normal_buf->upload(normal.data());
 			}
@@ -151,7 +216,18 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 
 				primitive_out.uv_buf = Attribute(new GLBuffer(sizeof(glm::vec2) * primitive_out.num_pos));
 				primitive_out.uv_buf->upload(p_data_in + view_uv_in.byteOffset + acc_uv_in.byteOffset);
+			}
 
+			for (int k = 1; k < num_geo_sets; k++)
+			{
+				GeometrySet& geometry2 = primitive_out.geometry[k];
+
+				// passthrough 
+				geometry2.pos_buf = Attribute(new GLBuffer(geometry.pos_buf->m_size));
+				*geometry2.pos_buf = *geometry.pos_buf;
+
+				geometry2.normal_buf = Attribute(new GLBuffer(geometry.normal_buf->m_size));
+				*geometry2.normal_buf = *geometry.normal_buf;
 			}
 		}
 	}

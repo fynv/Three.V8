@@ -28,6 +28,7 @@ Game::Game(int width, int height)
 
 Game::~Game()
 {
+	printf("~Game\n");
 	if (m_fbo_msaa != -1)
 		glDeleteFramebuffers(1, &m_fbo_msaa);
 	if (m_tex_msaa != -1)

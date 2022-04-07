@@ -1,5 +1,7 @@
 #pragma once
 
+#include "renderers/routines/TestRoutine.h"
+
 class Scene;
 class Camera;
 class Caches;
@@ -9,11 +11,9 @@ public:
 	GLRenderer();
 	~GLRenderer();
 	void render(int width, int height, Scene& scene, Camera& camera);
-	
-	static void ClearCaches();
 
 private:
-	static Caches* s_caches;
-	static Caches* GetCaches();	
+	TestRoutine test;
+	TestRoutine2 test2;
 };
 

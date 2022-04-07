@@ -7,3 +7,8 @@ public:
 	virtual ~Material() {}
 };
 
+enum class MaterialType
+{
+	None,
+	MeshStandardMaterial
+};

@@ -1,5 +1,13 @@
+#include <GL/glew.h>
 #include "SimpleModel.h"
 #include "materials/MeshStandardMaterial.h"
+
+
+struct ModelConst
+{
+	glm::mat4 ModelMat;
+	glm::mat4 NormalMat;
+};
 
 SimpleModel::SimpleModel()
 {
@@ -14,5 +22,3 @@ void SimpleModel::set_color(const glm::vec3& color)
 	material.color = color;
 	material.update_uniform();
 }
-
-

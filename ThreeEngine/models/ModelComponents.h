@@ -31,6 +31,10 @@ public:
 	std::vector<GeometrySet> targets;
 
 	int material_idx = -1;
+
+	// keep a cpu copy for ray-cast
+	std::unique_ptr<std::vector<glm::vec3>> cpu_pos;
+	std::unique_ptr<std::vector<uint8_t>> cpu_indices;
 };
 
 class Mesh

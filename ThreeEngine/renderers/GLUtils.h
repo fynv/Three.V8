@@ -9,6 +9,8 @@ public:
 	unsigned m_id = -1;
 	GLShader(unsigned type, const char* code);
 	~GLShader();
+private:
+	GLShader(const GLShader&);
 };
 
 
@@ -20,6 +22,8 @@ public:
 	GLProgram(const GLShader& vertexShader, const GLShader& geometryShader, const GLShader& fragmentShader);
 	GLProgram(const GLShader& computeShader);
 	~GLProgram();
+private:
+	GLProgram(const GLProgram&);
 };
 
 class GLTexture2D
@@ -31,6 +35,8 @@ public:
 
 	void load_memory_rgb(int width, int height, uint8_t* data, bool is_srgb);
 	void load_file(const char* filename, bool is_srgb);
+private:
+	GLTexture2D(const GLTexture2D&);
 };
 
 
@@ -44,6 +50,8 @@ public:
 	~GLBuffer();
 	void upload(const void* data);
 	const GLBuffer& operator = (const GLBuffer& in);
+private:
+	GLBuffer(const GLBuffer&);
 };
 
 class GLDynBuffer
@@ -56,5 +64,7 @@ public:
 	~GLDynBuffer();
 	void upload(const void* data);
 	const GLDynBuffer& operator = (const GLDynBuffer& in);
+private:
+	GLDynBuffer(const GLDynBuffer&);
 };
 

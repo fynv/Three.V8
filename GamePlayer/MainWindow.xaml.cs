@@ -39,6 +39,7 @@ namespace GamePlayer
 
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
+            glControl.MakeCurrent();
             game_player.Dispose();
             game_player = null;
         }

@@ -1,9 +1,17 @@
+#include <GL/glew.h>
 #include "Camera.h"
+
+struct CameraConst
+{
+	glm::mat4 ProjMat;
+	glm::mat4 ViewMat;
+};
 
 Camera::Camera()
 	: matrixWorldInverse(glm::identity<glm::mat4>())
 	, projectionMatrix(glm::identity<glm::mat4>())
 	, projectionMatrixInverse(glm::identity<glm::mat4>())
+	, m_constant(sizeof(CameraConst), GL_UNIFORM_BUFFER)
 {
 
 }
@@ -43,4 +51,12 @@ glm::vec3 Camera::getWorldDirection()
 	this->updateWorldMatrix(true, false);
 	glm::vec3 z =  -matrixWorld[2];
 	return glm::normalize(z);
+}
+
+void Camera::updateConstant()
+{
+	CameraConst c;
+	c.ProjMat = projectionMatrix;
+	c.ViewMat = matrixWorldInverse;
+	m_constant.upload(&c);
 }

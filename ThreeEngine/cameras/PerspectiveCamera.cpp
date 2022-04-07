@@ -9,6 +9,11 @@ PerspectiveCamera::PerspectiveCamera(float fov, float aspect, float z_near, floa
 	updateProjectionMatrix();
 }
 
+PerspectiveCamera::~PerspectiveCamera()
+{
+
+}
+
 void PerspectiveCamera::updateProjectionMatrix()
 {
 	projectionMatrix = glm::perspective(fov * (float)DEG2RAD, aspect, z_near, z_far);

@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <GL/glew.h>
 #include "utils/Utils.h"
-#include "renderers/GLRenderer.h"
 #pragma comment(lib, "opengl32.lib")
 #pragma comment(lib, "gdi32.lib")
 #pragma managed
@@ -38,8 +37,6 @@ namespace CLRBinding
 	{
 		if (m_hdc != nullptr)
 		{
-			wglMakeCurrent(m_hdc, m_hrc);
-			GLRenderer::ClearCaches();
 			wglMakeCurrent(m_hdc, NULL);
 			wglDeleteContext(m_hrc);
 		}
@@ -68,8 +65,6 @@ namespace CLRBinding
 		if (m_hdc != nullptr)
 		{
 			printf("The OpenGL context is being recreated. (This should not happen.)");
-			wglMakeCurrent(m_hdc, m_hrc);
-			GLRenderer::ClearCaches();
 			wglMakeCurrent(m_hdc, NULL);
 			wglDeleteContext(m_hrc);
 		}

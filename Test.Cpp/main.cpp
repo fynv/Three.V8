@@ -18,7 +18,6 @@ public:
 	~AppMain()
 	{
 		m_game = nullptr;
-		GLRenderer::ClearCaches();
 	}
 
 	void MainLoop()

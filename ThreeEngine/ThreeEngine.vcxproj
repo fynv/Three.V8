@@ -137,9 +137,11 @@
     <ClCompile Include="materials\Material.cpp" />
     <ClCompile Include="materials\MeshStandardMaterial.cpp" />
     <ClCompile Include="models\GeometryCreator.cpp" />
+    <ClCompile Include="models\Model.cpp" />
     <ClCompile Include="models\SimpleModel.cpp" />
     <ClCompile Include="renderers\GLRenderer.cpp" />
     <ClCompile Include="renderers\GLUtils.cpp" />
+    <ClCompile Include="renderers\routines\TestRoutine.cpp" />
     <ClCompile Include="scenes\Scene.cpp" />
     <ClCompile Include="utils\Image.cpp" />
   </ItemGroup>
@@ -154,10 +156,12 @@
     <ClInclude Include="materials\MeshStandardMaterial.h" />
     <ClInclude Include="models\GeometryCreator.h" />
     <ClInclude Include="models\GLTFModel.h" />
+    <ClInclude Include="models\Model.h" />
     <ClInclude Include="models\ModelComponents.h" />
     <ClInclude Include="models\SimpleModel.h" />
     <ClInclude Include="renderers\GLRenderer.h" />
     <ClInclude Include="renderers\GLUtils.h" />
+    <ClInclude Include="renderers\routines\TestRoutine.h" />
     <ClInclude Include="scenes\Scene.h" />
     <ClInclude Include="utils\Image.h" />
     <ClInclude Include="utils\Utils.h" />

@@ -1,11 +1,10 @@
 #pragma once
 
 #include <vector>
-#include <memory>
-#include "core/Object3D.h"
+#include "models/Model.h"
 
 class Mesh;
-class GLTFModel : public Object3D
+class GLTFModel : public Model
 {
 public:
 	std::vector<Mesh> m_meshs;

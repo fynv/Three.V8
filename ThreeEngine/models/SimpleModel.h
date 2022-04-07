@@ -1,13 +1,12 @@
 #pragma once
 
-#include <memory>
-#include "core/Object3D.h"
+#include "models/Model.h"
 #include "models/ModelComponents.h"
 #include "materials/MeshStandardMaterial.h"
 #include "renderers/GLUtils.h"
 
 class MeshStandardMaterial;
-class SimpleModel : public Object3D
+class SimpleModel : public Model
 {
 public:
 	SimpleModel();

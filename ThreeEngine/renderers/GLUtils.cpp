@@ -159,13 +159,15 @@ GLDynBuffer::GLDynBuffer(size_t size, unsigned target)
 GLDynBuffer::~GLDynBuffer()
 {
 	if (m_id != -1)
+	{
 		glDeleteBuffers(1, &m_id);
+	}
 }
 
 void GLDynBuffer::upload(const void* data)
 {
 	glBindBuffer(m_target, m_id);
-	glBufferSubData(m_target, 0, m_size, data);
+	glBufferSubData(m_target, 0, m_size, data);	
 	glBindBuffer(m_target, 0);
 }
 
