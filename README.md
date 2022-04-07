@@ -21,7 +21,7 @@ An alternative is to run [Three.js](https://threejs.org/) directly in an embedde
 * Test.V8: Simple example using the V8 engine.
 * Three.V8.CLR: C# bindings of the V8 engine (itself) and OpenGL.
 * GamePlayer: C# WPF GUI embedding the V8 engine.
-* game: Game script test code. The math library and other utilities are borrowed directly from Three.js. Most assets are from [discoverthreejs.com](https://discoverthreejs.com/).
+* game: Game script test code. The math library and other utilities are borrowed directly from Three.js. Most assets are from [discoverthreejs.com](https://discoverthreejs.com/)and [sketchfab.com](https://sketchfab.com/tags/glb).
 
 ## Building
 
