@@ -52,13 +52,40 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 	tinygltf::Model model;
 	loader.LoadBinaryFromFile(&model, &err, &warn, filename);
 
-	tinygltf::Buffer& buffer_in = model.buffers[0];
-	uint8_t* p_data_in = buffer_in.data.data();
+	size_t num_textures = model.textures.size();
+	model_out->m_textures.resize(num_textures);
+	for (size_t i = 0; i < num_textures; i++)
+	{
+		tinygltf::Texture& tex_in = model.textures[i];
+		GLTexture2D* tex_out = new GLTexture2D();
+		model_out->m_textures[i] = std::unique_ptr<GLTexture2D>(tex_out);
+		
+		tinygltf::Image& img_in = model.images[tex_in.source];
+		bool has_alpha = img_in.component > 3;
+		if (has_alpha)
+		{
+			tex_out->load_memory_rgba(img_in.width, img_in.height, img_in.image.data(), true);
+		}
+		else
+		{
+			tex_out->load_memory_rgb(img_in.width, img_in.height, img_in.image.data(), true);
+		}
+	}
 
-	model_out->m_materials.resize(1);
-	model_out->m_materials[0] = std::unique_ptr<MeshStandardMaterial>(new MeshStandardMaterial);
-	model_out->m_materials[0]->color = { 1.0f, 1.0f, 1.0f };
-	model_out->m_materials[0]->update_uniform();
+	size_t num_materials = model.materials.size();
+	model_out->m_materials.resize(num_materials);
+	for (size_t i = 0; i < num_materials; i++)
+	{
+		tinygltf::Material& material_in = model.materials[i];
+		MeshStandardMaterial* material_out = new MeshStandardMaterial();
+		model_out->m_materials[i] = std::unique_ptr<MeshStandardMaterial>(material_out);
+		tinygltf::PbrMetallicRoughness& pbr = material_in.pbrMetallicRoughness;
+		material_out->color = { pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2] };
+		material_out->tex_idx_map = pbr.baseColorTexture.index;
+		material_out->metallicFactor = pbr.metallicFactor;
+		material_out->roughnessFactor = pbr.roughnessFactor;
+		material_out->update_uniform();
+	}
 
 	struct MeshTransform
 	{
@@ -115,7 +142,7 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 		{
 			tinygltf::Primitive& primitive_in = mesh_in.primitives[j];
 			Primitive& primitive_out = mesh_out.primitives[j];
-			primitive_out.material_idx = 0;
+			primitive_out.material_idx = primitive_in.material;
 
 			primitive_out.has_blendshape = primitive_in.targets.size() > 0;
 
@@ -127,7 +154,7 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 			tinygltf::Accessor& acc_pos_in = model.accessors[id_pos_in];
 			primitive_out.num_pos = acc_pos_in.count;
 			tinygltf::BufferView& view_pos_in = model.bufferViews[acc_pos_in.bufferView];
-			glm::vec3* p_pos = (glm::vec3*)(p_data_in + view_pos_in.byteOffset + acc_pos_in.byteOffset);
+			glm::vec3* p_pos = (glm::vec3*)(model.buffers[view_pos_in.buffer].data.data() + view_pos_in.byteOffset + acc_pos_in.byteOffset);
 
 			int id_indices_in = primitive_in.indices;
 			void* p_indices = nullptr;
@@ -136,7 +163,7 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 				tinygltf::Accessor& acc_indices_in = model.accessors[id_indices_in];
 				primitive_out.num_face = acc_indices_in.count / 3;
 				tinygltf::BufferView& view_indices_in = model.bufferViews[acc_indices_in.bufferView];
-				p_indices = p_data_in + view_indices_in.byteOffset + acc_indices_in.byteOffset;
+				p_indices = model.buffers[view_indices_in.buffer].data.data() + view_indices_in.byteOffset + acc_indices_in.byteOffset;
 
 				if (acc_indices_in.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT)
 				{
@@ -176,7 +203,7 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 				int id_norm_in = primitive_in.attributes["NORMAL"];
 				tinygltf::Accessor& acc_norm_in = model.accessors[id_norm_in];
 				tinygltf::BufferView& view_norm_in = model.bufferViews[acc_norm_in.bufferView];
-				glm::vec3* p_norm = (glm::vec3 *)(p_data_in + view_norm_in.byteOffset + acc_norm_in.byteOffset);
+				glm::vec3* p_norm = (glm::vec3 *)(model.buffers[view_norm_in.buffer].data.data() + view_norm_in.byteOffset + acc_norm_in.byteOffset);
 
 				std::vector<glm::vec3> norms(primitive_out.num_pos);
 				memcpy(norms.data(), p_norm, sizeof(glm::vec3)* primitive_out.num_pos);
@@ -211,7 +238,7 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 
 				primitive_out.type_color = acc_color_in.type;
 				primitive_out.color_buf = Attribute(new GLBuffer(sizeof(float)* primitive_out.type_color * primitive_out.num_pos));
-				primitive_out.color_buf->upload(p_data_in + view_color_in.byteOffset + acc_color_in.byteOffset);
+				primitive_out.color_buf->upload(model.buffers[view_color_in.buffer].data.data() + view_color_in.byteOffset + acc_color_in.byteOffset);
 			}
 
 			if (primitive_in.attributes.find("TEXCOORD_0") != primitive_in.attributes.end())
@@ -221,7 +248,7 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 				tinygltf::BufferView& view_uv_in = model.bufferViews[acc_uv_in.bufferView];
 
 				primitive_out.uv_buf = Attribute(new GLBuffer(sizeof(glm::vec2) * primitive_out.num_pos));
-				primitive_out.uv_buf->upload(p_data_in + view_uv_in.byteOffset + acc_uv_in.byteOffset);
+				primitive_out.uv_buf->upload(model.buffers[view_uv_in.buffer].data.data() + view_uv_in.byteOffset + acc_uv_in.byteOffset);
 			}
 
 			for (int k = 1; k < num_geo_sets; k++)

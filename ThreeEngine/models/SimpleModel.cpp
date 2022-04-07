@@ -12,7 +12,7 @@ struct ModelConst
 SimpleModel::SimpleModel()
 {
 	glm::u8vec3 white = { 255, 255, 255 };
-	texture.load_memory_rgb(1, 1, (uint8_t*)&white, true);
+	texture.load_memory_bgr(1, 1, (uint8_t*)&white, true);
 	material.tex_idx_map = 0;
 	set_color({ 0.8f, 0.8f, 0.8f });
 	geometry.material_idx = 0;

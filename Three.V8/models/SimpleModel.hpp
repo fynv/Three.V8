@@ -122,6 +122,6 @@ void WrapperSimpleModel::SetColorTexture(const v8::FunctionCallbackInfo<v8::Valu
 	Image* image = (Image*)v8::Local<v8::External>::Cast(holder_image->GetInternalField(0))->Value();
 	if (image != nullptr)
 	{
-		self->texture.load_memory_rgb(image->width(), image->height(), image->data(), true);
+		self->texture.load_memory_bgr(image->width(), image->height(), image->data(), true);
 	}
 }
