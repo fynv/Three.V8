@@ -190,7 +190,11 @@ void TestRoutine::render(const RenderParams& params)
 	if (params.primitive->index_buf != nullptr)
 	{
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, params.primitive->index_buf->m_id);
-		if (params.primitive->type_indices == 2)
+		if (params.primitive->type_indices == 1)
+		{
+			glDrawElements(GL_TRIANGLES, params.primitive->num_face * 3, GL_UNSIGNED_BYTE, nullptr);
+		}
+		else if (params.primitive->type_indices == 2)
 		{
 			glDrawElements(GL_TRIANGLES, params.primitive->num_face * 3, GL_UNSIGNED_SHORT, nullptr);
 		}

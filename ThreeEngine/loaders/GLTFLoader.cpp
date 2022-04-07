@@ -165,7 +165,11 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 				tinygltf::BufferView& view_indices_in = model.bufferViews[acc_indices_in.bufferView];
 				p_indices = model.buffers[view_indices_in.buffer].data.data() + view_indices_in.byteOffset + acc_indices_in.byteOffset;
 
-				if (acc_indices_in.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT)
+				if (acc_indices_in.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE)
+				{
+					primitive_out.type_indices = 1;
+				}
+				else if (acc_indices_in.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT)
 				{
 					primitive_out.type_indices = 2;
 				}

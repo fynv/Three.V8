@@ -26,7 +26,7 @@ public:
 	Attribute uv_buf;	
 
 	int num_face = 0;
-	int type_indices = 2; // 2: ushort; 4: uint
+	int type_indices = 2; // 1:uchar; 2: ushort; 4: uint
 	std::unique_ptr<GLBuffer> index_buf;
 	std::vector<GeometrySet> targets;
 
