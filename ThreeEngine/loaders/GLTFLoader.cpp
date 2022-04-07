@@ -55,6 +55,11 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 	tinygltf::Buffer& buffer_in = model.buffers[0];
 	uint8_t* p_data_in = buffer_in.data.data();
 
+	model_out->m_materials.resize(1);
+	model_out->m_materials[0] = std::unique_ptr<MeshStandardMaterial>(new MeshStandardMaterial);
+	model_out->m_materials[0]->color = { 1.0f, 1.0f, 1.0f };
+	model_out->m_materials[0]->update_uniform();
+
 	struct MeshTransform
 	{
 		glm::mat4 mat;
@@ -110,6 +115,7 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 		{
 			tinygltf::Primitive& primitive_in = mesh_in.primitives[j];
 			Primitive& primitive_out = mesh_out.primitives[j];
+			primitive_out.material_idx = 0;
 
 			primitive_out.has_blendshape = primitive_in.targets.size() > 0;
 

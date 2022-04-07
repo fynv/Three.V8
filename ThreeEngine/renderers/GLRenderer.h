@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+#include <unordered_map>
 #include "renderers/routines/TestRoutine.h"
 
 class Scene;
@@ -13,7 +15,8 @@ public:
 	void render(int width, int height, Scene& scene, Camera& camera);
 
 private:
-	TestRoutine test;
-	TestRoutine2 test2;
+	std::unordered_map<uint64_t, std::unique_ptr<TestRoutine>> routine_map;
+	TestRoutine* get_routine(const TestRoutine::Options& options);
+	void render_primitive(const TestRoutine::RenderParams& params);
 };
 

@@ -9,7 +9,7 @@ class MeshStandardMaterial : public Material
 public:
 	MeshStandardMaterial();
 	glm::vec3 color;
-	int tex_idx_map = 0;
+	int tex_idx_map = -1;
 	GLBuffer constant_material;
 	void update_uniform();
 };

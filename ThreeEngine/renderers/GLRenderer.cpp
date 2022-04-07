@@ -1,5 +1,5 @@
 #include <GL/glew.h>
-
+#include "crc64/crc64.h"
 #include "GLUtils.h"
 #include "GLRenderer.h"
 #include "cameras/Camera.h"
@@ -19,6 +19,34 @@ GLRenderer::GLRenderer()
 
 GLRenderer::~GLRenderer()
 {
+}
+
+TestRoutine* GLRenderer::get_routine(const TestRoutine::Options& options)
+{
+	uint64_t hash = crc64(0, (const unsigned char*)&options, sizeof(TestRoutine::Options));
+	auto iter = routine_map.find(hash);
+	if (iter == routine_map.end())
+	{
+		routine_map[hash] = std::unique_ptr<TestRoutine>(new TestRoutine(options));
+	}
+	return routine_map[hash].get();
+}
+
+void GLRenderer::render_primitive(const TestRoutine::RenderParams& params)
+{
+	TestRoutine::Options options;
+	options.has_color = params.primitive->color_buf != nullptr;
+	const Material* _material = params.material_list[params.primitive->material_idx];
+	{
+		const MeshStandardMaterial* material = dynamic_cast<const MeshStandardMaterial*>(_material);
+		if (material != nullptr)
+		{
+			options.material_type = MaterialType::MeshStandardMaterial;
+			options.has_color_texture = material->tex_idx_map >= 0;
+			TestRoutine* routine = get_routine(options);
+			routine->render(params);
+		}
+	}
 }
 
 void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
@@ -51,8 +79,16 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 			{
 				model->updateConstant();
 				const GLTexture2D* tex = &model->texture;
-				const Material* material = &model->material;				
-				test.render(&tex, &material, &p_camera->m_constant, &model->m_constant, model->geometry);
+				const Material* material = &model->material;	
+
+				TestRoutine::RenderParams params = {
+					&tex,
+					&material,
+					&p_camera->m_constant,
+					&model->m_constant,
+					&model->geometry
+				};
+				render_primitive(params);
 				return;
 			}
 		}
@@ -61,6 +97,15 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 			if (model)
 			{
 				model->updateConstant();
+				
+				std::vector<const GLTexture2D*> tex_lst(model->m_textures.size());
+				for (size_t i = 0; i < tex_lst.size(); i++)
+					tex_lst[i] = model->m_textures[i].get();
+
+				std::vector<const Material*> material_lst(model->m_materials.size());
+				for (size_t i = 0; i <= material_lst.size(); i++)
+					material_lst[i] = model->m_materials[i].get();
+
 				for (size_t i = 0; i < model->m_meshs.size(); i++)
 				{
 					Mesh& mesh = model->m_meshs[i];					
@@ -68,7 +113,14 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 					for (size_t j = 0; j < mesh.primitives.size(); j++)
 					{
 						Primitive& primitive = mesh.primitives[j];
-						test2.render(0, 0, &p_camera->m_constant, &model->m_constant, primitive);
+						TestRoutine::RenderParams params = {
+							tex_lst.data(), 
+							material_lst.data(),
+							&p_camera->m_constant,
+							&model->m_constant, 
+							&primitive
+						};
+						render_primitive(params);
 					}
 				}
 				return;

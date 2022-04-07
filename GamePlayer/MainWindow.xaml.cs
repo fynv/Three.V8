@@ -57,6 +57,7 @@ namespace GamePlayer
             openFileDialog.Filter = "Script Files|*.js";
             if (openFileDialog.ShowDialog() == true)
             {
+                glControl.MakeCurrent();
                 game_player.LoadScript(openFileDialog.FileName);
             }
         }
@@ -97,24 +98,28 @@ namespace GamePlayer
         private void GLControl_MouseDown(object sender, System.Windows.Forms.MouseEventArgs e)
         {
             if (game_player == null) return;
+            glControl.MakeCurrent();
             game_player.OnMouseDown(convert_args(e));
         }
 
         private void GLControl_MouseUp(object sender, System.Windows.Forms.MouseEventArgs e)
         {
             if (game_player == null) return;
+            glControl.MakeCurrent();
             game_player.OnMouseUp(convert_args(e));
         }
 
         private void GLControl_MouseMove(object sender, System.Windows.Forms.MouseEventArgs e)
         {
             if (game_player == null) return;
+            glControl.MakeCurrent();
             game_player.OnMouseMove(convert_args(e));
         }
 
         private void GLControl_MouseWheel(object sender, System.Windows.Forms.MouseEventArgs e)
         {
             if (game_player == null) return;
+            glControl.MakeCurrent();
             game_player.OnMouseWheel(convert_args(e));
         }
     }
