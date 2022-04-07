@@ -102,8 +102,8 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 				for (size_t i = 0; i < tex_lst.size(); i++)
 					tex_lst[i] = model->m_textures[i].get();
 
-				std::vector<const Material*> material_lst(model->m_materials.size());
-				for (size_t i = 0; i <= material_lst.size(); i++)
+				std::vector<const Material*> material_lst(model->m_materials.size());				
+				for (size_t i = 0; i < material_lst.size(); i++)
 					material_lst[i] = model->m_materials[i].get();
 
 				for (size_t i = 0; i < model->m_meshs.size(); i++)
