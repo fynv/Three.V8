@@ -236,7 +236,7 @@ layout (location = 5) in vec3 vBitangent;
 )",
 R"(	vec3 bump =  texture(uTexNormal, vUV).xyz;
 bump = (2.0 * bump - 1.0) * vec3(uNormalScale.x, uNormalScale.y, 1.0);
-norm = bump.x*vTangent + bump.y*vBitangent + bump.z*norm;
+norm = normalize(bump.x*vTangent + bump.y*vBitangent + bump.z*norm);
 )"
 };
 
