@@ -142,7 +142,7 @@
     <ClCompile Include="models\SimpleModel.cpp" />
     <ClCompile Include="renderers\GLRenderer.cpp" />
     <ClCompile Include="renderers\GLUtils.cpp" />
-    <ClCompile Include="renderers\routines\TestRoutine.cpp" />
+    <ClCompile Include="renderers\routines\StandardRoutine.cpp" />
     <ClCompile Include="scenes\Scene.cpp" />
     <ClCompile Include="utils\Image.cpp" />
   </ItemGroup>
@@ -163,7 +163,7 @@
     <ClInclude Include="models\SimpleModel.h" />
     <ClInclude Include="renderers\GLRenderer.h" />
     <ClInclude Include="renderers\GLUtils.h" />
-    <ClInclude Include="renderers\routines\TestRoutine.h" />
+    <ClInclude Include="renderers\routines\StandardRoutine.h" />
     <ClInclude Include="scenes\Scene.h" />
     <ClInclude Include="utils\Image.h" />
     <ClInclude Include="utils\Utils.h" />

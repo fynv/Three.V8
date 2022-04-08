@@ -3,25 +3,24 @@
 #include <string>
 #include <glm.hpp>
 #include "renderers/GLUtils.h"
-#include "materials/Material.h"
+#include "materials/MeshStandardMaterial.h"
 #include "models/ModelComponents.h"
 
-class TestRoutine
+class StandardRoutine
 {
 public:	
 	struct Options
 	{
 		bool has_color;
-		bool has_color_texture;
-		MaterialType material_type;
+		bool has_color_texture;		
 	};
 
-	TestRoutine(const Options& options);
+	StandardRoutine(const Options& options);
 
 	struct RenderParams
 	{
 		const GLTexture2D** tex_list;
-		const Material** material_list;
+		const MeshStandardMaterial** material_list;
 		const GLDynBuffer* constant_camera;
 		const GLDynBuffer* constant_model;
 		const Primitive* primitive;

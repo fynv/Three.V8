@@ -4349,11 +4349,11 @@ function init(width, height) {
     scene.background = bg;
     bg.setColor(0.0, 0.52, 1.0);
 
-    /*model = gltfLoader.loadModelFromFile("../game/assets/models/toy_freddy.glb");
+    model = gltfLoader.loadModelFromFile("../game/assets/models/toy_freddy.glb");
     model.setScale(0.01, 0.01, 0.01);
-    model.rotateX(-3.1416 / 2);*/
+    model.rotateX(-3.1416 / 2);
 
-    model = gltfLoader.loadModelFromFile("../game/assets/models/Parrot.glb");
+    //model = gltfLoader.loadModelFromFile("../game/assets/models/Parrot.glb");
     scene.add(model);  
 
     clock = new Clock();

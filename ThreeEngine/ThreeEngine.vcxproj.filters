@@ -117,7 +117,7 @@
     <ClCompile Include="loaders\GLTFLoader.cpp">
       <Filter>Source Files\loaders</Filter>
     </ClCompile>
-    <ClCompile Include="renderers\routines\TestRoutine.cpp">
+    <ClCompile Include="renderers\routines\StandardRoutine.cpp">
       <Filter>Source Files\renderers\routines</Filter>
     </ClCompile>
     <ClCompile Include="models\Model.cpp">
@@ -179,7 +179,7 @@
     <ClInclude Include="loaders\GLTFLoader.h">
       <Filter>Header Files\loaders</Filter>
     </ClInclude>
-    <ClInclude Include="renderers\routines\TestRoutine.h">
+    <ClInclude Include="renderers\routines\StandardRoutine.h">
       <Filter>Header Files\renderers\routines</Filter>
     </ClInclude>
     <ClInclude Include="models\Model.h">

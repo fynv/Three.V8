@@ -2,7 +2,7 @@
 
 #include <memory>
 #include <unordered_map>
-#include "renderers/routines/TestRoutine.h"
+#include "renderers/routines/StandardRoutine.h"
 
 class Scene;
 class Camera;
@@ -15,8 +15,8 @@ public:
 	void render(int width, int height, Scene& scene, Camera& camera);
 
 private:
-	std::unordered_map<uint64_t, std::unique_ptr<TestRoutine>> routine_map;
-	TestRoutine* get_routine(const TestRoutine::Options& options);
-	void render_primitive(const TestRoutine::RenderParams& params);
+	std::unordered_map<uint64_t, std::unique_ptr<StandardRoutine>> routine_map;
+	StandardRoutine* get_routine(const StandardRoutine::Options& options);
+	void render_primitive(const StandardRoutine::RenderParams& params);
 };
 

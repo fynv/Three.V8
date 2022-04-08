@@ -21,32 +21,25 @@ GLRenderer::~GLRenderer()
 {
 }
 
-TestRoutine* GLRenderer::get_routine(const TestRoutine::Options& options)
+StandardRoutine* GLRenderer::get_routine(const StandardRoutine::Options& options)
 {
-	uint64_t hash = crc64(0, (const unsigned char*)&options, sizeof(TestRoutine::Options));
+	uint64_t hash = crc64(0, (const unsigned char*)&options, sizeof(StandardRoutine::Options));
 	auto iter = routine_map.find(hash);
 	if (iter == routine_map.end())
 	{
-		routine_map[hash] = std::unique_ptr<TestRoutine>(new TestRoutine(options));
+		routine_map[hash] = std::unique_ptr<StandardRoutine>(new StandardRoutine(options));
 	}
 	return routine_map[hash].get();
 }
 
-void GLRenderer::render_primitive(const TestRoutine::RenderParams& params)
-{
-	TestRoutine::Options options;
+void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params)
+{	
+	StandardRoutine::Options options;
 	options.has_color = params.primitive->color_buf != nullptr;
-	const Material* _material = params.material_list[params.primitive->material_idx];
-	{
-		const MeshStandardMaterial* material = dynamic_cast<const MeshStandardMaterial*>(_material);
-		if (material != nullptr)
-		{
-			options.material_type = MaterialType::MeshStandardMaterial;
-			options.has_color_texture = material->tex_idx_map >= 0;
-			TestRoutine* routine = get_routine(options);
-			routine->render(params);
-		}
-	}
+	const MeshStandardMaterial* material = params.material_list[params.primitive->material_idx];
+	options.has_color_texture = material->tex_idx_map >= 0;
+	StandardRoutine* routine = get_routine(options);
+	routine->render(params);		
 }
 
 void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
@@ -79,9 +72,9 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 			{
 				model->updateConstant();
 				const GLTexture2D* tex = &model->texture;
-				const Material* material = &model->material;	
+				const MeshStandardMaterial* material = &model->material;
 
-				TestRoutine::RenderParams params = {
+				StandardRoutine::RenderParams params = {
 					&tex,
 					&material,
 					&p_camera->m_constant,
@@ -102,7 +95,7 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 				for (size_t i = 0; i < tex_lst.size(); i++)
 					tex_lst[i] = model->m_textures[i].get();
 
-				std::vector<const Material*> material_lst(model->m_materials.size());				
+				std::vector<const MeshStandardMaterial*> material_lst(model->m_materials.size());
 				for (size_t i = 0; i < material_lst.size(); i++)
 					material_lst[i] = model->m_materials[i].get();
 
@@ -113,7 +106,7 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 					for (size_t j = 0; j < mesh.primitives.size(); j++)
 					{
 						Primitive& primitive = mesh.primitives[j];
-						TestRoutine::RenderParams params = {
+						StandardRoutine::RenderParams params = {
 							tex_lst.data(), 
 							material_lst.data(),
 							&p_camera->m_constant,

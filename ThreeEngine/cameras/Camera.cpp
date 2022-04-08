@@ -5,6 +5,7 @@ struct CameraConst
 {
 	glm::mat4 ProjMat;
 	glm::mat4 ViewMat;
+	glm::vec4 EyePos;
 };
 
 Camera::Camera()
@@ -58,5 +59,6 @@ void Camera::updateConstant()
 	CameraConst c;
 	c.ProjMat = projectionMatrix;
 	c.ViewMat = matrixWorldInverse;
+	c.EyePos = matrixWorld[3];
 	m_constant.upload(&c);
 }

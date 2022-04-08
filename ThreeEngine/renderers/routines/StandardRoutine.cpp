@@ -1,5 +1,5 @@
 #include <GL/glew.h>
-#include "TestRoutine.h"
+#include "StandardRoutine.h"
 #include "materials/MeshStandardMaterial.h"
 
 static std::string s_vertex_common =
@@ -11,6 +11,7 @@ layout (std140, binding = 0) uniform Camera
 {
 	mat4 uProjMat;
 	mat4 uViewMat;	
+	vec3 uEyePos;
 };
 
 layout (std140, binding = 1) uniform Model
@@ -19,7 +20,7 @@ layout (std140, binding = 1) uniform Model
 	mat4 uNormalMat;
 };
 
-layout (location = 0) out vec3 vPos;
+layout (location = 0) out vec3 vViewDir;
 layout (location = 1) out vec3 vNorm;
 
 #GLOBAL#
@@ -28,7 +29,7 @@ void main()
 {
 	vec4 wolrd_pos = uModelMat * vec4(aPos, 1.0);
 	gl_Position = uProjMat*(uViewMat*wolrd_pos);
-	vPos = wolrd_pos.xyz;
+	vViewDir = uEyePos - wolrd_pos.xyz;
 	vec4 world_norm = uNormalMat * vec4(aNorm, 0.0);
 	vNorm =  normalize(world_norm.xyz);
 
@@ -58,24 +59,120 @@ R"(	vUV = aUV;
 
 static std::string s_frag_common =
 R"(#version 430
-layout (location = 0) in vec3 vPos;
+layout (location = 0) in vec3 vViewDir;
 layout (location = 1) in vec3 vNorm;
+
 layout (std140, binding = 2) uniform Material
 {
-	vec3 uColor;
+	vec4 uColor;
+	float metallicFactor;
+	float roughnessFactor;
 };
 
 #GLOBAL#
 
-out vec4 outColor;void main()
+
+struct IncidentLight {
+	vec3 color;
+	vec3 direction;
+	bool visible;
+};
+
+#define EPSILON 1e-6
+#define RECIPROCAL_PI 0.3183098861837907
+
+#ifndef saturate
+#define saturate( a ) clamp( a, 0.0, 1.0 )
+#endif
+
+float pow2( const in float x ) { return x*x; }
+
+struct PhysicalMaterial 
 {
-	vec3 norm = normalize(vNorm);
-	vec3 light_dir = normalize(vec3(1.0f, 2.0f, 1.0f));
-	float l_diffuse = clamp(dot(light_dir, norm), 0.0, 1.0);
-	float l_ambient = 0.3;
-	vec3 col = uColor;
+	vec3 diffuseColor;
+	float roughness;
+	vec3 specularColor;
+	float specularF90;
+};
+
+
+vec3 F_Schlick(const in vec3 f0, const in float f90, const in float dotVH) 
+{
+	float fresnel = exp2( ( - 5.55473 * dotVH - 6.98316 ) * dotVH );
+	return f0 * ( 1.0 - fresnel ) + ( f90 * fresnel );
+}
+
+float V_GGX_SmithCorrelated( const in float alpha, const in float dotNL, const in float dotNV ) 
+{
+	float a2 = pow2( alpha );
+	float gv = dotNL * sqrt( a2 + ( 1.0 - a2 ) * pow2( dotNV ) );
+	float gl = dotNV * sqrt( a2 + ( 1.0 - a2 ) * pow2( dotNL ) );
+	return 0.5 / max( gv + gl, EPSILON );
+}
+
+float D_GGX( const in float alpha, const in float dotNH ) 
+{
+	float a2 = pow2( alpha );
+	float denom = pow2( dotNH ) * ( a2 - 1.0 ) + 1.0; 
+	return RECIPROCAL_PI * a2 / pow2( denom );
+}
+
+vec3 BRDF_Lambert(const in vec3 diffuseColor) 
+{
+	return RECIPROCAL_PI * diffuseColor;
+}
+
+vec3 BRDF_GGX( const in vec3 lightDir, const in vec3 viewDir, const in vec3 normal, const in vec3 f0, const in float f90, const in float roughness ) 
+{
+	float alpha = pow2(roughness);
+
+	vec3 halfDir = normalize(lightDir + viewDir);
+
+	float dotNL = saturate(dot(normal, lightDir));
+	float dotNV = saturate(dot(normal, viewDir));
+	float dotNH = saturate(dot(normal, halfDir));
+	float dotVH = saturate(dot(viewDir, halfDir));
+
+	vec3 F = F_Schlick(f0, f90, dotVH);
+	float V = V_GGX_SmithCorrelated(alpha, dotNL, dotNV);
+	float D = D_GGX( alpha, dotNH );
+	return F*(V*D);
+}
+
+const IncidentLight directLight = IncidentLight(vec3(2.0, 2.0, 2.0), normalize(vec3(1.0f, 2.0f, 1.0f)), true);
+
+out vec4 outColor;
+
+void main()
+{
+	vec3 base_color = uColor.xyz;
 #MAIN#
-	col *= (l_diffuse + l_ambient);
+	vec3 viewDir = normalize(vViewDir);
+	vec3 norm = normalize(vNorm);
+	if (dot(viewDir,norm)<0.0) norm = -norm;	
+
+	PhysicalMaterial material;
+	material.diffuseColor = base_color * ( 1.0 - metallicFactor );
+
+	vec3 dxy = max(abs(dFdx(norm)), abs(dFdy(norm)));
+	float geometryRoughness = max(max(dxy.x, dxy.y), dxy.z);
+
+	material.roughness = max( roughnessFactor, 0.0525 );
+	material.roughness += geometryRoughness;
+	material.roughness = min( material.roughness, 1.0 );
+	
+	material.specularColor = mix( vec3( 0.04 ), base_color, metallicFactor );
+	material.specularF90 = 1.0;
+		
+	float dotNL =  saturate(dot(norm, directLight.direction));
+	vec3 irradiance = dotNL * directLight.color;
+
+	vec3 specular = irradiance * BRDF_GGX( directLight.direction, viewDir, norm, material.specularColor, material.specularF90, material.roughness );
+	vec3 diffuse = irradiance * BRDF_Lambert( material.diffuseColor );
+
+	vec3 ambient = 0.3 * BRDF_Lambert( base_color );
+	vec3 col = specular + diffuse + ambient;
+
 	outColor = vec4(col, 1.0);
 }
 )";
@@ -85,7 +182,7 @@ static std::string s_frag_color[2] =
 R"(
 layout (location = 2) in vec3 vColor;
 )",
-R"(	col *= vColor;
+R"(	base_color *= vColor;
 )"
 };
 
@@ -95,17 +192,25 @@ R"(
 layout (location = 3) in vec2 vUV;
 layout (location = 0) uniform sampler2D uTexColor;
 )",
-R"(	col *= texture(uTexColor, vUV).xyz;
+R"(	base_color *= texture(uTexColor, vUV).xyz;
 )"
 };
 
-inline void replace(std::string& str, const char* target, const char* src)
+inline void replace(std::string& str, const char* target, const char* source)
 {
-	size_t pos = str.find(target);
-	str.replace(pos, strlen(target), src);
+	int start = 0;
+	size_t target_len = strlen(target);
+	size_t source_len = strlen(source);
+	while (true)
+	{
+		size_t pos = str.find(target, start);
+		if (pos == std::string::npos) break;
+		str.replace(pos, target_len, source);
+		start = pos + source_len;
+	}
 }
 
-void TestRoutine::s_generate_shaders(const Options& options, std::string& s_vertex, std::string& s_frag)
+void StandardRoutine::s_generate_shaders(const Options& options, std::string& s_vertex, std::string& s_frag)
 {
 	s_vertex = s_vertex_common;
 	s_frag = s_frag_common;
@@ -137,7 +242,7 @@ void TestRoutine::s_generate_shaders(const Options& options, std::string& s_vert
 	replace(s_frag, "#MAIN#", s_f_main.c_str());
 }
 
-TestRoutine::TestRoutine(const Options& options) : m_options(options)
+StandardRoutine::StandardRoutine(const Options& options) : m_options(options)
 {
 	std::string s_vertex, s_frag;
 	s_generate_shaders(options, s_vertex, s_frag);
@@ -147,7 +252,7 @@ TestRoutine::TestRoutine(const Options& options) : m_options(options)
 	m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(*m_vert_shader, *m_frag_shader));
 }
 
-void TestRoutine::render(const RenderParams& params)
+void StandardRoutine::render(const RenderParams& params)
 {
 	const MeshStandardMaterial& material = *(MeshStandardMaterial*)params.material_list[params.primitive->material_idx];
 	const GeometrySet& geo = params.primitive->geometry[params.primitive->geometry.size() - 1];
