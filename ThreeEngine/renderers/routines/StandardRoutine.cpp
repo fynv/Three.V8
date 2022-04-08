@@ -62,8 +62,11 @@ layout (location = 5) in vec3 aBitangent;
 layout (location = 4) out vec3 vTangent;
 layout (location = 5) out vec3 vBitangent;
 )",
-R"(	vTangent = aTangent;
-	vBitangent = aBitangent;
+R"(	vec4 world_tangent = uModelMat * vec4(aTangent, 0.0);
+	vTangent =  normalize(world_tangent.xyz);
+
+	vec4 world_bitangent = uModelMat * vec4(aBitangent, 0.0);
+	vBitangent =  normalize(world_bitangent.xyz);
 )"
 };
 
