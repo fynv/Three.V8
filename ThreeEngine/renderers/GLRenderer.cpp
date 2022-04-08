@@ -38,6 +38,9 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params)
 	options.has_color = params.primitive->color_buf != nullptr;
 	const MeshStandardMaterial* material = params.material_list[params.primitive->material_idx];
 	options.has_color_texture = material->tex_idx_map >= 0;
+	options.has_metalness_map = material->tex_idx_metalnessMap >= 0;
+	options.has_roughness_map = material->tex_idx_roughnessMap >= 0;
+	options.has_normal_map = material->tex_idx_normalMap >= 0;
 	StandardRoutine* routine = get_routine(options);
 	routine->render(params);		
 }

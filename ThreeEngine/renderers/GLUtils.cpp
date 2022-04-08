@@ -223,6 +223,21 @@ void GLTexture2D::load_memory_bgr(int width, int height, uint8_t* data, bool is_
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+
+void GLTexture2D::load_memory_bgra(int width, int height, uint8_t* data, bool is_srgb)
+{
+	glBindTexture(GL_TEXTURE_2D, tex_id);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glTexImage2D(GL_TEXTURE_2D, 0, is_srgb ? GL_SRGB_ALPHA : GL_RGBA, width, height, 0, GL_BGRA, GL_UNSIGNED_BYTE, data);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
 void GLTexture2D::load_file(const char* filename, bool is_srgb)
 {
 	Image img; 

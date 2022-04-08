@@ -12,6 +12,8 @@ struct GeometrySet
 {
 	Attribute pos_buf;
 	Attribute normal_buf;
+	Attribute tangent_buf;
+	Attribute bitangent_buf;
 };
 
 class Primitive

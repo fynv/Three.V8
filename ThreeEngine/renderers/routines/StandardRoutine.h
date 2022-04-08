@@ -11,8 +11,11 @@ class StandardRoutine
 public:	
 	struct Options
 	{
-		bool has_color;
-		bool has_color_texture;		
+		bool has_color = false;
+		bool has_color_texture = false;		
+		bool has_metalness_map = false;
+		bool has_roughness_map = false;
+		bool has_normal_map = false;
 	};
 
 	StandardRoutine(const Options& options);

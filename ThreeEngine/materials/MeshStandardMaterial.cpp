@@ -4,6 +4,7 @@
 struct ConstMaterial
 {
 	glm::vec4 color;
+	glm::vec2 normalScale;
 	float metallicFactor;
 	float roughnessFactor;
 };
@@ -17,6 +18,7 @@ void MeshStandardMaterial::update_uniform()
 {
 	ConstMaterial constMaterial;
 	constMaterial.color = glm::vec4(color, 1.0f);
+	constMaterial.normalScale = normalScale;
 	constMaterial.metallicFactor = metallicFactor;
 	constMaterial.roughnessFactor = roughnessFactor;
 	constant_material.upload(&constMaterial);

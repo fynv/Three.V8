@@ -36,6 +36,7 @@ public:
 	void load_memory_rgb(int width, int height, uint8_t* data, bool is_srgb);
 	void load_memory_rgba(int width, int height, uint8_t* data, bool is_srgb);
 	void load_memory_bgr(int width, int height, uint8_t* data, bool is_srgb);
+	void load_memory_bgra(int width, int height, uint8_t* data, bool is_srgb);
 	void load_file(const char* filename, bool is_srgb);
 private:
 	GLTexture2D(const GLTexture2D&);

@@ -45,6 +45,57 @@ inline void g_calc_normal(int num_face, int num_pos, const T* p_indices, const g
 		p_norm[j] = glm::normalize(glm::vec3(p_norm[j]));
 }
 
+template<typename T>
+inline void g_calc_tangent(int num_face, int num_pos, const T* p_indices, const glm::vec3* p_pos, const glm::vec2* p_uv, glm::vec3* p_tangent, glm::vec3* p_bitangent)
+{
+	for (int j = 0; j < num_face; j++)
+	{
+		glm::uvec3 ind;
+		if (p_indices != nullptr)
+		{
+			ind.x = (uint32_t)p_indices[j * 3];
+			ind.y = (uint32_t)p_indices[j * 3 + 1];
+			ind.z = (uint32_t)p_indices[j * 3 + 2];
+		}
+		else
+		{
+			ind.x = j * 3;
+			ind.y = j * 3 + 1;
+			ind.z = j * 3 + 2;
+		}
+
+		glm::vec3 v0 = p_pos[ind.x];
+		glm::vec3 v1 = p_pos[ind.y];
+		glm::vec3 v2 = p_pos[ind.z];
+		glm::vec2 texCoord0 = p_uv[ind.x];
+		glm::vec2 texCoord1 = p_uv[ind.y];
+		glm::vec2 texCoord2 = p_uv[ind.z];
+
+		glm::vec3 edge1 = v1 - v0;
+		glm::vec3 edge2 = v2 - v0;
+		glm::vec2 delta1 = texCoord1 - texCoord0;
+		glm::vec2 delta2 = texCoord2 - texCoord0;
+
+		float f = 1.0f / (delta1[0] * delta2[1] - delta2[0] * delta1[1]);
+		glm::vec3 tagent = glm::normalize((f * delta2[1]) * edge1 - (f * delta1[1]) * edge2);
+		glm::vec3 bitangent = glm::normalize((-f * delta2[0]) * edge1 + (f * delta1[0]) * edge2);
+
+		p_tangent[ind.x] += tagent;
+		p_tangent[ind.y] += tagent;
+		p_tangent[ind.z] += tagent;
+
+		p_bitangent[ind.x] += bitangent;
+		p_bitangent[ind.y] += bitangent;
+		p_bitangent[ind.z] += bitangent;
+	}
+
+	for (int j = 0; j < num_pos; j++)
+	{
+		p_tangent[j] = glm::normalize(glm::vec3(p_tangent[j]));
+		p_bitangent[j] = glm::normalize(glm::vec3(p_bitangent[j]));
+	}
+}
+
 void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 {
 	std::string err;
@@ -53,25 +104,15 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 	tinygltf::Model model;
 	loader.LoadBinaryFromFile(&model, &err, &warn, filename);
 
+	struct TexLoadOptions
+	{
+		bool is_srgb = true;
+		bool reverse = false;
+	};
+
 	size_t num_textures = model.textures.size();
 	model_out->m_textures.resize(num_textures);
-	for (size_t i = 0; i < num_textures; i++)
-	{
-		tinygltf::Texture& tex_in = model.textures[i];
-		GLTexture2D* tex_out = new GLTexture2D();
-		model_out->m_textures[i] = std::unique_ptr<GLTexture2D>(tex_out);
-		
-		tinygltf::Image& img_in = model.images[tex_in.source];
-		bool has_alpha = img_in.component > 3;
-		if (has_alpha)
-		{
-			tex_out->load_memory_rgba(img_in.width, img_in.height, img_in.image.data(), true);
-		}
-		else
-		{
-			tex_out->load_memory_rgb(img_in.width, img_in.height, img_in.image.data(), true);
-		}
-	}
+	std::vector<TexLoadOptions> tex_opts(num_textures);
 
 	size_t num_materials = model.materials.size();
 	model_out->m_materials.resize(num_materials);
@@ -83,10 +124,63 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 		tinygltf::PbrMetallicRoughness& pbr = material_in.pbrMetallicRoughness;
 		material_out->color = { pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2] };
 		material_out->tex_idx_map = pbr.baseColorTexture.index;
+		
 		material_out->metallicFactor = pbr.metallicFactor;
-		material_out->roughnessFactor = pbr.roughnessFactor;
+		material_out->roughnessFactor = pbr.roughnessFactor;		
+
+		int id_mr = pbr.metallicRoughnessTexture.index;
+		if (id_mr >= 0)
+		{
+			tex_opts[id_mr].is_srgb = false;
+			tex_opts[id_mr].reverse = true;
+			material_out->tex_idx_metalnessMap = id_mr;
+			material_out->tex_idx_roughnessMap = id_mr;
+		}		
+
+		if (material_in.normalTexture.index >= 0)
+		{
+			tex_opts[material_in.normalTexture.index].is_srgb = false;
+			material_out->tex_idx_normalMap = material_in.normalTexture.index;
+			float scale = (float)material_in.normalTexture.scale;
+			material_out->normalScale = { scale, scale };
+		}
+
 		material_out->update_uniform();
 	}
+	
+	for (size_t i = 0; i < num_textures; i++)
+	{
+		tinygltf::Texture& tex_in = model.textures[i];
+		GLTexture2D* tex_out = new GLTexture2D();
+		model_out->m_textures[i] = std::unique_ptr<GLTexture2D>(tex_out);
+		
+		tinygltf::Image& img_in = model.images[tex_in.source];
+		const TexLoadOptions& opts = tex_opts[i];
+
+		bool has_alpha = img_in.component > 3;
+		if (opts.reverse)
+		{
+			if (has_alpha)
+			{
+				tex_out->load_memory_bgra(img_in.width, img_in.height, img_in.image.data(), opts.is_srgb);
+			}
+			else
+			{
+				tex_out->load_memory_bgr(img_in.width, img_in.height, img_in.image.data(), opts.is_srgb);
+			}
+		}
+		else
+		{
+			if (has_alpha)
+			{
+				tex_out->load_memory_rgba(img_in.width, img_in.height, img_in.image.data(), opts.is_srgb);
+			}
+			else
+			{
+				tex_out->load_memory_rgb(img_in.width, img_in.height, img_in.image.data(), opts.is_srgb);
+			}
+		}
+	}	
 
 	struct MeshTransform
 	{
@@ -162,6 +256,9 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 			Primitive& primitive_out = mesh_out.primitives[j];
 			primitive_out.material_idx = primitive_in.material;
 
+			MeshStandardMaterial* material = model_out->m_materials[primitive_out.material_idx].get();
+			bool has_tangent = material->tex_idx_normalMap >= 0;
+
 			primitive_out.has_blendshape = primitive_in.targets.size() > 0;
 
 			int num_geo_sets = 1;
@@ -172,10 +269,10 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 			tinygltf::Accessor& acc_pos_in = model.accessors[id_pos_in];
 			primitive_out.num_pos = acc_pos_in.count;
 			tinygltf::BufferView& view_pos_in = model.bufferViews[acc_pos_in.bufferView];
-			glm::vec3* p_pos = (glm::vec3*)(model.buffers[view_pos_in.buffer].data.data() + view_pos_in.byteOffset + acc_pos_in.byteOffset);
+			const glm::vec3* p_pos = (const glm::vec3*)(model.buffers[view_pos_in.buffer].data.data() + view_pos_in.byteOffset + acc_pos_in.byteOffset);
 
 			int id_indices_in = primitive_in.indices;
-			void* p_indices = nullptr;
+			const void* p_indices = nullptr;
 			if (id_indices_in >= 0)
 			{
 				tinygltf::Accessor& acc_indices_in = model.accessors[id_indices_in];
@@ -225,7 +322,7 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 				int id_norm_in = primitive_in.attributes["NORMAL"];
 				tinygltf::Accessor& acc_norm_in = model.accessors[id_norm_in];
 				tinygltf::BufferView& view_norm_in = model.bufferViews[acc_norm_in.bufferView];
-				glm::vec3* p_norm = (glm::vec3 *)(model.buffers[view_norm_in.buffer].data.data() + view_norm_in.byteOffset + acc_norm_in.byteOffset);
+				const glm::vec3* p_norm = (const glm::vec3 *)(model.buffers[view_norm_in.buffer].data.data() + view_norm_in.byteOffset + acc_norm_in.byteOffset);
 
 				std::vector<glm::vec3> norms(primitive_out.num_pos);
 				memcpy(norms.data(), p_norm, sizeof(glm::vec3)* primitive_out.num_pos);
@@ -240,7 +337,11 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 			}
 			else
 			{
-				std::vector<glm::vec3> normal(primitive_out.num_pos);
+				std::vector<glm::vec3> normal(primitive_out.num_pos, glm::vec3(0.0f));
+				if (primitive_out.type_indices == 1)
+				{
+					g_calc_normal<uint8_t>(primitive_out.num_face, primitive_out.num_pos, (uint8_t*)p_indices, primitive_out.cpu_pos->data(), normal.data());
+				}
 				if (primitive_out.type_indices == 2)
 				{
 					g_calc_normal<uint16_t>(primitive_out.num_face, primitive_out.num_pos, (uint16_t*)p_indices, primitive_out.cpu_pos->data(), normal.data());
@@ -269,8 +370,32 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 				tinygltf::Accessor& acc_uv_in = model.accessors[id_uv_in];
 				tinygltf::BufferView& view_uv_in = model.bufferViews[acc_uv_in.bufferView];
 
+				const glm::vec2* p_uv = (const glm::vec2*)(model.buffers[view_uv_in.buffer].data.data() + view_uv_in.byteOffset + acc_uv_in.byteOffset);
 				primitive_out.uv_buf = Attribute(new GLBuffer(sizeof(glm::vec2) * primitive_out.num_pos));
-				primitive_out.uv_buf->upload(model.buffers[view_uv_in.buffer].data.data() + view_uv_in.byteOffset + acc_uv_in.byteOffset);
+				primitive_out.uv_buf->upload(p_uv);
+
+				if (has_tangent)
+				{									
+					std::vector<glm::vec3> tangent(primitive_out.num_pos, glm::vec3(0.0f));
+					std::vector<glm::vec3> bitangent(primitive_out.num_pos, glm::vec3(0.0f));
+					if (primitive_out.type_indices == 1)
+					{
+						g_calc_tangent<uint8_t>(primitive_out.num_face, primitive_out.num_pos, (uint8_t*)p_indices, primitive_out.cpu_pos->data(), p_uv, tangent.data(), bitangent.data());
+					}
+					if (primitive_out.type_indices == 2)
+					{
+						g_calc_tangent<uint16_t>(primitive_out.num_face, primitive_out.num_pos, (uint16_t*)p_indices, primitive_out.cpu_pos->data(), p_uv, tangent.data(), bitangent.data());
+					}
+					else if (primitive_out.type_indices == 4)
+					{
+						g_calc_tangent<uint32_t>(primitive_out.num_face, primitive_out.num_pos, (uint32_t*)p_indices, primitive_out.cpu_pos->data(), p_uv, tangent.data(), bitangent.data());
+					}
+
+					geometry.tangent_buf = Attribute(new GLBuffer(sizeof(glm::vec3) * primitive_out.num_pos));
+					geometry.bitangent_buf = Attribute(new GLBuffer(sizeof(glm::vec3) * primitive_out.num_pos));
+					geometry.tangent_buf->upload(tangent.data());
+					geometry.bitangent_buf->upload(bitangent.data());					
+				}
 			}
 
 			for (int k = 1; k < num_geo_sets; k++)
@@ -283,6 +408,15 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 
 				geometry2.normal_buf = Attribute(new GLBuffer(geometry.normal_buf->m_size));
 				*geometry2.normal_buf = *geometry.normal_buf;
+
+				if (has_tangent)
+				{
+					geometry2.tangent_buf = Attribute(new GLBuffer(geometry.tangent_buf->m_size));
+					*geometry2.tangent_buf = *geometry.tangent_buf;
+
+					geometry2.bitangent_buf = Attribute(new GLBuffer(geometry.bitangent_buf->m_size));
+					*geometry2.bitangent_buf = *geometry.bitangent_buf;
+				}
 			}
 		}
 	}

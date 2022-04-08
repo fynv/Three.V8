@@ -4349,11 +4349,16 @@ function init(width, height) {
     scene.background = bg;
     bg.setColor(0.0, 0.52, 1.0);
 
-    camera.setPosition(0.0, 0.0, 1.0);
-    model = gltfLoader.loadModelFromFile("../game/assets/models/toy_freddy.glb");
+    camera.setPosition(0.0, 0.0, 20.0);
+    model = gltfLoader.loadModelFromFile("../game/assets/models/RZYAS.glb");
+    model.setPosition(0, -8, 0);
+    
+    /*camera.setPosition(0.0, 0.0, 1.0);
+    model = gltfLoader.loadModelFromFile("../game/assets/models/toy_freddy.glb");*/
 
-    //camera.setPosition(0.0, 0.0, 4.0);
-    //model = gltfLoader.loadModelFromFile("../game/assets/models/Parrot.glb");
+    /*camera.setPosition(0.0, 0.0, 4.0);
+    model = gltfLoader.loadModelFromFile("../game/assets/models/Parrot.glb");*/
+    
     scene.add(model);  
 
     clock = new Clock();

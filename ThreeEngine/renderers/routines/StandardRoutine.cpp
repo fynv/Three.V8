@@ -39,8 +39,7 @@ void main()
 
 static std::string s_vertex_color[2] =
 {
-R"(
-layout (location = 2) in vec3 aColor;
+R"(layout (location = 2) in vec3 aColor;
 layout (location = 2) out vec3 vColor;
 )",
 R"(	vColor = aColor;
@@ -49,11 +48,22 @@ R"(	vColor = aColor;
 
 static std::string s_vertex_uv[2] =
 {
-R"(
-layout (location = 3) in vec2 aUV;
+R"(layout (location = 3) in vec2 aUV;
 layout (location = 3) out vec2 vUV;
 )",
 R"(	vUV = aUV;
+)"
+};
+
+static std::string s_vertex_tangent[2] =
+{
+R"(layout (location = 4) in vec3 aTangent;
+layout (location = 5) in vec3 aBitangent;
+layout (location = 4) out vec3 vTangent;
+layout (location = 5) out vec3 vBitangent;
+)",
+R"(	vTangent = aTangent;
+	vBitangent = aBitangent;
 )"
 };
 
@@ -65,8 +75,9 @@ layout (location = 1) in vec3 vNorm;
 layout (std140, binding = 2) uniform Material
 {
 	vec4 uColor;
-	float metallicFactor;
-	float roughnessFactor;
+	vec2 uNormalScale;
+	float uMetallicFactor;
+	float uRoughnessFactor;
 };
 
 #GLOBAL#
@@ -139,17 +150,21 @@ vec3 BRDF_GGX( const in vec3 lightDir, const in vec3 viewDir, const in vec3 norm
 	return F*(V*D);
 }
 
-const IncidentLight directLight = IncidentLight(vec3(2.0, 2.0, 2.0), normalize(vec3(1.0f, 2.0f, 1.0f)), true);
+const IncidentLight directLight = IncidentLight(vec3(4.0, 4.0, 4.0), normalize(vec3(1.0f, 2.0f, 1.0f)), true);
 
 out vec4 outColor;
 
 void main()
 {
 	vec3 base_color = uColor.xyz;
-#MAIN#
+	float metallicFactor = uMetallicFactor;
+	float roughnessFactor = uRoughnessFactor;
+
 	vec3 viewDir = normalize(vViewDir);
 	vec3 norm = normalize(vNorm);
-	if (dot(viewDir,norm)<0.0) norm = -norm;	
+	if (dot(viewDir,norm)<0.0) norm = -norm;
+
+#MAIN#	
 
 	PhysicalMaterial material;
 	material.diffuseColor = base_color * ( 1.0 - metallicFactor );
@@ -179,20 +194,49 @@ void main()
 
 static std::string s_frag_color[2] =
 {
-R"(
-layout (location = 2) in vec3 vColor;
+R"(layout (location = 2) in vec3 vColor;
 )",
 R"(	base_color *= vColor;
 )"
 };
 
+static std::string s_frag_uv =
+R"(layout (location = 3) in vec2 vUV;
+)";
+
 static std::string s_frag_color_tex[2] =
 {
-R"(
-layout (location = 3) in vec2 vUV;
-layout (location = 0) uniform sampler2D uTexColor;
+R"(layout (location = 0) uniform sampler2D uTexColor;
 )",
 R"(	base_color *= texture(uTexColor, vUV).xyz;
+)"
+};
+
+static std::string s_frag_metalness_map[2] =
+{
+R"(layout (location = 1) uniform sampler2D uTexMetalness;
+)",
+R"(	metallicFactor *= texture(uTexMetalness, vUV).z;
+)"
+};
+
+static std::string s_frag_roughness_map[2] =
+{
+R"(layout (location = 2) uniform sampler2D uTexRoughness;
+)",
+R"(	roughnessFactor *= texture(uTexRoughness, vUV).y;
+)"
+};
+
+static std::string s_frag_normal_map[2] =
+{
+R"(layout (location = 3) uniform sampler2D uTexNormal;
+layout (location = 4) in vec3 vTangent;
+layout (location = 5) in vec3 vBitangent;
+)",
+R"(	vec3 bump =  texture(uTexNormal, vUV).xyz;
+bump = (2.0 * bump - 1.0) * vec3(uNormalScale.x, uNormalScale.y, 1.0);
+norm = bump.x*vTangent + bump.y*vBitangent + bump.z*norm;
 )"
 };
 
@@ -228,12 +272,39 @@ void StandardRoutine::s_generate_shaders(const Options& options, std::string& s_
 		s_f_main += s_frag_color[1];
 	}
 
-	if (options.has_color_texture)
+	bool has_uv = options.has_color_texture || options.has_metalness_map || options.has_roughness_map;
+
+	if (has_uv)
 	{
 		s_v_global += s_vertex_uv[0];
 		s_v_main += s_vertex_uv[1];
+		s_f_global += s_frag_uv;		
+	}
+
+	if (options.has_color_texture)
+	{
 		s_f_global += s_frag_color_tex[0];
 		s_f_main += s_frag_color_tex[1];
+	}
+
+	if (options.has_metalness_map)
+	{
+		s_f_global += s_frag_metalness_map[0];
+		s_f_main += s_frag_metalness_map[1];
+	}
+
+	if (options.has_roughness_map)
+	{
+		s_f_global += s_frag_roughness_map[0];
+		s_f_main += s_frag_roughness_map[1];
+	}
+
+	if (options.has_normal_map)
+	{
+		s_v_global += s_vertex_tangent[0];
+		s_v_main += s_vertex_tangent[1];
+		s_f_global += s_frag_normal_map[0];
+		s_f_main += s_frag_normal_map[1];
 	}
 
 	replace(s_vertex, "#GLOBAL#", s_v_global.c_str());
@@ -280,17 +351,56 @@ void StandardRoutine::render(const RenderParams& params)
 		glEnableVertexAttribArray(2);
 	}
 
-	if (m_options.has_color_texture)
+	bool has_uv = m_options.has_color_texture || m_options.has_metalness_map || m_options.has_roughness_map || m_options.has_normal_map;
+	if (has_uv)
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, params.primitive->uv_buf->m_id);
 		glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
 		glEnableVertexAttribArray(3);
-	
+	}
+
+	if (m_options.has_normal_map)
+	{
+		glBindBuffer(GL_ARRAY_BUFFER, geo.tangent_buf->m_id);
+		glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+		glEnableVertexAttribArray(4);
+
+		glBindBuffer(GL_ARRAY_BUFFER, geo.bitangent_buf->m_id);
+		glVertexAttribPointer(5, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+		glEnableVertexAttribArray(5);
+	}
+
+	if (m_options.has_color_texture)
+	{
 		const GLTexture2D& tex = *params.tex_list[material.tex_idx_map];
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, tex.tex_id);
 		glUniform1i(0, 0);
-	}	
+	}
+
+	if (m_options.has_metalness_map)
+	{
+		const GLTexture2D& tex = *params.tex_list[material.tex_idx_metalnessMap];
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, tex.tex_id);
+		glUniform1i(1, 1);
+	}
+
+	if (m_options.has_roughness_map)
+	{
+		const GLTexture2D& tex = *params.tex_list[material.tex_idx_roughnessMap];
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, tex.tex_id);
+		glUniform1i(2, 2);
+	}
+
+	if (m_options.has_normal_map)
+	{
+		const GLTexture2D& tex = *params.tex_list[material.tex_idx_normalMap];
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, tex.tex_id);
+		glUniform1i(3, 3);
+	}
 
 	if (params.primitive->index_buf != nullptr)
 	{
