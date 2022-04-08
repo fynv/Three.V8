@@ -23,3 +23,18 @@ void SimpleModel::set_color(const glm::vec3& color)
 	material.color = color;
 	material.update_uniform();
 }
+
+
+void SimpleModel::set_metalness(float metalness)
+{
+	material.metallicFactor = metalness;
+	material.update_uniform();
+}
+
+
+void SimpleModel::set_roughness(float roughness)
+{
+	material.roughnessFactor = roughness;
+	material.update_uniform();
+}
+

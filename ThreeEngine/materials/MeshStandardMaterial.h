@@ -15,7 +15,7 @@ public:
 	int tex_idx_roughnessMap = -1; // green channel 
 	int tex_idx_normalMap = -1;
 
-	float metallicFactor = 1.0f;
+	float metallicFactor = 0.0f;
 	float roughnessFactor = 1.0f;
 
 	GLBuffer constant_material;

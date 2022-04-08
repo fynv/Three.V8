@@ -15,6 +15,8 @@ public:
 	Primitive geometry;
 
 	void set_color(const glm::vec3& color);
+	void set_metalness(float metalness);
+	void set_roughness(float roughness);
 };
 
 

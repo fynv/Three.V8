@@ -4375,6 +4375,8 @@ function init(width, height) {
         sphere.setColorTexture(img);
         img.dispose();
     }
+    sphere.metalness = 0.5;
+    sphere.roughness = 0.5;
     scene.add(sphere);
 
     clock = new Clock();

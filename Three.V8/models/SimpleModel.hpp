@@ -21,6 +21,12 @@ private:
 	static void SetColor(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 	static void SetColorTexture(const v8::FunctionCallbackInfo<v8::Value>& info);
+
+	static void GetMetalness(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void SetMetalness(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);	
+
+	static void GetRoughness(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void SetRoughness(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
 };
 
 
@@ -35,6 +41,10 @@ v8::Local<v8::FunctionTemplate> WrapperSimpleModel::create_template(v8::Isolate*
 	templ->InstanceTemplate()->Set(isolate, "setColor", v8::FunctionTemplate::New(isolate, SetColor));
 
 	templ->InstanceTemplate()->Set(isolate, "setColorTexture", v8::FunctionTemplate::New(isolate, SetColorTexture));
+
+	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "metalness").ToLocalChecked(), GetMetalness, SetMetalness);
+	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "roughness").ToLocalChecked(), GetRoughness, SetRoughness);
+
 	return templ;
 }
 
@@ -124,4 +134,38 @@ void WrapperSimpleModel::SetColorTexture(const v8::FunctionCallbackInfo<v8::Valu
 	{
 		self->texture.load_memory_bgr(image->width(), image->height(), image->data(), true);
 	}
+}
+
+
+void WrapperSimpleModel::GetMetalness(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+	v8::HandleScope handle_scope(info.GetIsolate());
+	SimpleModel* self = get_self<SimpleModel>(info);
+	v8::Local<v8::Number> ret = v8::Number::New(info.GetIsolate(), (double)self->material.metallicFactor);
+	info.GetReturnValue().Set(ret);
+}
+
+void WrapperSimpleModel::SetMetalness(v8::Local<v8::String> property, v8::Local<v8::Value> value,
+	const v8::PropertyCallbackInfo<void>& info)
+{
+	v8::HandleScope handle_scope(info.GetIsolate());
+	SimpleModel* self = get_self<SimpleModel>(info);
+	self->set_metalness((float)value.As<v8::Number>()->Value());
+}
+
+
+void WrapperSimpleModel::GetRoughness(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+	v8::HandleScope handle_scope(info.GetIsolate());
+	SimpleModel* self = get_self<SimpleModel>(info);
+	v8::Local<v8::Number> ret = v8::Number::New(info.GetIsolate(), (double)self->material.roughnessFactor);
+	info.GetReturnValue().Set(ret);
+}
+
+void WrapperSimpleModel::SetRoughness(v8::Local<v8::String> property, v8::Local<v8::Value> value,
+	const v8::PropertyCallbackInfo<void>& info)
+{
+	v8::HandleScope handle_scope(info.GetIsolate());
+	SimpleModel* self = get_self<SimpleModel>(info);
+	self->set_roughness((float)value.As<v8::Number>()->Value());
 }
