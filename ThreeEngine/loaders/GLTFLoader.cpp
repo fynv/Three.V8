@@ -1,3 +1,4 @@
+#include <list>
 #include <unordered_map>
 #include <GL/glew.h>
 #include "GLTFLoader.h"
@@ -93,36 +94,53 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 		glm::mat4 norm_mat;
 	};
 
+	size_t num_nodes = model.nodes.size();
+	std::vector<glm::mat4> node_trans(num_nodes);
 	std::unordered_map<int, MeshTransform> mesh_node_map;
 
-	size_t num_nodes = model.nodes.size();
-	for (size_t i = 0; i < num_nodes; i++)
+	int idx_root = model.scenes[0].nodes[0];
+	std::list<int> node_queue;
+	node_trans[idx_root] = glm::identity<glm::mat4>();
+	node_queue.push_back(idx_root);
+
+	while (!node_queue.empty())
 	{
-		tinygltf::Node& node_in = model.nodes[i];
+		int id_node = node_queue.front();
+		node_queue.pop_front();
+		tinygltf::Node& node_in = model.nodes[id_node];
+
+		glm::mat4 local = glm::identity<glm::mat4>();
+		if (node_in.translation.size() > 0)
+		{
+			local = glm::translate(local, { node_in.translation[0],  node_in.translation[1],  node_in.translation[2] });			
+		}
+
+		if (node_in.rotation.size() > 0)
+		{
+			glm::quat quaternion(node_in.rotation[3], node_in.rotation[0], node_in.rotation[1], node_in.rotation[2]);
+			local *= glm::toMat4(quaternion);
+		}
+
+		if (node_in.scale.size() > 0)  
+		{
+			local = glm::scale(local, { node_in.scale[0],  node_in.scale[1],  node_in.scale[2] });
+		}
+
+		node_trans[id_node] *= local;
+
 		if (node_in.mesh >= 0)
 		{
-			MeshTransform trans;
-			trans.mat = glm::identity<glm::mat4>();
-			
-			if (node_in.translation.size() > 0)
-			{
-				trans.mat = glm::translate(trans.mat, { node_in.translation[0],  node_in.translation[1],  node_in.translation[2] });				
-			}
-			
-			if (node_in.rotation.size() > 0)
-			{
-				glm::quat quaternion(node_in.rotation[3], node_in.rotation[0], node_in.rotation[1], node_in.rotation[2]);
-				trans.mat *= glm::toMat4(quaternion);
-			}
+			MeshTransform mesh_trans;
+			mesh_trans.mat = node_trans[id_node];
+			mesh_trans.norm_mat = glm::transpose(glm::inverse(mesh_trans.mat));
+			mesh_node_map[node_in.mesh] = mesh_trans;
+		}
 
-			if (node_in.scale.size() > 0)
-			{
-				trans.mat *= glm::scale(trans.mat, { node_in.scale[0],  node_in.scale[1],  node_in.scale[2] });
-			}
-
-			trans.norm_mat = glm::transpose(glm::inverse(trans.mat));			
-		
-			mesh_node_map[node_in.mesh] = trans;
+		for (size_t i = 0; i < node_in.children.size(); i++)
+		{
+			int id_child = node_in.children[i];
+			node_trans[id_child] = node_trans[id_node];
+			node_queue.push_back(id_child);
 		}
 	}
 

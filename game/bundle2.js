@@ -4343,16 +4343,16 @@ let renderer, scene, camera, bg, model, clock, controls;
 function init(width, height) {
     renderer = new GLRenderer();
     camera = new PerspectiveCamera(45.0, width / height, 0.1, 100.0);
-    camera.setPosition(0.0, 0.0, 4.0);
+   
     scene = new Scene();
     bg = new ColorBackground();
     scene.background = bg;
     bg.setColor(0.0, 0.52, 1.0);
 
+    camera.setPosition(0.0, 0.0, 1.0);
     model = gltfLoader.loadModelFromFile("../game/assets/models/toy_freddy.glb");
-    model.setScale(0.01, 0.01, 0.01);
-    model.rotateX(-3.1416 / 2);
 
+    //camera.setPosition(0.0, 0.0, 4.0);
     //model = gltfLoader.loadModelFromFile("../game/assets/models/Parrot.glb");
     scene.add(model);  
 
