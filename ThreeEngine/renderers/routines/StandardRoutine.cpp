@@ -1,8 +1,7 @@
 #include <GL/glew.h>
 #include "StandardRoutine.h"
-#include "materials/MeshStandardMaterial.h"
 
-static std::string s_vertex_common =
+static std::string g_vertex =
 R"(#version 430
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNorm;
@@ -23,7 +22,24 @@ layout (std140, binding = 1) uniform Model
 layout (location = 0) out vec3 vViewDir;
 layout (location = 1) out vec3 vNorm;
 
-#GLOBAL#
+#DEFINES#
+
+#if HAS_COLOR
+layout (location = 2) in vec3 aColor;
+layout (location = 2) out vec3 vColor;
+#endif
+
+#if HAS_UV
+layout (location = 3) in vec2 aUV;
+layout (location = 3) out vec2 vUV;
+#endif
+
+#if HAS_NORMAL_MAP
+layout (location = 4) in vec3 aTangent;
+layout (location = 5) in vec3 aBitangent;
+layout (location = 4) out vec3 vTangent;
+layout (location = 5) out vec3 vBitangent;
+#endif
 
 void main()
 {
@@ -33,50 +49,25 @@ void main()
 	vec4 world_norm = uNormalMat * vec4(aNorm, 0.0);
 	vNorm = world_norm.xyz;
 
-#MAIN#
+#if HAS_COLOR
+	vColor = aColor;
+#endif
+
+#if HAS_UV
+	vUV = aUV;
+#endif
+
+#if HAS_NORMAL_MAP
+	vec4 world_tangent = uModelMat * vec4(aTangent, 0.0);
+	vTangent =  world_tangent.xyz;
+
+	vec4 world_bitangent = uModelMat * vec4(aBitangent, 0.0);
+	vBitangent =  world_bitangent.xyz;
+#endif
 }
 )";
 
-static std::string s_vertex_color[2] =
-{
-R"(layout (location = 2) in vec3 aColor;
-layout (location = 2) out vec3 vColor;
-)",
-R"(	{
-		vColor = aColor;
-	}
-)"
-};
-
-static std::string s_vertex_uv[2] =
-{
-R"(layout (location = 3) in vec2 aUV;
-layout (location = 3) out vec2 vUV;
-)",
-R"(	{
-		vUV = aUV;
-	}
-)"
-};
-
-static std::string s_vertex_tangent[2] =
-{
-R"(layout (location = 4) in vec3 aTangent;
-layout (location = 5) in vec3 aBitangent;
-layout (location = 4) out vec3 vTangent;
-layout (location = 5) out vec3 vBitangent;
-)",
-R"(	{
-		vec4 world_tangent = uModelMat * vec4(aTangent, 0.0);
-		vTangent =  world_tangent.xyz;
-
-		vec4 world_bitangent = uModelMat * vec4(aBitangent, 0.0);
-		vBitangent =  world_bitangent.xyz;
-	}
-)"
-};
-
-static std::string s_frag_common =
+static std::string g_frag =
 R"(#version 430
 layout (location = 0) in vec3 vViewDir;
 layout (location = 1) in vec3 vNorm;
@@ -89,8 +80,33 @@ layout (std140, binding = 2) uniform Material
 	float uRoughnessFactor;
 };
 
-#GLOBAL#
+#DEFINES#
 
+#if HAS_COLOR
+layout (location = 2) in vec3 vColor;
+#endif
+
+#if HAS_UV
+layout (location = 3) in vec2 vUV;
+#endif
+
+#if HAS_COLOR_TEX
+layout (location = 0) uniform sampler2D uTexColor;
+#endif
+
+#if HAS_METALNESS_MAP
+layout (location = 1) uniform sampler2D uTexMetalness;
+#endif
+
+#if HAS_ROUGHNESS_MAP
+layout (location = 2) uniform sampler2D uTexRoughness;
+#endif
+
+#if HAS_NORMAL_MAP
+layout (location = 3) uniform sampler2D uTexNormal;
+layout (location = 4) in vec3 vTangent;
+layout (location = 5) in vec3 vBitangent;
+#endif
 
 struct IncidentLight {
 	vec3 color;
@@ -173,7 +189,31 @@ void main()
 	vec3 norm = normalize(vNorm);
 	if (dot(viewDir,norm)<0.0) norm = -norm;
 
-#MAIN#	
+#if HAS_COLOR
+	base_color *= vColor;
+#endif
+
+#if HAS_COLOR_TEX
+	base_color *= texture(uTexColor, vUV).xyz;
+#endif
+
+#if HAS_METALNESS_MAP
+	metallicFactor *= texture(uTexMetalness, vUV).z;
+#endif
+
+#if HAS_ROUGHNESS_MAP
+	roughnessFactor *= texture(uTexRoughness, vUV).y;
+#endif
+
+#if HAS_NORMAL_MAP
+	{
+		vec3 T = normalize(vTangent);
+		vec3 B = normalize(vBitangent);
+		vec3 bump =  texture(uTexNormal, vUV).xyz;
+		bump = (2.0 * bump - 1.0) * vec3(uNormalScale.x, uNormalScale.y, 1.0);
+		norm = normalize(bump.x*T + bump.y*B + bump.z*norm);
+	}
+#endif
 
 	PhysicalMaterial material;
 	material.diffuseColor = base_color * ( 1.0 - metallicFactor );
@@ -201,66 +241,6 @@ void main()
 }
 )";
 
-static std::string s_frag_color[2] =
-{
-R"(layout (location = 2) in vec3 vColor;
-)",
-R"(	{
-		base_color *= vColor;
-	}
-)"
-};
-
-static std::string s_frag_uv =
-R"(layout (location = 3) in vec2 vUV;
-)";
-
-static std::string s_frag_color_tex[2] =
-{
-R"(layout (location = 0) uniform sampler2D uTexColor;
-)",
-R"(	{
-		base_color *= texture(uTexColor, vUV).xyz;
-	}
-)"
-};
-
-static std::string s_frag_metalness_map[2] =
-{
-R"(layout (location = 1) uniform sampler2D uTexMetalness;
-)",
-R"(	{
-		metallicFactor *= texture(uTexMetalness, vUV).z;
-	}
-)"
-};
-
-static std::string s_frag_roughness_map[2] =
-{
-R"(layout (location = 2) uniform sampler2D uTexRoughness;
-)",
-R"(	{
-		roughnessFactor *= texture(uTexRoughness, vUV).y;
-	}
-)"
-};
-
-static std::string s_frag_normal_map[2] =
-{
-R"(layout (location = 3) uniform sampler2D uTexNormal;
-layout (location = 4) in vec3 vTangent;
-layout (location = 5) in vec3 vBitangent;
-)",
-R"(	{
-		vec3 T = normalize(vTangent);
-		vec3 B = normalize(vBitangent);
-		vec3 bump =  texture(uTexNormal, vUV).xyz;
-		bump = (2.0 * bump - 1.0) * vec3(uNormalScale.x, uNormalScale.y, 1.0);
-		norm = normalize(bump.x*T + bump.y*B + bump.z*norm);
-	}
-)"
-};
-
 inline void replace(std::string& str, const char* target, const char* source)
 {
 	int start = 0;
@@ -277,61 +257,68 @@ inline void replace(std::string& str, const char* target, const char* source)
 
 void StandardRoutine::s_generate_shaders(const Options& options, std::string& s_vertex, std::string& s_frag)
 {
-	s_vertex = s_vertex_common;
-	s_frag = s_frag_common;
+	s_vertex = g_vertex;
+	s_frag = g_frag;
 
-	std::string s_v_global = "";
-	std::string s_v_main = "";
-	std::string s_f_global = "";
-	std::string s_f_main = "";
-
+	std::string defines = "";
 	if (options.has_color)
 	{
-		s_v_global += s_vertex_color[0];
-		s_v_main += s_vertex_color[1];
-		s_f_global += s_frag_color[0];
-		s_f_main += s_frag_color[1];
+		defines += "#define HAS_COLOR 1\n";
+	}
+	else
+	{
+		defines += "#define HAS_COLOR 0\n";
 	}
 
 	bool has_uv = options.has_color_texture || options.has_metalness_map || options.has_roughness_map;
 
 	if (has_uv)
 	{
-		s_v_global += s_vertex_uv[0];
-		s_v_main += s_vertex_uv[1];
-		s_f_global += s_frag_uv;		
+		defines += "#define HAS_UV 1\n";
 	}
-
+	else
+	{
+		defines += "#define HAS_UV 0\n";
+	}
+	
 	if (options.has_color_texture)
 	{
-		s_f_global += s_frag_color_tex[0];
-		s_f_main += s_frag_color_tex[1];
+		defines += "#define HAS_COLOR_TEX 1\n";
+	}
+	else
+	{
+		defines += "#define HAS_COLOR_TEX 0\n";
 	}
 
 	if (options.has_metalness_map)
 	{
-		s_f_global += s_frag_metalness_map[0];
-		s_f_main += s_frag_metalness_map[1];
+		defines += "#define HAS_METALNESS_MAP 1\n";
+	}
+	else
+	{
+		defines += "#define HAS_METALNESS_MAP 0\n";
 	}
 
 	if (options.has_roughness_map)
 	{
-		s_f_global += s_frag_roughness_map[0];
-		s_f_main += s_frag_roughness_map[1];
+		defines += "#define HAS_ROUGHNESS_MAP 1\n";
+	}
+	else
+	{
+		defines += "#define HAS_ROUGHNESS_MAP 0\n";
 	}
 
 	if (options.has_normal_map)
 	{
-		s_v_global += s_vertex_tangent[0];
-		s_v_main += s_vertex_tangent[1];
-		s_f_global += s_frag_normal_map[0];
-		s_f_main += s_frag_normal_map[1];
+		defines += "#define HAS_NORMAL_MAP 1\n";
+	}
+	else
+	{
+		defines += "#define HAS_NORMAL_MAP 0\n";
 	}
 
-	replace(s_vertex, "#GLOBAL#", s_v_global.c_str());
-	replace(s_vertex, "#MAIN#", s_v_main.c_str());
-	replace(s_frag, "#GLOBAL#", s_f_global.c_str());
-	replace(s_frag, "#MAIN#", s_f_main.c_str());
+	replace(s_vertex, "#DEFINES#", defines.c_str());
+	replace(s_frag, "#DEFINES#", defines.c_str());
 }
 
 StandardRoutine::StandardRoutine(const Options& options) : m_options(options)
@@ -358,11 +345,11 @@ void StandardRoutine::render(const RenderParams& params)
 	glBindBufferBase(GL_UNIFORM_BUFFER, 2, material.constant_material.m_id);
 
 	glBindBuffer(GL_ARRAY_BUFFER, geo.pos_buf->m_id);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
 	glEnableVertexAttribArray(0);
 
 	glBindBuffer(GL_ARRAY_BUFFER, geo.normal_buf->m_id);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
 	glEnableVertexAttribArray(1);
 
 	if (m_options.has_color)
@@ -383,11 +370,11 @@ void StandardRoutine::render(const RenderParams& params)
 	if (m_options.has_normal_map)
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, geo.tangent_buf->m_id);
-		glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+		glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
 		glEnableVertexAttribArray(4);
 
 		glBindBuffer(GL_ARRAY_BUFFER, geo.bitangent_buf->m_id);
-		glVertexAttribPointer(5, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+		glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
 		glEnableVertexAttribArray(5);
 	}
 

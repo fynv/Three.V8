@@ -104,7 +104,47 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 
 				for (size_t i = 0; i < model->m_meshs.size(); i++)
 				{
-					Mesh& mesh = model->m_meshs[i];					
+					Mesh& mesh = model->m_meshs[i];
+					
+					if (mesh.needUpdateMorphTargets)
+					{
+						int num_targets =(int)mesh.weights.size();
+						if (mesh.buf_weights == nullptr)
+						{
+							mesh.buf_weights = std::unique_ptr<GLDynBuffer>(new GLDynBuffer(sizeof(float) * num_targets, GL_SHADER_STORAGE_BUFFER));
+						}
+						mesh.buf_weights->upload(mesh.weights.data());
+						for (size_t j = 0; j < mesh.primitives.size(); j++)
+						{
+							Primitive& primitive = mesh.primitives[j];
+							bool has_tangent = primitive.geometry[0].tangent_buf != nullptr;
+							MorphUpdate* morpher = nullptr;
+							if (!has_tangent)
+							{
+								if (morphers[0] == nullptr)
+								{
+									morphers[0] = std::unique_ptr<MorphUpdate>(new MorphUpdate(false));
+								}
+								morpher = morphers[0].get();
+							}
+							else
+							{
+								if (morphers[1] == nullptr)
+								{
+									morphers[1] = std::unique_ptr<MorphUpdate>(new MorphUpdate(true));
+								}
+								morpher = morphers[1].get();
+							}
+							
+							MorphUpdate::Params params = {
+								primitive.num_targets,
+								mesh.buf_weights.get(),
+								&primitive
+							};
+							morpher->update(params);
+						}
+						mesh.needUpdateMorphTargets = false;
+					}
 					
 					for (size_t j = 0; j < mesh.primitives.size(); j++)
 					{

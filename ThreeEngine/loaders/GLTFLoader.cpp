@@ -13,7 +13,7 @@
 #include "tiny_gltf.h"
 
 template<typename T>
-inline void t_calc_normal(int num_face, int num_pos, const T* p_indices, const glm::vec3* p_pos, glm::vec3* p_norm)
+inline void t_calc_normal(int num_face, int num_pos, const T* p_indices, const glm::vec4* p_pos, glm::vec4* p_norm)
 {
 	std::vector<float> counts(num_pos, 0.0f);
 	for (int j = 0; j < num_face; j++)
@@ -35,7 +35,7 @@ inline void t_calc_normal(int num_face, int num_pos, const T* p_indices, const g
 		glm::vec3 v0 = p_pos[ind.x];
 		glm::vec3 v1 = p_pos[ind.y];
 		glm::vec3 v2 = p_pos[ind.z];
-		glm::vec3 face_normals = glm::cross(v1 - v0, v2 - v0);
+		glm::vec4 face_normals = glm::vec4(glm::cross(v1 - v0, v2 - v0), 0.0f);
 
 		p_norm[ind.x] += face_normals;
 		p_norm[ind.y] += face_normals;
@@ -49,7 +49,7 @@ inline void t_calc_normal(int num_face, int num_pos, const T* p_indices, const g
 		p_norm[j] = p_norm[j]/ counts[j];
 }
 
-inline void g_calc_normal(int num_face, int num_pos, int type_indices, const void* p_indices, const glm::vec3* p_pos, glm::vec3* p_norm)
+inline void g_calc_normal(int num_face, int num_pos, int type_indices, const void* p_indices, const glm::vec4* p_pos, glm::vec4* p_norm)
 {
 	if (type_indices == 1)
 	{
@@ -66,7 +66,7 @@ inline void g_calc_normal(int num_face, int num_pos, int type_indices, const voi
 }
 
 template<typename T>
-inline void t_calc_tangent(int num_face, int num_pos, const T* p_indices, const glm::vec3* p_pos, const glm::vec2* p_uv, glm::vec3* p_tangent, glm::vec3* p_bitangent)
+inline void t_calc_tangent(int num_face, int num_pos, const T* p_indices, const glm::vec4* p_pos, const glm::vec2* p_uv, glm::vec4* p_tangent, glm::vec4* p_bitangent)
 {
 	std::vector<float> counts(num_pos, 0.0f);
 	for (int j = 0; j < num_face; j++)
@@ -98,8 +98,8 @@ inline void t_calc_tangent(int num_face, int num_pos, const T* p_indices, const 
 		glm::vec2 delta2 = texCoord2 - texCoord0;
 
 		float f = 1.0f / (delta1[0] * delta2[1] - delta2[0] * delta1[1]);
-		glm::vec3 tagent = (f * delta2[1]) * edge1 - (f * delta1[1]) * edge2;
-		glm::vec3 bitangent = (-f * delta2[0]) * edge1 + (f * delta1[0]) * edge2;
+		glm::vec4 tagent = glm::vec4((f * delta2[1]) * edge1 - (f * delta1[1]) * edge2, 0.0f);
+		glm::vec4 bitangent = glm::vec4((-f * delta2[0]) * edge1 + (f * delta1[0]) * edge2, 0.0f)   ;
 
 		p_tangent[ind.x] += tagent;
 		p_tangent[ind.y] += tagent;
@@ -121,7 +121,7 @@ inline void t_calc_tangent(int num_face, int num_pos, const T* p_indices, const 
 	}
 }
 
-inline void g_calc_tangent(int num_face, int num_pos, int type_indices, const void* p_indices, const glm::vec3* p_pos, const glm::vec2* p_uv, glm::vec3* p_tangent, glm::vec3* p_bitangent)
+inline void g_calc_tangent(int num_face, int num_pos, int type_indices, const void* p_indices, const glm::vec4* p_pos, const glm::vec2* p_uv, glm::vec4* p_tangent, glm::vec4* p_bitangent)
 {
 	if (type_indices == 1)
 	{
@@ -300,10 +300,11 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 			MeshStandardMaterial* material = model_out->m_materials[primitive_out.material_idx].get();
 			bool has_tangent = material->tex_idx_normalMap >= 0;
 
-			primitive_out.has_blendshape = primitive_in.targets.size() > 0;
+			int num_targets = primitive_in.targets.size();
+			primitive_out.num_targets = num_targets;
 
 			int num_geo_sets = 1;
-			if (primitive_out.has_blendshape) num_geo_sets++;
+			if (num_targets > 0) num_geo_sets++;
 			primitive_out.geometry.resize(num_geo_sets);
 
 			int id_pos_in = primitive_in.attributes["POSITION"];
@@ -345,43 +346,32 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 			}
 
 			GeometrySet& geometry = primitive_out.geometry[0];
-			primitive_out.cpu_pos = std::unique_ptr<std::vector<glm::vec3>>(new std::vector<glm::vec3>(primitive_out.num_pos));
-			memcpy(primitive_out.cpu_pos->data(), p_pos, sizeof(glm::vec3)* primitive_out.num_pos);
+			primitive_out.cpu_pos = std::unique_ptr<std::vector<glm::vec4>>(new std::vector<glm::vec4>(primitive_out.num_pos));			
 
-			for (int k = 0; k < primitive_out.num_pos; k++)
-			{
-				glm::vec3& pos = (*primitive_out.cpu_pos)[k];
-				pos = trans.mat * glm::vec4(pos, 1.0f);
-			}
+			for (int k = 0; k < primitive_out.num_pos; k++)				
+				(*primitive_out.cpu_pos)[k] = trans.mat * glm::vec4(p_pos[k], 1.0f);
 
-			geometry.pos_buf = Attribute(new GLBuffer(sizeof(glm::vec3) * primitive_out.num_pos));
+			geometry.pos_buf = Attribute(new GLBuffer(sizeof(glm::vec4) * primitive_out.num_pos));
 			geometry.pos_buf->upload(primitive_out.cpu_pos->data());
 
-			geometry.normal_buf = Attribute(new GLBuffer(sizeof(glm::vec3) * primitive_out.num_pos));
+			std::vector<glm::vec4> norms(primitive_out.num_pos, glm::vec4(0.0f));
+
+			geometry.normal_buf = Attribute(new GLBuffer(sizeof(glm::vec4) * primitive_out.num_pos));
 			if (primitive_in.attributes.find("NORMAL") != primitive_in.attributes.end())
 			{
 				int id_norm_in = primitive_in.attributes["NORMAL"];
 				tinygltf::Accessor& acc_norm_in = model.accessors[id_norm_in];
 				tinygltf::BufferView& view_norm_in = model.bufferViews[acc_norm_in.bufferView];
-				const glm::vec3* p_norm = (const glm::vec3 *)(model.buffers[view_norm_in.buffer].data.data() + view_norm_in.byteOffset + acc_norm_in.byteOffset);
+				const glm::vec3* p_norm = (const glm::vec3 *)(model.buffers[view_norm_in.buffer].data.data() + view_norm_in.byteOffset + acc_norm_in.byteOffset);			
 
-				std::vector<glm::vec3> norms(primitive_out.num_pos);
-				memcpy(norms.data(), p_norm, sizeof(glm::vec3)* primitive_out.num_pos);
-
-				for (int k = 0; k < primitive_out.num_pos; k++)
-				{
-					glm::vec3& norm = norms[k];
-					norm = trans.norm_mat * glm::vec4(norm, 0.0f);
-				}
-
-				geometry.normal_buf->upload(norms.data());
+				for (int k = 0; k < primitive_out.num_pos; k++)				
+					norms[k] = trans.norm_mat * glm::vec4(p_norm[k], 0.0f);
 			}
 			else
 			{
-				std::vector<glm::vec3> normal(primitive_out.num_pos, glm::vec3(0.0f));
-				g_calc_normal(primitive_out.num_face, primitive_out.num_pos, primitive_out.type_indices, p_indices, primitive_out.cpu_pos->data(), normal.data());				
-				geometry.normal_buf->upload(normal.data());
+				g_calc_normal(primitive_out.num_face, primitive_out.num_pos, primitive_out.type_indices, p_indices, primitive_out.cpu_pos->data(), norms.data());				
 			}
+			geometry.normal_buf->upload(norms.data());
 
 			if (primitive_in.attributes.find("COLOR_0") != primitive_in.attributes.end())
 			{				
@@ -394,26 +384,104 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 				primitive_out.color_buf->upload(model.buffers[view_color_in.buffer].data.data() + view_color_in.byteOffset + acc_color_in.byteOffset);
 			}
 
+			const glm::vec2* p_uv = nullptr;			
+
 			if (primitive_in.attributes.find("TEXCOORD_0") != primitive_in.attributes.end())
 			{				
 				int id_uv_in = primitive_in.attributes["TEXCOORD_0"];
 				tinygltf::Accessor& acc_uv_in = model.accessors[id_uv_in];
 				tinygltf::BufferView& view_uv_in = model.bufferViews[acc_uv_in.bufferView];
 
-				const glm::vec2* p_uv = (const glm::vec2*)(model.buffers[view_uv_in.buffer].data.data() + view_uv_in.byteOffset + acc_uv_in.byteOffset);
+				p_uv = (const glm::vec2*)(model.buffers[view_uv_in.buffer].data.data() + view_uv_in.byteOffset + acc_uv_in.byteOffset);
 				primitive_out.uv_buf = Attribute(new GLBuffer(sizeof(glm::vec2) * primitive_out.num_pos));
-				primitive_out.uv_buf->upload(p_uv);
+				primitive_out.uv_buf->upload(p_uv);				
+			}
 
+			std::vector<glm::vec4> tangent;
+			std::vector<glm::vec4> bitangent;
+			if (has_tangent)
+			{
+				tangent.resize(primitive_out.num_pos, glm::vec4(0.0f));
+				bitangent.resize(primitive_out.num_pos, glm::vec4(0.0f));
+				g_calc_tangent(primitive_out.num_face, primitive_out.num_pos, primitive_out.type_indices, p_indices, primitive_out.cpu_pos->data(), p_uv, tangent.data(), bitangent.data());
+				geometry.tangent_buf = Attribute(new GLBuffer(sizeof(glm::vec4) * primitive_out.num_pos));
+				geometry.bitangent_buf = Attribute(new GLBuffer(sizeof(glm::vec4) * primitive_out.num_pos));
+				geometry.tangent_buf->upload(tangent.data());
+				geometry.bitangent_buf->upload(bitangent.data());
+			}
+			
+			if (num_targets > 0)
+			{
+				std::vector<glm::vec4> pos_targets(num_targets * primitive_out.num_pos);
+				std::vector<glm::vec4> norm_targets(num_targets * primitive_out.num_pos, glm::vec4(0.0f));
+				std::vector<glm::vec4> tangent_targets;
+				std::vector<glm::vec4> bitangent_targets;				
 				if (has_tangent)
-				{									
-					std::vector<glm::vec3> tangent(primitive_out.num_pos, glm::vec3(0.0f));
-					std::vector<glm::vec3> bitangent(primitive_out.num_pos, glm::vec3(0.0f));
-					g_calc_tangent(primitive_out.num_face, primitive_out.num_pos, primitive_out.type_indices, p_indices, primitive_out.cpu_pos->data(), p_uv, tangent.data(), bitangent.data());					geometry.tangent_buf = Attribute(new GLBuffer(sizeof(glm::vec3) * primitive_out.num_pos));
-					geometry.bitangent_buf = Attribute(new GLBuffer(sizeof(glm::vec3) * primitive_out.num_pos));
-					geometry.tangent_buf->upload(tangent.data());
-					geometry.bitangent_buf->upload(bitangent.data());					
+				{
+					tangent_targets.resize(num_targets * primitive_out.num_pos, glm::vec4(0.0f));
+					bitangent_targets.resize(num_targets * primitive_out.num_pos, glm::vec4(0.0f));					
+				}
+
+				for (size_t k = 0; k < num_targets; k++)
+				{
+					std::map<std::string, int>& target_in = primitive_in.targets[k];
+
+					int id_t_pos_in = target_in["POSITION"];
+					tinygltf::Accessor& acc_t_pos_in = model.accessors[id_t_pos_in];
+					tinygltf::BufferView& view_t_pos_in = model.bufferViews[acc_t_pos_in.bufferView];
+					const glm::vec3* t_pos = (const glm::vec3*)(model.buffers[view_t_pos_in.buffer].data.data() + view_t_pos_in.byteOffset + acc_t_pos_in.byteOffset);
+
+					glm::vec4* pos_k = pos_targets.data() + k * primitive_out.num_pos;
+					for (int l = 0; l < primitive_out.num_pos; l++)
+						pos_k[l] = trans.mat * glm::vec4(p_pos[l] + t_pos[l], 1.0f);
+
+					glm::vec4* norm_k = norm_targets.data() + k * primitive_out.num_pos;
+					if (target_in.find("NORMAL") != target_in.end())
+					{
+						int id_t_norm_in = target_in["NORMAL"];
+						tinygltf::Accessor& acc_t_norm_in = model.accessors[id_t_norm_in];
+						tinygltf::BufferView& view_t_norm_in = model.bufferViews[acc_t_norm_in.bufferView];
+						const glm::vec3* t_norm = (const glm::vec3*)(model.buffers[view_t_norm_in.buffer].data.data() + view_t_norm_in.byteOffset + acc_t_norm_in.byteOffset);
+						for (int l = 0; l < primitive_out.num_pos; l++)
+							norm_k[l] = trans.norm_mat * glm::vec4(t_norm[k], 0.0f);
+					}
+					else
+					{
+						g_calc_normal(primitive_out.num_face, primitive_out.num_pos, primitive_out.type_indices, p_indices, pos_k, norm_k);
+						for (int l = 0; l < primitive_out.num_pos; l++)
+							norm_k[l] = norm_k[l] - norms[l];
+					}
+
+					if (has_tangent)
+					{
+						glm::vec4* tangent_k = tangent_targets.data() + k * primitive_out.num_pos;
+						glm::vec4* bitangent_k = bitangent_targets.data() + k * primitive_out.num_pos;
+						g_calc_tangent(primitive_out.num_face, primitive_out.num_pos, primitive_out.type_indices, p_indices, pos_k, p_uv, tangent_k, bitangent_k);
+
+						for (int l = 0; l < primitive_out.num_pos; l++)
+						{
+							tangent_k[l] = tangent_k[l] - tangent[l];
+							bitangent_k[l] = bitangent_k[l] - bitangent[l];
+						}
+					}
+
+					for (int l = 0; l < primitive_out.num_pos; l++)
+						pos_k[l] = pos_k[l] - (*primitive_out.cpu_pos)[l];
+				}
+
+				primitive_out.targets.pos_buf = Attribute(new GLBuffer(sizeof(glm::vec4) * primitive_out.num_pos * num_targets));
+				primitive_out.targets.pos_buf->upload(pos_targets.data());
+				primitive_out.targets.normal_buf = Attribute(new GLBuffer(sizeof(glm::vec4) * primitive_out.num_pos * num_targets));
+				primitive_out.targets.normal_buf->upload(norm_targets.data());
+				if (has_tangent)
+				{					
+					primitive_out.targets.tangent_buf = Attribute(new GLBuffer(sizeof(glm::vec4) * primitive_out.num_pos * num_targets));
+					primitive_out.targets.tangent_buf->upload(tangent_targets.data());
+					primitive_out.targets.bitangent_buf = Attribute(new GLBuffer(sizeof(glm::vec4) * primitive_out.num_pos * num_targets));
+					primitive_out.targets.bitangent_buf->upload(bitangent_targets.data());
 				}
 			}
+
 
 			for (int k = 1; k < num_geo_sets; k++)
 			{
@@ -435,6 +503,10 @@ void GLTFLoader::LoadModelFromFile(GLTFModel* model_out, const char* filename)
 					*geometry2.bitangent_buf = *geometry.bitangent_buf;
 				}
 			}
+		}
+		if (mesh_out.primitives.size() > 0)
+		{
+			mesh_out.weights.resize(mesh_out.primitives[0].num_targets, 0.0f);
 		}
 	}
 

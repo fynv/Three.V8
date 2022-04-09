@@ -126,6 +126,9 @@
     <ClCompile Include="..\thirdparty\crc64\crc64.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="renderers\routines\MorphUpdate.cpp">
+      <Filter>Source Files\renderers\routines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -187,6 +190,9 @@
     </ClInclude>
     <ClInclude Include="..\thirdparty\crc64\crc64.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\routines\MorphUpdate.h">
+      <Filter>Header Files\renderers\routines</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

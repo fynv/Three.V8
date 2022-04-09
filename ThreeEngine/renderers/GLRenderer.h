@@ -3,6 +3,7 @@
 #include <memory>
 #include <unordered_map>
 #include "renderers/routines/StandardRoutine.h"
+#include "renderers/routines/MorphUpdate.h"
 
 class Scene;
 class Camera;
@@ -18,5 +19,7 @@ private:
 	std::unordered_map<uint64_t, std::unique_ptr<StandardRoutine>> routine_map;
 	StandardRoutine* get_routine(const StandardRoutine::Options& options);
 	void render_primitive(const StandardRoutine::RenderParams& params);
+
+	std::unique_ptr<MorphUpdate> morphers[2];
 };
 

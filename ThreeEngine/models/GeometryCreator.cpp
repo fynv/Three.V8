@@ -6,7 +6,7 @@
 
 const double PI = 3.14159265359;
 
-void GeometryCreator::create(Primitive* primitive, const std::vector<glm::vec3>& pos, const std::vector<glm::vec3>& norm, const std::vector<glm::vec2>& uv, const std::vector<glm::ivec3>& faces)
+void GeometryCreator::create(Primitive* primitive, const std::vector<glm::vec4>& pos, const std::vector<glm::vec4>& norm, const std::vector<glm::vec2>& uv, const std::vector<glm::ivec3>& faces)
 {
 	primitive->geometry.resize(1);
 	GeometrySet& geo = primitive->geometry[0];
@@ -14,13 +14,13 @@ void GeometryCreator::create(Primitive* primitive, const std::vector<glm::vec3>&
 	primitive->num_face = (int)faces.size();
 	primitive->type_indices = 4;
 
-	geo.pos_buf = (std::unique_ptr<GLBuffer>)(new GLBuffer(sizeof(glm::vec3) * primitive->num_pos, GL_ARRAY_BUFFER));
+	geo.pos_buf = (std::unique_ptr<GLBuffer>)(new GLBuffer(sizeof(glm::vec4) * primitive->num_pos, GL_ARRAY_BUFFER));
 	geo.pos_buf->upload(pos.data());
 	
-	primitive->cpu_pos = std::unique_ptr<std::vector<glm::vec3>>(new std::vector<glm::vec3>(primitive->num_pos));
+	primitive->cpu_pos = std::unique_ptr<std::vector<glm::vec4>>(new std::vector<glm::vec4>(primitive->num_pos));
 	memcpy(primitive->cpu_pos->data(), pos.data(), geo.pos_buf->m_size);
 
-	geo.normal_buf = (std::unique_ptr<GLBuffer>)(new GLBuffer(sizeof(glm::vec3) * primitive->num_pos, GL_ARRAY_BUFFER));
+	geo.normal_buf = (std::unique_ptr<GLBuffer>)(new GLBuffer(sizeof(glm::vec4) * primitive->num_pos, GL_ARRAY_BUFFER));
 	geo.normal_buf->upload(norm.data());
 
 	primitive->uv_buf = (std::unique_ptr<GLBuffer>)(new GLBuffer(sizeof(glm::vec2) * primitive->num_pos, GL_ARRAY_BUFFER));
@@ -39,23 +39,23 @@ void GeometryCreator::CreateBox(Primitive* primitive, float width, float height,
 	float half_h = height * 0.5f;
 	float half_d = depth * 0.5f;
 
-	std::vector<glm::vec3> pos;
-	std::vector<glm::vec3> norm;
+	std::vector<glm::vec4> pos;
+	std::vector<glm::vec4> norm;
 	std::vector<glm::vec2> uv;
 	std::vector<glm::ivec3> faces;
 
 	// x positive
 	{
 		int v_start = (int)pos.size();
-		pos.push_back({ half_w, half_h, half_d });
-		pos.push_back({ half_w, half_h, -half_d });
-		pos.push_back({ half_w, -half_h, half_d });
-		pos.push_back({ half_w, -half_h, -half_d });
+		pos.push_back({ half_w, half_h, half_d, 1.0f });
+		pos.push_back({ half_w, half_h, -half_d, 1.0f });
+		pos.push_back({ half_w, -half_h, half_d, 1.0f });
+		pos.push_back({ half_w, -half_h, -half_d, 1.0f });
 
-		norm.push_back({ 1.0f, 0.0f, 0.0f });
-		norm.push_back({ 1.0f, 0.0f, 0.0f });
-		norm.push_back({ 1.0f, 0.0f, 0.0f });
-		norm.push_back({ 1.0f, 0.0f, 0.0f });
+		norm.push_back({ 1.0f, 0.0f, 0.0f, 0.0f });
+		norm.push_back({ 1.0f, 0.0f, 0.0f, 0.0f });
+		norm.push_back({ 1.0f, 0.0f, 0.0f, 0.0f });
+		norm.push_back({ 1.0f, 0.0f, 0.0f, 0.0f });
 
 		uv.push_back({ 0.0f, 0.0f });
 		uv.push_back({ 1.0f, 0.0f });
@@ -69,15 +69,15 @@ void GeometryCreator::CreateBox(Primitive* primitive, float width, float height,
 	// x negative
 	{
 		int v_start = (int)pos.size();
-		pos.push_back({ -half_w, half_h, -half_d });
-		pos.push_back({ -half_w, half_h, half_d });
-		pos.push_back({ -half_w, -half_h, -half_d });
-		pos.push_back({ -half_w, -half_h, half_d });
+		pos.push_back({ -half_w, half_h, -half_d, 1.0f });
+		pos.push_back({ -half_w, half_h, half_d, 1.0f });
+		pos.push_back({ -half_w, -half_h, -half_d, 1.0f });
+		pos.push_back({ -half_w, -half_h, half_d, 1.0f });
 
-		norm.push_back({ -1.0f, 0.0f, 0.0f });
-		norm.push_back({ -1.0f, 0.0f, 0.0f });
-		norm.push_back({ -1.0f, 0.0f, 0.0f });
-		norm.push_back({ -1.0f, 0.0f, 0.0f });
+		norm.push_back({ -1.0f, 0.0f, 0.0f, 0.0f });
+		norm.push_back({ -1.0f, 0.0f, 0.0f, 0.0f });
+		norm.push_back({ -1.0f, 0.0f, 0.0f, 0.0f });
+		norm.push_back({ -1.0f, 0.0f, 0.0f, 0.0f });
 
 		uv.push_back({ 0.0f, 0.0f });
 		uv.push_back({ 1.0f, 0.0f });
@@ -91,15 +91,15 @@ void GeometryCreator::CreateBox(Primitive* primitive, float width, float height,
 	// y positive
 	{
 		int v_start = (int)pos.size();
-		pos.push_back({ -half_w, half_h, -half_d });
-		pos.push_back({ half_w, half_h, -half_d });
-		pos.push_back({ -half_w, half_h, half_d });
-		pos.push_back({ half_w, half_h, half_d });
+		pos.push_back({ -half_w, half_h, -half_d, 1.0f });
+		pos.push_back({ half_w, half_h, -half_d, 1.0f });
+		pos.push_back({ -half_w, half_h, half_d, 1.0f });
+		pos.push_back({ half_w, half_h, half_d, 1.0f });
 
-		norm.push_back({ 0.0f, 1.0f, 0.0f });
-		norm.push_back({ 0.0f, 1.0f, 0.0f });
-		norm.push_back({ 0.0f, 1.0f, 0.0f });
-		norm.push_back({ 0.0f, 1.0f, 0.0f });
+		norm.push_back({ 0.0f, 1.0f, 0.0f, 0.0f });
+		norm.push_back({ 0.0f, 1.0f, 0.0f, 0.0f });
+		norm.push_back({ 0.0f, 1.0f, 0.0f, 0.0f });
+		norm.push_back({ 0.0f, 1.0f, 0.0f, 0.0f });
 
 		uv.push_back({ 0.0f, 0.0f });
 		uv.push_back({ 1.0f, 0.0f });
@@ -113,15 +113,15 @@ void GeometryCreator::CreateBox(Primitive* primitive, float width, float height,
 	// y negative
 	{
 		int v_start = (int)pos.size();
-		pos.push_back({ -half_w, -half_h, half_d });
-		pos.push_back({ half_w, -half_h, half_d });
-		pos.push_back({ -half_w, -half_h, -half_d });
-		pos.push_back({ half_w, -half_h, -half_d });
+		pos.push_back({ -half_w, -half_h, half_d, 1.0f });
+		pos.push_back({ half_w, -half_h, half_d, 1.0f });
+		pos.push_back({ -half_w, -half_h, -half_d, 1.0f });
+		pos.push_back({ half_w, -half_h, -half_d, 1.0f });
 
-		norm.push_back({ 0.0f, -1.0f, 0.0f });
-		norm.push_back({ 0.0f, -1.0f, 0.0f });
-		norm.push_back({ 0.0f, -1.0f, 0.0f });
-		norm.push_back({ 0.0f, -1, 0.0f });
+		norm.push_back({ 0.0f, -1.0f, 0.0f, 0.0f });
+		norm.push_back({ 0.0f, -1.0f, 0.0f, 0.0f });
+		norm.push_back({ 0.0f, -1.0f, 0.0f, 0.0f });
+		norm.push_back({ 0.0f, -1.0f, 0.0f, 0.0f });
 
 		uv.push_back({ 0.0f, 0.0f });
 		uv.push_back({ 1.0f, 0.0f });
@@ -135,15 +135,15 @@ void GeometryCreator::CreateBox(Primitive* primitive, float width, float height,
 	// z positive
 	{
 		int v_start = (int)pos.size();
-		pos.push_back({ -half_w, half_h, half_d });
-		pos.push_back({ half_w, half_h, half_d });
-		pos.push_back({ -half_w, -half_h, half_d });
-		pos.push_back({ half_w, -half_h, half_d });
+		pos.push_back({ -half_w, half_h, half_d, 1.0f });
+		pos.push_back({ half_w, half_h, half_d, 1.0f });
+		pos.push_back({ -half_w, -half_h, half_d, 1.0f });
+		pos.push_back({ half_w, -half_h, half_d, 1.0f });
 
-		norm.push_back({ 0.0f, 0.0f, 1.0f });
-		norm.push_back({ 0.0f, 0.0f, 1.0f });
-		norm.push_back({ 0.0f, 0.0f, 1.0f });
-		norm.push_back({ 0.0f, 0.0f, 1.0f });
+		norm.push_back({ 0.0f, 0.0f, 1.0f, 0.0f });
+		norm.push_back({ 0.0f, 0.0f, 1.0f, 0.0f });
+		norm.push_back({ 0.0f, 0.0f, 1.0f, 0.0f });
+		norm.push_back({ 0.0f, 0.0f, 1.0f, 0.0f });
 
 		uv.push_back({ 0.0f, 0.0f });
 		uv.push_back({ 1.0f, 0.0f });
@@ -157,15 +157,15 @@ void GeometryCreator::CreateBox(Primitive* primitive, float width, float height,
 	// z negative
 	{
 		int v_start = (int)pos.size();
-		pos.push_back({ half_w, half_h, -half_d });
-		pos.push_back({ -half_w, half_h, -half_d });
-		pos.push_back({ half_w, -half_h, -half_d });
-		pos.push_back({ -half_w, -half_h, -half_d });
+		pos.push_back({ half_w, half_h, -half_d, 1.0f });
+		pos.push_back({ -half_w, half_h, -half_d, 1.0f });
+		pos.push_back({ half_w, -half_h, -half_d, 1.0f });
+		pos.push_back({ -half_w, -half_h, -half_d, 1.0f });
 
-		norm.push_back({ 0.0f, 0.0f, -1.0f });
-		norm.push_back({ 0.0f, 0.0f, -1.0f });
-		norm.push_back({ 0.0f, 0.0f, -1.0f });
-		norm.push_back({ 0.0f, 0.0f, -1.0f });
+		norm.push_back({ 0.0f, 0.0f, -1.0f, 0.0f });
+		norm.push_back({ 0.0f, 0.0f, -1.0f, 0.0f });
+		norm.push_back({ 0.0f, 0.0f, -1.0f, 0.0f });
+		norm.push_back({ 0.0f, 0.0f, -1.0f, 0.0f });
 
 		uv.push_back({ 0.0f, 0.0f });
 		uv.push_back({ 1.0f, 0.0f });
@@ -186,8 +186,8 @@ void GeometryCreator::CreateSphere(Primitive* primitive, float radius, int width
 	int vert_count = count_x * count_y;
 	int face_count = widthSegments * heightSegments * 2;
 
-	std::vector<glm::vec3> pos(vert_count);
-	std::vector<glm::vec3> norm(vert_count);
+	std::vector<glm::vec4> pos(vert_count);
+	std::vector<glm::vec4> norm(vert_count);
 	std::vector<glm::vec2> uv(vert_count);
 	std::vector<glm::ivec3> faces(face_count);
 
@@ -206,8 +206,8 @@ void GeometryCreator::CreateSphere(Primitive* primitive, float radius, int width
 			glm::vec3 dir = { cos_phi * sin_theta, sin_phi, cos_phi * cos_theta };
 
 			int idx = i + j * count_x;
-			pos[idx] = dir * radius;
-			norm[idx] = dir;
+			pos[idx] = glm::vec4(dir* radius, 1.0f);
+			norm[idx] = glm::vec4(dir, 0.0f);
 			uv[idx] = { u,v };
 		}
 	}
