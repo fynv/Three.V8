@@ -31,7 +31,7 @@ void main()
 	gl_Position = uProjMat*(uViewMat*wolrd_pos);
 	vViewDir = uEyePos - wolrd_pos.xyz;
 	vec4 world_norm = uNormalMat * vec4(aNorm, 0.0);
-	vNorm =  normalize(world_norm.xyz);
+	vNorm = world_norm.xyz;
 
 #MAIN#
 }
@@ -42,7 +42,9 @@ static std::string s_vertex_color[2] =
 R"(layout (location = 2) in vec3 aColor;
 layout (location = 2) out vec3 vColor;
 )",
-R"(	vColor = aColor;
+R"(	{
+		vColor = aColor;
+	}
 )"
 };
 
@@ -51,7 +53,9 @@ static std::string s_vertex_uv[2] =
 R"(layout (location = 3) in vec2 aUV;
 layout (location = 3) out vec2 vUV;
 )",
-R"(	vUV = aUV;
+R"(	{
+		vUV = aUV;
+	}
 )"
 };
 
@@ -62,11 +66,13 @@ layout (location = 5) in vec3 aBitangent;
 layout (location = 4) out vec3 vTangent;
 layout (location = 5) out vec3 vBitangent;
 )",
-R"(	vec4 world_tangent = uModelMat * vec4(aTangent, 0.0);
-	vTangent =  normalize(world_tangent.xyz);
+R"(	{
+		vec4 world_tangent = uModelMat * vec4(aTangent, 0.0);
+		vTangent =  world_tangent.xyz;
 
-	vec4 world_bitangent = uModelMat * vec4(aBitangent, 0.0);
-	vBitangent =  normalize(world_bitangent.xyz);
+		vec4 world_bitangent = uModelMat * vec4(aBitangent, 0.0);
+		vBitangent =  world_bitangent.xyz;
+	}
 )"
 };
 
@@ -199,7 +205,9 @@ static std::string s_frag_color[2] =
 {
 R"(layout (location = 2) in vec3 vColor;
 )",
-R"(	base_color *= vColor;
+R"(	{
+		base_color *= vColor;
+	}
 )"
 };
 
@@ -211,7 +219,9 @@ static std::string s_frag_color_tex[2] =
 {
 R"(layout (location = 0) uniform sampler2D uTexColor;
 )",
-R"(	base_color *= texture(uTexColor, vUV).xyz;
+R"(	{
+		base_color *= texture(uTexColor, vUV).xyz;
+	}
 )"
 };
 
@@ -219,7 +229,9 @@ static std::string s_frag_metalness_map[2] =
 {
 R"(layout (location = 1) uniform sampler2D uTexMetalness;
 )",
-R"(	metallicFactor *= texture(uTexMetalness, vUV).z;
+R"(	{
+		metallicFactor *= texture(uTexMetalness, vUV).z;
+	}
 )"
 };
 
@@ -227,7 +239,9 @@ static std::string s_frag_roughness_map[2] =
 {
 R"(layout (location = 2) uniform sampler2D uTexRoughness;
 )",
-R"(	roughnessFactor *= texture(uTexRoughness, vUV).y;
+R"(	{
+		roughnessFactor *= texture(uTexRoughness, vUV).y;
+	}
 )"
 };
 
@@ -237,9 +251,13 @@ R"(layout (location = 3) uniform sampler2D uTexNormal;
 layout (location = 4) in vec3 vTangent;
 layout (location = 5) in vec3 vBitangent;
 )",
-R"(	vec3 bump =  texture(uTexNormal, vUV).xyz;
-bump = (2.0 * bump - 1.0) * vec3(uNormalScale.x, uNormalScale.y, 1.0);
-norm = normalize(bump.x*vTangent + bump.y*vBitangent + bump.z*norm);
+R"(	{
+		vec3 T = normalize(vTangent);
+		vec3 B = normalize(vBitangent);
+		vec3 bump =  texture(uTexNormal, vUV).xyz;
+		bump = (2.0 * bump - 1.0) * vec3(uNormalScale.x, uNormalScale.y, 1.0);
+		norm = normalize(bump.x*T + bump.y*B + bump.z*norm);
+	}
 )"
 };
 
