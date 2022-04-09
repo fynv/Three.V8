@@ -168,6 +168,17 @@ void MorphUpdate::update(const Params& params)
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, params.primitive->targets.normal_buf->m_id);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, params.primitive->geometry[1].normal_buf->m_id);
 
+	if (m_has_tangent)
+	{
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, params.primitive->geometry[0].tangent_buf->m_id);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, params.primitive->targets.tangent_buf->m_id);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, params.primitive->geometry[1].tangent_buf->m_id);
+
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, params.primitive->geometry[0].bitangent_buf->m_id);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, params.primitive->targets.bitangent_buf->m_id);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 12, params.primitive->geometry[1].bitangent_buf->m_id);
+	}
+
 	glUniform1i(0, params.primitive->num_pos);
 	glUniform1i(1, params.num_targets);
 
