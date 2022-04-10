@@ -137,7 +137,9 @@
     <ClCompile Include="loaders\ImageLoader.cpp" />
     <ClCompile Include="materials\Material.cpp" />
     <ClCompile Include="materials\MeshStandardMaterial.cpp" />
+    <ClCompile Include="models\Animation.cpp" />
     <ClCompile Include="models\GeometryCreator.cpp" />
+    <ClCompile Include="models\GLTFModel.cpp" />
     <ClCompile Include="models\Model.cpp" />
     <ClCompile Include="models\SimpleModel.cpp" />
     <ClCompile Include="renderers\GLRenderer.cpp" />
@@ -157,6 +159,7 @@
     <ClInclude Include="loaders\ImageLoader.h" />
     <ClInclude Include="materials\Material.h" />
     <ClInclude Include="materials\MeshStandardMaterial.h" />
+    <ClInclude Include="models\Animation.h" />
     <ClInclude Include="models\GeometryCreator.h" />
     <ClInclude Include="models\GLTFModel.h" />
     <ClInclude Include="models\Model.h" />

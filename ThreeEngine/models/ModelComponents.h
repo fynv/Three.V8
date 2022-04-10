@@ -48,18 +48,3 @@ public:
 	std::unique_ptr<GLDynBuffer> buf_weights;
 	bool needUpdateMorphTargets = false;
 };
-
-class Node
-{
-public:
-	int skin_idx = -1;
-	int mesh_idx = -1;
-	std::vector<int> children;
-	glm::quat rotation;
-	glm::vec3 scale;
-	glm::vec3 translation;
-
-	glm::mat4 matrix;
-
-
-};

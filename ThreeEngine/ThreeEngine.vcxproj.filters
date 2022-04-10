@@ -129,6 +129,12 @@
     <ClCompile Include="renderers\routines\MorphUpdate.cpp">
       <Filter>Source Files\renderers\routines</Filter>
     </ClCompile>
+    <ClCompile Include="models\Animation.cpp">
+      <Filter>Source Files\models</Filter>
+    </ClCompile>
+    <ClCompile Include="models\GLTFModel.cpp">
+      <Filter>Source Files\models</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -193,6 +199,9 @@
     </ClInclude>
     <ClInclude Include="renderers\routines\MorphUpdate.h">
       <Filter>Header Files\renderers\routines</Filter>
+    </ClInclude>
+    <ClInclude Include="models\Animation.h">
+      <Filter>Header Files\models</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

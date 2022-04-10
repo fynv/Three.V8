@@ -24,6 +24,7 @@ namespace GamePlayer
             CV8VM v8vm = new CV8VM(exe_name);
             v8vm.RunVM(VMMain, v8vm);
             v8vm.Dispose();
+            Console.WriteLine("Shutting down.");
             Shutdown();
         }
     }

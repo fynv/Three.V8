@@ -4324,20 +4324,6 @@ setCallback('OnMouseUp', OnMouseUp);
 setCallback('OnMouseMove', OnMouseMove);
 setCallback('OnMouseWheel', OnMouseWheel);
 
-/*const getCircularReplacer = () => {
-  const seen = new WeakSet();
-  return (key, value) => {
-    if (typeof value === "object" && value !== null) {
-      if (seen.has(value)) {
-        return;
-      }
-      seen.add(value);
-    }
-    return value;
-  };
-};*/
-
-
 let renderer, scene, camera, bg, model, clock, controls;
 
 function init(width, height) {
@@ -4358,6 +4344,7 @@ function init(width, height) {
 
     camera.setPosition(0.0, 0.0, 4.0);
     model = gltfLoader.loadModelFromFile("../game/assets/models/Parrot.glb");
+    model.playAnimation("KeyAction");  
     
     scene.add(model);  
 
@@ -4392,6 +4379,9 @@ function render(width, height, size_changed) {
     {
         controls.update();
     }
+
+    model.updateAnimation();
+
     renderer.render(width, height, scene, camera);
 }
 

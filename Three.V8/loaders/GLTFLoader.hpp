@@ -3,7 +3,6 @@
 #include "WrapperUtils.hpp"
 #include <loaders/GLTFLoader.h>
 
-
 class WrapperGLTFLoader
 {
 public:
@@ -11,6 +10,7 @@ public:
 
 private:
 	static void LoadModelFromFile(const v8::FunctionCallbackInfo<v8::Value>& info);
+	static void LoadAnimationsFromFile(const v8::FunctionCallbackInfo<v8::Value>& info);
 };
 
 
@@ -18,6 +18,7 @@ v8::Local<v8::ObjectTemplate> WrapperGLTFLoader::create_template(v8::Isolate* is
 {
 	v8::Local<v8::ObjectTemplate> templ = v8::ObjectTemplate::New(isolate);
 	templ->Set(isolate, "loadModelFromFile", v8::FunctionTemplate::New(isolate, LoadModelFromFile));
+	templ->Set(isolate, "loadAnimationsFromFile", v8::FunctionTemplate::New(isolate, LoadAnimationsFromFile));
 	return templ;
 }
 
@@ -38,4 +39,27 @@ void WrapperGLTFLoader::LoadModelFromFile(const v8::FunctionCallbackInfo<v8::Val
 	info.GetReturnValue().Set(holder);
 }
 
+void WrapperGLTFLoader::LoadAnimationsFromFile(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	v8::Isolate* isolate = info.GetIsolate();
+	v8::HandleScope handle_scope(isolate);
+	v8::Local<v8::Context> context = isolate->GetCurrentContext();
+
+	v8::String::Utf8Value filename(isolate, info[0]);
+	std::vector<AnimationClip> animations;
+	GLTFLoader::LoadAnimationsFromFile(animations, *filename);
+
+	v8::Local<v8::Array> janims = v8::Array::New(isolate, animations.size());
+
+	for (size_t i = 0; i < animations.size(); i++)
+	{
+		AnimationClip& anim = animations[i];
+		v8::Local<v8::Object> janim = v8::Object::New(isolate);
+		anim_to_janim(isolate, anim, janim);
+		janims->Set(context, i, janim);
+	}
+
+	info.GetReturnValue().Set(janims);
+
+}
 

@@ -19,6 +19,7 @@ GLRenderer::GLRenderer()
 
 GLRenderer::~GLRenderer()
 {
+
 }
 
 StandardRoutine* GLRenderer::get_routine(const StandardRoutine::Options& options)
