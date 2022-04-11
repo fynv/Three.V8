@@ -87,6 +87,9 @@
     <ClInclude Include="models\GLTFModel.hpp">
       <Filter>Header Files\models</Filter>
     </ClInclude>
+    <ClInclude Include="loaders\FileLoader.hpp">
+      <Filter>Header Files\loaders</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="binding.cpp">

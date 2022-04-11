@@ -135,6 +135,9 @@
     <ClCompile Include="models\GLTFModel.cpp">
       <Filter>Source Files\models</Filter>
     </ClCompile>
+    <ClCompile Include="loaders\FileLoader.cpp">
+      <Filter>Source Files\loaders</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -202,6 +205,9 @@
     </ClInclude>
     <ClInclude Include="models\Animation.h">
       <Filter>Header Files\models</Filter>
+    </ClInclude>
+    <ClInclude Include="loaders\FileLoader.h">
+      <Filter>Header Files\loaders</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -10,6 +10,7 @@ public:
 
 private:
 	static void LoadFile(const v8::FunctionCallbackInfo<v8::Value>& info);
+	static void LoadMemory(const v8::FunctionCallbackInfo<v8::Value>& info);
 };
 
 
@@ -17,9 +18,9 @@ v8::Local<v8::ObjectTemplate> WrapperImageLoader::create_template(v8::Isolate* i
 {
 	v8::Local<v8::ObjectTemplate> templ = v8::ObjectTemplate::New(isolate);
 	templ->Set(isolate, "loadFile", v8::FunctionTemplate::New(isolate, LoadFile));
+	templ->Set(isolate, "loadMemory", v8::FunctionTemplate::New(isolate, LoadMemory));
 	return templ;
 }
-
 
 void WrapperImageLoader::LoadFile(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
@@ -37,3 +38,22 @@ void WrapperImageLoader::LoadFile(const v8::FunctionCallbackInfo<v8::Value>& inf
 	ImageLoader::LoadFile(self, *filename);
 	info.GetReturnValue().Set(holder);
 }
+
+
+void WrapperImageLoader::LoadMemory(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	v8::Isolate* isolate = info.GetIsolate();
+	v8::HandleScope handle_scope(isolate);
+	v8::Local<v8::Context> context = isolate->GetCurrentContext();
+	v8::Local<v8::Object> global = context->Global();
+	v8::Local<v8::Function> ctor_image = global->Get(context, v8::String::NewFromUtf8(isolate, "Image").ToLocalChecked()).ToLocalChecked().As<v8::Function>();
+
+	v8::Local<v8::Object> holder = ctor_image->CallAsConstructor(context, 0, nullptr).ToLocalChecked().As<v8::Object>();
+	v8::Local<v8::External> wrap = v8::Local<v8::External>::Cast(holder->GetInternalField(0));
+	Image* self = (Image*)wrap->Value();
+
+	v8::Local<v8::ArrayBuffer> data = info[0].As<v8::ArrayBuffer>();
+	ImageLoader::LoadMemory(self, (unsigned char*)data->GetBackingStore()->Data(), data->ByteLength());	
+	info.GetReturnValue().Set(holder);
+}
+

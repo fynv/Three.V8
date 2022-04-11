@@ -45,6 +45,8 @@ void V8VM::RunVM(void (*callback)(void*), void* data)
 #include "models/GLTFModel.hpp"
 
 #include "GamePlayer.hpp"
+
+#include "loaders/FileLoader.hpp"
 #include "loaders/ImageLoader.hpp"
 #include "loaders/GLTFLoader.hpp"
 
@@ -67,6 +69,7 @@ GlobalDefinitions GameContext::s_globals =
 		{ "Image", WrapperImage::New,  WrapperImage::create_template },
 	},
 	{
+		{ "fileLoader", WrapperFileLoader::create_template },
 		{ "imageLoader", WrapperImageLoader::create_template},
 		{ "gltfLoader", WrapperGLTFLoader::create_template},
 	}
