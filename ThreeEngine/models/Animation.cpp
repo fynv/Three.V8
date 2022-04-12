@@ -181,23 +181,16 @@ void RotationTrack::get_frame(float x, RotationFrame& frame)
 			const glm::quat& y0 = values[iter - times.begin() - 1];
 			const glm::quat& y1 = values[iter - times.begin()];
 			float t = (x - x0) / (x1 - x0);
-			frame.rotation = linear_interpolate(y0, y1, t);
+			frame.rotation = glm::slerp(y0, y1, t);
 		}
 		else if (interpolation == Interpolation::CUBICSPLINE)
 		{
-			float t = (x - x0) / (x1 - x0);
-			float t2 = t * t;
-			float t3 = t2 * t;
-			float td = x1 - x0;
-
+			float t = (x - x0) / (x1 - x0);		
 			const glm::quat* p0 = values.data() + (iter - times.begin() - 1) * 3;
 			const glm::quat* p1 = values.data() + (iter - times.begin()) * 3;
 			const glm::quat& y0 = p0[1];
-			const glm::quat& s0 = p0[2];
-			const glm::quat& s1 = p1[0];
 			const glm::quat& y1 = p1[1];
-
-			frame.rotation = cubic_interpolate(y0, y1, s0, s1, t, t2, t3, td);
+			frame.rotation = glm::slerp(y0, y1, t);
 		}
 	}
 }
