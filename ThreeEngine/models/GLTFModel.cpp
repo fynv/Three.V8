@@ -77,7 +77,7 @@ void GLTFModel::updateNodes()
 		skin.buf_rela_mat->upload(rela_mats.data());
 	}
 
-	needUpdateSkinnedMeshes = true;
+	needUpdateSkinnedMeshes = num_skins>0;
 }
 
 void GLTFModel::setAnimationFrame(const AnimationFrame& frame)
@@ -94,6 +94,44 @@ void GLTFModel::setAnimationFrame(const AnimationFrame& frame)
 			mesh.needUpdateMorphTargets = true;
 		}
 	}
+
+	size_t num_translations = frame.translations.size();
+	for (size_t i = 0; i < num_translations; i++)
+	{
+		const TranslationFrame& trans = frame.translations[i];
+		auto iter = m_node_dict.find(trans.name);
+		if (iter != m_node_dict.end())
+		{
+			Node& node = m_nodes[iter->second];
+			node.translation = trans.translation;			
+		}
+	}
+
+	size_t num_rotations = frame.rotations.size();
+	for (size_t i = 0; i < num_rotations; i++)
+	{
+		const RotationFrame& rot = frame.rotations[i];
+		auto iter = m_node_dict.find(rot.name);
+		if (iter != m_node_dict.end())
+		{
+			Node& node = m_nodes[iter->second];
+			node.rotation = rot.rotation;
+		}
+	}
+
+	size_t num_scales = frame.scales.size();
+	for (size_t i = 0; i < num_scales; i++)
+	{
+		const ScaleFrame& scale = frame.scales[i];
+		auto iter = m_node_dict.find(scale.name);
+		if (iter != m_node_dict.end())
+		{
+			Node& node = m_nodes[iter->second];
+			node.scale = scale.scale;
+		}
+	}
+
+	updateNodes();
 }
 
 void GLTFModel::addAnimation(const AnimationClip& anim)

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <v8.h>
+#include <unordered_map>
 #include <glm.hpp>
 #include <gtx/quaternion.hpp>
 #include <models/Animation.h>
@@ -95,21 +96,75 @@ inline void jframe_to_frame(v8::Isolate* isolate, v8::Local<v8::Object> jFrame, 
 	v8::HandleScope handle_scope(isolate);
 	v8::Local<v8::Context> context = isolate->GetCurrentContext();
 
-	v8::Local<v8::Array> jMorphs = jFrame->Get(context, v8::String::NewFromUtf8(isolate, "morphs").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
-	frame.morphs.resize(jMorphs->Length());
-	for (unsigned i = 0; i < jMorphs->Length(); i++)
+	if (jFrame->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "morphs").ToLocalChecked()).ToChecked())
 	{
-		v8::Local<v8::Object> jMorph = jMorphs->Get(context, i).ToLocalChecked().As<v8::Object>();
-		v8::Local<v8::Value> jName = jMorph->Get(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked()).ToLocalChecked();
-		v8::String::Utf8Value name(isolate, jName);
-		v8::Local<v8::Array> jWeights = jMorph->Get(context, v8::String::NewFromUtf8(isolate, "weights").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
-
-		MorphFrame& morph = frame.morphs[i];
-		morph.name = *name;
-		morph.weights.resize(jWeights->Length());
-		for (unsigned j = 0; j < jWeights->Length(); j++)
+		v8::Local<v8::Array> jMorphs = jFrame->Get(context, v8::String::NewFromUtf8(isolate, "morphs").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
+		frame.morphs.resize(jMorphs->Length());
+		for (unsigned i = 0; i < jMorphs->Length(); i++)
 		{
-			morph.weights[j] = (float)jWeights->Get(context, j).ToLocalChecked().As<v8::Number>()->Value();
+			v8::Local<v8::Object> jMorph = jMorphs->Get(context, i).ToLocalChecked().As<v8::Object>();
+			v8::Local<v8::Value> jName = jMorph->Get(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked()).ToLocalChecked();
+			v8::String::Utf8Value name(isolate, jName);
+			v8::Local<v8::Array> jWeights = jMorph->Get(context, v8::String::NewFromUtf8(isolate, "weights").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
+
+			MorphFrame& morph = frame.morphs[i];
+			morph.name = *name;
+			morph.weights.resize(jWeights->Length());
+			for (unsigned j = 0; j < jWeights->Length(); j++)
+			{
+				morph.weights[j] = (float)jWeights->Get(context, j).ToLocalChecked().As<v8::Number>()->Value();
+			}
+		}
+	}
+
+	if (jFrame->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "translations").ToLocalChecked()).ToChecked())
+	{
+		v8::Local<v8::Array> jTransLst = jFrame->Get(context, v8::String::NewFromUtf8(isolate, "translations").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
+		frame.translations.resize(jTransLst->Length());
+		for (unsigned i = 0; i < jTransLst->Length(); i++)
+		{
+			v8::Local<v8::Object> jTransFrame = jTransLst->Get(context, i).ToLocalChecked().As<v8::Object>();
+			v8::Local<v8::Value> jName = jTransFrame->Get(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked()).ToLocalChecked();
+			v8::String::Utf8Value name(isolate, jName);
+
+			TranslationFrame& trans = frame.translations[i];
+			trans.name = *name;			
+			v8::Local<v8::Object> jTranslation = jTransFrame->Get(context, v8::String::NewFromUtf8(isolate, "translation").ToLocalChecked()).ToLocalChecked().As<v8::Object>();
+			jvec3_to_vec3(isolate, jTranslation, trans.translation);			
+		}
+	}
+
+	if (jFrame->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "rotations").ToLocalChecked()).ToChecked())
+	{
+		v8::Local<v8::Array> jRotLst = jFrame->Get(context, v8::String::NewFromUtf8(isolate, "rotations").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
+		frame.rotations.resize(jRotLst->Length());
+		for (unsigned i = 0; i < jRotLst->Length(); i++)
+		{
+			v8::Local<v8::Object> jRotFrame = jRotLst->Get(context, i).ToLocalChecked().As<v8::Object>();
+			v8::Local<v8::Value> jName = jRotFrame->Get(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked()).ToLocalChecked();
+			v8::String::Utf8Value name(isolate, jName);
+
+			RotationFrame& rot = frame.rotations[i];
+			rot.name = *name;
+			v8::Local<v8::Object> jRotation = jRotFrame->Get(context, v8::String::NewFromUtf8(isolate, "rotation").ToLocalChecked()).ToLocalChecked().As<v8::Object>();
+			jquat_to_quat(isolate, jRotation, rot.rotation);
+		}
+	}
+
+	if (jFrame->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "scales").ToLocalChecked()).ToChecked())
+	{
+		v8::Local<v8::Array> jScaleLst = jFrame->Get(context, v8::String::NewFromUtf8(isolate, "scales").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
+		frame.rotations.resize(jScaleLst->Length());
+		for (unsigned i = 0; i < jScaleLst->Length(); i++)
+		{
+			v8::Local<v8::Object> jScaleFrame = jScaleLst->Get(context, i).ToLocalChecked().As<v8::Object>();
+			v8::Local<v8::Value> jName = jScaleFrame->Get(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked()).ToLocalChecked();
+			v8::String::Utf8Value name(isolate, jName);
+
+			ScaleFrame& scale = frame.scales[i];
+			scale.name = *name;
+			v8::Local<v8::Object> jScale = jScaleFrame->Get(context, v8::String::NewFromUtf8(isolate, "translation").ToLocalChecked()).ToLocalChecked().As<v8::Object>();
+			jvec3_to_vec3(isolate, jScale, scale.scale);
 		}
 	}
 }
@@ -125,32 +180,123 @@ inline void anim_to_janim(v8::Isolate* isolate, const AnimationClip& anim, v8::L
 	janim->Set(context, v8::String::NewFromUtf8(isolate, "start").ToLocalChecked(), v8::Number::New(isolate, anim.start));
 	janim->Set(context, v8::String::NewFromUtf8(isolate, "end").ToLocalChecked(), v8::Number::New(isolate, anim.end));
 
-	v8::Local<v8::Array> jmorphs = v8::Array::New(isolate, anim.morphs.size());
-	for (size_t j = 0; j < anim.morphs.size(); j++)
+	size_t num_morphs = anim.morphs.size();
+	if (num_morphs > 0)
 	{
-		const MorphTrack& morph = anim.morphs[j];
+		v8::Local<v8::Array> jmorphs = v8::Array::New(isolate, num_morphs);
+		for (size_t j = 0; j < num_morphs; j++)
+		{
+			const MorphTrack& morph = anim.morphs[j];
 
-		v8::Local<v8::Object> jmorph = v8::Object::New(isolate);
-		jmorph->Set(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked(), v8::String::NewFromUtf8(isolate, morph.name.c_str()).ToLocalChecked());
-		jmorph->Set(context, v8::String::NewFromUtf8(isolate, "targets").ToLocalChecked(), v8::Number::New(isolate, (double)morph.num_targets));
+			v8::Local<v8::Object> jmorph = v8::Object::New(isolate);
+			jmorph->Set(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked(), v8::String::NewFromUtf8(isolate, morph.name.c_str()).ToLocalChecked());
+			jmorph->Set(context, v8::String::NewFromUtf8(isolate, "targets").ToLocalChecked(), v8::Number::New(isolate, (double)morph.num_targets));
 
-		std::string interpolation = interpolation_map[(unsigned)morph.interpolation];
-		jmorph->Set(context, v8::String::NewFromUtf8(isolate, "interpolation").ToLocalChecked(), v8::String::NewFromUtf8(isolate, interpolation.c_str()).ToLocalChecked());
+			std::string interpolation = interpolation_map[(unsigned)morph.interpolation];
+			jmorph->Set(context, v8::String::NewFromUtf8(isolate, "interpolation").ToLocalChecked(), v8::String::NewFromUtf8(isolate, interpolation.c_str()).ToLocalChecked());
 
-		v8::Local<v8::ArrayBuffer> jtimes = v8::ArrayBuffer::New(isolate, sizeof(float) * morph.times.size());
-		float* p_times = (float*)jtimes->GetBackingStore()->Data();
-		memcpy(p_times, morph.times.data(), sizeof(float) * morph.times.size());
-		jmorph->Set(context, v8::String::NewFromUtf8(isolate, "times").ToLocalChecked(), v8::Float32Array::New(jtimes, 0, morph.times.size()));
+			v8::Local<v8::ArrayBuffer> jtimes = v8::ArrayBuffer::New(isolate, sizeof(float) * morph.times.size());
+			float* p_times = (float*)jtimes->GetBackingStore()->Data();
+			memcpy(p_times, morph.times.data(), sizeof(float) * morph.times.size());
+			jmorph->Set(context, v8::String::NewFromUtf8(isolate, "times").ToLocalChecked(), v8::Float32Array::New(jtimes, 0, morph.times.size()));
 
-		v8::Local<v8::ArrayBuffer> jvalues = v8::ArrayBuffer::New(isolate, sizeof(float) * morph.values.size());
-		float* p_values = (float*)jvalues->GetBackingStore()->Data();
-		memcpy(p_values, morph.values.data(), sizeof(float) * morph.values.size());
-		jmorph->Set(context, v8::String::NewFromUtf8(isolate, "values").ToLocalChecked(), v8::Float32Array::New(jvalues, 0, morph.values.size()));
+			v8::Local<v8::ArrayBuffer> jvalues = v8::ArrayBuffer::New(isolate, sizeof(float) * morph.values.size());
+			void* p_values = jvalues->GetBackingStore()->Data();
+			memcpy(p_values, morph.values.data(), sizeof(float) * morph.values.size());
+			jmorph->Set(context, v8::String::NewFromUtf8(isolate, "values").ToLocalChecked(), v8::Float32Array::New(jvalues, 0, morph.values.size()));
 
-		jmorphs->Set(context, j, jmorph);
+			jmorphs->Set(context, j, jmorph);
+		}
+		janim->Set(context, v8::String::NewFromUtf8(isolate, "morphs").ToLocalChecked(), jmorphs);
 	}
 
-	janim->Set(context, v8::String::NewFromUtf8(isolate, "morphs").ToLocalChecked(), jmorphs);
+	size_t num_trans = anim.translations.size();
+	if (num_trans > 0)
+	{
+		v8::Local<v8::Array> jTransLst = v8::Array::New(isolate, num_trans);
+		for (size_t j = 0; j < num_trans; j++)
+		{
+			const TranslationTrack& trans = anim.translations[j];
+
+			v8::Local<v8::Object> jTrans = v8::Object::New(isolate);
+			jTrans->Set(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked(), v8::String::NewFromUtf8(isolate, trans.name.c_str()).ToLocalChecked());
+
+			std::string interpolation = interpolation_map[(unsigned)trans.interpolation];
+			jTrans->Set(context, v8::String::NewFromUtf8(isolate, "interpolation").ToLocalChecked(), v8::String::NewFromUtf8(isolate, interpolation.c_str()).ToLocalChecked());
+
+			v8::Local<v8::ArrayBuffer> jtimes = v8::ArrayBuffer::New(isolate, sizeof(float) * trans.times.size());
+			float* p_times = (float*)jtimes->GetBackingStore()->Data();
+			memcpy(p_times, trans.times.data(), sizeof(float) * trans.times.size());
+			jTrans->Set(context, v8::String::NewFromUtf8(isolate, "times").ToLocalChecked(), v8::Float32Array::New(jtimes, 0, trans.times.size()));
+
+			v8::Local<v8::ArrayBuffer> jvalues = v8::ArrayBuffer::New(isolate, sizeof(glm::vec3) * trans.values.size());
+			void* p_values = jvalues->GetBackingStore()->Data();
+			memcpy(p_values, trans.values.data(), sizeof(glm::vec3) * trans.values.size());
+			jTrans->Set(context, v8::String::NewFromUtf8(isolate, "values").ToLocalChecked(), v8::Float32Array::New(jvalues, 0, trans.values.size()*3));
+
+			jTransLst->Set(context, j, jTrans);
+		}
+		janim->Set(context, v8::String::NewFromUtf8(isolate, "translations").ToLocalChecked(), jTransLst);
+	}
+
+	size_t num_rots = anim.rotations.size();
+	if (num_rots > 0)
+	{
+		v8::Local<v8::Array> jRotLst = v8::Array::New(isolate, num_rots);
+		for (size_t j = 0; j < num_rots; j++)
+		{
+			const RotationTrack& rot = anim.rotations[j];
+
+			v8::Local<v8::Object> jRot = v8::Object::New(isolate);
+			jRot->Set(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked(), v8::String::NewFromUtf8(isolate, rot.name.c_str()).ToLocalChecked());
+
+			std::string interpolation = interpolation_map[(unsigned)rot.interpolation];
+			jRot->Set(context, v8::String::NewFromUtf8(isolate, "interpolation").ToLocalChecked(), v8::String::NewFromUtf8(isolate, interpolation.c_str()).ToLocalChecked());
+
+			v8::Local<v8::ArrayBuffer> jtimes = v8::ArrayBuffer::New(isolate, sizeof(float) * rot.times.size());
+			float* p_times = (float*)jtimes->GetBackingStore()->Data();
+			memcpy(p_times, rot.times.data(), sizeof(float) * rot.times.size());
+			jRot->Set(context, v8::String::NewFromUtf8(isolate, "times").ToLocalChecked(), v8::Float32Array::New(jtimes, 0, rot.times.size()));
+
+			v8::Local<v8::ArrayBuffer> jvalues = v8::ArrayBuffer::New(isolate, sizeof(glm::quat) * rot.values.size());
+			void* p_values = jvalues->GetBackingStore()->Data();
+			memcpy(p_values, rot.values.data(), sizeof(glm::quat) * rot.values.size());
+			jRot->Set(context, v8::String::NewFromUtf8(isolate, "values").ToLocalChecked(), v8::Float32Array::New(jvalues, 0, rot.values.size() * 4));
+
+			jRotLst->Set(context, j, jRot);
+		}
+		janim->Set(context, v8::String::NewFromUtf8(isolate, "rotations").ToLocalChecked(), jRotLst);
+	}
+
+	size_t num_scales = anim.scales.size();
+	if (num_scales > 0)
+	{
+		v8::Local<v8::Array> jScaleLst = v8::Array::New(isolate, num_scales);
+		for (size_t j = 0; j < num_scales; j++)
+		{
+			const ScaleTrack& scale = anim.scales[j];
+
+			v8::Local<v8::Object> jScale = v8::Object::New(isolate);
+			jScale->Set(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked(), v8::String::NewFromUtf8(isolate, scale.name.c_str()).ToLocalChecked());
+
+			std::string interpolation = interpolation_map[(unsigned)scale.interpolation];
+			jScale->Set(context, v8::String::NewFromUtf8(isolate, "interpolation").ToLocalChecked(), v8::String::NewFromUtf8(isolate, interpolation.c_str()).ToLocalChecked());
+
+			v8::Local<v8::ArrayBuffer> jtimes = v8::ArrayBuffer::New(isolate, sizeof(float) * scale.times.size());
+			float* p_times = (float*)jtimes->GetBackingStore()->Data();
+			memcpy(p_times, scale.times.data(), sizeof(float) * scale.times.size());
+			jScale->Set(context, v8::String::NewFromUtf8(isolate, "times").ToLocalChecked(), v8::Float32Array::New(jtimes, 0, scale.times.size()));
+
+			v8::Local<v8::ArrayBuffer> jvalues = v8::ArrayBuffer::New(isolate, sizeof(glm::vec3) * scale.values.size());
+			void* p_values = jvalues->GetBackingStore()->Data();
+			memcpy(p_values, scale.values.data(), sizeof(glm::vec3) * scale.values.size());
+			jScale->Set(context, v8::String::NewFromUtf8(isolate, "values").ToLocalChecked(), v8::Float32Array::New(jvalues, 0, scale.values.size() * 3));
+
+			jScaleLst->Set(context, j, jScale);
+		}
+		janim->Set(context, v8::String::NewFromUtf8(isolate, "scales").ToLocalChecked(), jScaleLst);
+	}
+
 }
 
 
@@ -159,49 +305,134 @@ inline void janim_to_anim(v8::Isolate* isolate, v8::Local<v8::Object> janim, Ani
 	v8::HandleScope handle_scope(isolate);
 	v8::Local<v8::Context> context = isolate->GetCurrentContext();
 
+	std::unordered_map<std::string, Interpolation> interpolation_map =
+	{
+		{"STEP", Interpolation::STEP},
+		{"LINEAR", Interpolation::LINEAR},
+		{"CUBICSPLINE", Interpolation::CUBICSPLINE}
+	};
+
 	v8::Local<v8::Value> jName = janim->Get(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked()).ToLocalChecked();
 	v8::String::Utf8Value name(isolate, jName);
 	anim.name = *name;
 	anim.start = janim->Get(context, v8::String::NewFromUtf8(isolate, "start").ToLocalChecked()).ToLocalChecked().As<v8::Number>()->Value();
 	anim.end = janim->Get(context, v8::String::NewFromUtf8(isolate, "end").ToLocalChecked()).ToLocalChecked().As<v8::Number>()->Value();
 
-	v8::Local<v8::Array> jMorphs = janim->Get(context, v8::String::NewFromUtf8(isolate, "morphs").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
-	anim.morphs.resize(jMorphs->Length());
-	for (unsigned i = 0; i < jMorphs->Length(); i++)
+	if (janim->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "morphs").ToLocalChecked()).ToChecked())
 	{
-		v8::Local<v8::Object> jMorph = jMorphs->Get(context, i).ToLocalChecked().As<v8::Object>();
-		MorphTrack& morph = anim.morphs[i];
-
-		v8::Local<v8::Value> jName = jMorph->Get(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked()).ToLocalChecked();
-		v8::String::Utf8Value name(isolate, jName);
-		morph.name = *name;
-		morph.num_targets = (int)jMorph->Get(context, v8::String::NewFromUtf8(isolate, "targets").ToLocalChecked()).ToLocalChecked().As<v8::Number>()->Value();
-
-		v8::Local<v8::Value> jInterpolation = jMorph->Get(context, v8::String::NewFromUtf8(isolate, "interpolation").ToLocalChecked()).ToLocalChecked();
-		v8::String::Utf8Value uInterpolation(isolate, jInterpolation);
-		std::string interpolation = *uInterpolation;
-
-		if (interpolation == "STEP")
+		v8::Local<v8::Array> jMorphs = janim->Get(context, v8::String::NewFromUtf8(isolate, "morphs").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
+		anim.morphs.resize(jMorphs->Length());
+		for (unsigned i = 0; i < jMorphs->Length(); i++)
 		{
-			morph.interpolation = Interpolation::STEP;
-		}
-		else if (interpolation == "LINEAR")
-		{
-			morph.interpolation = Interpolation::LINEAR;
-		}
-		else if (interpolation == "CUBICSPLINE")
-		{
-			morph.interpolation = Interpolation::CUBICSPLINE;
-		}
+			v8::Local<v8::Object> jMorph = jMorphs->Get(context, i).ToLocalChecked().As<v8::Object>();
+			MorphTrack& morph = anim.morphs[i];
 
-		v8::Local<v8::Float32Array> jtimes = jMorph->Get(context, v8::String::NewFromUtf8(isolate, "times").ToLocalChecked()).ToLocalChecked().As<v8::Float32Array>();
-		morph.times.resize(jtimes->Length());
-		const float* p_times = (const float*)jtimes->Buffer()->GetBackingStore()->Data();
-		memcpy(morph.times.data(), p_times, sizeof(float) * jtimes->Length());
+			v8::Local<v8::Value> jName = jMorph->Get(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked()).ToLocalChecked();
+			v8::String::Utf8Value name(isolate, jName);
+			morph.name = *name;
+			morph.num_targets = (int)jMorph->Get(context, v8::String::NewFromUtf8(isolate, "targets").ToLocalChecked()).ToLocalChecked().As<v8::Number>()->Value();
 
-		v8::Local<v8::Float32Array> jvalues = jMorph->Get(context, v8::String::NewFromUtf8(isolate, "values").ToLocalChecked()).ToLocalChecked().As<v8::Float32Array>();
-		morph.values.resize(jvalues->Length());
-		const float* p_values = (const float*)jvalues->Buffer()->GetBackingStore()->Data();
-		memcpy(morph.values.data(), p_values, sizeof(float) * jvalues->Length());		
+			v8::Local<v8::Value> jInterpolation = jMorph->Get(context, v8::String::NewFromUtf8(isolate, "interpolation").ToLocalChecked()).ToLocalChecked();
+			v8::String::Utf8Value uInterpolation(isolate, jInterpolation);
+			morph.interpolation = interpolation_map[*uInterpolation];
+
+			v8::Local<v8::Float32Array> jtimes = jMorph->Get(context, v8::String::NewFromUtf8(isolate, "times").ToLocalChecked()).ToLocalChecked().As<v8::Float32Array>();
+			morph.times.resize(jtimes->Length());
+			const float* p_times = (const float*)jtimes->Buffer()->GetBackingStore()->Data();
+			memcpy(morph.times.data(), p_times, sizeof(float) * jtimes->Length());
+
+			v8::Local<v8::Float32Array> jvalues = jMorph->Get(context, v8::String::NewFromUtf8(isolate, "values").ToLocalChecked()).ToLocalChecked().As<v8::Float32Array>();
+			morph.values.resize(jvalues->Length());
+			const float* p_values = (const float*)jvalues->Buffer()->GetBackingStore()->Data();
+			memcpy(morph.values.data(), p_values, sizeof(float) * jvalues->Length());
+		}
 	}
+
+	if (janim->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "translations").ToLocalChecked()).ToChecked());
+	{
+		v8::Local<v8::Array> jTransLst = janim->Get(context, v8::String::NewFromUtf8(isolate, "translations").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
+		anim.translations.resize(jTransLst->Length());
+		for (unsigned i = 0; i < jTransLst->Length(); i++)
+		{
+			v8::Local<v8::Object> jTrans = jTransLst->Get(context, i).ToLocalChecked().As<v8::Object>();
+			TranslationTrack& trans = anim.translations[i];
+
+			v8::Local<v8::Value> jName = jTrans->Get(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked()).ToLocalChecked();
+			v8::String::Utf8Value name(isolate, jName);
+			trans.name = *name;
+
+			v8::Local<v8::Value> jInterpolation = jTrans->Get(context, v8::String::NewFromUtf8(isolate, "interpolation").ToLocalChecked()).ToLocalChecked();
+			v8::String::Utf8Value uInterpolation(isolate, jInterpolation);
+			trans.interpolation = interpolation_map[*uInterpolation];
+		
+			v8::Local<v8::Float32Array> jtimes = jTrans->Get(context, v8::String::NewFromUtf8(isolate, "times").ToLocalChecked()).ToLocalChecked().As<v8::Float32Array>();
+			trans.times.resize(jtimes->Length());
+			const float* p_times = (const float*)jtimes->Buffer()->GetBackingStore()->Data();
+			memcpy(trans.times.data(), p_times, sizeof(float) * jtimes->Length());
+
+			v8::Local<v8::Float32Array> jvalues = jTrans->Get(context, v8::String::NewFromUtf8(isolate, "values").ToLocalChecked()).ToLocalChecked().As<v8::Float32Array>();
+			trans.values.resize(jvalues->Length()/3);
+			const float* p_values = (const float*)jvalues->Buffer()->GetBackingStore()->Data();
+			memcpy(trans.values.data(), p_values, sizeof(float) * jvalues->Length());
+		}
+	}
+
+	if (janim->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "rotations").ToLocalChecked()).ToChecked());
+	{
+		v8::Local<v8::Array> jRotLst = janim->Get(context, v8::String::NewFromUtf8(isolate, "rotations").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
+		anim.rotations.resize(jRotLst->Length());
+		for (unsigned i = 0; i < jRotLst->Length(); i++)
+		{
+			v8::Local<v8::Object> jRot = jRotLst->Get(context, i).ToLocalChecked().As<v8::Object>();
+			RotationTrack& rot = anim.rotations[i];
+
+			v8::Local<v8::Value> jName = jRot->Get(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked()).ToLocalChecked();
+			v8::String::Utf8Value name(isolate, jName);
+			rot.name = *name;
+
+			v8::Local<v8::Value> jInterpolation = jRot->Get(context, v8::String::NewFromUtf8(isolate, "interpolation").ToLocalChecked()).ToLocalChecked();
+			v8::String::Utf8Value uInterpolation(isolate, jInterpolation);
+			rot.interpolation = interpolation_map[*uInterpolation];
+
+			v8::Local<v8::Float32Array> jtimes = jRot->Get(context, v8::String::NewFromUtf8(isolate, "times").ToLocalChecked()).ToLocalChecked().As<v8::Float32Array>();
+			rot.times.resize(jtimes->Length());
+			const float* p_times = (const float*)jtimes->Buffer()->GetBackingStore()->Data();
+			memcpy(rot.times.data(), p_times, sizeof(float) * jtimes->Length());
+
+			v8::Local<v8::Float32Array> jvalues = jRot->Get(context, v8::String::NewFromUtf8(isolate, "values").ToLocalChecked()).ToLocalChecked().As<v8::Float32Array>();
+			rot.values.resize(jvalues->Length() / 4);
+			const float* p_values = (const float*)jvalues->Buffer()->GetBackingStore()->Data();
+			memcpy(rot.values.data(), p_values, sizeof(float) * jvalues->Length());
+		}
+	}
+
+	if (janim->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "scales").ToLocalChecked()).ToChecked());
+	{
+		v8::Local<v8::Array> jScaleLst = janim->Get(context, v8::String::NewFromUtf8(isolate, "scales").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
+		anim.scales.resize(jScaleLst->Length());
+		for (unsigned i = 0; i < jScaleLst->Length(); i++)
+		{
+			v8::Local<v8::Object> jScale = jScaleLst->Get(context, i).ToLocalChecked().As<v8::Object>();
+			ScaleTrack& scale = anim.scales[i];
+
+			v8::Local<v8::Value> jName = jScale->Get(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked()).ToLocalChecked();
+			v8::String::Utf8Value name(isolate, jName);
+			scale.name = *name;
+
+			v8::Local<v8::Value> jInterpolation = jScale->Get(context, v8::String::NewFromUtf8(isolate, "interpolation").ToLocalChecked()).ToLocalChecked();
+			v8::String::Utf8Value uInterpolation(isolate, jInterpolation);
+			scale.interpolation = interpolation_map[*uInterpolation];
+
+			v8::Local<v8::Float32Array> jtimes = jScale->Get(context, v8::String::NewFromUtf8(isolate, "times").ToLocalChecked()).ToLocalChecked().As<v8::Float32Array>();
+			scale.times.resize(jtimes->Length());
+			const float* p_times = (const float*)jtimes->Buffer()->GetBackingStore()->Data();
+			memcpy(scale.times.data(), p_times, sizeof(float) * jtimes->Length());
+
+			v8::Local<v8::Float32Array> jvalues = jScale->Get(context, v8::String::NewFromUtf8(isolate, "values").ToLocalChecked()).ToLocalChecked().As<v8::Float32Array>();
+			scale.values.resize(jvalues->Length() / 3);
+			const float* p_values = (const float*)jvalues->Buffer()->GetBackingStore()->Data();
+			memcpy(scale.values.data(), p_values, sizeof(float) * jvalues->Length());
+		}
+	}
+
 }

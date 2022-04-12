@@ -274,7 +274,7 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 
 			int id_pos_in = primitive_in.attributes["POSITION"];
 			tinygltf::Accessor& acc_pos_in = model.accessors[id_pos_in];
-			primitive_out.num_pos = acc_pos_in.count;
+			primitive_out.num_pos = (int)acc_pos_in.count;
 			tinygltf::BufferView& view_pos_in = model.bufferViews[acc_pos_in.bufferView];
 			const glm::vec3* p_pos = (const glm::vec3*)(model.buffers[view_pos_in.buffer].data.data() + view_pos_in.byteOffset + acc_pos_in.byteOffset);
 
@@ -283,7 +283,7 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 			if (id_indices_in >= 0)
 			{
 				tinygltf::Accessor& acc_indices_in = model.accessors[id_indices_in];
-				primitive_out.num_face = acc_indices_in.count / 3;
+				primitive_out.num_face = (int)(acc_indices_in.count / 3);
 				tinygltf::BufferView& view_indices_in = model.bufferViews[acc_indices_in.bufferView];
 				p_indices = model.buffers[view_indices_in.buffer].data.data() + view_indices_in.byteOffset + acc_indices_in.byteOffset;
 
@@ -645,12 +645,12 @@ inline void load_animations(tinygltf::Model& model, std::vector<AnimationClip>& 
 			tinygltf::BufferView& view_input = model.bufferViews[acc_input.bufferView];
 			tinygltf::BufferView& view_output = model.bufferViews[acc_output.bufferView];
 
-			int num_inputs = (int)acc_input.count;
+			size_t num_inputs = acc_input.count;
 			float* p_input = (float*)(model.buffers[view_input.buffer].data.data() + view_input.byteOffset + acc_input.byteOffset);
 			void* p_output = model.buffers[view_output.buffer].data.data() + view_output.byteOffset + acc_output.byteOffset;
 
-			double start = (double)p_input[0];
-			double end = (double)p_input[num_inputs - 1];
+			double start = acc_input.minValues[0];
+			double end = acc_input.maxValues[0];
 
 			if (start > anim_out.start) anim_out.start = start;
 			if (end < anim_out.end) anim_out.end = end;
@@ -669,17 +669,104 @@ inline void load_animations(tinygltf::Model& model, std::vector<AnimationClip>& 
 
 				if (interpolation == Interpolation::STEP || interpolation == Interpolation::LINEAR)
 				{
-					track_out.values.resize((size_t)num_inputs * track_out.num_targets);
+					track_out.values.resize(num_inputs * track_out.num_targets);
 					memcpy(track_out.values.data(), p_output, sizeof(float) * num_inputs * track_out.num_targets);
 				}
 				else if (interpolation == Interpolation::CUBICSPLINE)
 				{
-					track_out.values.resize((size_t)num_inputs * track_out.num_targets * 3);
+					track_out.values.resize(num_inputs * track_out.num_targets * 3);
 					memcpy(track_out.values.data(), p_output, sizeof(float) * num_inputs * track_out.num_targets * 3);
 				}
 
 				anim_out.morphs.push_back(track_out);
 			}
+			else if (track_in.target_path == "translation")
+			{
+				tinygltf::Node& node_in = model.nodes[track_in.target_node];
+				TranslationTrack track_out;
+				track_out.name = node_in.name;
+				track_out.interpolation = interpolation;
+
+				track_out.times.resize(num_inputs);
+				memcpy(track_out.times.data(), p_input, sizeof(float) * num_inputs);
+
+				if (interpolation == Interpolation::STEP || interpolation == Interpolation::LINEAR)
+				{
+					track_out.values.resize(num_inputs);
+					memcpy(track_out.values.data(), p_output, sizeof(glm::vec3) * num_inputs);
+				}
+				else if (interpolation == Interpolation::CUBICSPLINE)
+				{
+					track_out.values.resize(num_inputs *  3);
+					memcpy(track_out.values.data(), p_output, sizeof(glm::vec3) * num_inputs * 3);
+				}
+
+				anim_out.translations.push_back(track_out);
+			}
+			else if (track_in.target_path == "rotation")
+			{
+				tinygltf::Node& node_in = model.nodes[track_in.target_node];
+				RotationTrack track_out;
+				track_out.name = node_in.name;
+				track_out.interpolation = interpolation;
+
+				track_out.times.resize(num_inputs);
+				memcpy(track_out.times.data(), p_input, sizeof(float) * num_inputs);
+
+				if (interpolation == Interpolation::STEP || interpolation == Interpolation::LINEAR)
+				{
+					track_out.values.resize(num_inputs);
+					float* f_output = (float*)p_output;
+					for (size_t i = 0; i < num_inputs; i++)
+					{
+						glm::quat& rot = track_out.values[i];
+						rot.x = f_output[4 * i];
+						rot.y = f_output[4 * i + 1];
+						rot.z = f_output[4 * i + 2];
+						rot.w = f_output[4 * i + 3];
+					}					
+				}
+				else if (interpolation == Interpolation::CUBICSPLINE)
+				{
+					track_out.values.resize(num_inputs*3);
+					float* f_output = (float*)p_output;
+					for (size_t i = 0; i < num_inputs * 3; i++)
+					{
+						glm::quat& rot = track_out.values[i];
+						rot.x = f_output[4 * i];
+						rot.y = f_output[4 * i + 1];
+						rot.z = f_output[4 * i + 2];
+						rot.w = f_output[4 * i + 3];
+					}
+
+				}
+
+				anim_out.rotations.push_back(track_out);
+			}
+			else if (track_in.target_path == "scale")
+			{
+				tinygltf::Node& node_in = model.nodes[track_in.target_node];
+				ScaleTrack track_out;
+				track_out.name = node_in.name;
+				track_out.interpolation = interpolation;
+
+				track_out.times.resize(num_inputs);
+				memcpy(track_out.times.data(), p_input, sizeof(float) * num_inputs);
+
+				if (interpolation == Interpolation::STEP || interpolation == Interpolation::LINEAR)
+				{
+					track_out.values.resize(num_inputs);
+					memcpy(track_out.values.data(), p_output, sizeof(glm::vec3) * num_inputs);
+				}
+				else if (interpolation == Interpolation::CUBICSPLINE)
+				{
+					track_out.values.resize(num_inputs * 3);
+					memcpy(track_out.values.data(), p_output, sizeof(glm::vec3) * num_inputs * 3);
+				}
+
+				anim_out.scales.push_back(track_out);
+			}
+
 		}
 
 	}

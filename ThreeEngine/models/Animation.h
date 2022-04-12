@@ -2,6 +2,8 @@
 
 #include <string>
 #include <vector>
+#include <glm.hpp>
+#include <gtx/quaternion.hpp>
 
 // Frame
 class MorphFrame
@@ -11,10 +13,34 @@ public:
 	std::vector<float> weights;
 };
 
+class TranslationFrame
+{
+public:
+	std::string name;	
+	glm::vec3 translation;	
+};
+
+class RotationFrame
+{
+public:
+	std::string name;
+	glm::quat rotation;
+};
+
+class ScaleFrame
+{
+public:
+	std::string name;
+	glm::vec3 scale;
+};
+
 class AnimationFrame
 {
 public:
 	std::vector<MorphFrame> morphs;
+	std::vector<TranslationFrame> translations;
+	std::vector<RotationFrame> rotations;
+	std::vector<ScaleFrame> scales;
 };
 
 // Tracks
@@ -39,6 +65,42 @@ public:
 	void get_frame(float x, MorphFrame& frame);
 };
 
+class TranslationTrack
+{
+public:
+	std::string name;
+	Interpolation interpolation = Interpolation::LINEAR;
+
+	std::vector<float> times;
+	std::vector<glm::vec3> values;
+
+	void get_frame(float x, TranslationFrame& frame);
+};
+
+class RotationTrack
+{
+public:
+	std::string name;
+	Interpolation interpolation = Interpolation::LINEAR;
+
+	std::vector<float> times;
+	std::vector<glm::quat> values;
+
+	void get_frame(float x, RotationFrame& frame);
+};
+
+class ScaleTrack
+{
+public:
+	std::string name;
+	Interpolation interpolation = Interpolation::LINEAR;
+
+	std::vector<float> times;
+	std::vector<glm::vec3> values;
+
+	void get_frame(float x, ScaleFrame& frame);
+
+};
 
 // Clip
 class AnimationClip
@@ -49,6 +111,9 @@ public:
 	double end = FLT_MAX;
 
 	std::vector<MorphTrack> morphs;
+	std::vector<TranslationTrack> translations;
+	std::vector<RotationTrack> rotations;
+	std::vector<ScaleTrack> scales;
 
 	void get_frame(float x, AnimationFrame& frame);
 };

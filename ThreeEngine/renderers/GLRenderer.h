@@ -23,6 +23,7 @@ private:
 	StandardRoutine* get_routine(const StandardRoutine::Options& options);
 	void render_primitive(const StandardRoutine::RenderParams& params);
 	
+	void update_simple_model(SimpleModel* model);
 	void update_gltf_model(GLTFModel* model);
 	void render_simple_model(Camera* p_camera, SimpleModel* model);
 	void render_gltf_model(Camera* p_camera, GLTFModel* model);

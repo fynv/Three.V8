@@ -46,6 +46,11 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params)
 	routine->render(params);		
 }
 
+void GLRenderer::update_simple_model(SimpleModel* model)
+{
+	model->updateConstant();
+}
+
 void GLRenderer::update_gltf_model(GLTFModel* model)
 {
 	for (size_t i = 0; i < model->m_meshs.size(); i++)
@@ -127,11 +132,12 @@ void GLRenderer::update_gltf_model(GLTFModel* model)
 		}
 		model->needUpdateSkinnedMeshes = false;
 	}	
+
+	model->updateMeshConstants();
 }
 
 void GLRenderer::render_simple_model(Camera* p_camera, SimpleModel* model)
-{
-	model->updateConstant();
+{	
 	const GLTexture2D* tex = &model->texture;
 	const MeshStandardMaterial* material = &model->material;
 
@@ -147,8 +153,6 @@ void GLRenderer::render_simple_model(Camera* p_camera, SimpleModel* model)
 
 void GLRenderer::render_gltf_model(Camera* p_camera, GLTFModel* model)
 {
-	model->updateMeshConstants();
-
 	std::vector<const GLTexture2D*> tex_lst(model->m_textures.size());
 	for (size_t i = 0; i < tex_lst.size(); i++)
 		tex_lst[i] = model->m_textures[i].get();
@@ -197,6 +201,14 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 
 	scene.traverse([this](Object3D* obj) {
 		obj->updateWorldMatrix(false, false);
+		{
+			SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
+			if (model)
+			{
+				update_simple_model(model);
+				return;
+			}
+		}
 		{
 			GLTFModel* model = dynamic_cast<GLTFModel*>(obj);
 			if (model)
