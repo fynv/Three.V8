@@ -141,7 +141,7 @@
     <ClCompile Include="models\Animation.cpp" />
     <ClCompile Include="models\GeometryCreator.cpp" />
     <ClCompile Include="models\GLTFModel.cpp" />
-    <ClCompile Include="models\Model.cpp" />
+    <ClCompile Include="models\ModelComponents.cpp" />
     <ClCompile Include="models\SimpleModel.cpp" />
     <ClCompile Include="renderers\GLRenderer.cpp" />
     <ClCompile Include="renderers\GLUtils.cpp" />
@@ -164,7 +164,6 @@
     <ClInclude Include="models\Animation.h" />
     <ClInclude Include="models\GeometryCreator.h" />
     <ClInclude Include="models\GLTFModel.h" />
-    <ClInclude Include="models\Model.h" />
     <ClInclude Include="models\ModelComponents.h" />
     <ClInclude Include="models\SimpleModel.h" />
     <ClInclude Include="renderers\GLRenderer.h" />

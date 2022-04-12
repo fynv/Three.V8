@@ -40,11 +40,31 @@ public:
 	std::unique_ptr<std::vector<uint8_t>> cpu_indices;
 };
 
+class Node
+{
+public:
+	std::vector<int> children;
+	glm::vec3 translation;
+	glm::quat rotation;
+	glm::vec3 scale = { 1.0f, 1.0f, 1.0f };
+	glm::mat4 g_trans;
+};
+
+class Skin
+{
+
+};
+
 class Mesh
 {
 public:
+	Mesh();
+	int node_id = -1;
+	int skin_id = -1;
+	std::unique_ptr<GLDynBuffer> model_constant;
 	std::vector<Primitive> primitives;
 	std::vector<float> weights;
 	std::unique_ptr<GLDynBuffer> buf_weights;
 	bool needUpdateMorphTargets = false;
+
 };

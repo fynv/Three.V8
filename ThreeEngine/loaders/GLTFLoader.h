@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 class GLTFModel;
 class AnimationClip;
 class GLTFLoader

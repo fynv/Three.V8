@@ -1,5 +1,3 @@
-#include <list>
-#include <unordered_map>
 #include <GL/glew.h>
 #include "GLTFLoader.h"
 
@@ -219,71 +217,6 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 		}
 	}
 
-	struct MeshTransform
-	{
-		glm::mat4 mat;
-		glm::mat4 norm_mat;
-	};
-
-	size_t num_nodes = model.nodes.size();
-	std::vector<glm::mat4> node_trans(num_nodes);
-	std::unordered_map<int, MeshTransform> mesh_node_map;
-
-	int idx_root = model.scenes[0].nodes[0];
-	std::list<int> node_queue;
-	node_trans[idx_root] = glm::identity<glm::mat4>();
-	node_queue.push_back(idx_root);
-
-	while (!node_queue.empty())
-	{
-		int id_node = node_queue.front();
-		node_queue.pop_front();
-		tinygltf::Node& node_in = model.nodes[id_node];
-
-		glm::mat4 local = glm::identity<glm::mat4>();
-		if (node_in.translation.size() > 0)
-		{
-			local = glm::translate(local, { node_in.translation[0],  node_in.translation[1],  node_in.translation[2] });
-		}
-
-		if (node_in.rotation.size() > 0)
-		{
-			glm::quat quaternion(node_in.rotation[3], node_in.rotation[0], node_in.rotation[1], node_in.rotation[2]);
-			local *= glm::toMat4(quaternion);
-		}
-
-		if (node_in.scale.size() > 0)
-		{
-			local = glm::scale(local, { node_in.scale[0],  node_in.scale[1],  node_in.scale[2] });
-		}
-
-		node_trans[id_node] *= local;
-
-		if (node_in.mesh >= 0)
-		{
-			MeshTransform mesh_trans;
-			mesh_trans.mat = node_trans[id_node];
-			mesh_trans.norm_mat = glm::transpose(glm::inverse(mesh_trans.mat));
-			mesh_node_map[node_in.mesh] = mesh_trans;
-
-			std::string name = node_in.name;
-			if (name == "")
-			{
-				char mesh_name[32];
-				sprintf(mesh_name, "mesh_%d", node_in.mesh);
-				name = mesh_name;
-			}
-			model_out->m_mesh_dict[name] = node_in.mesh;
-		}
-
-		for (size_t i = 0; i < node_in.children.size(); i++)
-		{
-			int id_child = node_in.children[i];
-			node_trans[id_child] = node_trans[id_node];
-			node_queue.push_back(id_child);
-		}
-	}
-
 	size_t num_meshes = model.meshes.size();
 	model_out->m_meshs.resize(num_meshes);
 	for (size_t i = 0; i < num_meshes; i++)
@@ -293,8 +226,6 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 
 		size_t num_primitives = mesh_in.primitives.size();
 		mesh_out.primitives.resize(num_primitives);
-
-		MeshTransform trans = mesh_node_map[i];
 
 		for (size_t j = 0; j < num_primitives; j++)
 		{
@@ -354,7 +285,7 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 			primitive_out.cpu_pos = std::unique_ptr<std::vector<glm::vec4>>(new std::vector<glm::vec4>(primitive_out.num_pos));
 
 			for (int k = 0; k < primitive_out.num_pos; k++)
-				(*primitive_out.cpu_pos)[k] = trans.mat * glm::vec4(p_pos[k], 1.0f);
+				(*primitive_out.cpu_pos)[k] = glm::vec4(p_pos[k], 1.0f);
 
 			geometry.pos_buf = Attribute(new GLBuffer(sizeof(glm::vec4) * primitive_out.num_pos));
 			geometry.pos_buf->upload(primitive_out.cpu_pos->data());
@@ -370,7 +301,7 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 				const glm::vec3* p_norm = (const glm::vec3*)(model.buffers[view_norm_in.buffer].data.data() + view_norm_in.byteOffset + acc_norm_in.byteOffset);
 
 				for (int k = 0; k < primitive_out.num_pos; k++)
-					norms[k] = trans.norm_mat * glm::vec4(p_norm[k], 0.0f);
+					norms[k] = glm::vec4(p_norm[k], 0.0f);
 			}
 			else
 			{
@@ -438,7 +369,7 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 
 					glm::vec4* pos_k = pos_targets.data() + k * primitive_out.num_pos;
 					for (int l = 0; l < primitive_out.num_pos; l++)
-						pos_k[l] = trans.mat * glm::vec4(p_pos[l] + t_pos[l], 1.0f);
+						pos_k[l] = glm::vec4(p_pos[l] + t_pos[l], 1.0f);
 
 					glm::vec4* norm_k = norm_targets.data() + k * primitive_out.num_pos;
 					if (target_in.find("NORMAL") != target_in.end())
@@ -448,7 +379,7 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 						tinygltf::BufferView& view_t_norm_in = model.bufferViews[acc_t_norm_in.bufferView];
 						const glm::vec3* t_norm = (const glm::vec3*)(model.buffers[view_t_norm_in.buffer].data.data() + view_t_norm_in.byteOffset + acc_t_norm_in.byteOffset);
 						for (int l = 0; l < primitive_out.num_pos; l++)
-							norm_k[l] = trans.norm_mat * glm::vec4(t_norm[k], 0.0f);
+							norm_k[l] = glm::vec4(t_norm[k], 0.0f);
 					}
 					else
 					{
@@ -514,6 +445,76 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 			mesh_out.weights.resize(mesh_out.primitives[0].num_targets, 0.0f);
 		}
 	}
+
+
+	size_t num_nodes = model.nodes.size();
+	model_out->m_nodes.resize(num_nodes);
+	for (size_t i = 0; i < num_nodes; i++)
+	{
+		tinygltf::Node& node_in = model.nodes[i];
+		Node& node_out = model_out->m_nodes[i];		
+		node_out.children = node_in.children;
+		if (node_in.translation.size() > 0)
+		{
+			node_out.translation.x = (float)node_in.translation[0];
+			node_out.translation.y = (float)node_in.translation[1];
+			node_out.translation.z = (float)node_in.translation[2];
+		}
+		else
+		{
+			node_out.translation = { 0.0f, 0.0f, 0.0f };
+		}
+
+		if (node_in.rotation.size() > 0)
+		{
+			node_out.rotation.x = (float)node_in.rotation[0];
+			node_out.rotation.y = (float)node_in.rotation[1];
+			node_out.rotation.z = (float)node_in.rotation[2];
+			node_out.rotation.w = (float)node_in.rotation[3];
+		}
+		else
+		{
+			node_out.rotation = glm::identity<glm::quat>();
+		}
+
+		if (node_in.scale.size() > 0)
+		{
+			node_out.scale.x = (float)node_in.scale[0];
+			node_out.scale.y = (float)node_in.scale[1];
+			node_out.scale.z = (float)node_in.scale[2];
+		}
+		else
+		{
+			node_out.scale = { 1.0f, 1.0f, 1.0f };
+		}
+
+		model_out->m_node_dict[node_in.name] = i;		
+	}
+	model_out->m_roots = model.scenes[0].nodes;
+	model_out->updateNodes();
+
+	for (size_t i = 0; i < num_nodes; i++)
+	{
+		tinygltf::Node& node_in = model.nodes[i];
+		Node& node_out = model_out->m_nodes[i];
+		int j = node_in.mesh;
+
+		if (j >= 0)
+		{	
+			Mesh& mesh_out = model_out->m_meshs[i];
+			mesh_out.node_id = i;
+			mesh_out.skin_id = node_in.skin;
+
+			std::string name = node_in.name;
+			if (name == "")
+			{
+				char mesh_name[32];
+				sprintf(mesh_name, "mesh_%d", j);
+				name = mesh_name;
+			}
+			model_out->m_mesh_dict[name] = j;
+		}
+	}	
 
 	load_animations(model, model_out->m_animations);
 	for (size_t i = 0; i < model_out->m_animations.size(); i++)

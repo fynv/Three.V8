@@ -187,7 +187,7 @@ void main()
 
 	vec3 viewDir = normalize(vViewDir);
 	vec3 norm = normalize(vNorm);
-	if (dot(viewDir,norm)<0.0) norm = -norm;
+	// if (dot(viewDir,norm)<0.0) norm = -norm;
 
 #if HAS_COLOR
 	base_color *= vColor;

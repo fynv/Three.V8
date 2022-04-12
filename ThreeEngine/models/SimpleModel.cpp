@@ -2,20 +2,28 @@
 #include "SimpleModel.h"
 #include "materials/MeshStandardMaterial.h"
 
-
 struct ModelConst
 {
 	glm::mat4 ModelMat;
 	glm::mat4 NormalMat;
 };
 
-SimpleModel::SimpleModel()
+SimpleModel::SimpleModel() : m_constant(sizeof(ModelConst), GL_UNIFORM_BUFFER)
 {
 	glm::u8vec3 white = { 255, 255, 255 };
 	texture.load_memory_bgr(1, 1, (uint8_t*)&white, true);
 	material.tex_idx_map = 0;
 	set_color({ 0.8f, 0.8f, 0.8f });
 	geometry.material_idx = 0;
+}
+
+
+void SimpleModel::updateConstant()
+{
+	ModelConst c;
+	c.ModelMat = matrixWorld;
+	c.NormalMat = glm::transpose(glm::inverse(matrixWorld));
+	m_constant.upload(&c);
 }
 
 void SimpleModel::set_color(const glm::vec3& color)

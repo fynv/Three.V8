@@ -93,7 +93,7 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 			GLTFModel* model = dynamic_cast<GLTFModel*>(obj);			
 			if (model)
 			{
-				model->updateConstant();
+				model->updateMeshConstants();
 				
 				std::vector<const GLTexture2D*> tex_lst(model->m_textures.size());
 				for (size_t i = 0; i < tex_lst.size(); i++)
@@ -154,7 +154,7 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 							tex_lst.data(), 
 							material_lst.data(),
 							&p_camera->m_constant,
-							&model->m_constant, 
+							mesh.model_constant.get(),
 							&primitive
 						};
 						render_primitive(params);

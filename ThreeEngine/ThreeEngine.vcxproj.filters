@@ -120,9 +120,6 @@
     <ClCompile Include="renderers\routines\StandardRoutine.cpp">
       <Filter>Source Files\renderers\routines</Filter>
     </ClCompile>
-    <ClCompile Include="models\Model.cpp">
-      <Filter>Source Files\models</Filter>
-    </ClCompile>
     <ClCompile Include="..\thirdparty\crc64\crc64.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -137,6 +134,9 @@
     </ClCompile>
     <ClCompile Include="loaders\FileLoader.cpp">
       <Filter>Source Files\loaders</Filter>
+    </ClCompile>
+    <ClCompile Include="models\ModelComponents.cpp">
+      <Filter>Source Files\models</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -193,9 +193,6 @@
     </ClInclude>
     <ClInclude Include="renderers\routines\StandardRoutine.h">
       <Filter>Header Files\renderers\routines</Filter>
-    </ClInclude>
-    <ClInclude Include="models\Model.h">
-      <Filter>Header Files\models</Filter>
     </ClInclude>
     <ClInclude Include="..\thirdparty\crc64\crc64.h">
       <Filter>Header Files</Filter>

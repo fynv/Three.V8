@@ -4,20 +4,29 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
-#include "models/Model.h"
+#include "core/Object3D.h"
 #include "renderers/GLUtils.h"
 #include "materials/MeshStandardMaterial.h"
 #include "models/ModelComponents.h"
 #include "models/Animation.h"
 
 class Mesh;
-class GLTFModel : public Model
+class GLTFModel : public Object3D
 {
 public:
 	std::vector<std::unique_ptr<GLTexture2D>> m_textures;
 	std::vector<std::unique_ptr<MeshStandardMaterial>> m_materials;
+	
 	std::vector<Mesh> m_meshs;
 	std::unordered_map<std::string, int> m_mesh_dict;
+	void updateMeshConstants();
+
+	std::vector<Node> m_nodes;
+	std::unordered_map<std::string, int> m_node_dict;	
+	std::vector<int> m_roots;
+	void updateNodes();
+
+	std::vector<Skin> m_skins;	
 
 	// animations
 	void setAnimationFrame(const AnimationFrame& frame);
