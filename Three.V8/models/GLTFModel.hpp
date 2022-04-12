@@ -133,8 +133,7 @@ void WrapperGLTFModel::GetAnimations(v8::Local<v8::String> property, const v8::P
 
 		v8::Local<v8::Object> janim = v8::Object::New(isolate);
 		janim->Set(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked(), v8::String::NewFromUtf8(isolate, anim.name.c_str()).ToLocalChecked());
-		janim->Set(context, v8::String::NewFromUtf8(isolate, "start").ToLocalChecked(), v8::Number::New(isolate, anim.start));
-		janim->Set(context, v8::String::NewFromUtf8(isolate, "end").ToLocalChecked(), v8::Number::New(isolate, anim.end));
+		janim->Set(context, v8::String::NewFromUtf8(isolate, "duration").ToLocalChecked(), v8::Number::New(isolate, anim.duration));		
 
 		v8::Local<v8::Array> jmorphs = v8::Array::New(isolate, anim.morphs.size());
 		for (size_t j = 0; j < anim.morphs.size(); j++)

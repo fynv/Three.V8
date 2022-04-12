@@ -177,8 +177,7 @@ inline void anim_to_janim(v8::Isolate* isolate, const AnimationClip& anim, v8::L
 	static std::string interpolation_map[3] = { "STEP", "LINEAR", "CUBICSPLINE" };
 
 	janim->Set(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked(), v8::String::NewFromUtf8(isolate, anim.name.c_str()).ToLocalChecked());
-	janim->Set(context, v8::String::NewFromUtf8(isolate, "start").ToLocalChecked(), v8::Number::New(isolate, anim.start));
-	janim->Set(context, v8::String::NewFromUtf8(isolate, "end").ToLocalChecked(), v8::Number::New(isolate, anim.end));
+	janim->Set(context, v8::String::NewFromUtf8(isolate, "duration").ToLocalChecked(), v8::Number::New(isolate, anim.duration));	
 
 	size_t num_morphs = anim.morphs.size();
 	if (num_morphs > 0)
@@ -315,8 +314,7 @@ inline void janim_to_anim(v8::Isolate* isolate, v8::Local<v8::Object> janim, Ani
 	v8::Local<v8::Value> jName = janim->Get(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked()).ToLocalChecked();
 	v8::String::Utf8Value name(isolate, jName);
 	anim.name = *name;
-	anim.start = janim->Get(context, v8::String::NewFromUtf8(isolate, "start").ToLocalChecked()).ToLocalChecked().As<v8::Number>()->Value();
-	anim.end = janim->Get(context, v8::String::NewFromUtf8(isolate, "end").ToLocalChecked()).ToLocalChecked().As<v8::Number>()->Value();
+	anim.duration = janim->Get(context, v8::String::NewFromUtf8(isolate, "duration").ToLocalChecked()).ToLocalChecked().As<v8::Number>()->Value();	
 
 	if (janim->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "morphs").ToLocalChecked()).ToChecked())
 	{

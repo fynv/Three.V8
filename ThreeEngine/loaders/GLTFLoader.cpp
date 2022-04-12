@@ -649,11 +649,8 @@ inline void load_animations(tinygltf::Model& model, std::vector<AnimationClip>& 
 			float* p_input = (float*)(model.buffers[view_input.buffer].data.data() + view_input.byteOffset + acc_input.byteOffset);
 			void* p_output = model.buffers[view_output.buffer].data.data() + view_output.byteOffset + acc_output.byteOffset;
 
-			double start = acc_input.minValues[0];
 			double end = acc_input.maxValues[0];
-
-			if (start > anim_out.start) anim_out.start = start;
-			if (end < anim_out.end) anim_out.end = end;
+			if (end > anim_out.duration) anim_out.duration = end;
 
 			if (track_in.target_path == "weights")
 			{
@@ -768,7 +765,6 @@ inline void load_animations(tinygltf::Model& model, std::vector<AnimationClip>& 
 			}
 
 		}
-
 	}
 }
 

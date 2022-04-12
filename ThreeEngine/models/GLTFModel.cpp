@@ -184,13 +184,12 @@ void GLTFModel::updateAnimation()
 	{
 		PlayBack& playback = m_current_playing[i];
 		AnimationClip& anim = m_animations[playback.id_anim];
-		double duration = anim.end - anim.start;
-		while (t - playback.time_start > duration)
+		double duration = anim.duration;
+		while (t - playback.time_start >= duration)
 		{
 			playback.time_start += duration;
 		}
-		double pos = t - playback.time_start;
-		double x = pos + anim.start;
+		double x = t - playback.time_start;
 
 		AnimationFrame frame;
 		anim.get_frame(x, frame);
