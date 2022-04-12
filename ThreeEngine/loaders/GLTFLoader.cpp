@@ -501,7 +501,7 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 
 		if (j >= 0)
 		{	
-			Mesh& mesh_out = model_out->m_meshs[i];
+			Mesh& mesh_out = model_out->m_meshs[j];
 			mesh_out.node_id = i;
 			mesh_out.skin_id = node_in.skin;
 
