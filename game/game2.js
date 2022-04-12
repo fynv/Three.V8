@@ -40,6 +40,9 @@ function init(width, height) {
     camera.setPosition(0.0, 0.0, 4.0);
     model = gltfLoader.loadModelFromFile("../game/assets/models/Parrot.glb");
     model.playAnimation("KeyAction");  
+
+    /*camera.setPosition(0.0, 0.0, 4.0);
+    model = gltfLoader.loadModelFromFile("../game/assets/models/character.glb");*/
     
     scene.add(model);  
 

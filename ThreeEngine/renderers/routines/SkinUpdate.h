@@ -3,23 +3,23 @@
 #include "renderers/GLUtils.h"
 #include "models/ModelComponents.h"
 
-class MorphUpdate
+
+class SkinUpdate
 {
 public:
-	MorphUpdate(bool has_tangent);
+	SkinUpdate(bool has_tangent);
 
 	struct Params
 	{
-		GLDynBuffer* buf_weights;
+		const Skin* skin;
 		const Primitive* primitive;
 	};
 	void update(const Params& params);
 
-private:
+private:	
 	bool m_has_tangent;
 	std::unique_ptr<GLShader> m_comp_shader;
 	std::unique_ptr<GLProgram> m_prog;
 };
-
 
 

@@ -138,6 +138,9 @@
     <ClCompile Include="models\ModelComponents.cpp">
       <Filter>Source Files\models</Filter>
     </ClCompile>
+    <ClCompile Include="renderers\routines\SkinUpdate.cpp">
+      <Filter>Source Files\renderers\routines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -205,6 +208,9 @@
     </ClInclude>
     <ClInclude Include="loaders\FileLoader.h">
       <Filter>Header Files\loaders</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\routines\SkinUpdate.h">
+      <Filter>Header Files\renderers\routines</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

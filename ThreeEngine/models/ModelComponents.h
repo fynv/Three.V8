@@ -24,7 +24,9 @@ public:
 	std::vector<GeometrySet> geometry;
 	int type_color; // 3: rgb; 4: rgba
 	Attribute color_buf;
-	Attribute uv_buf;	
+	Attribute uv_buf;
+	Attribute joints_buf;
+	Attribute weights_buf;
 
 	int num_face = 0;
 	int type_indices = 2; // 1:uchar; 2: ushort; 4: uint
@@ -52,7 +54,10 @@ public:
 
 class Skin
 {
-
+public:
+	std::vector<int> joints;
+	std::vector<glm::mat4> inverseBindMatrices;
+	std::unique_ptr<GLDynBuffer> buf_rela_mat;
 };
 
 class Mesh

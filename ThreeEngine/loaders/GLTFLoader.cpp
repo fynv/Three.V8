@@ -135,6 +135,21 @@ inline void g_calc_tangent(int num_face, int num_pos, int type_indices, const vo
 	}
 }
 
+
+template<typename T>
+inline void t_copy_joints(int num_pos, const T* p_in, glm::uvec4* p_out)
+{
+	for (int i = 0; i < num_pos; i++)
+	{
+		const T& j_in = p_in[i];
+		glm::uvec4& j_out = p_out[i];
+		j_out.x = j_in.x;
+		j_out.y = j_in.y;
+		j_out.z = j_in.z;
+		j_out.w = j_in.w;
+	}
+}
+
 inline void load_animations(tinygltf::Model& model, std::vector<AnimationClip>& animations);
 
 inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
@@ -218,11 +233,24 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 	}
 
 	size_t num_meshes = model.meshes.size();
+	std::vector<bool> skinned(num_meshes, false);
+	size_t num_nodes = model.nodes.size();	
+	for (size_t i = 0; i < num_nodes; i++)
+	{
+		tinygltf::Node& node_in = model.nodes[i];
+		if (node_in.mesh >= 0 && node_in.skin >= 0)
+		{
+			skinned[node_in.mesh] = true;
+		}
+	}
+
+	
 	model_out->m_meshs.resize(num_meshes);
 	for (size_t i = 0; i < num_meshes; i++)
 	{
 		tinygltf::Mesh& mesh_in = model.meshes[i];
 		Mesh& mesh_out = model_out->m_meshs[i];
+		bool is_skinned = skinned[i];
 
 		size_t num_primitives = mesh_in.primitives.size();
 		mesh_out.primitives.resize(num_primitives);
@@ -241,6 +269,7 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 
 			int num_geo_sets = 1;
 			if (num_targets > 0) num_geo_sets++;
+			if (is_skinned) num_geo_sets++;
 			primitive_out.geometry.resize(num_geo_sets);
 
 			int id_pos_in = primitive_in.attributes["POSITION"];
@@ -331,6 +360,41 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 				p_uv = (const glm::vec2*)(model.buffers[view_uv_in.buffer].data.data() + view_uv_in.byteOffset + acc_uv_in.byteOffset);
 				primitive_out.uv_buf = Attribute(new GLBuffer(sizeof(glm::vec2) * primitive_out.num_pos));
 				primitive_out.uv_buf->upload(p_uv);
+			}
+
+			if (primitive_in.attributes.find("JOINTS_0") != primitive_in.attributes.end())
+			{
+				int id_joints_in = primitive_in.attributes["JOINTS_0"];
+				tinygltf::Accessor& acc_joints_in = model.accessors[id_joints_in];
+				tinygltf::BufferView& view_joints_in = model.bufferViews[acc_joints_in.bufferView];
+				std::vector<glm::uvec4> joints(primitive_out.num_pos);
+
+				void* p_joints = model.buffers[view_joints_in.buffer].data.data() + view_joints_in.byteOffset + acc_joints_in.byteOffset;
+				if (acc_joints_in.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE)
+				{
+					t_copy_joints(primitive_out.num_pos, (glm::u8vec4*)p_joints, joints.data());
+				}
+				else if (acc_joints_in.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT)
+				{
+					t_copy_joints(primitive_out.num_pos, (glm::u16vec4*)p_joints, joints.data());
+				}
+				else if (acc_joints_in.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT)
+				{
+					t_copy_joints(primitive_out.num_pos, (glm::u32vec4*)p_joints, joints.data());
+				}
+
+				primitive_out.joints_buf = Attribute(new GLBuffer(sizeof(glm::uvec4) * primitive_out.num_pos));
+				primitive_out.joints_buf->upload(joints.data());
+			}
+
+			if (primitive_in.attributes.find("WEIGHTS_0") != primitive_in.attributes.end())
+			{
+				int id_weights_in = primitive_in.attributes["WEIGHTS_0"];
+				tinygltf::Accessor& acc_weights_in = model.accessors[id_weights_in];
+				tinygltf::BufferView& view_weights_in = model.bufferViews[acc_weights_in.bufferView];
+
+				primitive_out.weights_buf = Attribute(new GLBuffer(sizeof(glm::vec4) * primitive_out.num_pos));
+				primitive_out.weights_buf->upload(model.buffers[view_weights_in.buffer].data.data() + view_weights_in.byteOffset + acc_weights_in.byteOffset);
 			}
 
 			std::vector<glm::vec4> tangent;
@@ -443,11 +507,10 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 		if (mesh_out.primitives.size() > 0)
 		{
 			mesh_out.weights.resize(mesh_out.primitives[0].num_targets, 0.0f);
+			mesh_out.buf_weights = std::unique_ptr<GLDynBuffer>(new GLDynBuffer(sizeof(float) * mesh_out.primitives[0].num_targets, GL_SHADER_STORAGE_BUFFER));
 		}
 	}
-
-
-	size_t num_nodes = model.nodes.size();
+	
 	model_out->m_nodes.resize(num_nodes);
 	for (size_t i = 0; i < num_nodes; i++)
 	{
@@ -488,10 +551,32 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 			node_out.scale = { 1.0f, 1.0f, 1.0f };
 		}
 
-		model_out->m_node_dict[node_in.name] = i;		
+		std::string name = node_in.name;
+		if (name == "")
+		{
+			char node_name[32];
+			sprintf(node_name, "node_%d", i);
+			name = node_name;
+		}
+
+		model_out->m_node_dict[name] = i;
 	}
 	model_out->m_roots = model.scenes[0].nodes;
-	model_out->updateNodes();
+
+	size_t num_skins = model.skins.size();
+	model_out->m_skins.resize(num_skins);
+	for (size_t i = 0; i < num_skins; i++)
+	{
+		tinygltf::Skin& skin_in = model.skins[i];
+		Skin& skin_out = model_out->m_skins[i];		
+		size_t num_joints = skin_in.joints.size();
+		skin_out.joints = skin_in.joints;
+		skin_out.inverseBindMatrices.resize(num_joints);
+		tinygltf::Accessor& acc_mats = model.accessors[skin_in.inverseBindMatrices];
+		tinygltf::BufferView& view_mats = model.bufferViews[acc_mats.bufferView];
+		memcpy(skin_out.inverseBindMatrices.data(), model.buffers[view_mats.buffer].data.data() + view_mats.byteOffset + acc_mats.byteOffset, sizeof(glm::mat4)* num_joints);
+		skin_out.buf_rela_mat = std::unique_ptr<GLDynBuffer>(new GLDynBuffer(sizeof(glm::mat4) * num_joints));
+	}
 
 	for (size_t i = 0; i < num_nodes; i++)
 	{
@@ -515,6 +600,8 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 			model_out->m_mesh_dict[name] = j;
 		}
 	}	
+
+	model_out->updateNodes();
 
 	load_animations(model, model_out->m_animations);
 	for (size_t i = 0; i < model_out->m_animations.size(); i++)

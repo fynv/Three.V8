@@ -146,6 +146,7 @@
     <ClCompile Include="renderers\GLRenderer.cpp" />
     <ClCompile Include="renderers\GLUtils.cpp" />
     <ClCompile Include="renderers\routines\MorphUpdate.cpp" />
+    <ClCompile Include="renderers\routines\SkinUpdate.cpp" />
     <ClCompile Include="renderers\routines\StandardRoutine.cpp" />
     <ClCompile Include="scenes\Scene.cpp" />
     <ClCompile Include="utils\Image.cpp" />
@@ -169,6 +170,7 @@
     <ClInclude Include="renderers\GLRenderer.h" />
     <ClInclude Include="renderers\GLUtils.h" />
     <ClInclude Include="renderers\routines\MorphUpdate.h" />
+    <ClInclude Include="renderers\routines\SkinUpdate.h" />
     <ClInclude Include="renderers\routines\StandardRoutine.h" />
     <ClInclude Include="scenes\Scene.h" />
     <ClInclude Include="utils\Image.h" />

@@ -1,4 +1,5 @@
 #include <string>
+#include <glm.hpp>
 #include <GL/glew.h>
 #include "MorphUpdate.h"
 
@@ -156,31 +157,34 @@ MorphUpdate::MorphUpdate(bool has_tangent) : m_has_tangent(has_tangent)
 
 void MorphUpdate::update(const Params& params)
 {
+	const GeometrySet& geo_in = params.primitive->geometry[0];
+	const GeometrySet& geo_out = params.primitive->geometry[1];
+
 	glUseProgram(m_prog->m_id);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, params.buf_weights->m_id);
 	
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, params.primitive->geometry[0].pos_buf->m_id);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, geo_in.pos_buf->m_id);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, params.primitive->targets.pos_buf->m_id);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, params.primitive->geometry[1].pos_buf->m_id);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, geo_out.pos_buf->m_id);
 
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, params.primitive->geometry[0].normal_buf->m_id);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, geo_in.normal_buf->m_id);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, params.primitive->targets.normal_buf->m_id);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, params.primitive->geometry[1].normal_buf->m_id);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, geo_out.normal_buf->m_id);
 
 	if (m_has_tangent)
 	{
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, params.primitive->geometry[0].tangent_buf->m_id);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, geo_in.tangent_buf->m_id);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, params.primitive->targets.tangent_buf->m_id);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, params.primitive->geometry[1].tangent_buf->m_id);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, geo_out.tangent_buf->m_id);
 
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, params.primitive->geometry[0].bitangent_buf->m_id);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, geo_in.bitangent_buf->m_id);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, params.primitive->targets.bitangent_buf->m_id);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 12, params.primitive->geometry[1].bitangent_buf->m_id);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 12, geo_out.bitangent_buf->m_id);
 	}
 
 	glUniform1i(0, params.primitive->num_pos);
-	glUniform1i(1, params.num_targets);
+	glUniform1i(1, params.primitive->num_targets);
 
 	unsigned groups = (params.primitive->num_pos + 127) / 128;
 	glDispatchCompute(groups, 1, 1);

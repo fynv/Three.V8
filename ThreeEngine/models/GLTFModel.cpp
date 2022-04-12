@@ -61,6 +61,23 @@ void GLTFModel::updateNodes()
 			node_queue.push_back(id_child);
 		}
 	}
+
+	// update skins 
+	size_t num_skins = m_skins.size();
+	for (size_t i = 0; i < num_skins; i++)
+	{
+		Skin& skin = m_skins[i];
+		size_t num_joints = skin.joints.size();				
+		std::vector<glm::mat4> rela_mats(num_joints);
+		for (int j = 0; j < num_joints; j++)
+		{
+			Node& node = m_nodes[skin.joints[j]];
+			rela_mats[j] = node.g_trans * skin.inverseBindMatrices[j];			
+		}
+		skin.buf_rela_mat->upload(rela_mats.data());
+	}
+
+	needUpdateSkinnedMeshes = true;
 }
 
 void GLTFModel::setAnimationFrame(const AnimationFrame& frame)

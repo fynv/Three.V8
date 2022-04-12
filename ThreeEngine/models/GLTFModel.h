@@ -23,10 +23,10 @@ public:
 
 	std::vector<Node> m_nodes;
 	std::unordered_map<std::string, int> m_node_dict;	
-	std::vector<int> m_roots;
-	void updateNodes();
-
+	std::vector<int> m_roots;	
 	std::vector<Skin> m_skins;	
+	bool needUpdateSkinnedMeshes = false;
+	void updateNodes();
 
 	// animations
 	void setAnimationFrame(const AnimationFrame& frame);
