@@ -19,7 +19,12 @@ GLRenderer::GLRenderer()
 
 GLRenderer::~GLRenderer()
 {
-
+	if (m_fbo_msaa != -1)
+		glDeleteFramebuffers(1, &m_fbo_msaa);
+	if (m_tex_msaa != -1)
+		glDeleteTextures(1, &m_tex_msaa);
+	if (m_rbo_msaa != -1)
+		glDeleteRenderbuffers(1, &m_rbo_msaa);
 }
 
 StandardRoutine* GLRenderer::get_routine(const StandardRoutine::Options& options)
@@ -179,8 +184,39 @@ void GLRenderer::render_gltf_model(Camera* p_camera, GLTFModel* model)
 	}
 }
 
+void GLRenderer::_update_framebuffers(int width, int height)
+{
+	if (m_width != width || m_height != height)
+	{
+		if (m_fbo_msaa == -1)
+		{
+			glGenFramebuffers(1, &m_fbo_msaa);
+			glGenTextures(1, &m_tex_msaa);
+			glGenRenderbuffers(1, &m_rbo_msaa);
+		}
+
+		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_msaa);
+
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_tex_msaa);
+		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_SRGB8_ALPHA8, width, height, true);
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, m_tex_msaa, 0);
+
+		glBindRenderbuffer(GL_RENDERBUFFER, m_rbo_msaa);
+		glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH_COMPONENT24, width, height);
+		glBindRenderbuffer(GL_RENDERBUFFER, 0);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_rbo_msaa);
+
+		m_width = width;
+		m_height = height;
+	}
+}
+
 void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 {
+	_update_framebuffers(width, height);
+	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_msaa);
+
 	glEnable(GL_FRAMEBUFFER_SRGB);
 	glViewport(0, 0, width, height);
 	if (scene.background != nullptr)
@@ -239,4 +275,8 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 		}
 
 	});
+
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	glBlitFramebuffer(0, 0, m_width, m_height, 0, 0, m_width, m_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 }

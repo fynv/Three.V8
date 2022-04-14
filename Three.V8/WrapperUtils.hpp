@@ -306,9 +306,9 @@ inline void janim_to_anim(v8::Isolate* isolate, v8::Local<v8::Object> janim, Ani
 
 	std::unordered_map<std::string, Interpolation> interpolation_map =
 	{
-		{"STEP", Interpolation::STEP},
-		{"LINEAR", Interpolation::LINEAR},
-		{"CUBICSPLINE", Interpolation::CUBICSPLINE}
+		{"STEP", Interpolation::Step},
+		{"LINEAR", Interpolation::Linear},
+		{"CUBICSPLINE", Interpolation::CubicSpline}
 	};
 
 	v8::Local<v8::Value> jName = janim->Get(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked()).ToLocalChecked();

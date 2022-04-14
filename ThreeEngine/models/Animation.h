@@ -46,9 +46,9 @@ public:
 // Tracks
 enum class Interpolation
 {
-	STEP,
-	LINEAR,
-	CUBICSPLINE
+	Step,
+	Linear,
+	CubicSpline
 };
 
 class MorphTrack
@@ -57,7 +57,7 @@ public:
 	std::string name;
 	
 	int num_targets = 0;
-	Interpolation interpolation = Interpolation::LINEAR;
+	Interpolation interpolation = Interpolation::Linear;
 
 	std::vector<float> times;
 	std::vector<float> values;	
@@ -69,7 +69,7 @@ class TranslationTrack
 {
 public:
 	std::string name;
-	Interpolation interpolation = Interpolation::LINEAR;
+	Interpolation interpolation = Interpolation::Linear;
 
 	std::vector<float> times;
 	std::vector<glm::vec3> values;
@@ -81,7 +81,7 @@ class RotationTrack
 {
 public:
 	std::string name;
-	Interpolation interpolation = Interpolation::LINEAR;
+	Interpolation interpolation = Interpolation::Linear;
 
 	std::vector<float> times;
 	std::vector<glm::quat> values;
@@ -93,7 +93,7 @@ class ScaleTrack
 {
 public:
 	std::string name;
-	Interpolation interpolation = Interpolation::LINEAR;
+	Interpolation interpolation = Interpolation::Linear;
 
 	std::vector<float> times;
 	std::vector<glm::vec3> values;

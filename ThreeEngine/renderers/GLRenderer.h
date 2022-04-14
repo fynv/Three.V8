@@ -19,6 +19,13 @@ public:
 	void render(int width, int height, Scene& scene, Camera& camera);
 
 private:
+	int m_width = -1;
+	int m_height = -1;
+	unsigned m_tex_msaa = -1;
+	unsigned m_rbo_msaa = -1;
+	unsigned m_fbo_msaa = -1;
+	void _update_framebuffers(int width, int height);
+
 	std::unordered_map<uint64_t, std::unique_ptr<StandardRoutine>> routine_map;
 	StandardRoutine* get_routine(const StandardRoutine::Options& options);
 	void render_primitive(const StandardRoutine::RenderParams& params);
@@ -27,7 +34,6 @@ private:
 	void update_gltf_model(GLTFModel* model);
 	void render_simple_model(Camera* p_camera, SimpleModel* model);
 	void render_gltf_model(Camera* p_camera, GLTFModel* model);
-
 
 	std::unique_ptr<MorphUpdate> morphers[2];
 	std::unique_ptr<SkinUpdate> skinners[2];

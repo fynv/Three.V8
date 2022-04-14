@@ -21,22 +21,22 @@ void MorphTrack::get_frame(float x, MorphFrame& frame)
 
 	if (iter == times.begin())
 	{
-		if (interpolation == Interpolation::STEP || interpolation == Interpolation::LINEAR)
+		if (interpolation == Interpolation::Step || interpolation == Interpolation::Linear)
 		{
 			memcpy(frame.weights.data(), values.data(), sizeof(float) * num_targets);
 		}
-		else if (interpolation == Interpolation::CUBICSPLINE)
+		else if (interpolation == Interpolation::CubicSpline)
 		{
 			memcpy(frame.weights.data(), values.data() + num_targets, sizeof(float) * num_targets);
 		}
 	}
 	else if (iter == times.end())
 	{
-		if (interpolation == Interpolation::STEP || interpolation == Interpolation::LINEAR)
+		if (interpolation == Interpolation::Step || interpolation == Interpolation::Linear)
 		{
 			memcpy(frame.weights.data(), values.data() + num_targets*(times.size()-1), sizeof(float) * num_targets);
 		}
-		else if (interpolation == Interpolation::CUBICSPLINE)
+		else if (interpolation == Interpolation::CubicSpline)
 		{
 			memcpy(frame.weights.data(), values.data() + num_targets + num_targets * (times.size() - 1)*3, sizeof(float) * num_targets);
 		}
@@ -45,11 +45,11 @@ void MorphTrack::get_frame(float x, MorphFrame& frame)
 	{
 		float x0 = *(iter - 1);
 		float x1 = *iter;
-		if (interpolation == Interpolation::STEP)
+		if (interpolation == Interpolation::Step)
 		{
 			memcpy(frame.weights.data(), values.data() + num_targets*(iter- times.begin()-1), sizeof(float) * num_targets);
 		}
-		else if (interpolation == Interpolation::LINEAR)
+		else if (interpolation == Interpolation::Linear)
 		{
 			const float* p0 = values.data() + num_targets * (iter - times.begin() - 1);
 			const float* p1 = values.data() + num_targets * (iter - times.begin());
@@ -59,7 +59,7 @@ void MorphTrack::get_frame(float x, MorphFrame& frame)
 				frame.weights[i] = linear_interpolate(p0[i], p1[i], t);
 			}
 		}
-		else if (interpolation == Interpolation::CUBICSPLINE)
+		else if (interpolation == Interpolation::CubicSpline)
 		{
 			const float* p0 = values.data() + num_targets * (iter - times.begin() - 1) * 3;
 			const float* p1 = values.data() + num_targets * (iter - times.begin()) * 3;
@@ -87,22 +87,22 @@ void TranslationTrack::get_frame(float x, TranslationFrame& frame)
 	auto iter = std::upper_bound(times.begin(), times.end(), x);
 	if (iter == times.begin())
 	{
-		if (interpolation == Interpolation::STEP || interpolation == Interpolation::LINEAR)
+		if (interpolation == Interpolation::Step || interpolation == Interpolation::Linear)
 		{
 			frame.translation = values[0];
 		}
-		else if (interpolation == Interpolation::CUBICSPLINE)
+		else if (interpolation == Interpolation::CubicSpline)
 		{
 			frame.translation = values[1];
 		}
 	}
 	else if (iter == times.end())
 	{
-		if (interpolation == Interpolation::STEP || interpolation == Interpolation::LINEAR)
+		if (interpolation == Interpolation::Step || interpolation == Interpolation::Linear)
 		{
 			frame.translation = values[times.size() - 1];
 		}
-		else if (interpolation == Interpolation::CUBICSPLINE)
+		else if (interpolation == Interpolation::CubicSpline)
 		{
 			frame.translation = values[1 + (times.size() - 1) * 3];			
 		}	
@@ -111,18 +111,18 @@ void TranslationTrack::get_frame(float x, TranslationFrame& frame)
 	{
 		float x0 = *(iter - 1);
 		float x1 = *iter;
-		if (interpolation == Interpolation::STEP)
+		if (interpolation == Interpolation::Step)
 		{
 			frame.translation = values[iter - times.begin() - 1];
 		}
-		else if (interpolation == Interpolation::LINEAR)
+		else if (interpolation == Interpolation::Linear)
 		{
 			const glm::vec3& y0 = values[iter - times.begin() - 1];
 			const glm::vec3& y1 = values[iter - times.begin()];
 			float t = (x - x0) / (x1 - x0);
 			frame.translation = linear_interpolate(y0, y1, t);
 		}
-		else if (interpolation == Interpolation::CUBICSPLINE)
+		else if (interpolation == Interpolation::CubicSpline)
 		{
 			float t = (x - x0) / (x1 - x0);
 			float t2 = t * t;
@@ -148,22 +148,22 @@ void RotationTrack::get_frame(float x, RotationFrame& frame)
 	auto iter = std::upper_bound(times.begin(), times.end(), x);
 	if (iter == times.begin())
 	{
-		if (interpolation == Interpolation::STEP || interpolation == Interpolation::LINEAR)
+		if (interpolation == Interpolation::Step || interpolation == Interpolation::Linear)
 		{
 			frame.rotation = values[0];
 		}
-		else if (interpolation == Interpolation::CUBICSPLINE)
+		else if (interpolation == Interpolation::CubicSpline)
 		{
 			frame.rotation = values[1];
 		}
 	}
 	else if (iter == times.end())
 	{
-		if (interpolation == Interpolation::STEP || interpolation == Interpolation::LINEAR)
+		if (interpolation == Interpolation::Step || interpolation == Interpolation::Linear)
 		{
 			frame.rotation = values[times.size() - 1];
 		}
-		else if (interpolation == Interpolation::CUBICSPLINE)
+		else if (interpolation == Interpolation::CubicSpline)
 		{
 			frame.rotation = values[1 + (times.size() - 1) * 3];
 		}		
@@ -172,18 +172,18 @@ void RotationTrack::get_frame(float x, RotationFrame& frame)
 	{
 		float x0 = *(iter - 1);
 		float x1 = *iter;
-		if (interpolation == Interpolation::STEP)
+		if (interpolation == Interpolation::Step)
 		{
 			frame.rotation = values[iter - times.begin() - 1];
 		}
-		else if (interpolation == Interpolation::LINEAR)
+		else if (interpolation == Interpolation::Linear)
 		{
 			const glm::quat& y0 = values[iter - times.begin() - 1];
 			const glm::quat& y1 = values[iter - times.begin()];
 			float t = (x - x0) / (x1 - x0);
 			frame.rotation = glm::slerp(y0, y1, t);
 		}
-		else if (interpolation == Interpolation::CUBICSPLINE)
+		else if (interpolation == Interpolation::CubicSpline)
 		{
 			float t = (x - x0) / (x1 - x0);		
 			const glm::quat* p0 = values.data() + (iter - times.begin() - 1) * 3;
@@ -203,22 +203,22 @@ void ScaleTrack::get_frame(float x, ScaleFrame& frame)
 	auto iter = std::upper_bound(times.begin(), times.end(), x);
 	if (iter == times.begin())
 	{
-		if (interpolation == Interpolation::STEP || interpolation == Interpolation::LINEAR)
+		if (interpolation == Interpolation::Step || interpolation == Interpolation::Linear)
 		{
 			frame.scale = values[0];
 		}
-		else if (interpolation == Interpolation::CUBICSPLINE)
+		else if (interpolation == Interpolation::CubicSpline)
 		{
 			frame.scale = values[1];
 		}
 	}
 	else if (iter == times.end())
 	{
-		if (interpolation == Interpolation::STEP || interpolation == Interpolation::LINEAR)
+		if (interpolation == Interpolation::Step || interpolation == Interpolation::Linear)
 		{
 			frame.scale = values[times.size() - 1];
 		}
-		else if (interpolation == Interpolation::CUBICSPLINE)
+		else if (interpolation == Interpolation::CubicSpline)
 		{
 			frame.scale = values[1 + (times.size() - 1) * 3];
 		}		
@@ -227,18 +227,18 @@ void ScaleTrack::get_frame(float x, ScaleFrame& frame)
 	{
 		float x0 = *(iter - 1);
 		float x1 = *iter;
-		if (interpolation == Interpolation::STEP)
+		if (interpolation == Interpolation::Step)
 		{
 			frame.scale = values[iter - times.begin() - 1];
 		}
-		else if (interpolation == Interpolation::LINEAR)
+		else if (interpolation == Interpolation::Linear)
 		{
 			const glm::vec3& y0 = values[iter - times.begin() - 1];
 			const glm::vec3& y1 = values[iter - times.begin()];
 			float t = (x - x0) / (x1 - x0);
 			frame.scale = linear_interpolate(y0, y1, t);
 		}
-		else if (interpolation == Interpolation::CUBICSPLINE)
+		else if (interpolation == Interpolation::CubicSpline)
 		{
 			float t = (x - x0) / (x1 - x0);
 			float t2 = t * t;

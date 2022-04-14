@@ -3,51 +3,18 @@
 #include <filesystem>
 #include "GamePlayer.h"
 
-bool GamePlayer::_update_framebuffers(int width, int height)
+
+GamePlayer::GamePlayer(V8VM* v8vm, int width, int height) 
+	: m_v8vm(v8vm)
+	, m_width(width)
+	, m_height(height)
 {
-	bool size_changed = m_width != width || m_height != height;
-	if (size_changed)
-	{
-		if (m_fbo_msaa == -1)
-		{
-			glGenFramebuffers(1, &m_fbo_msaa);
-			glGenTextures(1, &m_tex_msaa);
-			glGenRenderbuffers(1, &m_rbo_msaa);
-		}
 
-		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_msaa);
-
-		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_tex_msaa);
-		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_SRGB8_ALPHA8, width, height, true);
-		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, m_tex_msaa, 0);
-
-		glBindRenderbuffer(GL_RENDERBUFFER, m_rbo_msaa);
-		glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH_COMPONENT24, width, height);
-		glBindRenderbuffer(GL_RENDERBUFFER, 0);
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_rbo_msaa);
-
-		m_width = width;
-		m_height = height;
-	}
-	return size_changed;
-}
-
-GamePlayer::GamePlayer(V8VM* v8vm, int width, int height) : m_v8vm(v8vm)
-{
-	_update_framebuffers(width, height);
 }
 
 GamePlayer::~GamePlayer()
 {
 	_unloadScript();
-
-	if (m_fbo_msaa != -1)
-		glDeleteFramebuffers(1, &m_fbo_msaa);
-	if (m_tex_msaa != -1)
-		glDeleteTextures(1, &m_tex_msaa);
-	if (m_rbo_msaa != -1)
-		glDeleteRenderbuffers(1, &m_rbo_msaa);
 }
 
 void GamePlayer::LoadScript(const char* dir, const char* filename)
@@ -85,12 +52,12 @@ void GamePlayer::_unloadScript()
 
 void GamePlayer::Draw(int width, int height)
 {
-	GLint backbufId = 0;
-
-	bool size_changed = _update_framebuffers(width, height);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_msaa);
-
+	bool size_changed = m_width != width || m_height != height;
+	if (size_changed)
+	{
+		m_width = width;
+		m_height = height;
+	}
 
 	if (m_context != nullptr)
 	{
@@ -105,11 +72,7 @@ void GamePlayer::Draw(int width, int height)
 			args[2] = v8::Boolean::New(isolate, size_changed);
 			m_context->InvokeCallback(callback, args);
 		}
-	}	
-
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, backbufId);
-	glBlitFramebuffer(0, 0, m_width, m_height, 0, 0, m_width, m_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, backbufId);
+	}
 }
 
 inline v8::Local<v8::Object> g_CreateMouseEvent(v8::Isolate* isolate, v8::Local<v8::Context> context, int button, int clicks, int delta, int x, int y)

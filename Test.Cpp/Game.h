@@ -18,9 +18,6 @@ public:
 private:
 	int m_width = -1;
 	int m_height = -1;
-	unsigned m_tex_msaa = -1;
-	unsigned m_rbo_msaa = -1;
-	unsigned m_fbo_msaa = -1;
 
 	GLRenderer m_renderer;
 	Scene m_scene;

@@ -171,6 +171,20 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 		tinygltf::Material& material_in = model.materials[i];
 		MeshStandardMaterial* material_out = new MeshStandardMaterial();
 		model_out->m_materials[i] = std::unique_ptr<MeshStandardMaterial>(material_out);
+		if (material_in.alphaMode == "OPAQUE")
+		{
+			material_out->alphaMode = AlphaMode::Opaque;
+		}
+		else if (material_in.alphaMode == "MASK")
+		{
+			material_out->alphaMode = AlphaMode::Mask;
+		}
+		else if (material_in.alphaMode == "BLEND")
+		{
+			material_out->alphaMode = AlphaMode::Blend;
+		}
+		material_out->alphaCutoff = (float)material_in.alphaCutoff;
+
 		tinygltf::PbrMetallicRoughness& pbr = material_in.pbrMetallicRoughness;
 		material_out->color = { pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2] };
 		material_out->tex_idx_map = pbr.baseColorTexture.index;
@@ -555,7 +569,7 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 		if (name == "")
 		{
 			char node_name[32];
-			sprintf(node_name, "node_%d", i);
+			sprintf(node_name, "node_%d", (int)i);
 			name = node_name;
 		}
 
@@ -626,18 +640,18 @@ inline void load_animations(tinygltf::Model& model, std::vector<AnimationClip>& 
 		{
 			tinygltf::AnimationChannel& track_in = anim_in.channels[j];
 			tinygltf::AnimationSampler& sampler = anim_in.samplers[track_in.sampler];
-			Interpolation interpolation = Interpolation::LINEAR;
+			Interpolation interpolation = Interpolation::Linear;
 			if (sampler.interpolation == "STEP")
 			{
-				interpolation = Interpolation::STEP;
+				interpolation = Interpolation::Step;
 			}
 			else if (sampler.interpolation == "LINEAR")
 			{
-				interpolation = Interpolation::LINEAR;
+				interpolation = Interpolation::Linear;
 			}
 			else if (sampler.interpolation == "CUBICSPLINE")
 			{
-				interpolation = Interpolation::CUBICSPLINE;
+				interpolation = Interpolation::CubicSpline;
 			}
 
 			tinygltf::Accessor& acc_input = model.accessors[sampler.input];
@@ -664,12 +678,12 @@ inline void load_animations(tinygltf::Model& model, std::vector<AnimationClip>& 
 				track_out.times.resize(num_inputs);
 				memcpy(track_out.times.data(), p_input, sizeof(float) * num_inputs);
 
-				if (interpolation == Interpolation::STEP || interpolation == Interpolation::LINEAR)
+				if (interpolation == Interpolation::Step || interpolation == Interpolation::Linear)
 				{
 					track_out.values.resize(num_inputs * track_out.num_targets);
 					memcpy(track_out.values.data(), p_output, sizeof(float) * num_inputs * track_out.num_targets);
 				}
-				else if (interpolation == Interpolation::CUBICSPLINE)
+				else if (interpolation == Interpolation::CubicSpline)
 				{
 					track_out.values.resize(num_inputs * track_out.num_targets * 3);
 					memcpy(track_out.values.data(), p_output, sizeof(float) * num_inputs * track_out.num_targets * 3);
@@ -687,12 +701,12 @@ inline void load_animations(tinygltf::Model& model, std::vector<AnimationClip>& 
 				track_out.times.resize(num_inputs);
 				memcpy(track_out.times.data(), p_input, sizeof(float) * num_inputs);
 
-				if (interpolation == Interpolation::STEP || interpolation == Interpolation::LINEAR)
+				if (interpolation == Interpolation::Step || interpolation == Interpolation::Linear)
 				{
 					track_out.values.resize(num_inputs);
 					memcpy(track_out.values.data(), p_output, sizeof(glm::vec3) * num_inputs);
 				}
-				else if (interpolation == Interpolation::CUBICSPLINE)
+				else if (interpolation == Interpolation::CubicSpline)
 				{
 					track_out.values.resize(num_inputs *  3);
 					memcpy(track_out.values.data(), p_output, sizeof(glm::vec3) * num_inputs * 3);
@@ -710,7 +724,7 @@ inline void load_animations(tinygltf::Model& model, std::vector<AnimationClip>& 
 				track_out.times.resize(num_inputs);
 				memcpy(track_out.times.data(), p_input, sizeof(float) * num_inputs);
 
-				if (interpolation == Interpolation::STEP || interpolation == Interpolation::LINEAR)
+				if (interpolation == Interpolation::Step || interpolation == Interpolation::Linear)
 				{
 					track_out.values.resize(num_inputs);
 					float* f_output = (float*)p_output;
@@ -723,7 +737,7 @@ inline void load_animations(tinygltf::Model& model, std::vector<AnimationClip>& 
 						rot.w = f_output[4 * i + 3];
 					}					
 				}
-				else if (interpolation == Interpolation::CUBICSPLINE)
+				else if (interpolation == Interpolation::CubicSpline)
 				{
 					track_out.values.resize(num_inputs*3);
 					float* f_output = (float*)p_output;
@@ -750,12 +764,12 @@ inline void load_animations(tinygltf::Model& model, std::vector<AnimationClip>& 
 				track_out.times.resize(num_inputs);
 				memcpy(track_out.times.data(), p_input, sizeof(float) * num_inputs);
 
-				if (interpolation == Interpolation::STEP || interpolation == Interpolation::LINEAR)
+				if (interpolation == Interpolation::Step || interpolation == Interpolation::Linear)
 				{
 					track_out.values.resize(num_inputs);
 					memcpy(track_out.values.data(), p_output, sizeof(glm::vec3) * num_inputs);
 				}
-				else if (interpolation == Interpolation::CUBICSPLINE)
+				else if (interpolation == Interpolation::CubicSpline)
 				{
 					track_out.values.resize(num_inputs * 3);
 					memcpy(track_out.values.data(), p_output, sizeof(glm::vec3) * num_inputs * 3);

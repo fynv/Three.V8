@@ -37,10 +37,6 @@ public:
 private:
 	int m_width = -1;
 	int m_height = -1;
-	unsigned m_tex_msaa = -1;
-	unsigned m_rbo_msaa = -1;
-	unsigned m_fbo_msaa = -1;
-	bool _update_framebuffers(int width, int height);
 
 	V8VM* m_v8vm;
 	std::unique_ptr<GameContext> m_context;
