@@ -12,6 +12,7 @@ public:
 	struct Options
 	{
 		AlphaMode alpha_mode = AlphaMode::Opaque;
+		bool is_highlight_pass = false;
 		bool has_color = false;
 		bool has_color_texture = false;		
 		bool has_metalness_map = false;

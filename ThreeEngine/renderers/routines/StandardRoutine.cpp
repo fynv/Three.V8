@@ -246,7 +246,10 @@ void main()
 	vec3 diffuse = irradiance * BRDF_Lambert( material.diffuseColor );
 
 	vec3 ambient = 0.3 * BRDF_Lambert( base_color.xyz );
-	vec3 col = specular + diffuse + ambient;
+	vec3 col = specular;
+#if !IS_HIGHTLIGHT
+	col+= diffuse + ambient;
+#endif
 	col = clamp(col, 0.0, 1.0);	
 
 #if ALPHA_BLEND
@@ -294,11 +297,21 @@ void StandardRoutine::s_generate_shaders(const Options& options, std::string& s_
 
 	if (options.alpha_mode == AlphaMode::Blend)
 	{
-		defines += "#define ALPHA_BLEND 1\n";
+		if (options.is_highlight_pass)
+		{
+			defines += "#define ALPHA_BLEND 0\n";
+			defines += "#define IS_HIGHTLIGHT 1\n";
+		}
+		else
+		{
+			defines += "#define ALPHA_BLEND 1\n";
+			defines += "#define IS_HIGHTLIGHT 0\n";
+		}
 	}
 	else
 	{
 		defines += "#define ALPHA_BLEND 0\n";
+		defines += "#define IS_HIGHTLIGHT 0\n";
 	}
 
 	if (options.has_color)

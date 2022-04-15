@@ -38,12 +38,13 @@ StandardRoutine* GLRenderer::get_routine(const StandardRoutine::Options& options
 	return routine_map[hash].get();
 }
 
-void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params)
+void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, Pass pass)
 {	
 	const MeshStandardMaterial* material = params.material_list[params.primitive->material_idx];
 
 	StandardRoutine::Options options;
 	options.alpha_mode = material->alphaMode;
+	options.is_highlight_pass = pass == Pass::Highlight;
 	options.has_color = params.primitive->color_buf != nullptr;
 	options.has_color_texture = material->tex_idx_map >= 0;
 	options.has_metalness_map = material->tex_idx_metalnessMap >= 0;
@@ -143,10 +144,19 @@ void GLRenderer::update_gltf_model(GLTFModel* model)
 	model->updateMeshConstants();
 }
 
-void GLRenderer::render_simple_model(Camera* p_camera, SimpleModel* model)
+void GLRenderer::render_simple_model(Camera* p_camera, SimpleModel* model, Pass pass)
 {	
 	const GLTexture2D* tex = &model->texture;
 	const MeshStandardMaterial* material = &model->material;
+
+	if (pass == Pass::Opaque)
+	{
+		if (material->alphaMode == AlphaMode::Blend) return;
+	}
+	else if (pass == Pass::Opaque || pass == Pass::Highlight)
+	{
+		if (material->alphaMode != AlphaMode::Blend) return;
+	}
 
 	StandardRoutine::RenderParams params = {
 		&tex,
@@ -155,10 +165,10 @@ void GLRenderer::render_simple_model(Camera* p_camera, SimpleModel* model)
 		&model->m_constant,
 		&model->geometry
 	};
-	render_primitive(params);
+	render_primitive(params, pass);
 }
 
-void GLRenderer::render_gltf_model(Camera* p_camera, GLTFModel* model, bool opaque_pass)
+void GLRenderer::render_gltf_model(Camera* p_camera, GLTFModel* model, Pass pass)
 {
 	std::vector<const GLTexture2D*> tex_lst(model->m_textures.size());
 	for (size_t i = 0; i < tex_lst.size(); i++)
@@ -175,11 +185,11 @@ void GLRenderer::render_gltf_model(Camera* p_camera, GLTFModel* model, bool opaq
 		{
 			Primitive& primitive = mesh.primitives[j];
 			const MeshStandardMaterial* material = material_lst[primitive.material_idx];
-			if (opaque_pass)
+			if (pass == Pass::Opaque)
 			{
 				if (material->alphaMode == AlphaMode::Blend) continue;
 			}
-			else
+			else if (pass == Pass::Opaque || pass == Pass::Highlight)
 			{
 				if (material->alphaMode != AlphaMode::Blend) continue;
 			}
@@ -190,7 +200,7 @@ void GLRenderer::render_gltf_model(Camera* p_camera, GLTFModel* model, bool opaq
 				mesh.model_constant.get(),
 				&primitive
 			};
-			render_primitive(params);
+			render_primitive(params, pass);
 		}
 	}
 }
@@ -310,9 +320,7 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 				SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
 				if (model)
 				{
-					const MeshStandardMaterial* material = &model->material;
-					if (material->alphaMode == AlphaMode::Blend) return;
-					render_simple_model(p_camera, model);
+					render_simple_model(p_camera, model, Pass::Opaque);
 					return;
 				}
 			}
@@ -320,7 +328,7 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 				GLTFModel* model = dynamic_cast<GLTFModel*>(obj);
 				if (model)
 				{
-					render_gltf_model(p_camera, model, true);
+					render_gltf_model(p_camera, model, Pass::Opaque);
 					return;
 				}
 			}
@@ -330,6 +338,30 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 
 	if (sc.has_alpha)
 	{
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_ONE, GL_ONE);
+		glDepthMask(GL_FALSE);
+
+		scene.traverse([this, p_camera](Object3D* obj) {
+			{
+				SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
+				if (model)
+				{
+					render_simple_model(p_camera, model, Pass::Highlight);
+					return;
+				}
+			}
+			{
+				GLTFModel* model = dynamic_cast<GLTFModel*>(obj);
+				if (model)
+				{
+					render_gltf_model(p_camera, model, Pass::Highlight);
+					return;
+				}
+			}
+		});
+
+
 		if (OITResolver == nullptr)
 		{
 			OITResolver = std::unique_ptr<WeightedOIT>(new WeightedOIT);
@@ -340,9 +372,7 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 				SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
 				if (model)
 				{
-					const MeshStandardMaterial* material = &model->material;
-					if (material->alphaMode != AlphaMode::Blend) return;
-					render_simple_model(p_camera, model);
+					render_simple_model(p_camera, model, Pass::Alpha);
 					return;
 				}
 			}
@@ -350,7 +380,7 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 				GLTFModel* model = dynamic_cast<GLTFModel*>(obj);
 				if (model)
 				{
-					render_gltf_model(p_camera, model, false);
+					render_gltf_model(p_camera, model, Pass::Alpha);
 					return;
 				}
 			}
