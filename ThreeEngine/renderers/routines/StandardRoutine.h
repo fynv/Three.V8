@@ -11,6 +11,7 @@ class StandardRoutine
 public:	
 	struct Options
 	{
+		AlphaMode alpha_mode = AlphaMode::Opaque;
 		bool has_color = false;
 		bool has_color_texture = false;		
 		bool has_metalness_map = false;

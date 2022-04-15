@@ -148,6 +148,7 @@
     <ClCompile Include="renderers\routines\MorphUpdate.cpp" />
     <ClCompile Include="renderers\routines\SkinUpdate.cpp" />
     <ClCompile Include="renderers\routines\StandardRoutine.cpp" />
+    <ClCompile Include="renderers\routines\WeightedOIT.cpp" />
     <ClCompile Include="scenes\Scene.cpp" />
     <ClCompile Include="utils\Image.cpp" />
   </ItemGroup>
@@ -172,6 +173,7 @@
     <ClInclude Include="renderers\routines\MorphUpdate.h" />
     <ClInclude Include="renderers\routines\SkinUpdate.h" />
     <ClInclude Include="renderers\routines\StandardRoutine.h" />
+    <ClInclude Include="renderers\routines\WeightedOIT.h" />
     <ClInclude Include="scenes\Scene.h" />
     <ClInclude Include="utils\Image.h" />
     <ClInclude Include="utils\Utils.h" />

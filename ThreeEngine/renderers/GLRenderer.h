@@ -5,6 +5,7 @@
 #include "renderers/routines/StandardRoutine.h"
 #include "renderers/routines/MorphUpdate.h"
 #include "renderers/routines/SkinUpdate.h"
+#include "renderers/routines/WeightedOIT.h"
 
 class Scene;
 class Camera;
@@ -33,9 +34,11 @@ private:
 	void update_simple_model(SimpleModel* model);
 	void update_gltf_model(GLTFModel* model);
 	void render_simple_model(Camera* p_camera, SimpleModel* model);
-	void render_gltf_model(Camera* p_camera, GLTFModel* model);
+	void render_gltf_model(Camera* p_camera, GLTFModel* model, bool opaque_pass);
 
 	std::unique_ptr<MorphUpdate> morphers[2];
 	std::unique_ptr<SkinUpdate> skinners[2];
+
+	std::unique_ptr<WeightedOIT> OITResolver;
 };
 

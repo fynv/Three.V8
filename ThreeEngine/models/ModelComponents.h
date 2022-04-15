@@ -22,7 +22,6 @@ class Primitive
 public:
 	int num_pos = 0;	
 	std::vector<GeometrySet> geometry;
-	int type_color; // 3: rgb; 4: rgba
 	Attribute color_buf;
 	Attribute uv_buf;
 	Attribute joints_buf;

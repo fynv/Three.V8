@@ -25,8 +25,8 @@ layout (location = 1) out vec3 vNorm;
 #DEFINES#
 
 #if HAS_COLOR
-layout (location = 2) in vec3 aColor;
-layout (location = 2) out vec3 vColor;
+layout (location = 2) in vec4 aColor;
+layout (location = 2) out vec4 vColor;
 #endif
 
 #if HAS_UV
@@ -78,12 +78,13 @@ layout (std140, binding = 2) uniform Material
 	vec2 uNormalScale;
 	float uMetallicFactor;
 	float uRoughnessFactor;
+	float uAlphaCutoff;
 };
 
 #DEFINES#
 
 #if HAS_COLOR
-layout (location = 2) in vec3 vColor;
+layout (location = 2) in vec4 vColor;
 #endif
 
 #if HAS_UV
@@ -177,25 +178,31 @@ vec3 BRDF_GGX( const in vec3 lightDir, const in vec3 viewDir, const in vec3 norm
 
 const IncidentLight directLight = IncidentLight(vec3(4.0, 4.0, 4.0), normalize(vec3(1.0f, 2.0f, 1.0f)), true);
 
-out vec4 outColor;
+layout (location = 0) out vec4 out0;
+
+#if ALPHA_BLEND
+layout (location = 1) out float out1;
+#endif
 
 void main()
 {
-	vec3 base_color = uColor.xyz;
-	float metallicFactor = uMetallicFactor;
-	float roughnessFactor = uRoughnessFactor;
-
-	vec3 viewDir = normalize(vViewDir);
-	vec3 norm = normalize(vNorm);
-	// if (dot(viewDir,norm)<0.0) norm = -norm;
-
+	vec4 base_color = uColor;
 #if HAS_COLOR
 	base_color *= vColor;
 #endif
 
 #if HAS_COLOR_TEX
-	base_color *= texture(uTexColor, vUV).xyz;
+	base_color *= texture(uTexColor, vUV);
 #endif
+
+#if ALPHA_MASK
+	base_color.w = base_color.w > uAlphaCutoff ? 1.0 : 0.0;
+#endif
+
+	if (base_color.w == 0.0) discard;
+
+	float metallicFactor = uMetallicFactor;
+	float roughnessFactor = uRoughnessFactor;
 
 #if HAS_METALNESS_MAP
 	metallicFactor *= texture(uTexMetalness, vUV).z;
@@ -204,6 +211,10 @@ void main()
 #if HAS_ROUGHNESS_MAP
 	roughnessFactor *= texture(uTexRoughness, vUV).y;
 #endif
+
+	vec3 viewDir = normalize(vViewDir);
+	vec3 norm = normalize(vNorm);
+	// if (dot(viewDir,norm)<0.0) norm = -norm;
 
 #if HAS_NORMAL_MAP
 	{
@@ -216,7 +227,7 @@ void main()
 #endif
 
 	PhysicalMaterial material;
-	material.diffuseColor = base_color * ( 1.0 - metallicFactor );
+	material.diffuseColor = base_color.xyz * ( 1.0 - metallicFactor );
 
 	vec3 dxy = max(abs(dFdx(norm)), abs(dFdy(norm)));
 	float geometryRoughness = max(max(dxy.x, dxy.y), dxy.z);
@@ -225,7 +236,7 @@ void main()
 	material.roughness += geometryRoughness;
 	material.roughness = min( material.roughness, 1.0 );
 	
-	material.specularColor = mix( vec3( 0.04 ), base_color, metallicFactor );
+	material.specularColor = mix( vec3( 0.04 ), base_color.xyz, metallicFactor );
 	material.specularF90 = 1.0;
 		
 	float dotNL =  saturate(dot(norm, directLight.direction));
@@ -234,10 +245,20 @@ void main()
 	vec3 specular = irradiance * BRDF_GGX( directLight.direction, viewDir, norm, material.specularColor, material.specularF90, material.roughness );
 	vec3 diffuse = irradiance * BRDF_Lambert( material.diffuseColor );
 
-	vec3 ambient = 0.3 * BRDF_Lambert( base_color );
+	vec3 ambient = 0.3 * BRDF_Lambert( base_color.xyz );
 	vec3 col = specular + diffuse + ambient;
+	col = clamp(col, 0.0, 1.0);	
 
-	outColor = vec4(col, 1.0);
+#if ALPHA_BLEND
+	float alpha = base_color.w;
+	float a = min(1.0, alpha) * 8.0 + 0.01;
+	float b = -gl_FragCoord.z * 0.95 + 1.0;
+	float weight = clamp(a * a * a * 1e8 * b * b * b, 1e-2, 3e2);
+	out0 = vec4(col * alpha, alpha) * weight;
+	out1 = alpha;
+#else
+	out0 = vec4(col, 1.0);
+#endif
 }
 )";
 
@@ -261,6 +282,25 @@ void StandardRoutine::s_generate_shaders(const Options& options, std::string& s_
 	s_frag = g_frag;
 
 	std::string defines = "";
+
+	if (options.alpha_mode == AlphaMode::Mask)
+	{
+		defines += "#define ALPHA_MASK 1\n";
+	}
+	else
+	{
+		defines += "#define ALPHA_MASK 0\n";
+	}
+
+	if (options.alpha_mode == AlphaMode::Blend)
+	{
+		defines += "#define ALPHA_BLEND 1\n";
+	}
+	else
+	{
+		defines += "#define ALPHA_BLEND 0\n";
+	}
+
 	if (options.has_color)
 	{
 		defines += "#define HAS_COLOR 1\n";
@@ -355,7 +395,7 @@ void StandardRoutine::render(const RenderParams& params)
 	if (m_options.has_color)
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, params.primitive->color_buf->m_id);
-		glVertexAttribPointer(2, params.primitive->type_color, GL_FLOAT, GL_FALSE, 0, nullptr);
+		glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
 		glEnableVertexAttribArray(2);
 	}
 

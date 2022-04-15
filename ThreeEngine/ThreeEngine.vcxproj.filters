@@ -141,6 +141,9 @@
     <ClCompile Include="renderers\routines\SkinUpdate.cpp">
       <Filter>Source Files\renderers\routines</Filter>
     </ClCompile>
+    <ClCompile Include="renderers\routines\WeightedOIT.cpp">
+      <Filter>Source Files\renderers\routines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -210,6 +213,9 @@
       <Filter>Header Files\loaders</Filter>
     </ClInclude>
     <ClInclude Include="renderers\routines\SkinUpdate.h">
+      <Filter>Header Files\renderers\routines</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\routines\WeightedOIT.h">
       <Filter>Header Files\renderers\routines</Filter>
     </ClInclude>
   </ItemGroup>

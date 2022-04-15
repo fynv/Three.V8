@@ -358,8 +358,7 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 				tinygltf::Accessor& acc_color_in = model.accessors[id_color_in];
 				tinygltf::BufferView& view_color_in = model.bufferViews[acc_color_in.bufferView];
 
-				primitive_out.type_color = acc_color_in.type;
-				primitive_out.color_buf = Attribute(new GLBuffer(sizeof(float) * primitive_out.type_color * primitive_out.num_pos));
+				primitive_out.color_buf = Attribute(new GLBuffer(sizeof(glm::vec4) * primitive_out.num_pos));
 				primitive_out.color_buf->upload(model.buffers[view_color_in.buffer].data.data() + view_color_in.byteOffset + acc_color_in.byteOffset);
 			}
 
