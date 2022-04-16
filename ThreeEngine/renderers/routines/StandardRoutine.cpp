@@ -259,6 +259,8 @@ void main()
 	float weight = clamp(a * a * a * 1e8 * b * b * b, 1e-2, 3e2);
 	out0 = vec4(col * alpha, alpha) * weight;
 	out1 = alpha;
+#elif IS_HIGHTLIGHT
+	out0 = vec4(col, 0.0);
 #else
 	out0 = vec4(col, 1.0);
 #endif
