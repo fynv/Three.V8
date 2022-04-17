@@ -4,13 +4,10 @@
 #include <glm.hpp>
 
 #include "materials/MeshStandardMaterial.h"
-class GLTexture2D;
-class GLDynBuffer;
-class GLShader;
-class GLProgram;
-class Primitive;
-class ConstDirectionalLight;
+#include "renderers/GLUtils.h"
+#include "renderers/Lights.h"
 
+class Primitive;
 class StandardRoutine
 {
 public:	
@@ -26,13 +23,7 @@ public:
 		int num_directional_lights = 0;
 	};
 
-	StandardRoutine(const Options& options);	
-
-	struct Lights
-	{
-		int num_directional_lights;
-		const ConstDirectionalLight* directional_lights;
-	};
+	StandardRoutine(const Options& options);
 
 	struct RenderParams
 	{
@@ -53,6 +44,4 @@ private:
 	std::unique_ptr<GLShader> m_vert_shader;
 	std::unique_ptr<GLShader> m_frag_shader;
 	std::unique_ptr<GLProgram> m_prog;
-
-	std::unique_ptr<GLDynBuffer> m_constant_directional_lights;
 };

@@ -27,6 +27,8 @@ private:
 	unsigned m_fbo_msaa = -1;
 	void _update_framebuffers(int width, int height);
 
+	std::unordered_map<Scene*, std::unique_ptr<Lights>> lights_map;
+
 	std::unordered_map<uint64_t, std::unique_ptr<StandardRoutine>> routine_map;
 	StandardRoutine* get_routine(const StandardRoutine::Options& options);
 
@@ -40,8 +42,8 @@ private:
 	void render_primitive(const StandardRoutine::RenderParams& params, Pass pass);
 	void update_simple_model(SimpleModel* model);
 	void update_gltf_model(GLTFModel* model);
-	void render_simple_model(Camera* p_camera, const StandardRoutine::Lights& lights, SimpleModel* model, Pass pass);
-	void render_gltf_model(Camera* p_camera, const StandardRoutine::Lights& lights, GLTFModel* model, Pass pass);
+	void render_simple_model(Camera* p_camera, const Lights& lights, SimpleModel* model, Pass pass);
+	void render_gltf_model(Camera* p_camera, const Lights& lights, GLTFModel* model, Pass pass);
 
 	std::unique_ptr<MorphUpdate> morphers[2];
 	std::unique_ptr<SkinUpdate> skinners[2];

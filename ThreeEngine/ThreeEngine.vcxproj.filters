@@ -236,5 +236,8 @@
     <ClInclude Include="lights\DirectionalLight.h">
       <Filter>Header Files\lights</Filter>
     </ClInclude>
+    <ClInclude Include="renderers\Lights.h">
+      <Filter>Header Files\renderers\routines</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

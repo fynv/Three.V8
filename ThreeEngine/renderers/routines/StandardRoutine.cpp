@@ -1,5 +1,4 @@
 #include <GL/glew.h>
-#include "renderers/GLUtils.h"
 #include "models/ModelComponents.h"
 #include "lights/DirectionalLight.h"
 #include "StandardRoutine.h"
@@ -415,12 +414,6 @@ StandardRoutine::StandardRoutine(const Options& options) : m_options(options)
 	m_vert_shader = std::unique_ptr<GLShader>(new GLShader(GL_VERTEX_SHADER, s_vertex.c_str()));
 	m_frag_shader = std::unique_ptr<GLShader>(new GLShader(GL_FRAGMENT_SHADER, s_frag.c_str()));
 	m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(*m_vert_shader, *m_frag_shader));
-
-	if (options.num_directional_lights > 0)
-	{
-		m_constant_directional_lights = std::unique_ptr<GLDynBuffer>(
-			new GLDynBuffer(sizeof(ConstDirectionalLight)* options.num_directional_lights, GL_UNIFORM_BUFFER));
-	}
 }
 
 void StandardRoutine::render(const RenderParams& params)
@@ -437,9 +430,8 @@ void StandardRoutine::render(const RenderParams& params)
 	glBindBufferBase(GL_UNIFORM_BUFFER, 2, material.constant_material.m_id);
 
 	if (m_options.num_directional_lights > 0)
-	{
-		m_constant_directional_lights->upload(params.lights->directional_lights);
-		glBindBufferBase(GL_UNIFORM_BUFFER, 3, m_constant_directional_lights->m_id);
+	{		
+		glBindBufferBase(GL_UNIFORM_BUFFER, 3, params.lights->constant_directional_lights->m_id);
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, geo.pos_buf->m_id);

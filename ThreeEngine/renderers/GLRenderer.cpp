@@ -146,7 +146,7 @@ void GLRenderer::update_gltf_model(GLTFModel* model)
 	model->updateMeshConstants();
 }
 
-void GLRenderer::render_simple_model(Camera* p_camera, const StandardRoutine::Lights& lights, SimpleModel* model, Pass pass)
+void GLRenderer::render_simple_model(Camera* p_camera, const Lights& lights, SimpleModel* model, Pass pass)
 {	
 	const GLTexture2D* tex = &model->texture;
 	const MeshStandardMaterial* material = &model->material;
@@ -170,7 +170,7 @@ void GLRenderer::render_simple_model(Camera* p_camera, const StandardRoutine::Li
 	render_primitive(params, pass);
 }
 
-void GLRenderer::render_gltf_model(Camera* p_camera, const StandardRoutine::Lights& lights, GLTFModel* model, Pass pass)
+void GLRenderer::render_gltf_model(Camera* p_camera, const Lights& lights, GLTFModel* model, Pass pass)
 {
 	std::vector<const GLTexture2D*> tex_lst(model->m_textures.size());
 	for (size_t i = 0; i < tex_lst.size(); i++)
@@ -267,10 +267,7 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 	SceneComp sc;
 	auto* p_sc = &sc;
 
-	std::vector<ConstDirectionalLight> directional_lights;
-	auto* p_directional_lights = &directional_lights;
-
-	scene.traverse([this, p_sc, p_directional_lights](Object3D* obj) {
+	scene.traverse([this, p_sc](Object3D* obj) {
 		obj->updateWorldMatrix(false, false);
 		{
 			SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
@@ -312,7 +309,12 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 				return;
 			}
 		}
+	});
 
+	std::vector<ConstDirectionalLight> directional_lights;
+	auto* p_directional_lights = &directional_lights;
+
+	scene.traverse([p_directional_lights](Object3D* obj) {
 		{
 			DirectionalLight* light = dynamic_cast<DirectionalLight*>(obj);
 			if (light)
@@ -322,17 +324,43 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 				glm::vec3 pos_target = { 0.0f, 0.0f, 0.0f };
 				if (light->target != nullptr)
 				{
-					pos_target = light->target->position;
+					pos_target = light->target->matrixWorld[3];
 				}
-				const_light.direction = glm::vec4(glm::normalize(light->position - pos_target), 0.0f);
+				glm::vec3 position = light->matrixWorld[3];
+				const_light.direction = glm::vec4(glm::normalize(position - pos_target), 0.0f);
 				p_directional_lights->push_back(const_light);
 			}
 		}
+
 	});
 
-	StandardRoutine::Lights lights;
-	lights.num_directional_lights = (int)directional_lights.size();
-	lights.directional_lights = directional_lights.data();
+	if (lights_map.find(&scene) == lights_map.end())
+	{
+		lights_map[&scene] = std::unique_ptr<Lights>(new Lights);
+	}
+
+	Lights& lights = *lights_map[&scene];
+	{
+		if (lights.num_directional_lights != (int)directional_lights.size())
+		{
+			lights.num_directional_lights = (int)directional_lights.size();
+			lights.constant_directional_lights = nullptr;
+			if (lights.num_directional_lights > 0)
+			{
+				lights.constant_directional_lights = std::unique_ptr<GLDynBuffer>(new GLDynBuffer(directional_lights.size() * sizeof(ConstDirectionalLight), GL_UNIFORM_BUFFER));
+			}
+			
+		}
+		if (lights.num_directional_lights > 0)
+		{
+			uint64_t hash = crc64(0, (unsigned char*)directional_lights.data(), directional_lights.size() * sizeof(ConstDirectionalLight));
+			if (hash != lights.hash_directional_lights)
+			{
+				lights.hash_directional_lights = hash;
+				lights.constant_directional_lights->upload(directional_lights.data());
+			}
+		}
+	}	
 
 	auto* p_camera = &camera;
 	auto* p_lights = &lights;
