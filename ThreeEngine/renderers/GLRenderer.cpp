@@ -9,6 +9,7 @@
 #include "models/SimpleModel.h"
 #include "models/GLTFModel.h"
 #include "materials/MeshStandardMaterial.h"
+#include "lights/DirectionalLight.h"
 
 //#include <gtx/string_cast.hpp>
 
@@ -50,6 +51,7 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 	options.has_metalness_map = material->tex_idx_metalnessMap >= 0;
 	options.has_roughness_map = material->tex_idx_roughnessMap >= 0;
 	options.has_normal_map = material->tex_idx_normalMap >= 0;
+	options.num_directional_lights = params.lights->num_directional_lights;
 	StandardRoutine* routine = get_routine(options);
 	routine->render(params);		
 }
@@ -144,7 +146,7 @@ void GLRenderer::update_gltf_model(GLTFModel* model)
 	model->updateMeshConstants();
 }
 
-void GLRenderer::render_simple_model(Camera* p_camera, SimpleModel* model, Pass pass)
+void GLRenderer::render_simple_model(Camera* p_camera, const StandardRoutine::Lights& lights, SimpleModel* model, Pass pass)
 {	
 	const GLTexture2D* tex = &model->texture;
 	const MeshStandardMaterial* material = &model->material;
@@ -158,17 +160,17 @@ void GLRenderer::render_simple_model(Camera* p_camera, SimpleModel* model, Pass 
 		if (material->alphaMode != AlphaMode::Blend) return;
 	}
 
-	StandardRoutine::RenderParams params = {
-		&tex,
-		&material,
-		&p_camera->m_constant,
-		&model->m_constant,
-		&model->geometry
-	};
+	StandardRoutine::RenderParams params;
+	params.tex_list = &tex;
+	params.material_list = &material;
+	params.constant_camera = &p_camera->m_constant;
+	params.constant_model = &model->m_constant;
+	params.primitive = &model->geometry;
+	params.lights = &lights;
 	render_primitive(params, pass);
 }
 
-void GLRenderer::render_gltf_model(Camera* p_camera, GLTFModel* model, Pass pass)
+void GLRenderer::render_gltf_model(Camera* p_camera, const StandardRoutine::Lights& lights, GLTFModel* model, Pass pass)
 {
 	std::vector<const GLTexture2D*> tex_lst(model->m_textures.size());
 	for (size_t i = 0; i < tex_lst.size(); i++)
@@ -193,13 +195,13 @@ void GLRenderer::render_gltf_model(Camera* p_camera, GLTFModel* model, Pass pass
 			{
 				if (material->alphaMode != AlphaMode::Blend) continue;
 			}
-			StandardRoutine::RenderParams params = {
-				tex_lst.data(),
-				material_lst.data(),
-				&p_camera->m_constant,
-				mesh.model_constant.get(),
-				&primitive
-			};
+			StandardRoutine::RenderParams params;
+			params.tex_list = tex_lst.data();
+			params.material_list = material_lst.data();
+			params.constant_camera = &p_camera->m_constant;
+			params.constant_model = mesh.model_constant.get();
+			params.primitive = &primitive;
+			params.lights = &lights;
 			render_primitive(params, pass);
 		}
 	}
@@ -263,9 +265,12 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 	};
 
 	SceneComp sc;
-	SceneComp* p_sc = &sc;
+	auto* p_sc = &sc;
 
-	scene.traverse([this, p_sc](Object3D* obj) {
+	std::vector<ConstDirectionalLight> directional_lights;
+	auto* p_directional_lights = &directional_lights;
+
+	scene.traverse([this, p_sc, p_directional_lights](Object3D* obj) {
 		obj->updateWorldMatrix(false, false);
 		{
 			SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
@@ -307,20 +312,41 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 				return;
 			}
 		}
+
+		{
+			DirectionalLight* light = dynamic_cast<DirectionalLight*>(obj);
+			if (light)
+			{
+				ConstDirectionalLight const_light;
+				const_light.color = glm::vec4(light->color * light->intensity, 1.0f);
+				glm::vec3 pos_target = { 0.0f, 0.0f, 0.0f };
+				if (light->target != nullptr)
+				{
+					pos_target = light->target->position;
+				}
+				const_light.direction = glm::vec4(glm::normalize(light->position - pos_target), 0.0f);
+				p_directional_lights->push_back(const_light);
+			}
+		}
 	});
 
-	Camera* p_camera = &camera;
+	StandardRoutine::Lights lights;
+	lights.num_directional_lights = (int)directional_lights.size();
+	lights.directional_lights = directional_lights.data();
+
+	auto* p_camera = &camera;
+	auto* p_lights = &lights;
 
 	if (sc.has_opaque)
 	{
 		glDisable(GL_BLEND);
 		glDepthMask(GL_TRUE);
-		scene.traverse([this, p_camera](Object3D* obj) {
+		scene.traverse([this, p_camera, p_lights](Object3D* obj) {
 			{
 				SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
 				if (model)
 				{
-					render_simple_model(p_camera, model, Pass::Opaque);
+					render_simple_model(p_camera, *p_lights, model, Pass::Opaque);
 					return;
 				}
 			}
@@ -328,7 +354,7 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 				GLTFModel* model = dynamic_cast<GLTFModel*>(obj);
 				if (model)
 				{
-					render_gltf_model(p_camera, model, Pass::Opaque);
+					render_gltf_model(p_camera, *p_lights, model, Pass::Opaque);
 					return;
 				}
 			}
@@ -342,12 +368,12 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 		glBlendFunc(GL_ONE, GL_ONE);
 		glDepthMask(GL_FALSE);
 
-		scene.traverse([this, p_camera](Object3D* obj) {
+		scene.traverse([this, p_camera, p_lights](Object3D* obj) {
 			{
 				SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
 				if (model)
 				{
-					render_simple_model(p_camera, model, Pass::Highlight);
+					render_simple_model(p_camera, *p_lights, model, Pass::Highlight);
 					return;
 				}
 			}
@@ -355,7 +381,7 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 				GLTFModel* model = dynamic_cast<GLTFModel*>(obj);
 				if (model)
 				{
-					render_gltf_model(p_camera, model, Pass::Highlight);
+					render_gltf_model(p_camera, *p_lights, model, Pass::Highlight);
 					return;
 				}
 			}
@@ -367,12 +393,12 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 			OITResolver = std::unique_ptr<WeightedOIT>(new WeightedOIT);
 		}
 		OITResolver->PreDraw(width, height, m_rbo_msaa);
-		scene.traverse([this, p_camera](Object3D* obj) {
+		scene.traverse([this, p_camera, p_lights](Object3D* obj) {
 			{
 				SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
 				if (model)
 				{
-					render_simple_model(p_camera, model, Pass::Alpha);
+					render_simple_model(p_camera, *p_lights, model, Pass::Alpha);
 					return;
 				}
 			}
@@ -380,7 +406,7 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 				GLTFModel* model = dynamic_cast<GLTFModel*>(obj);
 				if (model)
 				{
-					render_gltf_model(p_camera, model, Pass::Alpha);
+					render_gltf_model(p_camera, *p_lights, model, Pass::Alpha);
 					return;
 				}
 			}

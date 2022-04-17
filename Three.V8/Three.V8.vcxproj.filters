@@ -37,6 +37,9 @@
     <Filter Include="Header Files\loaders">
       <UniqueIdentifier>{1542d9cc-7fea-47e2-baa7-80c096bee73e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\lights">
+      <UniqueIdentifier>{4b909431-bbe2-4b48-abf0-551cd781942c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -89,6 +92,12 @@
     </ClInclude>
     <ClInclude Include="loaders\FileLoader.hpp">
       <Filter>Header Files\loaders</Filter>
+    </ClInclude>
+    <ClInclude Include="lights\DirectionalLight.hpp">
+      <Filter>Header Files\lights</Filter>
+    </ClInclude>
+    <ClInclude Include="lights\Light.hpp">
+      <Filter>Header Files\lights</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

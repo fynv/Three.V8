@@ -19,13 +19,20 @@ import { view } from "./view.js";
 };*/
 
 
-let renderer, scene, camera, bg, box, sphere, clock, controls;
+let renderer, scene, camera, directional_light, bg, box, sphere, clock, controls;
 
 function init(width, height) {
     renderer = new GLRenderer();
+    scene = new Scene();
+    
     camera = new PerspectiveCamera(45.0, width / height, 0.1, 100.0);
     camera.setPosition(0.0, 0.0, 7.0);
-    scene = new Scene();
+    
+    directional_light = new DirectionalLight();
+    directional_light.intensity = 4.0;
+    directional_light.setPosition(1.0, 2.0, 1.0);
+    scene.add(directional_light);
+    
     bg = new ColorBackground();
     scene.background = bg;
     bg.setColor(0.0, 0.52, 1.0);
@@ -71,6 +78,7 @@ function dispose() {
     sphere.dispose();
     box.dispose();
     bg.dispose();
+    directional_light.dispose();
     camera.dispose();
     scene.dispose();
     renderer.dispose();

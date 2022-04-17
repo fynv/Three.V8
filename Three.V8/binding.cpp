@@ -50,6 +50,8 @@ void V8VM::RunVM(void (*callback)(void*), void* data)
 #include "loaders/ImageLoader.hpp"
 #include "loaders/GLTFLoader.hpp"
 
+#include "lights/DirectionalLight.hpp"
+
 GlobalDefinitions GameContext::s_globals =
 {
 	{
@@ -67,6 +69,7 @@ GlobalDefinitions GameContext::s_globals =
 		{ "SimpleModel", WrapperSimpleModel::New,  WrapperSimpleModel::create_template },
 		{ "GLTFModel", WrapperGLTFModel::New,  WrapperGLTFModel::create_template },
 		{ "Image", WrapperImage::New,  WrapperImage::create_template },
+		{ "DirectionalLight", WrapperDirectionalLight::New, WrapperDirectionalLight::create_template }
 	},
 	{
 		{ "fileLoader", WrapperFileLoader::create_template },

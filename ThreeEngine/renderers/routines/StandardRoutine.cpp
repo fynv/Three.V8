@@ -1,4 +1,7 @@
 #include <GL/glew.h>
+#include "renderers/GLUtils.h"
+#include "models/ModelComponents.h"
+#include "lights/DirectionalLight.h"
 #include "StandardRoutine.h"
 
 static std::string g_vertex =
@@ -176,7 +179,18 @@ vec3 BRDF_GGX( const in vec3 lightDir, const in vec3 viewDir, const in vec3 norm
 	return F*(V*D);
 }
 
-const IncidentLight directLight = IncidentLight(vec3(4.0, 4.0, 4.0), normalize(vec3(1.0f, 2.0f, 1.0f)), true);
+struct DirectionalLight
+{
+	vec4 color;
+	vec4 direction;
+};
+
+#if NUM_DIRECTIONAL_LIGHTS>0
+layout (std140, binding = 3) uniform DirectionalLights
+{
+	DirectionalLight uDirectionalLights[NUM_DIRECTIONAL_LIGHTS];
+};
+#endif
 
 layout (location = 0) out vec4 out0;
 
@@ -238,17 +252,28 @@ void main()
 	
 	material.specularColor = mix( vec3( 0.04 ), base_color.xyz, metallicFactor );
 	material.specularF90 = 1.0;
-		
-	float dotNL =  saturate(dot(norm, directLight.direction));
-	vec3 irradiance = dotNL * directLight.color;
 
-	vec3 specular = irradiance * BRDF_GGX( directLight.direction, viewDir, norm, material.specularColor, material.specularF90, material.roughness );
-	vec3 diffuse = irradiance * BRDF_Lambert( material.diffuseColor );
+	vec3 specular = vec3(0.0);
+	vec3 diffuse = vec3(0.0);
+
+#if NUM_DIRECTIONAL_LIGHTS>0
+	for (int i=0; i< NUM_DIRECTIONAL_LIGHTS; i++)
+	{	
+		DirectionalLight light_source = uDirectionalLights[i];
+		IncidentLight directLight = IncidentLight(light_source.color.xyz, light_source.direction.xyz, true);	
+
+		float dotNL =  saturate(dot(norm, directLight.direction));
+		vec3 irradiance = dotNL * directLight.color;
+
+		specular += irradiance * BRDF_GGX( directLight.direction, viewDir, norm, material.specularColor, material.specularF90, material.roughness );
+		diffuse += irradiance * BRDF_Lambert( material.diffuseColor );
+	}
+#endif
 
 	vec3 ambient = 0.3 * BRDF_Lambert( base_color.xyz );
-	vec3 col = specular;
+	vec3 col = specular + ambient;
 #if !IS_HIGHTLIGHT
-	col+= diffuse + ambient;
+	col += diffuse;
 #endif
 	col = clamp(col, 0.0, 1.0);	
 
@@ -372,6 +397,12 @@ void StandardRoutine::s_generate_shaders(const Options& options, std::string& s_
 		defines += "#define HAS_NORMAL_MAP 0\n";
 	}
 
+	{
+		char line[64];
+		sprintf(line, "#define NUM_DIRECTIONAL_LIGHTS %d\n", options.num_directional_lights);
+		defines += line;
+	}
+
 	replace(s_vertex, "#DEFINES#", defines.c_str());
 	replace(s_frag, "#DEFINES#", defines.c_str());
 }
@@ -384,6 +415,12 @@ StandardRoutine::StandardRoutine(const Options& options) : m_options(options)
 	m_vert_shader = std::unique_ptr<GLShader>(new GLShader(GL_VERTEX_SHADER, s_vertex.c_str()));
 	m_frag_shader = std::unique_ptr<GLShader>(new GLShader(GL_FRAGMENT_SHADER, s_frag.c_str()));
 	m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(*m_vert_shader, *m_frag_shader));
+
+	if (options.num_directional_lights > 0)
+	{
+		m_constant_directional_lights = std::unique_ptr<GLDynBuffer>(
+			new GLDynBuffer(sizeof(ConstDirectionalLight)* options.num_directional_lights, GL_UNIFORM_BUFFER));
+	}
 }
 
 void StandardRoutine::render(const RenderParams& params)
@@ -398,6 +435,12 @@ void StandardRoutine::render(const RenderParams& params)
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.constant_camera->m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.constant_model->m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 2, material.constant_material.m_id);
+
+	if (m_options.num_directional_lights > 0)
+	{
+		m_constant_directional_lights->upload(params.lights->directional_lights);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 3, m_constant_directional_lights->m_id);
+	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, geo.pos_buf->m_id);
 	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, nullptr);

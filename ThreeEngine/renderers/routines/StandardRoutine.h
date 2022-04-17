@@ -2,9 +2,12 @@
 
 #include <string>
 #include <glm.hpp>
-#include "renderers/GLUtils.h"
+
 #include "materials/MeshStandardMaterial.h"
-#include "models/ModelComponents.h"
+class GLTexture2D;
+class GLDynBuffer;
+class Primitive;
+class ConstDirectionalLight;
 
 class StandardRoutine
 {
@@ -18,9 +21,16 @@ public:
 		bool has_metalness_map = false;
 		bool has_roughness_map = false;
 		bool has_normal_map = false;
+		int num_directional_lights = 0;
 	};
 
-	StandardRoutine(const Options& options);
+	StandardRoutine(const Options& options);	
+
+	struct Lights
+	{
+		int num_directional_lights;
+		const ConstDirectionalLight* directional_lights;
+	};
 
 	struct RenderParams
 	{
@@ -29,6 +39,7 @@ public:
 		const GLDynBuffer* constant_camera;
 		const GLDynBuffer* constant_model;
 		const Primitive* primitive;
+		const Lights* lights;
 	};
 
 	void render(const RenderParams& params);
@@ -41,5 +52,5 @@ private:
 	std::unique_ptr<GLShader> m_frag_shader;
 	std::unique_ptr<GLProgram> m_prog;
 
-	
+	std::unique_ptr<GLDynBuffer> m_constant_directional_lights;
 };

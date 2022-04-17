@@ -133,6 +133,8 @@
     <ClCompile Include="cameras\Camera.cpp" />
     <ClCompile Include="cameras\PerspectiveCamera.cpp" />
     <ClCompile Include="core\Object3D.cpp" />
+    <ClCompile Include="lights\DirectionalLight.cpp" />
+    <ClCompile Include="lights\Light.cpp" />
     <ClCompile Include="loaders\FileLoader.cpp" />
     <ClCompile Include="loaders\GLTFLoader.cpp" />
     <ClCompile Include="loaders\ImageLoader.cpp" />
@@ -158,6 +160,8 @@
     <ClInclude Include="cameras\Camera.h" />
     <ClInclude Include="cameras\PerspectiveCamera.h" />
     <ClInclude Include="core\Object3D.h" />
+    <ClInclude Include="lights\DirectionalLight.h" />
+    <ClInclude Include="lights\Light.h" />
     <ClInclude Include="loaders\FileLoader.h" />
     <ClInclude Include="loaders\GLTFLoader.h" />
     <ClInclude Include="loaders\ImageLoader.h" />

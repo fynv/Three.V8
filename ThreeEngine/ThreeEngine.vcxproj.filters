@@ -73,6 +73,12 @@
     <Filter Include="Source Files\renderers\routines">
       <UniqueIdentifier>{0c555197-1a6a-4d3f-bd51-682eccfe6cc1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\lights">
+      <UniqueIdentifier>{ae1b4b31-9f4e-4c92-8a60-8733dfa70156}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\lights">
+      <UniqueIdentifier>{6133bcf9-296c-4558-9c7e-1384360f0b95}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="scenes\Scene.cpp">
@@ -143,6 +149,12 @@
     </ClCompile>
     <ClCompile Include="renderers\routines\WeightedOIT.cpp">
       <Filter>Source Files\renderers\routines</Filter>
+    </ClCompile>
+    <ClCompile Include="lights\Light.cpp">
+      <Filter>Source Files\lights</Filter>
+    </ClCompile>
+    <ClCompile Include="lights\DirectionalLight.cpp">
+      <Filter>Source Files\lights</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -217,6 +229,12 @@
     </ClInclude>
     <ClInclude Include="renderers\routines\WeightedOIT.h">
       <Filter>Header Files\renderers\routines</Filter>
+    </ClInclude>
+    <ClInclude Include="lights\Light.h">
+      <Filter>Header Files\lights</Filter>
+    </ClInclude>
+    <ClInclude Include="lights\DirectionalLight.h">
+      <Filter>Header Files\lights</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
