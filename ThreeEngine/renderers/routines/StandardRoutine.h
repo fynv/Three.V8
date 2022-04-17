@@ -6,6 +6,8 @@
 #include "materials/MeshStandardMaterial.h"
 class GLTexture2D;
 class GLDynBuffer;
+class GLShader;
+class GLProgram;
 class Primitive;
 class ConstDirectionalLight;
 
