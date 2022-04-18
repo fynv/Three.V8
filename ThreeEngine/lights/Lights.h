@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <cstdint>
 #include "renderers/GLUtils.h"
 

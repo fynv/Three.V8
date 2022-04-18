@@ -258,16 +258,9 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 	camera.updateMatrixWorld(false);
 	camera.updateConstant();	
 
-	struct SceneComp
-	{
-		bool has_opaque = false;
-		bool has_alpha = false;
-	};
+	auto* p_scene = &scene;
 
-	SceneComp sc;
-	auto* p_sc = &sc;
-
-	scene.traverse([this, p_sc](Object3D* obj) {
+	scene.traverse([this, p_scene](Object3D* obj) {
 		obj->updateWorldMatrix(false, false);
 		{
 			SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
@@ -278,11 +271,11 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 				const MeshStandardMaterial* material = &model->material;
 				if (material->alphaMode == AlphaMode::Blend)
 				{
-					p_sc->has_alpha = true;
+					p_scene->has_alpha = true;
 				}
 				else
 				{
-					p_sc->has_opaque = true;
+					p_scene->has_opaque = true;
 				}
 
 				return;
@@ -299,11 +292,11 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 					const MeshStandardMaterial* material = model->m_materials[i].get();
 					if (material->alphaMode == AlphaMode::Blend)
 					{
-						p_sc->has_alpha = true;
+						p_scene->has_alpha = true;
 					}
 					else
 					{
-						p_sc->has_opaque = true;
+						p_scene->has_opaque = true;
 					}
 				}
 				return;
@@ -332,14 +325,9 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 			}
 		}
 
-	});
+	});	
 
-	if (lights_map.find(&scene) == lights_map.end())
-	{
-		lights_map[&scene] = std::unique_ptr<Lights>(new Lights);
-	}
-
-	Lights& lights = *lights_map[&scene];
+	Lights& lights = scene.lights;
 	{
 		if (lights.num_directional_lights != (int)directional_lights.size())
 		{
@@ -365,7 +353,7 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 	auto* p_camera = &camera;
 	auto* p_lights = &lights;
 
-	if (sc.has_opaque)
+	if (scene.has_opaque)
 	{
 		glDisable(GL_BLEND);
 		glDepthMask(GL_TRUE);
@@ -390,7 +378,7 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 		});
 	}
 
-	if (sc.has_alpha)
+	if (scene.has_alpha)
 	{
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_ONE, GL_ONE);

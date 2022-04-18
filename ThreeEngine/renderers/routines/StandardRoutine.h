@@ -4,8 +4,8 @@
 #include <glm.hpp>
 
 #include "materials/MeshStandardMaterial.h"
+#include "lights/Lights.h"
 #include "renderers/GLUtils.h"
-#include "renderers/Lights.h"
 
 class Primitive;
 class StandardRoutine
