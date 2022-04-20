@@ -4349,7 +4349,7 @@ function init(width, height) {
     
     directional_light = new DirectionalLight();
     directional_light.intensity = 4.0;
-    directional_light.setPosition(1.0, 2.0, 1.0);
+    directional_light.setPosition(5.0, 10.0, 5.0);
     scene.add(directional_light);
     
     bg = new ColorBackground();

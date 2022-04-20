@@ -156,6 +156,15 @@
     <ClCompile Include="lights\DirectionalLight.cpp">
       <Filter>Source Files\lights</Filter>
     </ClCompile>
+    <ClCompile Include="lights\DirectionalLightShadow.cpp">
+      <Filter>Source Files\lights</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\routines\DirectionalShadowCast.cpp">
+      <Filter>Source Files\renderers\routines</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\routines\DrawTexture.cpp">
+      <Filter>Source Files\renderers\routines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -238,6 +247,15 @@
     </ClInclude>
     <ClInclude Include="lights\Lights.h">
       <Filter>Header Files\lights</Filter>
+    </ClInclude>
+    <ClInclude Include="lights\DirectionalLightShadow.h">
+      <Filter>Header Files\lights</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\routines\DirectionalShadowCast.h">
+      <Filter>Header Files\renderers\routines</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\routines\DrawTexture.h">
+      <Filter>Header Files\renderers\routines</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -182,7 +182,7 @@ inline void anim_to_janim(v8::Isolate* isolate, const AnimationClip& anim, v8::L
 	size_t num_morphs = anim.morphs.size();
 	if (num_morphs > 0)
 	{
-		v8::Local<v8::Array> jmorphs = v8::Array::New(isolate, num_morphs);
+		v8::Local<v8::Array> jmorphs = v8::Array::New(isolate, (int)num_morphs);
 		for (size_t j = 0; j < num_morphs; j++)
 		{
 			const MorphTrack& morph = anim.morphs[j];
@@ -204,7 +204,7 @@ inline void anim_to_janim(v8::Isolate* isolate, const AnimationClip& anim, v8::L
 			memcpy(p_values, morph.values.data(), sizeof(float) * morph.values.size());
 			jmorph->Set(context, v8::String::NewFromUtf8(isolate, "values").ToLocalChecked(), v8::Float32Array::New(jvalues, 0, morph.values.size()));
 
-			jmorphs->Set(context, j, jmorph);
+			jmorphs->Set(context, (unsigned)j, jmorph);
 		}
 		janim->Set(context, v8::String::NewFromUtf8(isolate, "morphs").ToLocalChecked(), jmorphs);
 	}
@@ -212,7 +212,7 @@ inline void anim_to_janim(v8::Isolate* isolate, const AnimationClip& anim, v8::L
 	size_t num_trans = anim.translations.size();
 	if (num_trans > 0)
 	{
-		v8::Local<v8::Array> jTransLst = v8::Array::New(isolate, num_trans);
+		v8::Local<v8::Array> jTransLst = v8::Array::New(isolate, (int)num_trans);
 		for (size_t j = 0; j < num_trans; j++)
 		{
 			const TranslationTrack& trans = anim.translations[j];
@@ -233,7 +233,7 @@ inline void anim_to_janim(v8::Isolate* isolate, const AnimationClip& anim, v8::L
 			memcpy(p_values, trans.values.data(), sizeof(glm::vec3) * trans.values.size());
 			jTrans->Set(context, v8::String::NewFromUtf8(isolate, "values").ToLocalChecked(), v8::Float32Array::New(jvalues, 0, trans.values.size()*3));
 
-			jTransLst->Set(context, j, jTrans);
+			jTransLst->Set(context, (unsigned)j, jTrans);
 		}
 		janim->Set(context, v8::String::NewFromUtf8(isolate, "translations").ToLocalChecked(), jTransLst);
 	}
@@ -241,7 +241,7 @@ inline void anim_to_janim(v8::Isolate* isolate, const AnimationClip& anim, v8::L
 	size_t num_rots = anim.rotations.size();
 	if (num_rots > 0)
 	{
-		v8::Local<v8::Array> jRotLst = v8::Array::New(isolate, num_rots);
+		v8::Local<v8::Array> jRotLst = v8::Array::New(isolate, (int)num_rots);
 		for (size_t j = 0; j < num_rots; j++)
 		{
 			const RotationTrack& rot = anim.rotations[j];
@@ -262,7 +262,7 @@ inline void anim_to_janim(v8::Isolate* isolate, const AnimationClip& anim, v8::L
 			memcpy(p_values, rot.values.data(), sizeof(glm::quat) * rot.values.size());
 			jRot->Set(context, v8::String::NewFromUtf8(isolate, "values").ToLocalChecked(), v8::Float32Array::New(jvalues, 0, rot.values.size() * 4));
 
-			jRotLst->Set(context, j, jRot);
+			jRotLst->Set(context, (unsigned)j, jRot);
 		}
 		janim->Set(context, v8::String::NewFromUtf8(isolate, "rotations").ToLocalChecked(), jRotLst);
 	}
@@ -270,7 +270,7 @@ inline void anim_to_janim(v8::Isolate* isolate, const AnimationClip& anim, v8::L
 	size_t num_scales = anim.scales.size();
 	if (num_scales > 0)
 	{
-		v8::Local<v8::Array> jScaleLst = v8::Array::New(isolate, num_scales);
+		v8::Local<v8::Array> jScaleLst = v8::Array::New(isolate, (int)num_scales);
 		for (size_t j = 0; j < num_scales; j++)
 		{
 			const ScaleTrack& scale = anim.scales[j];
@@ -291,7 +291,7 @@ inline void anim_to_janim(v8::Isolate* isolate, const AnimationClip& anim, v8::L
 			memcpy(p_values, scale.values.data(), sizeof(glm::vec3) * scale.values.size());
 			jScale->Set(context, v8::String::NewFromUtf8(isolate, "values").ToLocalChecked(), v8::Float32Array::New(jvalues, 0, scale.values.size() * 3));
 
-			jScaleLst->Set(context, j, jScale);
+			jScaleLst->Set(context, (unsigned)j, jScale);
 		}
 		janim->Set(context, v8::String::NewFromUtf8(isolate, "scales").ToLocalChecked(), jScaleLst);
 	}
@@ -346,7 +346,7 @@ inline void janim_to_anim(v8::Isolate* isolate, v8::Local<v8::Object> janim, Ani
 		}
 	}
 
-	if (janim->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "translations").ToLocalChecked()).ToChecked());
+	if (janim->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "translations").ToLocalChecked()).ToChecked())
 	{
 		v8::Local<v8::Array> jTransLst = janim->Get(context, v8::String::NewFromUtf8(isolate, "translations").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
 		anim.translations.resize(jTransLst->Length());
@@ -375,7 +375,7 @@ inline void janim_to_anim(v8::Isolate* isolate, v8::Local<v8::Object> janim, Ani
 		}
 	}
 
-	if (janim->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "rotations").ToLocalChecked()).ToChecked());
+	if (janim->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "rotations").ToLocalChecked()).ToChecked())
 	{
 		v8::Local<v8::Array> jRotLst = janim->Get(context, v8::String::NewFromUtf8(isolate, "rotations").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
 		anim.rotations.resize(jRotLst->Length());
@@ -404,7 +404,7 @@ inline void janim_to_anim(v8::Isolate* isolate, v8::Local<v8::Object> janim, Ani
 		}
 	}
 
-	if (janim->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "scales").ToLocalChecked()).ToChecked());
+	if (janim->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "scales").ToLocalChecked()).ToChecked())
 	{
 		v8::Local<v8::Array> jScaleLst = janim->Get(context, v8::String::NewFromUtf8(isolate, "scales").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
 		anim.scales.resize(jScaleLst->Length());

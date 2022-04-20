@@ -134,6 +134,7 @@
     <ClCompile Include="cameras\PerspectiveCamera.cpp" />
     <ClCompile Include="core\Object3D.cpp" />
     <ClCompile Include="lights\DirectionalLight.cpp" />
+    <ClCompile Include="lights\DirectionalLightShadow.cpp" />
     <ClCompile Include="lights\Light.cpp" />
     <ClCompile Include="loaders\FileLoader.cpp" />
     <ClCompile Include="loaders\GLTFLoader.cpp" />
@@ -147,6 +148,8 @@
     <ClCompile Include="models\SimpleModel.cpp" />
     <ClCompile Include="renderers\GLRenderer.cpp" />
     <ClCompile Include="renderers\GLUtils.cpp" />
+    <ClCompile Include="renderers\routines\DirectionalShadowCast.cpp" />
+    <ClCompile Include="renderers\routines\DrawTexture.cpp" />
     <ClCompile Include="renderers\routines\MorphUpdate.cpp" />
     <ClCompile Include="renderers\routines\SkinUpdate.cpp" />
     <ClCompile Include="renderers\routines\StandardRoutine.cpp" />
@@ -161,6 +164,7 @@
     <ClInclude Include="cameras\PerspectiveCamera.h" />
     <ClInclude Include="core\Object3D.h" />
     <ClInclude Include="lights\DirectionalLight.h" />
+    <ClInclude Include="lights\DirectionalLightShadow.h" />
     <ClInclude Include="lights\Light.h" />
     <ClInclude Include="lights\Lights.h" />
     <ClInclude Include="loaders\FileLoader.h" />
@@ -175,6 +179,8 @@
     <ClInclude Include="models\SimpleModel.h" />
     <ClInclude Include="renderers\GLRenderer.h" />
     <ClInclude Include="renderers\GLUtils.h" />
+    <ClInclude Include="renderers\routines\DirectionalShadowCast.h" />
+    <ClInclude Include="renderers\routines\DrawTexture.h" />
     <ClInclude Include="renderers\routines\MorphUpdate.h" />
     <ClInclude Include="renderers\routines\SkinUpdate.h" />
     <ClInclude Include="renderers\routines\StandardRoutine.h" />

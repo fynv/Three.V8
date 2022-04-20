@@ -53,14 +53,14 @@ void WrapperGLTFLoader::LoadAnimationsFromFile(const v8::FunctionCallbackInfo<v8
 	std::vector<AnimationClip> animations;
 	GLTFLoader::LoadAnimationsFromFile(animations, *filename);
 
-	v8::Local<v8::Array> janims = v8::Array::New(isolate, animations.size());
+	v8::Local<v8::Array> janims = v8::Array::New(isolate, (int)animations.size());
 
 	for (size_t i = 0; i < animations.size(); i++)
 	{
 		AnimationClip& anim = animations[i];
 		v8::Local<v8::Object> janim = v8::Object::New(isolate);
 		anim_to_janim(isolate, anim, janim);
-		janims->Set(context, i, janim);
+		janims->Set(context, (unsigned)i, janim);
 	}
 
 	info.GetReturnValue().Set(janims);
@@ -96,14 +96,14 @@ void WrapperGLTFLoader::LoadAnimationsFromMemory(const v8::FunctionCallbackInfo<
 	v8::Local<v8::ArrayBuffer> data = info[0].As<v8::ArrayBuffer>();
 	GLTFLoader::LoadAnimationsFromMemory(animations, (unsigned char*)data->GetBackingStore()->Data(), data->ByteLength());
 
-	v8::Local<v8::Array> janims = v8::Array::New(isolate, animations.size());
+	v8::Local<v8::Array> janims = v8::Array::New(isolate, (int)animations.size());
 
 	for (size_t i = 0; i < animations.size(); i++)
 	{
 		AnimationClip& anim = animations[i];
 		v8::Local<v8::Object> janim = v8::Object::New(isolate);
 		anim_to_janim(isolate, anim, janim);
-		janims->Set(context, i, janim);
+		janims->Set(context, (unsigned)i, janim);
 	}
 
 	info.GetReturnValue().Set(janims);

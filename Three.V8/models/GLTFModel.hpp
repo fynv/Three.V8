@@ -63,7 +63,7 @@ void WrapperGLTFModel::GetMeshes(v8::Local<v8::String> property, const v8::Prope
 	v8::HandleScope handle_scope(isolate);
 	v8::Local<v8::Context> context = isolate->GetCurrentContext();
 	GLTFModel* self = get_self<GLTFModel>(info);
-	v8::Local<v8::Array> jmeshes = v8::Array::New(isolate, self->m_mesh_dict.size());
+	v8::Local<v8::Array> jmeshes = v8::Array::New(isolate, (int)self->m_mesh_dict.size());
 
 	int i = 0;
 	auto iter = self->m_mesh_dict.begin();
@@ -75,7 +75,7 @@ void WrapperGLTFModel::GetMeshes(v8::Local<v8::String> property, const v8::Prope
 		v8::Local<v8::Object> jmesh = v8::Object::New(isolate);
 		jmesh->Set(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked(), v8::String::NewFromUtf8(isolate, name.c_str()).ToLocalChecked());
 
-		v8::Local<v8::Array> jprimitives = v8::Array::New(isolate, mesh.primitives.size());
+		v8::Local<v8::Array> jprimitives = v8::Array::New(isolate, (int)mesh.primitives.size());
 		for (size_t j = 0; j < mesh.primitives.size(); j++)
 		{
 			Primitive& primitive = mesh.primitives[j];
@@ -84,15 +84,15 @@ void WrapperGLTFModel::GetMeshes(v8::Local<v8::String> property, const v8::Prope
 			jprimitive->Set(context, v8::String::NewFromUtf8(isolate, "vertices").ToLocalChecked(), v8::Number::New(isolate, (double)primitive.num_pos));
 			jprimitive->Set(context, v8::String::NewFromUtf8(isolate, "triangles").ToLocalChecked(), v8::Number::New(isolate, (double)primitive.num_face));
 			jprimitive->Set(context, v8::String::NewFromUtf8(isolate, "targets").ToLocalChecked(), v8::Number::New(isolate, (double)primitive.num_targets));
-			jprimitives->Set(context, j, jprimitive);
+			jprimitives->Set(context, (unsigned)j, jprimitive);
 		}
 		jmesh->Set(context, v8::String::NewFromUtf8(isolate, "primitives").ToLocalChecked(), jprimitives);
 
-		v8::Local<v8::Array> jweights = v8::Array::New(isolate, mesh.primitives.size());
+		v8::Local<v8::Array> jweights = v8::Array::New(isolate, (int)mesh.primitives.size());
 
 		for (size_t j = 0; j < mesh.weights.size(); j++)
 		{
-			jweights->Set(context, j, v8::Number::New(isolate, (double)mesh.weights[j]));
+			jweights->Set(context, (unsigned)j, v8::Number::New(isolate, (double)mesh.weights[j]));
 		}
 
 		jmesh->Set(context, v8::String::NewFromUtf8(isolate, "morphWeights").ToLocalChecked(), jweights);
@@ -125,7 +125,7 @@ void WrapperGLTFModel::GetAnimations(v8::Local<v8::String> property, const v8::P
 	v8::Local<v8::Context> context = isolate->GetCurrentContext();
 	GLTFModel* self = get_self<GLTFModel>(info);
 
-	v8::Local<v8::Array> janims = v8::Array::New(isolate, self->m_animations.size());
+	v8::Local<v8::Array> janims = v8::Array::New(isolate, (int)self->m_animations.size());
 
 	for (size_t i = 0; i < self->m_animations.size(); i++)
 	{
@@ -135,7 +135,7 @@ void WrapperGLTFModel::GetAnimations(v8::Local<v8::String> property, const v8::P
 		janim->Set(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked(), v8::String::NewFromUtf8(isolate, anim.name.c_str()).ToLocalChecked());
 		janim->Set(context, v8::String::NewFromUtf8(isolate, "duration").ToLocalChecked(), v8::Number::New(isolate, anim.duration));		
 
-		v8::Local<v8::Array> jmorphs = v8::Array::New(isolate, anim.morphs.size());
+		v8::Local<v8::Array> jmorphs = v8::Array::New(isolate, (int)anim.morphs.size());
 		for (size_t j = 0; j < anim.morphs.size(); j++)
 		{
 			const MorphTrack& morph = anim.morphs[j];
@@ -144,12 +144,12 @@ void WrapperGLTFModel::GetAnimations(v8::Local<v8::String> property, const v8::P
 			jmorph->Set(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked(), v8::String::NewFromUtf8(isolate, morph.name.c_str()).ToLocalChecked());
 			jmorph->Set(context, v8::String::NewFromUtf8(isolate, "targets").ToLocalChecked(), v8::Number::New(isolate, (double)morph.num_targets));
 			jmorph->Set(context, v8::String::NewFromUtf8(isolate, "frames").ToLocalChecked(), v8::Number::New(isolate, (double)morph.times.size()));
-			jmorphs->Set(context, j, jmorph);
+			jmorphs->Set(context, (unsigned)j, jmorph);
 		}
 
 		janim->Set(context, v8::String::NewFromUtf8(isolate, "morphs").ToLocalChecked(), jmorphs);
 
-		janims->Set(context, i, janim);
+		janims->Set(context, (unsigned)i, janim);
 	}
 
 	info.GetReturnValue().Set(janims);
@@ -180,14 +180,14 @@ void WrapperGLTFModel::GetAnimations(const v8::FunctionCallbackInfo<v8::Value>& 
 	v8::Local<v8::Context> context = isolate->GetCurrentContext();
 	GLTFModel* self = get_self<GLTFModel>(info);
 	
-	v8::Local<v8::Array> janims = v8::Array::New(isolate, self->m_animations.size());
+	v8::Local<v8::Array> janims = v8::Array::New(isolate, (int)self->m_animations.size());
 
 	for (size_t i = 0; i < self->m_animations.size(); i++)
 	{
 		AnimationClip& anim = self->m_animations[i];
 		v8::Local<v8::Object> janim = v8::Object::New(isolate);
 		anim_to_janim(isolate, anim, janim);
-		janims->Set(context, i, janim);
+		janims->Set(context, (unsigned)i, janim);
 	}
 	
 	info.GetReturnValue().Set(janims);

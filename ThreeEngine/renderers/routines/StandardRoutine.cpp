@@ -38,15 +38,18 @@ layout (location = 3) out vec2 vUV;
 
 #if HAS_NORMAL_MAP
 layout (location = 4) in vec3 aTangent;
-layout (location = 5) in vec3 aBitangent;
 layout (location = 4) out vec3 vTangent;
+layout (location = 5) in vec3 aBitangent;
 layout (location = 5) out vec3 vBitangent;
 #endif
+
+layout (location = 6) out vec3 vWorldPos;
 
 void main()
 {
 	vec4 wolrd_pos = uModelMat * vec4(aPos, 1.0);
 	gl_Position = uProjMat*(uViewMat*wolrd_pos);
+	vWorldPos = wolrd_pos.xyz;
 	vViewDir = uEyePos - wolrd_pos.xyz;
 	vec4 world_norm = uNormalMat * vec4(aNorm, 0.0);
 	vNorm = world_norm.xyz;
@@ -110,6 +113,8 @@ layout (location = 3) uniform sampler2D uTexNormal;
 layout (location = 4) in vec3 vTangent;
 layout (location = 5) in vec3 vBitangent;
 #endif
+
+layout (location = 6) in vec3 vWorldPos;
 
 struct IncidentLight {
 	vec3 color;
@@ -180,8 +185,10 @@ vec3 BRDF_GGX( const in vec3 lightDir, const in vec3 viewDir, const in vec3 norm
 
 struct DirectionalLight
 {
+	mat4 shadowVPSBMatrix;
 	vec4 color;
 	vec4 direction;
+	int has_shadow;
 };
 
 #if NUM_DIRECTIONAL_LIGHTS>0
@@ -189,6 +196,25 @@ layout (std140, binding = 3) uniform DirectionalLights
 {
 	DirectionalLight uDirectionalLights[NUM_DIRECTIONAL_LIGHTS];
 };
+#endif
+
+#if NUM_DIRECTIONAL_SHADOWS>0
+layout (location = 4) uniform sampler2D uShadowTex[NUM_DIRECTIONAL_SHADOWS];
+
+vec3 computeShadowCoords(in mat4 VPSB)
+{
+	vec4 shadowCoords = VPSB * vec4(vWorldPos, 1.0);
+	return shadowCoords.xyz;
+}
+
+float computeShadowCoef(in mat4 VPSB, int shadow_id)
+{
+	vec3 shadowCoords;
+	shadowCoords = computeShadowCoords(VPSB);
+	float d = texture(uShadowTex[shadow_id], shadowCoords.xy).x;
+	return clamp(1.0 - (shadowCoords.z - d)*1000.0, 0.0, 1.0);
+}
+
 #endif
 
 layout (location = 0) out vec4 out0;
@@ -256,10 +282,19 @@ void main()
 	vec3 diffuse = vec3(0.0);
 
 #if NUM_DIRECTIONAL_LIGHTS>0
+	int shadow_id = 0;
 	for (int i=0; i< NUM_DIRECTIONAL_LIGHTS; i++)
 	{	
 		DirectionalLight light_source = uDirectionalLights[i];
-		IncidentLight directLight = IncidentLight(light_source.color.xyz, light_source.direction.xyz, true);	
+		float l_shadow = 1.0;
+#if NUM_DIRECTIONAL_SHADOWS>0
+		if (light_source.has_shadow!=0)
+		{
+			l_shadow = computeShadowCoef(light_source.shadowVPSBMatrix, shadow_id);
+			shadow_id++;
+		}
+#endif
+		IncidentLight directLight = IncidentLight(light_source.color.xyz * l_shadow, light_source.direction.xyz, true);	
 
 		float dotNL =  saturate(dot(norm, directLight.direction));
 		vec3 irradiance = dotNL * directLight.color;
@@ -402,6 +437,12 @@ void StandardRoutine::s_generate_shaders(const Options& options, std::string& s_
 		defines += line;
 	}
 
+	{
+		char line[64];
+		sprintf(line, "#define NUM_DIRECTIONAL_SHADOWS %d\n", options.num_directional_shadows);
+		defines += line;
+	}
+
 	replace(s_vertex, "#DEFINES#", defines.c_str());
 	replace(s_frag, "#DEFINES#", defines.c_str());
 }
@@ -498,6 +539,18 @@ void StandardRoutine::render(const RenderParams& params)
 		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, tex.tex_id);
 		glUniform1i(3, 3);
+	}
+
+	if (m_options.num_directional_shadows > 0)
+	{
+		std::vector<int> values(m_options.num_directional_shadows);
+		for (int i = 0; i < m_options.num_directional_shadows; i++)
+		{
+			glActiveTexture(GL_TEXTURE4+i);
+			glBindTexture(GL_TEXTURE_2D, params.lights->directional_shadow_texs[i]);
+			values[i] = 4 + i;
+		}
+		glUniform1iv(4, m_options.num_directional_shadows, values.data());
 	}
 
 	if (params.primitive->index_buf != nullptr)
