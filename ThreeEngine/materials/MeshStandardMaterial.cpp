@@ -9,6 +9,7 @@ struct ConstMaterial
 	float metallicFactor;
 	float roughnessFactor;
 	float alphaCutoff;
+	int doubleSided;
 };
 
 MeshStandardMaterial::MeshStandardMaterial() : constant_material(sizeof(ConstMaterial), GL_UNIFORM_BUFFER)
@@ -25,5 +26,6 @@ void MeshStandardMaterial::update_uniform()
 	constMaterial.metallicFactor = metallicFactor;
 	constMaterial.roughnessFactor = roughnessFactor;
 	constMaterial.alphaCutoff = alphaCutoff;
+	constMaterial.doubleSided = doubleSided?1:0;
 	constant_material.upload(&constMaterial);
 }

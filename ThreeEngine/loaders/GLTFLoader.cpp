@@ -184,6 +184,7 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 			material_out->alphaMode = AlphaMode::Blend;
 		}
 		material_out->alphaCutoff = (float)material_in.alphaCutoff;
+		material_out->doubleSided = material_in.doubleSided;
 
 		tinygltf::PbrMetallicRoughness& pbr = material_in.pbrMetallicRoughness;
 		material_out->color = { pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2], pbr.baseColorFactor[3] };

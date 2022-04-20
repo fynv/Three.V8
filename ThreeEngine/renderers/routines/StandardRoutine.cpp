@@ -85,6 +85,7 @@ layout (std140, binding = 2) uniform Material
 	float uMetallicFactor;
 	float uRoughnessFactor;
 	float uAlphaCutoff;
+	int uDoubleSided;
 };
 
 #DEFINES#
@@ -258,7 +259,6 @@ void main()
 
 	vec3 viewDir = normalize(vViewDir);
 	vec3 norm = normalize(vNorm);
-	// if (dot(viewDir,norm)<0.0) norm = -norm;
 
 #if HAS_NORMAL_MAP
 	{
@@ -269,6 +269,11 @@ void main()
 		norm = normalize(bump.x*T + bump.y*B + bump.z*norm);
 	}
 #endif
+
+	if (uDoubleSided!=0)
+	{
+		if (dot(viewDir,norm)<0.0) norm = -norm;
+	}
 
 	PhysicalMaterial material;
 	material.diffuseColor = base_color.xyz * ( 1.0 - metallicFactor );
@@ -484,7 +489,14 @@ void StandardRoutine::render(const RenderParams& params)
 	glEnable(GL_DEPTH_TEST);	
 	glDepthFunc(GL_LEQUAL);
 
-	glEnable(GL_CULL_FACE);
+	if (material.doubleSided)
+	{
+		glDisable(GL_CULL_FACE);
+	}
+	else
+	{
+		glEnable(GL_CULL_FACE);
+	}
 
 	glUseProgram(m_prog->m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.constant_camera->m_id);

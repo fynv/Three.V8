@@ -17,6 +17,7 @@ public:
 	MeshStandardMaterial();
 	AlphaMode alphaMode = AlphaMode::Opaque;
 	float alphaCutoff = 0.5f;
+	bool doubleSided = false;
 
 	glm::vec4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	glm::vec2 normalScale = { 1.0f, 1.0f };

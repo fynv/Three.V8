@@ -64,6 +64,7 @@ layout (std140, binding = 2) uniform Material
 	float uMetallicFactor;
 	float uRoughnessFactor;
 	float uAlphaCutoff;
+	int uDoubleSided;
 };
 
 
@@ -190,7 +191,14 @@ void DirectionalShadowCast::render(const RenderParams& params)
 	glDepthFunc(GL_LEQUAL);
 	glDepthMask(GL_TRUE);
 
-	glEnable(GL_CULL_FACE);
+	if (material.doubleSided)
+	{
+		glDisable(GL_CULL_FACE);
+	}
+	else
+	{
+		glEnable(GL_CULL_FACE);
+	}
 
 	glUseProgram(m_prog->m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.constant_shadow->m_id);
