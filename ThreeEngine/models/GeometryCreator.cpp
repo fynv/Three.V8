@@ -230,3 +230,35 @@ void GeometryCreator::CreateSphere(Primitive* primitive, float radius, int width
 	create(primitive, pos, norm, uv, faces);
 }
 
+void GeometryCreator::CreatePlane(Primitive* primitive, float width, float height)
+{
+	float half_w = width * 0.5f;
+	float half_h = height * 0.5f;
+
+	std::vector<glm::vec4> pos;
+	std::vector<glm::vec4> norm;
+	std::vector<glm::vec2> uv;
+	std::vector<glm::ivec3> faces;
+
+	{
+		int v_start = (int)pos.size();
+		pos.push_back({ -half_w, half_h, 0.0f, 1.0f });
+		pos.push_back({ half_w, half_h, 0.0f, 1.0f });
+		pos.push_back({ -half_w, -half_h, 0.0f, 1.0f });
+		pos.push_back({ half_w, -half_h, 0.0f, 1.0f });
+
+		norm.push_back({ 0.0f, 0.0f, 1.0f, 0.0f });
+		norm.push_back({ 0.0f, 0.0f, 1.0f, 0.0f });
+		norm.push_back({ 0.0f, 0.0f, 1.0f, 0.0f });
+		norm.push_back({ 0.0f, 0.0f, 1.0f, 0.0f });
+
+		uv.push_back({ 0.0f, 0.0f });
+		uv.push_back({ 1.0f, 0.0f });
+		uv.push_back({ 0.0f, 1.0f });
+		uv.push_back({ 1.0f, 1.0f });
+
+		faces.push_back({ v_start + 2, v_start + 1, v_start });
+		faces.push_back({ v_start + 1, v_start + 2, v_start + 3 });
+	}
+	create(primitive, pos, norm, uv, faces);
+}

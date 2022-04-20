@@ -19,7 +19,7 @@ import { view } from "./view.js";
 };*/
 
 
-let renderer, scene, camera, directional_light, bg, box, sphere, clock, controls;
+let renderer, scene, camera, directional_light, bg, box, sphere, ground, clock, controls;
 
 function init(width, height) {
     renderer = new GLRenderer();
@@ -31,6 +31,8 @@ function init(width, height) {
     directional_light = new DirectionalLight();
     directional_light.intensity = 4.0;
     directional_light.setPosition(5.0, 10.0, 5.0);
+    directional_light.setShadow(true, 4096, 4096);
+    directional_light.setShadowProjection(-10.0, 10.0, -10.0, 10.0, 0.0, 50.0);
     scene.add(directional_light);
     
     bg = new ColorBackground();
@@ -66,6 +68,12 @@ function init(width, height) {
     sphere.metalness = 0.5;
     sphere.roughness = 0.5;
     scene.add(sphere);
+    
+    ground = new SimpleModel();
+    ground.createPlane(10.0, 10.0);    
+    ground.translateY(-1.7);
+    ground.rotateX(-3.1416*0.5);
+    scene.add(ground);  
 
     clock = new Clock();
 
@@ -75,6 +83,7 @@ function init(width, height) {
 }
 
 function dispose() {
+    ground.dispose();
     sphere.dispose();
     box.dispose();
     bg.dispose();

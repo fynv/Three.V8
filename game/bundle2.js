@@ -4359,8 +4359,9 @@ function init(width, height) {
     scene.add(model);  
        
     ground = new SimpleModel();
-    ground.createBox(25.0, 0.2, 25.0);
+    ground.createPlane(25.0, 25.0);    
     ground.translateY(-8.0);
+    ground.rotateX(-3.1416*0.5);
     
     scene.add(ground);  
  

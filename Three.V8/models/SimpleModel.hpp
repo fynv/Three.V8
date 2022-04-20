@@ -15,6 +15,7 @@ public:
 private:
 	static void CreateBox(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void CreateSphere(const v8::FunctionCallbackInfo<v8::Value>& info);
+	static void CreatePlane(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 	static void GetColor(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void GetColor(const v8::FunctionCallbackInfo<v8::Value>& info);
@@ -35,6 +36,7 @@ v8::Local<v8::FunctionTemplate> WrapperSimpleModel::create_template(v8::Isolate*
 	v8::Local<v8::FunctionTemplate> templ = WrapperObject3D::create_template(isolate, constructor);	
 	templ->InstanceTemplate()->Set(isolate, "createBox", v8::FunctionTemplate::New(isolate, CreateBox));
 	templ->InstanceTemplate()->Set(isolate, "createSphere", v8::FunctionTemplate::New(isolate, CreateSphere));
+	templ->InstanceTemplate()->Set(isolate, "createPlane", v8::FunctionTemplate::New(isolate, CreatePlane));
 
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "color").ToLocalChecked(), GetColor, 0);
 	templ->InstanceTemplate()->Set(isolate, "getColor", v8::FunctionTemplate::New(isolate, GetColor));
@@ -82,6 +84,15 @@ void WrapperSimpleModel::CreateSphere(const v8::FunctionCallbackInfo<v8::Value>&
 	GeometryCreator::CreateSphere(&self->geometry, radius, widthSegments, heightSegments);
 }
 
+
+void WrapperSimpleModel::CreatePlane(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	v8::HandleScope handle_scope(info.GetIsolate());
+	SimpleModel* self = get_self<SimpleModel>(info);
+	float width = (float)info[0].As<v8::Number>()->Value();
+	float height = (float)info[1].As<v8::Number>()->Value();	
+	GeometryCreator::CreatePlane(&self->geometry, width, height);
+}
 
 void WrapperSimpleModel::GetColor(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
