@@ -59,6 +59,7 @@ R"(#version 430
 layout (std140, binding = 2) uniform Material
 {
 	vec4 uColor;
+	vec4 uEmissive;
 	vec2 uNormalScale;
 	float uMetallicFactor;
 	float uRoughnessFactor;

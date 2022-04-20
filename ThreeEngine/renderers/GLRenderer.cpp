@@ -173,6 +173,7 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 	options.has_metalness_map = material->tex_idx_metalnessMap >= 0;
 	options.has_roughness_map = material->tex_idx_roughnessMap >= 0;
 	options.has_normal_map = material->tex_idx_normalMap >= 0;
+	options.has_emissive_map = material->tex_idx_emissiveMap >= 0;
 	options.num_directional_lights = lights->num_directional_lights;
 	options.num_directional_shadows = (int)lights->directional_shadow_texs.size();
 	StandardRoutine* routine = get_routine(options);

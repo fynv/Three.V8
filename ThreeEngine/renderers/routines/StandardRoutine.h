@@ -19,6 +19,7 @@ public:
 		bool has_metalness_map = false;
 		bool has_roughness_map = false;
 		bool has_normal_map = false;
+		bool has_emissive_map = false;
 		int num_directional_lights = 0;
 		int num_directional_shadows = 0;
 	};

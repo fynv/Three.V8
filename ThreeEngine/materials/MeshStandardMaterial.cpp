@@ -4,6 +4,7 @@
 struct ConstMaterial
 {
 	glm::vec4 color;
+	glm::vec4 emissive;
 	glm::vec2 normalScale;
 	float metallicFactor;
 	float roughnessFactor;
@@ -18,7 +19,8 @@ MeshStandardMaterial::MeshStandardMaterial() : constant_material(sizeof(ConstMat
 void MeshStandardMaterial::update_uniform()
 {
 	ConstMaterial constMaterial;
-	constMaterial.color = glm::vec4(color, 1.0f);
+	constMaterial.color = color;
+	constMaterial.emissive = glm::vec4(emissive, 1.0f);
 	constMaterial.normalScale = normalScale;
 	constMaterial.metallicFactor = metallicFactor;
 	constMaterial.roughnessFactor = roughnessFactor;

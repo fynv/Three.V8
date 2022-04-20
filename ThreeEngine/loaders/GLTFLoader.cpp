@@ -186,7 +186,7 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 		material_out->alphaCutoff = (float)material_in.alphaCutoff;
 
 		tinygltf::PbrMetallicRoughness& pbr = material_in.pbrMetallicRoughness;
-		material_out->color = { pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2] };
+		material_out->color = { pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2], pbr.baseColorFactor[3] };
 		material_out->tex_idx_map = pbr.baseColorTexture.index;
 
 		material_out->metallicFactor = pbr.metallicFactor;
@@ -208,6 +208,9 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 			float scale = (float)material_in.normalTexture.scale;
 			material_out->normalScale = { scale, scale };
 		}
+
+		material_out->emissive = { material_in.emissiveFactor[0], material_in.emissiveFactor[1], material_in.emissiveFactor[2] };
+		material_out->tex_idx_emissiveMap = material_in.emissiveTexture.index;
 
 		material_out->update_uniform();
 	}

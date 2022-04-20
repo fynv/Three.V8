@@ -28,7 +28,7 @@ void SimpleModel::updateConstant()
 
 void SimpleModel::set_color(const glm::vec3& color)
 {
-	material.color = color;
+	material.color = glm::vec4(color, 1.0f);
 	material.update_uniform();
 }
 

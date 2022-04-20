@@ -80,6 +80,7 @@ layout (location = 1) in vec3 vNorm;
 layout (std140, binding = 2) uniform Material
 {
 	vec4 uColor;
+	vec4 uEmissive;
 	vec2 uNormalScale;
 	float uMetallicFactor;
 	float uRoughnessFactor;
@@ -112,6 +113,10 @@ layout (location = 2) uniform sampler2D uTexRoughness;
 layout (location = 3) uniform sampler2D uTexNormal;
 layout (location = 4) in vec3 vTangent;
 layout (location = 5) in vec3 vBitangent;
+#endif
+
+#if HAS_EMISSIVE_MAP
+layout (location = 4) uniform sampler2D uTexEmissive;
 #endif
 
 layout (location = 6) in vec3 vWorldPos;
@@ -199,7 +204,7 @@ layout (std140, binding = 3) uniform DirectionalLights
 #endif
 
 #if NUM_DIRECTIONAL_SHADOWS>0
-layout (location = 4) uniform sampler2D uShadowTex[NUM_DIRECTIONAL_SHADOWS];
+layout (location = 5) uniform sampler2D uShadowTex[NUM_DIRECTIONAL_SHADOWS];
 
 vec3 computeShadowCoords(in mat4 VPSB)
 {
@@ -278,6 +283,11 @@ void main()
 	material.specularColor = mix( vec3( 0.04 ), base_color.xyz, metallicFactor );
 	material.specularF90 = 1.0;
 
+	vec3 emissive = uEmissive.xyz;
+#if HAS_EMISSIVE_MAP
+	emissive *= texture(uTexEmissive, vUV).xyz;
+#endif
+
 	vec3 specular = vec3(0.0);
 	vec3 diffuse = vec3(0.0);
 
@@ -305,7 +315,7 @@ void main()
 #endif
 
 	vec3 ambient = 0.3 * BRDF_Lambert( base_color.xyz );
-	vec3 col = specular + ambient;
+	vec3 col = emissive + specular + ambient;
 #if !IS_HIGHTLIGHT
 	col += diffuse;
 #endif
@@ -384,7 +394,7 @@ void StandardRoutine::s_generate_shaders(const Options& options, std::string& s_
 		defines += "#define HAS_COLOR 0\n";
 	}
 
-	bool has_uv = options.has_color_texture || options.has_metalness_map || options.has_roughness_map;
+	bool has_uv = options.has_color_texture || options.has_metalness_map || options.has_roughness_map || options.has_normal_map || options.has_emissive_map;
 
 	if (has_uv)
 	{
@@ -429,6 +439,15 @@ void StandardRoutine::s_generate_shaders(const Options& options, std::string& s_
 	else
 	{
 		defines += "#define HAS_NORMAL_MAP 0\n";
+	}
+
+	if (options.has_emissive_map)
+	{
+		defines += "#define HAS_EMISSIVE_MAP 1\n";
+	}
+	else
+	{
+		defines += "#define HAS_EMISSIVE_MAP 0\n";
 	}
 
 	{
@@ -490,7 +509,7 @@ void StandardRoutine::render(const RenderParams& params)
 		glEnableVertexAttribArray(2);
 	}
 
-	bool has_uv = m_options.has_color_texture || m_options.has_metalness_map || m_options.has_roughness_map || m_options.has_normal_map;
+	bool has_uv = m_options.has_color_texture || m_options.has_metalness_map || m_options.has_roughness_map || m_options.has_normal_map || m_options.has_emissive_map;
 	if (has_uv)
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, params.primitive->uv_buf->m_id);
@@ -541,16 +560,24 @@ void StandardRoutine::render(const RenderParams& params)
 		glUniform1i(3, 3);
 	}
 
+	if (m_options.has_emissive_map)
+	{
+		const GLTexture2D& tex = *params.tex_list[material.tex_idx_emissiveMap];
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_2D, tex.tex_id);
+		glUniform1i(4, 4);
+	}
+
 	if (m_options.num_directional_shadows > 0)
 	{
 		std::vector<int> values(m_options.num_directional_shadows);
 		for (int i = 0; i < m_options.num_directional_shadows; i++)
 		{
-			glActiveTexture(GL_TEXTURE4+i);
+			glActiveTexture(GL_TEXTURE5+i);
 			glBindTexture(GL_TEXTURE_2D, params.lights->directional_shadow_texs[i]);
-			values[i] = 4 + i;
+			values[i] = 5 + i;
 		}
-		glUniform1iv(4, m_options.num_directional_shadows, values.data());
+		glUniform1iv(5, m_options.num_directional_shadows, values.data());
 	}
 
 	if (params.primitive->index_buf != nullptr)
