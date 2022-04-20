@@ -190,7 +190,7 @@ void DirectionalShadowCast::render(const RenderParams& params)
 	glDepthFunc(GL_LEQUAL);
 	glDepthMask(GL_TRUE);
 
-	glDisable(GL_CULL_FACE);
+	glEnable(GL_CULL_FACE);
 
 	glUseProgram(m_prog->m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.constant_shadow->m_id);

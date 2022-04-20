@@ -481,8 +481,10 @@ void StandardRoutine::render(const RenderParams& params)
 	const MeshStandardMaterial& material = *(MeshStandardMaterial*)params.material_list[params.primitive->material_idx];
 	const GeometrySet& geo = params.primitive->geometry[params.primitive->geometry.size() - 1];
 
-	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_DEPTH_TEST);	
 	glDepthFunc(GL_LEQUAL);
+
+	glEnable(GL_CULL_FACE);
 
 	glUseProgram(m_prog->m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.constant_camera->m_id);
