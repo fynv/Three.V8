@@ -123,12 +123,9 @@ void WrapperCubeBackground::SetCubemap(const v8::FunctionCallbackInfo<v8::Value>
 	v8::Isolate* isolate = info.GetIsolate();
 	v8::HandleScope handle_scope(isolate);
 	CubeBackground* self = get_self<CubeBackground>(info);
-	Image* images[6];
-	for (int i = 0; i < 6; i++)
-	{
-		v8::Local<v8::Object> holder_image = info[i].As<v8::Object>();
-		images[i] = (Image*)v8::Local<v8::External>::Cast(holder_image->GetInternalField(0))->Value();
-	}
-	self->cubemap.load_memory_bgr(images[0]->width(), images[0]->height(), images[0]->data(), images[1]->data(), images[2]->data(), images[3]->data(), images[4]->data(), images[5]->data());
+	v8::Local<v8::Object> holder_image = info[0].As<v8::Object>();
+	CubeImage* image = (CubeImage*)v8::Local<v8::External>::Cast(holder_image->GetInternalField(0))->Value();
+	self->cubemap.load_memory_bgr(image->images[0].width(), image->images[0].height(),
+		image->images[0].data(), image->images[1].data(), image->images[2].data(), image->images[3].data(), image->images[4].data(), image->images[5].data());
 }
 

@@ -27,5 +27,12 @@ private:
 	int m_height = 0;
 	uint8_t* m_buffer = nullptr;
 
-
 };
+
+class CubeImage
+{
+public:
+	Image images[6];
+};
+
+

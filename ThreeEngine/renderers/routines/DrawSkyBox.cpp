@@ -23,7 +23,6 @@ void main()
     vec4 pos_view = uInvProjMat * gl_Position;
     pos_view = pos_view/pos_view.w;
     vCubeMapCoord = (mat3(uInvViewMat) * pos_view.xyz);
-    vCubeMapCoord.x = - vCubeMapCoord.x; // to right-hand
 };
 )";
 

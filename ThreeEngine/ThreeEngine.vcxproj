@@ -135,6 +135,8 @@
     <ClCompile Include="core\Object3D.cpp" />
     <ClCompile Include="lights\DirectionalLight.cpp" />
     <ClCompile Include="lights\DirectionalLightShadow.cpp" />
+    <ClCompile Include="lights\EnvironmentMap.cpp" />
+    <ClCompile Include="lights\EnvironmentMapCreator.cpp" />
     <ClCompile Include="lights\Light.cpp" />
     <ClCompile Include="loaders\FileLoader.cpp" />
     <ClCompile Include="loaders\GLTFLoader.cpp" />
@@ -166,6 +168,8 @@
     <ClInclude Include="core\Object3D.h" />
     <ClInclude Include="lights\DirectionalLight.h" />
     <ClInclude Include="lights\DirectionalLightShadow.h" />
+    <ClInclude Include="lights\EnvironmentMap.h" />
+    <ClInclude Include="lights\EnvironmentMapCreator.h" />
     <ClInclude Include="lights\Light.h" />
     <ClInclude Include="lights\Lights.h" />
     <ClInclude Include="loaders\FileLoader.h" />

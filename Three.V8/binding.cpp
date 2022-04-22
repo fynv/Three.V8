@@ -51,6 +51,8 @@ void V8VM::RunVM(void (*callback)(void*), void* data)
 #include "loaders/GLTFLoader.hpp"
 
 #include "lights/DirectionalLight.hpp"
+#include "lights/EnvironmentMap.hpp"
+#include "lights/EnvironmentMapCreator.hpp"
 
 GlobalDefinitions GameContext::s_globals =
 {
@@ -70,7 +72,10 @@ GlobalDefinitions GameContext::s_globals =
 		{ "SimpleModel", WrapperSimpleModel::New,  WrapperSimpleModel::create_template },
 		{ "GLTFModel", WrapperGLTFModel::New,  WrapperGLTFModel::create_template },
 		{ "Image", WrapperImage::New,  WrapperImage::create_template },
-		{ "DirectionalLight", WrapperDirectionalLight::New, WrapperDirectionalLight::create_template }
+		{ "CubeImage", WrapperCubeImage::New,  WrapperCubeImage::create_template },
+		{ "DirectionalLight", WrapperDirectionalLight::New, WrapperDirectionalLight::create_template },
+		{ "EnvironmentMap", WrapperEnvironmentMap::New, WrapperEnvironmentMap::create_template },
+		{ "EnvironmentMapCreator", WrapperEnvironmentMapCreator::New, WrapperEnvironmentMapCreator::create_template},
 	},
 	{
 		{ "fileLoader", WrapperFileLoader::create_template },
