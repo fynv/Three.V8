@@ -12,6 +12,8 @@ layout (std140, binding = 0) uniform Camera
 {
 	mat4 uProjMat;
 	mat4 uViewMat;	
+	mat4 uInvProjMat;
+	mat4 uInvViewMat;	
 	vec3 uEyePos;
 };
 

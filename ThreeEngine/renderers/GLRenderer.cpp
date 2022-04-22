@@ -469,8 +469,22 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 	{
 		{
 			ColorBackground* bg = dynamic_cast<ColorBackground*>(scene.background);
-			glClearColor(bg->color.r, bg->color.g, bg->color.b, 1.0f);
-			glClear(GL_COLOR_BUFFER_BIT);
+			if (bg != nullptr)
+			{
+				glClearColor(bg->color.r, bg->color.g, bg->color.b, 1.0f);
+				glClear(GL_COLOR_BUFFER_BIT);
+			}
+		}
+		{
+			CubeBackground* bg = dynamic_cast<CubeBackground*>(scene.background);
+			if (bg != nullptr)
+			{
+				if (SkyBoxDraw == nullptr)
+				{
+					SkyBoxDraw = std::unique_ptr<DrawSkyBox>(new DrawSkyBox);
+				}
+				SkyBoxDraw->render(&camera.m_constant, &bg->cubemap);
+			}
 		}
 	}
 

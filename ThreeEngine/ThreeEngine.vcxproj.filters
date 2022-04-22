@@ -165,6 +165,9 @@
     <ClCompile Include="renderers\routines\DrawTexture.cpp">
       <Filter>Source Files\renderers\routines</Filter>
     </ClCompile>
+    <ClCompile Include="renderers\routines\DrawSkyBox.cpp">
+      <Filter>Source Files\renderers\routines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -255,6 +258,9 @@
       <Filter>Header Files\renderers\routines</Filter>
     </ClInclude>
     <ClInclude Include="renderers\routines\DrawTexture.h">
+      <Filter>Header Files\renderers\routines</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\routines\DrawSkyBox.h">
       <Filter>Header Files\renderers\routines</Filter>
     </ClInclude>
   </ItemGroup>

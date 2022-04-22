@@ -42,6 +42,19 @@ private:
 	GLTexture2D(const GLTexture2D&);
 };
 
+class GLCubemap
+{
+public:
+	unsigned tex_id;
+	GLCubemap();
+	~GLCubemap();
+
+	void load_memory_bgr(int width, int height, uint8_t* data_xp, uint8_t* data_xn, uint8_t* data_yp, uint8_t* data_yn, uint8_t* data_zp, uint8_t* data_zn);
+	void load_files(const char* fn_xp, const char* fn_xn, const char* fn_yp, const char* fn_yn, const char* fn_zp, const char* fn_zn);
+private:
+	GLCubemap(const GLCubemap&);
+};
+
 
 class GLBuffer
 {

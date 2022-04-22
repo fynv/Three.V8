@@ -15,3 +15,11 @@ public:
 	glm::vec3 color;
 };
 
+#include "renderers/GLUtils.h"
+
+class CubeBackground : public Background
+{
+public:
+	GLCubemap cubemap;
+};
+

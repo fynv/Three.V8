@@ -2,7 +2,7 @@
 
 #include "WrapperUtils.hpp"
 #include <backgrounds/Background.h>
-
+#include <utils/Image.h>
 
 class WrapperColorBackground
 {
@@ -81,3 +81,54 @@ void WrapperColorBackground::SetColor(const v8::FunctionCallbackInfo<v8::Value>&
 		jvec3_to_vec3(isolate, in, self->color);
 	}
 }
+
+
+class WrapperCubeBackground
+{
+public:
+	static v8::Local<v8::FunctionTemplate> create_template(v8::Isolate* isolate, v8::FunctionCallback constructor = New);
+	static void New(const v8::FunctionCallbackInfo<v8::Value>& info);
+
+private:
+	static void Dispose(const v8::FunctionCallbackInfo<v8::Value>& info);
+
+	static void SetCubemap(const v8::FunctionCallbackInfo<v8::Value>& info);
+
+};
+
+
+v8::Local<v8::FunctionTemplate> WrapperCubeBackground::create_template(v8::Isolate* isolate, v8::FunctionCallback constructor)
+{
+	v8::Local<v8::FunctionTemplate> templ = v8::FunctionTemplate::New(isolate, constructor);
+	templ->InstanceTemplate()->SetInternalFieldCount(1);
+	templ->InstanceTemplate()->Set(isolate, "dispose", v8::FunctionTemplate::New(isolate, Dispose));
+	templ->InstanceTemplate()->Set(isolate, "setCubemap", v8::FunctionTemplate::New(isolate, SetCubemap));
+	return templ;
+}
+
+void WrapperCubeBackground::New(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	CubeBackground* self = new CubeBackground();
+	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));
+}
+
+void WrapperCubeBackground::Dispose(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	CubeBackground* self = get_self<CubeBackground>(info);
+	delete self;
+}
+
+void WrapperCubeBackground::SetCubemap(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	v8::Isolate* isolate = info.GetIsolate();
+	v8::HandleScope handle_scope(isolate);
+	CubeBackground* self = get_self<CubeBackground>(info);
+	Image* images[6];
+	for (int i = 0; i < 6; i++)
+	{
+		v8::Local<v8::Object> holder_image = info[i].As<v8::Object>();
+		images[i] = (Image*)v8::Local<v8::External>::Cast(holder_image->GetInternalField(0))->Value();
+	}
+	self->cubemap.load_memory_bgr(images[0]->width(), images[0]->height(), images[0]->data(), images[1]->data(), images[2]->data(), images[3]->data(), images[4]->data(), images[5]->data());
+}
+

@@ -149,6 +149,7 @@
     <ClCompile Include="renderers\GLRenderer.cpp" />
     <ClCompile Include="renderers\GLUtils.cpp" />
     <ClCompile Include="renderers\routines\DirectionalShadowCast.cpp" />
+    <ClCompile Include="renderers\routines\DrawSkyBox.cpp" />
     <ClCompile Include="renderers\routines\DrawTexture.cpp" />
     <ClCompile Include="renderers\routines\MorphUpdate.cpp" />
     <ClCompile Include="renderers\routines\SkinUpdate.cpp" />
@@ -180,6 +181,7 @@
     <ClInclude Include="renderers\GLRenderer.h" />
     <ClInclude Include="renderers\GLUtils.h" />
     <ClInclude Include="renderers\routines\DirectionalShadowCast.h" />
+    <ClInclude Include="renderers\routines\DrawSkyBox.h" />
     <ClInclude Include="renderers\routines\DrawTexture.h" />
     <ClInclude Include="renderers\routines\MorphUpdate.h" />
     <ClInclude Include="renderers\routines\SkinUpdate.h" />

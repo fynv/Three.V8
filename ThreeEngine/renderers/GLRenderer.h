@@ -8,6 +8,7 @@
 #include "renderers/routines/WeightedOIT.h"
 #include "renderers/routines/DirectionalShadowCast.h"
 #include "renderers/routines/DrawTexture.h"
+#include "renderers/routines/DrawSkyBox.h"
 
 class Scene;
 class Camera;
@@ -62,7 +63,7 @@ private:
 
 
 	std::unique_ptr<DrawTexture> TextureVisualizer;
-
+	std::unique_ptr<DrawSkyBox> SkyBoxDraw;
 	
 };
 
