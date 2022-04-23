@@ -176,6 +176,7 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 	options.has_emissive_map = material->tex_idx_emissiveMap >= 0;
 	options.num_directional_lights = lights->num_directional_lights;
 	options.num_directional_shadows = (int)lights->directional_shadow_texs.size();
+	options.has_environment_map = lights->environment_map != nullptr;
 	StandardRoutine* routine = get_routine(options);
 	routine->render(params);
 }
@@ -458,7 +459,9 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 				lights.constant_directional_lights->upload(const_directional_lights.data());
 			}
 		}
-	}	
+	}
+
+	lights.environment_map = scene.environmentMap;
 
 	// render scene
 	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_msaa);

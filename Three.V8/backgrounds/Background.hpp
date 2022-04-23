@@ -125,7 +125,9 @@ void WrapperCubeBackground::SetCubemap(const v8::FunctionCallbackInfo<v8::Value>
 	CubeBackground* self = get_self<CubeBackground>(info);
 	v8::Local<v8::Object> holder_image = info[0].As<v8::Object>();
 	CubeImage* image = (CubeImage*)v8::Local<v8::External>::Cast(holder_image->GetInternalField(0))->Value();
-	self->cubemap.load_memory_bgr(image->images[0].width(), image->images[0].height(),
+	self->width = image->images[0].width();
+	self->height = image->images[0].height();
+	self->cubemap.load_memory_bgr(self->width, self->height, 
 		image->images[0].data(), image->images[1].data(), image->images[2].data(), image->images[3].data(), image->images[4].data(), image->images[5].data());
 }
 

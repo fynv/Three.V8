@@ -113,7 +113,7 @@ GLTexture2D::~GLTexture2D()
 }
 
 
-void GLTexture2D::load_memory_rgb(int width, int height, uint8_t* data, bool is_srgb)
+void GLTexture2D::load_memory_rgb(int width, int height, const uint8_t* data, bool is_srgb)
 {
 	glBindTexture(GL_TEXTURE_2D, tex_id);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -127,7 +127,7 @@ void GLTexture2D::load_memory_rgb(int width, int height, uint8_t* data, bool is_
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void GLTexture2D::load_memory_rgba(int width, int height, uint8_t* data, bool is_srgb)
+void GLTexture2D::load_memory_rgba(int width, int height, const uint8_t* data, bool is_srgb)
 {
 	glBindTexture(GL_TEXTURE_2D, tex_id);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -141,7 +141,7 @@ void GLTexture2D::load_memory_rgba(int width, int height, uint8_t* data, bool is
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void GLTexture2D::load_memory_bgr(int width, int height, uint8_t* data, bool is_srgb)
+void GLTexture2D::load_memory_bgr(int width, int height, const uint8_t* data, bool is_srgb)
 {
 	glBindTexture(GL_TEXTURE_2D, tex_id);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -156,7 +156,7 @@ void GLTexture2D::load_memory_bgr(int width, int height, uint8_t* data, bool is_
 }
 
 
-void GLTexture2D::load_memory_bgra(int width, int height, uint8_t* data, bool is_srgb)
+void GLTexture2D::load_memory_bgra(int width, int height, const uint8_t* data, bool is_srgb)
 {
 	glBindTexture(GL_TEXTURE_2D, tex_id);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -187,7 +187,7 @@ GLCubemap::~GLCubemap()
 	glDeleteTextures(1, &tex_id);
 }
 
-void GLCubemap::load_memory_bgr(int width, int height, uint8_t* data_xp, uint8_t* data_xn, uint8_t* data_yp, uint8_t* data_yn, uint8_t* data_zp, uint8_t* data_zn)
+void GLCubemap::load_memory_bgr(int width, int height, const uint8_t* data_xp, const uint8_t* data_xn, const uint8_t* data_yp, const uint8_t* data_yn, const uint8_t* data_zp, const uint8_t* data_zn)
 {
 	glBindTexture(GL_TEXTURE_CUBE_MAP, tex_id);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);

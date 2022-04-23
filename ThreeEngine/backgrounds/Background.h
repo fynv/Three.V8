@@ -20,6 +20,7 @@ public:
 class CubeBackground : public Background
 {
 public:
+	int width, height;
 	GLCubemap cubemap;
 };
 

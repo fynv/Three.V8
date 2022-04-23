@@ -43,9 +43,6 @@ void WrapperEnvironmentMapCreator::Create(const v8::FunctionCallbackInfo<v8::Val
 	v8::Isolate* isolate = info.GetIsolate();
 	v8::HandleScope handle_scope(isolate);
 
-	v8::Local<v8::Object> holder_image = info[0].As<v8::Object>();
-	CubeImage* image = (CubeImage*)v8::Local<v8::External>::Cast(holder_image->GetInternalField(0))->Value();
-
 	v8::Local<v8::Context> context = isolate->GetCurrentContext();
 	v8::Local<v8::Object> global = context->Global();
 	v8::Local<v8::Function> ctor_envmap = global->Get(context, v8::String::NewFromUtf8(isolate, "EnvironmentMap").ToLocalChecked()).ToLocalChecked().As<v8::Function>();
@@ -53,8 +50,22 @@ void WrapperEnvironmentMapCreator::Create(const v8::FunctionCallbackInfo<v8::Val
 	v8::Local<v8::Object> holder = ctor_envmap->CallAsConstructor(context, 0, nullptr).ToLocalChecked().As<v8::Object>();
 	v8::Local<v8::External> wrap = v8::Local<v8::External>::Cast(holder->GetInternalField(0));
 	EnvironmentMap* self = (EnvironmentMap*)wrap->Value();
-
 	EnvironmentMapCreator* creator = get_self<EnvironmentMapCreator>(info);
-	creator->Create(image, self);
+
+
+	v8::Local<v8::Object> holder_image = info[0].As<v8::Object>();
+	
+	v8::String::Utf8Value clsname(isolate, holder_image->GetConstructorName());
+	if (strcmp(*clsname, "CubeImage") == 0)
+	{
+		CubeImage* image = (CubeImage*)v8::Local<v8::External>::Cast(holder_image->GetInternalField(0))->Value();
+		creator->Create(image, self);
+	}
+	else if (strcmp(*clsname, "CubeBackground") == 0)
+	{
+		CubeBackground* background = (CubeBackground*)v8::Local<v8::External>::Cast(holder_image->GetInternalField(0))->Value();
+		creator->Create(background, self);
+	}
+
 	info.GetReturnValue().Set(holder);
 }

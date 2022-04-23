@@ -225,6 +225,37 @@ float computeShadowCoef(in mat4 VPSB, int shadow_id)
 
 #endif
 
+#if HAS_ENVIRONMENT_MAP
+layout (std140, binding = 4) uniform EnvironmentMap
+{
+	vec4 uSHCoefficients[9];
+};
+
+vec3 shGetIrradianceAt( in vec3 normal, in vec4 shCoefficients[ 9 ] ) {
+
+	// normal is assumed to have unit length
+
+	float x = normal.x, y = normal.y, z = normal.z;
+
+	// band 0
+	vec3 result = shCoefficients[ 0 ].xyz * 0.886227;
+
+	// band 1
+	result += shCoefficients[ 1 ].xyz * 2.0 * 0.511664 * y;
+	result += shCoefficients[ 2 ].xyz * 2.0 * 0.511664 * z;
+	result += shCoefficients[ 3 ].xyz * 2.0 * 0.511664 * x;
+
+	// band 2
+	result += shCoefficients[ 4 ].xyz * 2.0 * 0.429043 * x * y;
+	result += shCoefficients[ 5 ].xyz * 2.0 * 0.429043 * y * z;
+	result += shCoefficients[ 6 ].xyz * ( 0.743125 * z * z - 0.247708 );
+	result += shCoefficients[ 7 ].xyz * 2.0 * 0.429043 * x * z;
+	result += shCoefficients[ 8 ].xyz * 0.429043 * ( x * x - y * y );
+
+	return result;
+}
+#endif
+
 layout (location = 0) out vec4 out0;
 
 #if ALPHA_BLEND
@@ -321,8 +352,17 @@ void main()
 	}
 #endif
 
+#if HAS_ENVIRONMENT_MAP
+	{
+		vec3 irradiance = shGetIrradianceAt(norm, uSHCoefficients);
+		diffuse += irradiance * BRDF_Lambert( material.diffuseColor );
+	}
+	vec3 col = emissive + specular;
+#else
 	vec3 ambient = 0.3 * BRDF_Lambert( base_color.xyz );
 	vec3 col = emissive + specular + ambient;
+#endif
+
 #if !IS_HIGHTLIGHT
 	col += diffuse;
 #endif
@@ -469,6 +509,15 @@ void StandardRoutine::s_generate_shaders(const Options& options, std::string& s_
 		defines += line;
 	}
 
+	if (options.has_environment_map)
+	{
+		defines += "#define HAS_ENVIRONMENT_MAP 1\n";
+	}
+	else
+	{
+		defines += "#define HAS_ENVIRONMENT_MAP 0\n";
+	}
+
 	replace(s_vertex, "#DEFINES#", defines.c_str());
 	replace(s_frag, "#DEFINES#", defines.c_str());
 }
@@ -508,6 +557,11 @@ void StandardRoutine::render(const RenderParams& params)
 	if (m_options.num_directional_lights > 0)
 	{		
 		glBindBufferBase(GL_UNIFORM_BUFFER, 3, params.lights->constant_directional_lights->m_id);
+	}
+
+	if (m_options.has_environment_map)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, 4, params.lights->environment_map->m_constant.m_id);
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, geo.pos_buf->m_id);

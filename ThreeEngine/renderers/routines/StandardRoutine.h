@@ -22,6 +22,7 @@ public:
 		bool has_emissive_map = false;
 		int num_directional_lights = 0;
 		int num_directional_shadows = 0;
+		bool has_environment_map = false;
 	};
 
 	StandardRoutine(const Options& options);
