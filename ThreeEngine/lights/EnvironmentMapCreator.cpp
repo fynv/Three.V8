@@ -7,41 +7,6 @@
 
 const double PI = 3.14159265359;
 
-#if 1
-#include <xmmintrin.h>
-#include <mmintrin.h>
-
-inline void SHEval3(const float* pX, const float* pY, const float* pZ, float* pSH)
-{
-	__m128 fX, fY, fZ;
-	__m128 fC0, fC1, fS0, fS1, fTmpA, fTmpB, fTmpC;
-	fX = _mm_load_ps(pX);
-	fY = _mm_load_ps(pY);
-	fZ = _mm_load_ps(pZ);
-
-	__m128 fZ2 = _mm_mul_ps(fZ, fZ);
-
-	_mm_store_ps(pSH + 0 * 4, _mm_set_ps1(0.2820947917738781f));
-	_mm_store_ps(pSH + 2 * 4, _mm_mul_ps(_mm_set_ps1(0.4886025119029199f), fZ));
-	_mm_store_ps(pSH + 6 * 4, _mm_add_ps(_mm_mul_ps(_mm_set_ps1(0.9461746957575601f), fZ2), _mm_set_ps1(-0.3153915652525201f)));
-	fC0 = fX;
-	fS0 = fY;
-
-	fTmpA = _mm_set_ps1(-0.48860251190292f);
-	_mm_store_ps(pSH + 3 * 4, _mm_mul_ps(fTmpA, fC0));
-	_mm_store_ps(pSH + 1 * 4, _mm_mul_ps(fTmpA, fS0));
-	fTmpB = _mm_mul_ps(_mm_set_ps1(-1.092548430592079f), fZ);
-	_mm_store_ps(pSH + 7 * 4, _mm_mul_ps(fTmpB, fC0));
-	_mm_store_ps(pSH + 5 * 4, _mm_mul_ps(fTmpB, fS0));
-	fC1 = _mm_sub_ps(_mm_mul_ps(fX, fC0), _mm_mul_ps(fY, fS0));
-	fS1 = _mm_add_ps(_mm_mul_ps(fX, fS0), _mm_mul_ps(fY, fC0));
-
-	fTmpC = _mm_set_ps1(0.5462742152960395f);
-	_mm_store_ps(pSH + 8 * 4, _mm_mul_ps(fTmpC, fC1));
-	_mm_store_ps(pSH + 4 * 4, _mm_mul_ps(fTmpC, fS1));
-}
-#else
-
 inline void SHEval3(const float fX, const float fY, const float fZ, float* pSH)
 {
 	float fC0, fC1, fS0, fS1, fTmpA, fTmpB, fTmpC;
@@ -66,8 +31,6 @@ inline void SHEval3(const float fX, const float fY, const float fZ, float* pSH)
 	pSH[8] = fTmpC * fC1;
 	pSH[4] = fTmpC * fS1;
 }
-#endif
-
 
 EnvironmentMapCreator::EnvironmentMapCreator()
 {
@@ -148,8 +111,8 @@ void EnvironmentMapCreator::Create(int width, int height, const GLCubemap * cube
 			float weight = 4.0f / (sqrtf(lengthSq) * lengthSq);
 			totalWeight += weight;
 			glm::vec3 dir = glm::normalize(coord);
-			float shBasis[12];
-			SHEval3(&dir.x, &dir.y, &dir.z, shBasis);
+			float shBasis[9];
+			SHEval3(dir.x, dir.y, dir.z, shBasis);
 
 			for (int k = 0; k < 9; k++)
 			{
