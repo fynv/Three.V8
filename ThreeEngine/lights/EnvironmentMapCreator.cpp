@@ -78,8 +78,6 @@ R"(#version 430
 layout (location = 0) uniform samplerCube tex_hi_res;
 layout (binding=0, rgba8) uniform imageCube tex_lo_res;
 
-layout(local_size_x = 8, local_size_y = 8) in;
-
 void get_dir_0( out vec3 dir, in float u, in float v )
 {
 	dir[0] = 1;
@@ -124,6 +122,8 @@ float calcWeight( float u, float v )
 }
 
 layout (location = 1) uniform float lod;
+
+layout(local_size_x = 8, local_size_y = 8) in;
 
 void main()
 {
@@ -262,8 +262,6 @@ layout (std140, binding = 0) uniform Coeffs
 #define NUM_TAPS 32
 #define BASE_RESOLUTION 128
 
-layout(local_size_x = 64) in;
-
 void get_dir( out vec3 dir, in vec2 uv, in int face )
 {
 	switch ( face )
@@ -293,13 +291,15 @@ void get_dir( out vec3 dir, in vec2 uv, in int face )
 		dir[1] = uv.y;
 		dir[2] = 1;
 		break;
-	case 6:
+	case 5:
 		dir[0] = -uv.x;
 		dir[1] = uv.y;
 		dir[2] = -1;
 		break;
 	}
 }
+
+layout(local_size_x = 64) in;
 
 void main()
 {
@@ -664,13 +664,13 @@ void EnvironmentMapCreator::Create(const GLCubemap * cubemap, EnvironmentMap * e
 	glUseProgram(m_prog_downsample->m_id);
 
 	{
-		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT_EXT);
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex_128);
 		glUniform1i(0, 0);
 
-		glBindImageTexture(0, m_tex_src, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(0, m_tex_src, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
 
 		glUniform1f(1, 0.0f);
 
@@ -679,13 +679,13 @@ void EnvironmentMapCreator::Create(const GLCubemap * cubemap, EnvironmentMap * e
 
 	for (int level = 0; level < 6; level++)
 	{ 
-		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT_EXT);
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 		
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex_src);
 		glUniform1i(0, 0);
 
-		glBindImageTexture(0, m_tex_src, level + 1, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(0, m_tex_src, level + 1, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
 
 		glUniform1f(1, (float)level);
 
@@ -699,18 +699,18 @@ void EnvironmentMapCreator::Create(const GLCubemap * cubemap, EnvironmentMap * e
 	glUseProgram(m_prog_filter->m_id);
 
 	{
-		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT_EXT);
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex_src);
 		glUniform1i(0, 0);
 
-		glBindImageTexture(0, envMap->id_cube_reflection, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
-		glBindImageTexture(1, envMap->id_cube_reflection, 1, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
-		glBindImageTexture(2, envMap->id_cube_reflection, 2, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
-		glBindImageTexture(3, envMap->id_cube_reflection, 3, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
-		glBindImageTexture(4, envMap->id_cube_reflection, 4, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
-		glBindImageTexture(5, envMap->id_cube_reflection, 5, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
-		glBindImageTexture(6, envMap->id_cube_reflection, 6, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(0, envMap->id_cube_reflection, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(1, envMap->id_cube_reflection, 1, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(2, envMap->id_cube_reflection, 2, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(3, envMap->id_cube_reflection, 3, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(4, envMap->id_cube_reflection, 4, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(5, envMap->id_cube_reflection, 5, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(6, envMap->id_cube_reflection, 6, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
 
 		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_buf_coeffs.m_id);
 

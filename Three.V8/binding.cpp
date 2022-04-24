@@ -60,6 +60,7 @@ GlobalDefinitions GameContext::s_globals =
 		{"print", GameContext::Print},
 		{"setCallback", GameContext::SetCallback},
 		{"now", GameContext::Now},
+		{"getGLError", GameContext::GetGLError}
 	},
 	{
 		{ "Object3D", WrapperObject3D::New,  WrapperObject3D::create_template },
@@ -304,4 +305,14 @@ void GameContext::Now(const v8::FunctionCallbackInfo<v8::Value>& args)
 	v8::HandleScope handle_scope(isolate);
 	double now = time_sec() * 1000.0;
 	args.GetReturnValue().Set(v8::Number::New(isolate, now));
+}
+
+#include <GL/glew.h>
+
+void GameContext::GetGLError(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	v8::Isolate* isolate = args.GetIsolate();
+	v8::HandleScope handle_scope(isolate);
+	unsigned err = glGetError();
+	args.GetReturnValue().Set(v8::Number::New(isolate, (double)err));
 }

@@ -77,4 +77,5 @@ private:
 	static void Print(const v8::FunctionCallbackInfo<v8::Value>& args);
 	static void SetCallback(const v8::FunctionCallbackInfo<v8::Value>& args);
 	static void Now(const v8::FunctionCallbackInfo<v8::Value>& args);
+	static void GetGLError(const v8::FunctionCallbackInfo<v8::Value>& args);
 };
