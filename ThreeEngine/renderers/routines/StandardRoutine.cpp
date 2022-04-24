@@ -246,10 +246,6 @@ float computeShadowCoef(in mat4 VPSB, sampler2D shadowTex)
 	float d = texture(shadowTex, shadowCoords.xy).x;
 	return clamp(1.0 - (shadowCoords.z - d)*1000.0, 0.0, 1.0);
 }
-
-#define TEX_IDX_REFLECTION (5+NUM_DIRECTIONAL_SHADOWS)
-#else
-#define TEX_IDX_REFLECTION 5
 #endif
 
 #if HAS_ENVIRONMENT_MAP
@@ -571,6 +567,9 @@ void StandardRoutine::s_generate_shaders(const Options& options, std::string& s_
 	if (options.has_environment_map)
 	{
 		defines += "#define HAS_ENVIRONMENT_MAP 1\n";
+		char line[64];
+		sprintf(line, "#define TEX_IDX_REFLECTION %d\n", 5 + options.num_directional_shadows);
+		defines += line;
 	}
 	else
 	{
