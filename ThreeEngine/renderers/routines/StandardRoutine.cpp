@@ -191,6 +191,30 @@ vec3 BRDF_GGX( const in vec3 lightDir, const in vec3 viewDir, const in vec3 norm
 	return F*(V*D);
 }
 
+vec2 DFGApprox( const in vec3 normal, const in vec3 viewDir, const in float roughness ) 
+{
+	float dotNV = saturate( dot( normal, viewDir ) );
+	const vec4 c0 = vec4( - 1, - 0.0275, - 0.572, 0.022 );
+	const vec4 c1 = vec4( 1, 0.0425, 1.04, - 0.04 );
+	vec4 r = roughness * c0 + c1;
+	float a004 = min( r.x * r.x, exp2( - 9.28 * dotNV ) ) * r.x + r.y;
+	vec2 fab = vec2( - 1.04, 1.04 ) * a004 + r.zw;
+	return fab;
+}
+
+void computeMultiscattering( const in vec3 normal, const in vec3 viewDir, const in vec3 specularColor, const in float specularF90, const in float roughness, inout vec3 singleScatter, inout vec3 multiScatter ) 
+{
+	vec2 fab = DFGApprox( normal, viewDir, roughness );
+	vec3 FssEss = specularColor * fab.x + specularF90 * fab.y;
+	float Ess = fab.x + fab.y;
+	float Ems = 1.0 - Ess;
+	vec3 Favg = specularColor + ( 1.0 - specularColor ) * 0.047619; // 1/21
+	vec3 Fms = FssEss * Favg / ( 1.0 - Ems * Favg );
+	singleScatter += FssEss;
+	multiScatter += Fms * Ems;
+}
+
+
 struct DirectionalLight
 {
 	mat4 shadowVPSBMatrix;
@@ -207,7 +231,7 @@ layout (std140, binding = 3) uniform DirectionalLights
 #endif
 
 #if NUM_DIRECTIONAL_SHADOWS>0
-layout (location = 5) uniform sampler2D uShadowTex[NUM_DIRECTIONAL_SHADOWS];
+layout (location = 5) uniform sampler2D uDirectionalShadowTex[NUM_DIRECTIONAL_SHADOWS];
 
 vec3 computeShadowCoords(in mat4 VPSB)
 {
@@ -215,14 +239,17 @@ vec3 computeShadowCoords(in mat4 VPSB)
 	return shadowCoords.xyz;
 }
 
-float computeShadowCoef(in mat4 VPSB, int shadow_id)
+float computeShadowCoef(in mat4 VPSB, sampler2D shadowTex)
 {
 	vec3 shadowCoords;
 	shadowCoords = computeShadowCoords(VPSB);
-	float d = texture(uShadowTex[shadow_id], shadowCoords.xy).x;
+	float d = texture(shadowTex, shadowCoords.xy).x;
 	return clamp(1.0 - (shadowCoords.z - d)*1000.0, 0.0, 1.0);
 }
 
+#define TEX_IDX_REFLECTION (5+NUM_DIRECTIONAL_SHADOWS)
+#else
+#define TEX_IDX_REFLECTION 5
 #endif
 
 #if HAS_ENVIRONMENT_MAP
@@ -254,6 +281,27 @@ vec3 shGetIrradianceAt( in vec3 normal, in vec4 shCoefficients[ 9 ] ) {
 
 	return result;
 }
+
+layout (location = TEX_IDX_REFLECTION) uniform samplerCube uReflectionMap;
+
+vec3 GetReflectionAt(in vec3 reflectVec, in samplerCube reflectMap, float roughness)
+{
+	float gloss;
+	if (roughness<0.053) 
+	{
+		gloss = 1.0;
+	}
+	else
+	{
+		float r2 = roughness*roughness;
+		float r4 = r2*r2;
+		gloss = log(2.0/r4 - 1.0)/log(2.0)/18.0;
+	}
+
+	float mip = (1.0-gloss)*6.0;
+	return textureLod(reflectMap, reflectVec, mip).xyz;
+}
+
 #endif
 
 layout (location = 0) out vec4 out0;
@@ -338,7 +386,7 @@ void main()
 #if NUM_DIRECTIONAL_SHADOWS>0
 		if (light_source.has_shadow!=0)
 		{
-			l_shadow = computeShadowCoef(light_source.shadowVPSBMatrix, shadow_id);
+			l_shadow = computeShadowCoef(light_source.shadowVPSBMatrix, uDirectionalShadowTex[shadow_id]);
 			shadow_id++;
 		}
 #endif
@@ -355,7 +403,18 @@ void main()
 #if HAS_ENVIRONMENT_MAP
 	{
 		vec3 irradiance = shGetIrradianceAt(norm, uSHCoefficients);
-		diffuse += irradiance * BRDF_Lambert( material.diffuseColor );
+		vec3 reflectVec = reflect(-viewDir, norm);
+		reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );
+		vec3 radiance = GetReflectionAt(reflectVec, uReflectionMap, material.roughness);		
+
+		vec3 singleScattering = vec3( 0.0 );
+		vec3 multiScattering = vec3( 0.0 );
+		vec3 cosineWeightedIrradiance = irradiance * RECIPROCAL_PI;
+		computeMultiscattering(norm, viewDir, material.specularColor, material.specularF90, material.roughness, singleScattering, multiScattering );
+		
+		specular +=  singleScattering * radiance;
+		specular +=  multiScattering * cosineWeightedIrradiance;
+		diffuse += material.diffuseColor * (1.0-(singleScattering + multiScattering))*cosineWeightedIrradiance;
 	}
 	vec3 col = emissive + specular;
 #else
@@ -636,7 +695,7 @@ void StandardRoutine::render(const RenderParams& params)
 		glActiveTexture(GL_TEXTURE4);
 		glBindTexture(GL_TEXTURE_2D, tex.tex_id);
 		glUniform1i(4, 4);
-	}
+	}	
 
 	if (m_options.num_directional_shadows > 0)
 	{
@@ -648,6 +707,14 @@ void StandardRoutine::render(const RenderParams& params)
 			values[i] = 5 + i;
 		}
 		glUniform1iv(5, m_options.num_directional_shadows, values.data());
+	}
+	int tex_idx_reflection = 5 + m_options.num_directional_shadows;
+
+	if (m_options.has_environment_map)
+	{
+		glActiveTexture(GL_TEXTURE0 + tex_idx_reflection);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, params.lights->environment_map->id_cube_reflection);
+		glUniform1i(tex_idx_reflection, tex_idx_reflection);
 	}
 
 	if (params.primitive->index_buf != nullptr)

@@ -3,7 +3,9 @@
 #include <cstdio>
 #include <cmath>
 #include <vector>
+#include <string>
 #include "EnvironmentMapCreator.h"
+#include "FilterCoeffs.hpp"
 
 const double PI = 3.14159265359;
 
@@ -12,7 +14,7 @@ const double PI = 3.14159265359;
 #include <xmmintrin.h>
 #include <mmintrin.h>
 
-void SHEval3(const float* pX, const float* pY, const float* pZ, float* pSH)
+inline void SHEval3(const float* pX, const float* pY, const float* pZ, float* pSH)
 {
 	__m128 fX, fY, fZ;
 	__m128 fC0, fC1, fS0, fS1, fTmpA, fTmpB, fTmpC;
@@ -71,24 +73,482 @@ inline void SHEval3(const float fX, const float fY, const float fZ, float* pSH)
 
 #endif
 
-EnvironmentMapCreator::EnvironmentMapCreator()
+static std::string g_compute_downsample =
+R"(#version 430
+layout (location = 0) uniform samplerCube tex_hi_res;
+layout (binding=0, rgba8) uniform imageCube tex_lo_res;
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+void get_dir_0( out vec3 dir, in float u, in float v )
 {
+	dir[0] = 1;
+	dir[1] = v;
+	dir[2] = -u;
+}
+void get_dir_1( out vec3 dir, in float u, in float v )
+{
+	dir[0] = -1;
+	dir[1] = v;
+	dir[2] = u;
+}
+void get_dir_2( out vec3 dir, in float u, in float v )
+{
+	dir[0] = u;
+	dir[1] = 1;
+	dir[2] = -v;
+}
+void get_dir_3( out vec3 dir, in float u, in float v )
+{
+	dir[0] = u;
+	dir[1] = -1;
+	dir[2] = v;
+}
+void get_dir_4( out vec3 dir, in float u, in float v )
+{
+	dir[0] = u;
+	dir[1] = v;
+	dir[2] = 1;
+}
+void get_dir_5( out vec3 dir, in float u, in float v )
+{
+	dir[0] = -u;
+	dir[1] = v;
+	dir[2] = -1;
+}
+
+float calcWeight( float u, float v )
+{
+	float val = u*u + v*v + 1;
+	return val*sqrt( val );
+}
+
+layout (location = 1) uniform float lod;
+
+void main()
+{
+	ivec3 id = ivec3(gl_GlobalInvocationID);
+	int res_lo = imageSize(tex_lo_res).x;
+	if (id.x < res_lo && id.y < res_lo)
+	{
+		float inv_res_lo = 1.0 / float(res_lo);
+		float u0 = ( float(id.x) * 2.0 + 1.0 - 0.75 ) * inv_res_lo - 1.0;
+		float u1 = ( float(id.x) * 2.0 + 1.0 + 0.75 ) * inv_res_lo - 1.0;
+
+		float v0 = ( float(id.y) * 2.0 + 1.0 - 0.75 ) * -inv_res_lo + 1.0;
+		float v1 = ( float(id.y) * 2.0 + 1.0 + 0.75 ) * -inv_res_lo + 1.0;
+
+		vec4 weights;
+		weights.x = calcWeight( u0, v0 );
+		weights.y = calcWeight( u1, v0 );
+		weights.z = calcWeight( u0, v1 );
+		weights.w = calcWeight( u1, v1 );
+
+		float wsum = 0.5 / ( weights.x + weights.y + weights.z + weights.w );
+		weights = weights*wsum + 0.125;
+
+		vec3 dir;
+		vec4 color;
+
+		switch ( id.z )
+		{
+		case 0:
+			get_dir_0( dir, u0, v0 );
+			color = textureLod(tex_hi_res, dir, lod) * weights.x;
+
+			get_dir_0( dir, u1, v0 );
+			color += textureLod(tex_hi_res, dir, lod) * weights.y;			
+
+			get_dir_0( dir, u0, v1 );
+			color += textureLod(tex_hi_res, dir, lod) * weights.z;
+
+			get_dir_0( dir, u1, v1 );
+			color += textureLod(tex_hi_res, dir, lod) * weights.w;
+			break;
+
+		case 1:
+			get_dir_1( dir, u0, v0 );
+			color = textureLod(tex_hi_res, dir, lod) * weights.x;
+
+			get_dir_1( dir, u1, v0 );
+			color += textureLod(tex_hi_res, dir, lod) * weights.y;			
+
+			get_dir_1( dir, u0, v1 );
+			color += textureLod(tex_hi_res, dir, lod) * weights.z;
+
+			get_dir_1( dir, u1, v1 );
+			color += textureLod(tex_hi_res, dir, lod) * weights.w;
+			break;
+
+		case 2:
+			get_dir_2( dir, u0, v0 );
+			color = textureLod(tex_hi_res, dir, lod) * weights.x;
+
+			get_dir_2( dir, u1, v0 );
+			color += textureLod(tex_hi_res, dir, lod) * weights.y;			
+
+			get_dir_2( dir, u0, v1 );
+			color += textureLod(tex_hi_res, dir, lod) * weights.z;
+
+			get_dir_2( dir, u1, v1 );
+			color += textureLod(tex_hi_res, dir, lod) * weights.w;
+			break;
+
+		case 3:
+			get_dir_3( dir, u0, v0 );
+			color = textureLod(tex_hi_res, dir, lod) * weights.x;
+
+			get_dir_3( dir, u1, v0 );
+			color += textureLod(tex_hi_res, dir, lod) * weights.y;			
+
+			get_dir_3( dir, u0, v1 );
+			color += textureLod(tex_hi_res, dir, lod) * weights.z;
+
+			get_dir_3( dir, u1, v1 );
+			color += textureLod(tex_hi_res, dir, lod) * weights.w;
+			break;
+
+		case 4:
+			get_dir_4( dir, u0, v0 );
+			color = textureLod(tex_hi_res, dir, lod) * weights.x;
+
+			get_dir_4( dir, u1, v0 );
+			color += textureLod(tex_hi_res, dir, lod) * weights.y;			
+
+			get_dir_4( dir, u0, v1 );
+			color += textureLod(tex_hi_res, dir, lod) * weights.z;
+
+			get_dir_4( dir, u1, v1 );
+			color += textureLod(tex_hi_res, dir, lod) * weights.w;
+			break;
+
+		case 5:
+			get_dir_5( dir, u0, v0 );
+			color = textureLod(tex_hi_res, dir, lod) * weights.x;
+
+			get_dir_5( dir, u1, v0 );
+			color += textureLod(tex_hi_res, dir, lod) * weights.y;			
+
+			get_dir_5( dir, u0, v1 );
+			color += textureLod(tex_hi_res, dir, lod) * weights.z;
+
+			get_dir_5( dir, u1, v1 );
+			color += textureLod(tex_hi_res, dir, lod) * weights.w;
+			break;
+		}
+
+		imageStore(tex_lo_res, id, color);
+	}
+}
+)";
+
+static std::string g_compute_filter =
+R"(#version 430
+layout (location = 0) uniform samplerCube tex_in;
+layout (binding=0, rgba8) uniform imageCube tex_out0;
+layout (binding=1, rgba8) uniform imageCube tex_out1;
+layout (binding=2, rgba8) uniform imageCube tex_out2;
+layout (binding=3, rgba8) uniform imageCube tex_out3;
+layout (binding=4, rgba8) uniform imageCube tex_out4;
+layout (binding=5, rgba8) uniform imageCube tex_out5;
+layout (binding=6, rgba8) uniform imageCube tex_out6;
+
+
+layout (std140, binding = 0) uniform Coeffs
+{
+	vec4 coeffs[7][5][3][24];
+};
+
+#define NUM_TAPS 32
+#define BASE_RESOLUTION 128
+
+layout(local_size_x = 64) in;
+
+void get_dir( out vec3 dir, in vec2 uv, in int face )
+{
+	switch ( face )
+	{
+	case 0:
+		dir[0] = 1;
+		dir[1] = uv.y;
+		dir[2] = -uv.x;
+		break;
+	case 1:
+		dir[0] = -1;
+		dir[1] = uv.y;
+		dir[2] = uv.x;
+		break;
+	case 2:
+		dir[0] = uv.x;
+		dir[1] = 1;
+		dir[2] = -uv.y;
+		break;
+	case 3:
+		dir[0] = uv.x;
+		dir[1] = -1;
+		dir[2] = uv.y;
+		break;
+	case 4:
+		dir[0] = uv.x;
+		dir[1] = uv.y;
+		dir[2] = 1;
+		break;
+	case 6:
+		dir[0] = -uv.x;
+		dir[1] = uv.y;
+		dir[2] = -1;
+		break;
+	}
+}
+
+void main()
+{
+	ivec3 id = ivec3(gl_GlobalInvocationID);
+	int level = 0;
+	if ( id.x < ( 128 * 128 ) )
+	{
+		level = 0;
+	}
+	else if ( id.x < ( 128 * 128 + 64 * 64 ) )
+	{
+		level = 1;
+		id.x -= ( 128 * 128 );
+	}
+	else if ( id.x < ( 128 * 128 + 64 * 64 + 32 * 32 ) )
+	{
+		level = 2;
+		id.x -= ( 128 * 128 + 64 * 64 );
+	}
+	else if ( id.x < ( 128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 ) )
+	{
+		level = 3;
+		id.x -= ( 128 * 128 + 64 * 64 + 32 * 32 );
+	}
+	else if ( id.x < ( 128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 ) )
+	{
+		level = 4;
+		id.x -= ( 128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 );
+	}
+	else if ( id.x < ( 128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 ) )
+	{
+		level = 5;
+		id.x -= ( 128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 );
+	}
+	else if ( id.x < ( 128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2 ) )
+	{
+		level = 6;
+		id.x -= ( 128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 );
+	}
+	else
+	{
+		return;
+	}
+
+	vec3 dir, adir, frameZ;
+	{
+		id.z = id.y;
+		int res = BASE_RESOLUTION >> level;
+		id.y = id.x / res;
+		id.x -= id.y * res;
+
+		vec2 uv;
+		uv.x = ( float(id.x) * 2.0 + 1.0 ) / float(res) - 1.0;
+		uv.y = -( float(id.y) * 2.0 + 1.0 ) / float(res) + 1.0;
+
+		get_dir( dir, uv, id.z );
+		frameZ = normalize( dir );
+
+		adir = abs( dir );		
+	}
+
+	vec4 color = vec4(0);
+	for ( int axis = 0; axis < 3; axis++ )
+	{
+		int otherAxis0 = 1 - ( axis & 1 ) - ( axis >> 1 );
+		int otherAxis1 = 2 - ( axis >> 1 );
+
+		float frameweight = ( max( adir[otherAxis0], adir[otherAxis1] ) - 0.75 ) / 0.25;
+		if ( frameweight > 0 )
+		{
+			vec3 UpVector;
+			switch ( axis )
+			{
+			case 0:
+				UpVector = vec3( 1, 0, 0 );
+				break;
+			case 1:
+				UpVector = vec3( 0, 1, 0 );
+				break;
+			default:
+				UpVector = vec3( 0, 0, 1 );
+				break;
+			}
+
+			vec3 frameX = normalize( cross( UpVector, frameZ ) );
+			vec3 frameY = cross( frameZ, frameX );
+
+			float Nx = dir[otherAxis0];
+			float Ny = dir[otherAxis1];
+			float Nz = adir[axis];
+
+			float NmaxXY = max( abs( Ny ), abs( Nx ) );
+			Nx /= NmaxXY;
+			Ny /= NmaxXY;
+
+			float theta;
+			if ( Ny < Nx )
+			{
+				if ( Ny <= -0.999 )
+					theta = Nx;
+				else
+					theta = Ny;
+			}
+			else
+			{
+				if ( Ny >= 0.999 )
+					theta = -Nx;
+				else
+					theta = -Ny;
+			}
+
+			float phi;
+			if ( Nz <= -0.999 )
+			{
+				phi = -NmaxXY;
+			}
+			else if ( Nz >= 0.999 )
+			{
+				phi = NmaxXY;
+			}
+			else
+			{
+				phi = Nz;
+			}
+
+			float theta2 = theta*theta;
+			float phi2 = phi*phi;
+			
+			for ( int iSuperTap = 0; iSuperTap < NUM_TAPS / 4; iSuperTap++ )
+			{
+				int index = ( NUM_TAPS / 4 ) * axis + iSuperTap;
+				vec4 coeffsDir0[3];
+				vec4 coeffsDir1[3];
+				vec4 coeffsDir2[3];
+				vec4 coeffsLevel[3];
+				vec4 coeffsWeight[3];
+				
+				for ( int iCoeff = 0; iCoeff < 3; iCoeff++ )
+				{
+					coeffsDir0[iCoeff] = coeffs[level][0][iCoeff][index];
+					coeffsDir1[iCoeff] = coeffs[level][1][iCoeff][index];
+					coeffsDir2[iCoeff] = coeffs[level][2][iCoeff][index];
+					coeffsLevel[iCoeff] = coeffs[level][3][iCoeff][index];
+					coeffsWeight[iCoeff] = coeffs[level][4][iCoeff][index];
+				}
+
+				for ( int iSubTap = 0; iSubTap < 4; iSubTap++ )
+				{
+					vec3 sample_dir
+						= frameX * ( coeffsDir0[0][iSubTap] + coeffsDir0[1][iSubTap] * theta2 + coeffsDir0[2][iSubTap] * phi2 )
+						+ frameY * ( coeffsDir1[0][iSubTap] + coeffsDir1[1][iSubTap] * theta2 + coeffsDir1[2][iSubTap] * phi2 )
+						+ frameZ * ( coeffsDir2[0][iSubTap] + coeffsDir2[1][iSubTap] * theta2 + coeffsDir2[2][iSubTap] * phi2 );
+
+					float sample_level = coeffsLevel[0][iSubTap] + coeffsLevel[1][iSubTap] * theta2 + coeffsLevel[2][iSubTap] * phi2;
+
+					float sample_weight = coeffsWeight[0][iSubTap] + coeffsWeight[1][iSubTap] * theta2 + coeffsWeight[2][iSubTap] * phi2;
+					sample_weight *= frameweight;
+
+					// adjust for jacobian
+					sample_dir /= max( abs( sample_dir.x ), max( abs( sample_dir.y ), abs( sample_dir.z ) ) );
+					sample_level += 0.75f * log2( dot( sample_dir, sample_dir ) );
+
+					// sample cubemap
+					color.xyz += textureLod(tex_in, sample_dir, sample_level).xyz * sample_weight;
+					color.w += sample_weight;
+				}
+			}
+		}		
+	}
+	color /= color.w;
+	color.x = max( 0, color.x );
+	color.y = max( 0, color.y );
+	color.z = max( 0, color.z );
+	color.w = 1;
+
+	switch ( level )
+	{
+	case 0:
+		imageStore(tex_out0, id, color);
+		break;
+	case 1:
+		imageStore(tex_out1, id, color);
+		break;
+	case 2:
+		imageStore(tex_out2, id, color);
+		break;
+	case 3:
+		imageStore(tex_out3, id, color);
+		break;
+	case 4:
+		imageStore(tex_out4, id, color);
+		break;
+	case 5:
+		imageStore(tex_out5, id, color);
+		break;
+	case 6:
+		imageStore(tex_out6, id, color);
+		break;
+	}
+	
+}
+)";
+
+EnvironmentMapCreator::EnvironmentMapCreator() : m_buf_coeffs(sizeof(s_coeffs), GL_UNIFORM_BUFFER)
+{
+	m_comp_downsample = std::unique_ptr<GLShader>(new GLShader(GL_COMPUTE_SHADER, g_compute_downsample.c_str()));
+	m_prog_downsample = (std::unique_ptr<GLProgram>)(new GLProgram(*m_comp_downsample));
+
+	m_comp_filter = std::unique_ptr<GLShader>(new GLShader(GL_COMPUTE_SHADER, g_compute_filter.c_str()));
+	m_prog_filter = (std::unique_ptr<GLProgram>)(new GLProgram(*m_comp_filter));
+	 
 	glGenFramebuffers(2, m_down_bufs);
 
 	glGenTextures(1, &m_tex_128);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex_128);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 	glTexStorage2D(GL_TEXTURE_CUBE_MAP, 1, GL_RGBA8, 128, 128);
 
+
+	glGenTextures(1, &m_tex_src);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex_src);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glTexStorage2D(GL_TEXTURE_CUBE_MAP, 7, GL_RGBA8, 128, 128);
+
+	m_buf_coeffs.upload(s_coeffs);
 }
 
 EnvironmentMapCreator::~EnvironmentMapCreator()
 {
+	glDeleteTextures(1, &m_tex_src);
 	glDeleteTextures(1, &m_tex_128);
 	glDeleteFramebuffers(2, m_down_bufs);
 }
 
-void EnvironmentMapCreator::Create(int width, int height, const GLCubemap * cubemap, EnvironmentMap * envMap)
+void EnvironmentMapCreator::Create(const GLCubemap * cubemap, EnvironmentMap * envMap)
 {
+	int width, height;
+	glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap->tex_id);
+	glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_TEXTURE_WIDTH, &width);
+	glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_TEXTURE_HEIGHT, &height);
+
 	// w_h => 128_128
 	for (int i = 0; i < 6; i++)
 	{	
@@ -199,6 +659,66 @@ void EnvironmentMapCreator::Create(int width, int height, const GLCubemap * cube
 	}
 
 	envMap->updateConstant();
+
+	// downsample pass
+	glUseProgram(m_prog_downsample->m_id);
+
+	{
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT_EXT);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex_128);
+		glUniform1i(0, 0);
+
+		glBindImageTexture(0, m_tex_src, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+
+		glUniform1f(1, 0.0f);
+
+		glDispatchCompute(128 / 8, 128 / 8, 6);
+	}
+
+	for (int level = 0; level < 6; level++)
+	{ 
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT_EXT);
+		
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex_src);
+		glUniform1i(0, 0);
+
+		glBindImageTexture(0, m_tex_src, level + 1, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+
+		glUniform1f(1, (float)level);
+
+		int w, h;		
+		glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, level + 1, GL_TEXTURE_WIDTH, &w);
+		glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, level + 1, GL_TEXTURE_HEIGHT, &h);		
+		glDispatchCompute(w/8, h/8, 6);
+	}
+
+	// filter pass
+	glUseProgram(m_prog_filter->m_id);
+
+	{
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT_EXT);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex_src);
+		glUniform1i(0, 0);
+
+		glBindImageTexture(0, envMap->id_cube_reflection, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(1, envMap->id_cube_reflection, 1, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(2, envMap->id_cube_reflection, 2, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(3, envMap->id_cube_reflection, 3, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(4, envMap->id_cube_reflection, 4, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(5, envMap->id_cube_reflection, 5, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(6, envMap->id_cube_reflection, 6, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+
+		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_buf_coeffs.m_id);
+
+		glDispatchCompute((128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2 + 63) / 64, 6, 1);
+	}
+
+	glUseProgram(0);
+
 }
 
 void EnvironmentMapCreator::Create(const CubeImage* image, EnvironmentMap* envMap)
@@ -206,10 +726,10 @@ void EnvironmentMapCreator::Create(const CubeImage* image, EnvironmentMap* envMa
 	GLCubemap cubemap;
 	cubemap.load_memory_bgr(image->images[0].width(), image->images[0].height(),
 		image->images[0].data(), image->images[1].data(), image->images[2].data(), image->images[3].data(), image->images[4].data(), image->images[5].data());
-	Create(image->images[0].width(), image->images[0].height(), &cubemap, envMap);
+	Create(&cubemap, envMap);
 }
 
 void EnvironmentMapCreator::Create(const CubeBackground* background, EnvironmentMap* envMap)
 {
-	Create(background->width, background->height, &background->cubemap, envMap);
+	Create(&background->cubemap, envMap);
 }

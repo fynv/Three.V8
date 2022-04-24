@@ -275,5 +275,8 @@
     <ClInclude Include="lights\EnvironmentMapCreator.h">
       <Filter>Header Files\lights</Filter>
     </ClInclude>
+    <ClInclude Include="lights\FilterCoeffs.hpp">
+      <Filter>Header Files\lights</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

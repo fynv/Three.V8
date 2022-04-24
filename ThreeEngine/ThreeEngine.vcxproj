@@ -170,6 +170,7 @@
     <ClInclude Include="lights\DirectionalLightShadow.h" />
     <ClInclude Include="lights\EnvironmentMap.h" />
     <ClInclude Include="lights\EnvironmentMapCreator.h" />
+    <ClInclude Include="lights\FilterCoeffs.hpp" />
     <ClInclude Include="lights\Light.h" />
     <ClInclude Include="lights\Lights.h" />
     <ClInclude Include="loaders\FileLoader.h" />
