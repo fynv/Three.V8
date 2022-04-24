@@ -523,8 +523,11 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 		}
 		if (mesh_out.primitives.size() > 0)
 		{
-			mesh_out.weights.resize(mesh_out.primitives[0].num_targets, 0.0f);
-			mesh_out.buf_weights = std::unique_ptr<GLDynBuffer>(new GLDynBuffer(sizeof(float) * mesh_out.primitives[0].num_targets, GL_SHADER_STORAGE_BUFFER));
+			if (mesh_out.primitives[0].num_targets > 0)
+			{
+				mesh_out.weights.resize(mesh_out.primitives[0].num_targets, 0.0f);
+				mesh_out.buf_weights = std::unique_ptr<GLDynBuffer>(new GLDynBuffer(sizeof(float) * mesh_out.primitives[0].num_targets, GL_SHADER_STORAGE_BUFFER));
+			}
 		}
 	}
 	
