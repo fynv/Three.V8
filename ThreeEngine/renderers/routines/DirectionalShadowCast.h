@@ -33,7 +33,22 @@ public:
 
 private:
 	Options m_options;
-	static void s_generate_shaders(const Options& options, std::string& s_vertex, std::string& s_frag);
+
+	struct Bindings
+	{
+		int location_attrib_pos;
+		int binding_shadow;
+		int binding_model;
+		int binding_material;
+		int location_attrib_color;
+		int location_varying_alpha;
+		int location_attrib_uv;
+		int location_varying_uv;
+		int location_tex_color;		
+	};
+	Bindings m_bindings;
+
+	static void s_generate_shaders(const Options& options, Bindings& bindings, std::string& s_vertex, std::string& s_frag);
 
 	std::unique_ptr<GLShader> m_vert_shader;
 	std::unique_ptr<GLShader> m_frag_shader;

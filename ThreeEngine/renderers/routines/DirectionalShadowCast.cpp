@@ -5,31 +5,31 @@
 
 static std::string g_vertex =
 R"(#version 430
-layout (location = 0) in vec3 aPos;
+#DEFINES#
 
-layout (std140, binding = 0) uniform Shadow
+layout (location = LOCATION_ATTRIB_POS) in vec3 aPos;
+
+layout (std140, binding = BINDING_SHADOW) uniform Shadow
 {
 	mat4 uProjMat;
 	mat4 uViewMat;	
 };
 
-layout (std140, binding = 1) uniform Model
+layout (std140, binding = BINDING_MODEL) uniform Model
 {
 	mat4 uModelMat;
 	mat4 uNormalMat;
 };
 
-#DEFINES#
-
 #if ALPHA
 #if HAS_COLOR
-layout (location = 1) in vec4 aColor;
-layout (location = 0) out float vAlpha;
+layout (location = LOCATION_ATTRIB_COLOR) in vec4 aColor;
+layout (location = LOCATION_VARYING_ALPHA) out float vAlpha;
 #endif
 
 #if HAS_UV
-layout (location = 2) in vec2 aUV;
-layout (location = 1) out vec2 vUV;
+layout (location = LOCATION_ATTRIB_UV) in vec2 aUV;
+layout (location = LOCATION_VARYING_UV) out vec2 vUV;
 #endif
 #endif
 
@@ -56,7 +56,7 @@ R"(#version 430
 #DEFINES#
 
 #if ALPHA
-layout (std140, binding = 2) uniform Material
+layout (std140, binding = BINDING_MATERIAL) uniform Material
 {
 	vec4 uColor;
 	vec4 uEmissive;
@@ -69,15 +69,15 @@ layout (std140, binding = 2) uniform Material
 
 
 #if HAS_COLOR
-layout (location = 0) in float vAlpha;
+layout (location = LOCATION_VARYING_ALPHA) in float vAlpha;
 #endif
 
 #if HAS_UV
-layout (location = 1) in vec2 vUV;
+layout (location = LOCATION_VARYING_UV) in vec2 vUV;
 #endif
 
 #if HAS_COLOR_TEX
-layout (location = 0) uniform sampler2D uTexColor;
+layout (location = LOCATION_TEX_COLOR) uniform sampler2D uTexColor;
 #endif
 
 #endif
@@ -118,53 +118,130 @@ inline void replace(std::string& str, const char* target, const char* source)
 }
 
 
-void DirectionalShadowCast::s_generate_shaders(const Options& options, std::string& s_vertex, std::string& s_frag)
+void DirectionalShadowCast::s_generate_shaders(const Options& options, Bindings& bindings, std::string& s_vertex, std::string& s_frag)
 {
 	s_vertex = g_vertex;
 	s_frag = g_frag;
 
 	std::string defines = "";
+
+	{
+		bindings.location_attrib_pos = 0;
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_ATTRIB_POS %d\n", bindings.location_attrib_pos);
+			defines += line;
+		}
+	}
+
+	{
+		bindings.binding_shadow = 0;
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_SHADOW %d\n", bindings.binding_shadow);
+			defines += line;
+		}
+	}
+
+	{
+		bindings.binding_model = bindings.binding_shadow + 1;
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_MODEL %d\n", bindings.binding_model);
+			defines += line;
+		}
+	}	
 	
 	if (options.alpha_mode == AlphaMode::Opaque)
 	{
 		defines += "#define ALPHA 0\n";
-	}
-
-
-	if (options.alpha_mode == AlphaMode::Mask)
-	{
-		defines += "#define ALPHA 1\n";
-		defines += "#define ALPHA_MASK 1\n";
+		bindings.binding_material = bindings.binding_model;
 	}
 	else
 	{
-		defines += "#define ALPHA_MASK 0\n";
-	}
-
-	if (options.alpha_mode == AlphaMode::Blend)
-	{
 		defines += "#define ALPHA 1\n";
-	}	
+
+		{
+			bindings.binding_material = bindings.binding_model + 1;
+			{
+				char line[64];
+				sprintf(line, "#define BINDING_MATERIAL %d\n", bindings.binding_material);
+				defines += line;
+			}
+		}
+
+		if (options.alpha_mode == AlphaMode::Mask)
+		{
+			defines += "#define ALPHA_MASK 1\n";
+		}
+		else if (options.alpha_mode == AlphaMode::Blend)
+		{
+			defines += "#define ALPHA_MASK 0\n";
+		}
+	}
 
 	if (options.has_color)
 	{
 		defines += "#define HAS_COLOR 1\n";
+
+		bindings.location_attrib_color = bindings.location_attrib_pos + 1;
+		bindings.location_varying_alpha = 0;
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_ATTRIB_COLOR %d\n", bindings.location_attrib_color);
+			defines += line;
+		}
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_VARYING_ALPHA %d\n", bindings.location_varying_alpha);
+			defines += line;
+		}
+
+		bindings.location_attrib_uv = 2;
+		bindings.location_varying_uv = 1;
 	}
 	else
 	{
 		defines += "#define HAS_COLOR 0\n";
+		bindings.location_attrib_color = bindings.location_attrib_pos;
+		bindings.location_varying_alpha = -1;
 	}	
 
 	if (options.has_color_texture)
 	{
 		defines += "#define HAS_UV 1\n";
 		defines += "#define HAS_COLOR_TEX 1\n";
+
+		bindings.location_attrib_uv = bindings.location_attrib_color + 1;
+		bindings.location_varying_uv = bindings.location_varying_alpha + 1;
+		bindings.location_tex_color = 0;
+
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_ATTRIB_UV %d\n", bindings.location_attrib_uv);
+			defines += line;
+		}
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_VARYING_UV %d\n", bindings.location_varying_uv);
+			defines += line;
+		}
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_TEX_COLOR %d\n", bindings.location_tex_color);
+			defines += line;
+		}
 	}
 	else
 	{
 		defines += "#define HAS_UV 0\n";
 		defines += "#define HAS_COLOR_TEX 0\n";
+
+		bindings.location_attrib_uv = bindings.location_attrib_color;
+		bindings.location_varying_uv = bindings.location_varying_alpha;
+		bindings.location_tex_color = -1;
 	}	
+	
 
 	replace(s_vertex, "#DEFINES#", defines.c_str());
 	replace(s_frag, "#DEFINES#", defines.c_str());
@@ -174,7 +251,7 @@ void DirectionalShadowCast::s_generate_shaders(const Options& options, std::stri
 DirectionalShadowCast::DirectionalShadowCast(const Options& options) : m_options(options)
 {
 	std::string s_vertex, s_frag;
-	s_generate_shaders(options, s_vertex, s_frag);
+	s_generate_shaders(options, m_bindings, s_vertex, s_frag);
 
 	m_vert_shader = std::unique_ptr<GLShader>(new GLShader(GL_VERTEX_SHADER, s_vertex.c_str()));
 	m_frag_shader = std::unique_ptr<GLShader>(new GLShader(GL_FRAGMENT_SHADER, s_frag.c_str()));
@@ -201,40 +278,40 @@ void DirectionalShadowCast::render(const RenderParams& params)
 	}
 
 	glUseProgram(m_prog->m_id);
-	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.constant_shadow->m_id);
-	glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.constant_model->m_id);
+	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_shadow, params.constant_shadow->m_id);
+	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_model, params.constant_model->m_id);
 
 	if (m_options.alpha_mode != AlphaMode::Opaque)
 	{
-		glBindBufferBase(GL_UNIFORM_BUFFER, 2, material.constant_material.m_id);
+		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_material, material.constant_material.m_id);
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, geo.pos_buf->m_id);
-	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
-	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(m_bindings.location_attrib_pos, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
+	glEnableVertexAttribArray(m_bindings.location_attrib_pos);
 
 	if (m_options.alpha_mode != AlphaMode::Opaque)
 	{
 		if (m_options.has_color)
 		{
 			glBindBuffer(GL_ARRAY_BUFFER, params.primitive->color_buf->m_id);
-			glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
-			glEnableVertexAttribArray(1);
+			glVertexAttribPointer(m_bindings.location_attrib_color, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
+			glEnableVertexAttribArray(m_bindings.location_attrib_color);
 		}
 
 		if (m_options.has_color_texture)
 		{
 			glBindBuffer(GL_ARRAY_BUFFER, params.primitive->uv_buf->m_id);
-			glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
-			glEnableVertexAttribArray(2);
+			glVertexAttribPointer(m_bindings.location_attrib_uv, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+			glEnableVertexAttribArray(m_bindings.location_attrib_uv);
 		}
 
 		if (m_options.has_color_texture)
 		{
 			const GLTexture2D& tex = *params.tex_list[material.tex_idx_map];
-			glActiveTexture(GL_TEXTURE0);
+			glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_color);
 			glBindTexture(GL_TEXTURE_2D, tex.tex_id);
-			glUniform1i(0, 0);
+			glUniform1i(m_bindings.location_tex_color, m_bindings.location_tex_color);
 		}
 	}	
 

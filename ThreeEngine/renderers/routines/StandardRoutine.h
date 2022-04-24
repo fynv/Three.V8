@@ -41,7 +41,39 @@ public:
 
 private:
 	Options m_options;
-	static void s_generate_shaders(const Options& options, std::string& s_vertex, std::string& s_frag);
+
+	struct Bindings
+	{
+		int location_attrib_pos;
+		int location_attrib_norm;
+		int binding_camera;
+		int binding_model;
+		int location_varying_viewdir;
+		int location_varying_norm;
+		int binding_material;
+		int location_attrib_color;
+		int location_varying_color;
+		int location_attrib_uv;
+		int location_varying_uv;
+		int location_tex_color;
+		int location_tex_metalness;
+		int location_tex_roughness;
+		int location_tex_normal;
+		int location_attrib_tangent;
+		int location_varying_tangent;
+		int location_attrib_bitangent;
+		int location_varying_bitangent;
+		int location_tex_emissive;
+		int location_varying_world_pos;
+		int binding_directional_lights;
+		int location_tex_directional_shadow;
+		int binding_environment_map;
+		int location_tex_reflection_map;
+	};
+
+	Bindings m_bindings;
+
+	static void s_generate_shaders(const Options& options, Bindings& bindings, std::string& s_vertex, std::string& s_frag);
 
 	std::unique_ptr<GLShader> m_vert_shader;
 	std::unique_ptr<GLShader> m_frag_shader;

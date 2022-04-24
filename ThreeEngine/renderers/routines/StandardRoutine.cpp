@@ -5,10 +5,13 @@
 
 static std::string g_vertex =
 R"(#version 430
-layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aNorm;
 
-layout (std140, binding = 0) uniform Camera
+#DEFINES#
+
+layout (location = LOCATION_ATTRIB_POS) in vec3 aPos;
+layout (location = LOCATION_ATTRIB_NORM) in vec3 aNorm;
+
+layout (std140, binding = BINDING_CAMERA) uniform Camera
 {
 	mat4 uProjMat;
 	mat4 uViewMat;	
@@ -17,35 +20,33 @@ layout (std140, binding = 0) uniform Camera
 	vec3 uEyePos;
 };
 
-layout (std140, binding = 1) uniform Model
+layout (std140, binding = BINDING_MODEL) uniform Model
 {
 	mat4 uModelMat;
 	mat4 uNormalMat;
 };
 
-layout (location = 0) out vec3 vViewDir;
-layout (location = 1) out vec3 vNorm;
-
-#DEFINES#
+layout (location = LOCATION_VARYING_VIEWDIR) out vec3 vViewDir;
+layout (location = LOCATION_VARYING_NORM) out vec3 vNorm;
 
 #if HAS_COLOR
-layout (location = 2) in vec4 aColor;
-layout (location = 2) out vec4 vColor;
+layout (location = LOCATION_ATTRIB_COLOR) in vec4 aColor;
+layout (location = LOCATION_VARYING_COLOR) out vec4 vColor;
 #endif
 
 #if HAS_UV
-layout (location = 3) in vec2 aUV;
-layout (location = 3) out vec2 vUV;
+layout (location = LOCATION_ATTRIB_UV) in vec2 aUV;
+layout (location = LOCATION_ATTRIB_UV) out vec2 vUV;
 #endif
 
 #if HAS_NORMAL_MAP
-layout (location = 4) in vec3 aTangent;
-layout (location = 4) out vec3 vTangent;
-layout (location = 5) in vec3 aBitangent;
-layout (location = 5) out vec3 vBitangent;
+layout (location = LOCATION_ATTRIB_TANGENT) in vec3 aTangent;
+layout (location = LOCATION_VARYING_TANGENT) out vec3 vTangent;
+layout (location = LOCATION_ATTRIB_BITANGENT) in vec3 aBitangent;
+layout (location = LOCATION_VARYING_BITANGENT) out vec3 vBitangent;
 #endif
 
-layout (location = 6) out vec3 vWorldPos;
+layout (location = LOCATION_VARYING_WORLD_POS) out vec3 vWorldPos;
 
 void main()
 {
@@ -76,10 +77,12 @@ void main()
 
 static std::string g_frag =
 R"(#version 430
-layout (location = 0) in vec3 vViewDir;
-layout (location = 1) in vec3 vNorm;
+#DEFINES#
 
-layout (std140, binding = 2) uniform Material
+layout (location = LOCATION_VARYING_VIEWDIR) in vec3 vViewDir;
+layout (location = LOCATION_VARYING_NORM) in vec3 vNorm;
+
+layout (std140, binding = BINDING_MATERIAL) uniform Material
 {
 	vec4 uColor;
 	vec4 uEmissive;
@@ -90,39 +93,37 @@ layout (std140, binding = 2) uniform Material
 	int uDoubleSided;
 };
 
-#DEFINES#
-
 #if HAS_COLOR
-layout (location = 2) in vec4 vColor;
+layout (location = LOCATION_VARYING_COLOR) in vec4 vColor;
 #endif
 
 #if HAS_UV
-layout (location = 3) in vec2 vUV;
+layout (location = LOCATION_VARYING_UV) in vec2 vUV;
 #endif
 
 #if HAS_COLOR_TEX
-layout (location = 0) uniform sampler2D uTexColor;
+layout (location = LOCATION_TEX_COLOR) uniform sampler2D uTexColor;
 #endif
 
 #if HAS_METALNESS_MAP
-layout (location = 1) uniform sampler2D uTexMetalness;
+layout (location = LOCATION_TEX_METALNESS) uniform sampler2D uTexMetalness;
 #endif
 
 #if HAS_ROUGHNESS_MAP
-layout (location = 2) uniform sampler2D uTexRoughness;
+layout (location = LOCATION_TEX_ROUGHNESS) uniform sampler2D uTexRoughness;
 #endif
 
 #if HAS_NORMAL_MAP
-layout (location = 3) uniform sampler2D uTexNormal;
-layout (location = 4) in vec3 vTangent;
-layout (location = 5) in vec3 vBitangent;
+layout (location = LOCATION_TEX_NORMAL) uniform sampler2D uTexNormal;
+layout (location = LOCATION_VARYING_TANGENT) in vec3 vTangent;
+layout (location = LOCATION_VARYING_BITANGENT) in vec3 vBitangent;
 #endif
+
+layout (location = LOCATION_VARYING_WORLD_POS) in vec3 vWorldPos;
 
 #if HAS_EMISSIVE_MAP
-layout (location = 4) uniform sampler2D uTexEmissive;
+layout (location = LOCATION_TEX_EMISSIVE) uniform sampler2D uTexEmissive;
 #endif
-
-layout (location = 6) in vec3 vWorldPos;
 
 struct IncidentLight {
 	vec3 color;
@@ -224,14 +225,14 @@ struct DirectionalLight
 };
 
 #if NUM_DIRECTIONAL_LIGHTS>0
-layout (std140, binding = 3) uniform DirectionalLights
+layout (std140, binding = BINDING_DIRECTIONAL_LIGHTS) uniform DirectionalLights
 {
 	DirectionalLight uDirectionalLights[NUM_DIRECTIONAL_LIGHTS];
 };
 #endif
 
 #if NUM_DIRECTIONAL_SHADOWS>0
-layout (location = 5) uniform sampler2D uDirectionalShadowTex[NUM_DIRECTIONAL_SHADOWS];
+layout (location = LOCATION_TEX_DIRECTIONAL_SHADOW) uniform sampler2D uDirectionalShadowTex[NUM_DIRECTIONAL_SHADOWS];
 
 vec3 computeShadowCoords(in mat4 VPSB)
 {
@@ -249,7 +250,7 @@ float computeShadowCoef(in mat4 VPSB, sampler2D shadowTex)
 #endif
 
 #if HAS_ENVIRONMENT_MAP
-layout (std140, binding = 4) uniform EnvironmentMap
+layout (std140, binding = BINDING_ENVIRONMEN_MAP) uniform EnvironmentMap
 {
 	vec4 uSHCoefficients[9];
 };
@@ -278,7 +279,7 @@ vec3 shGetIrradianceAt( in vec3 normal, in vec4 shCoefficients[ 9 ] ) {
 	return result;
 }
 
-layout (location = TEX_IDX_REFLECTION) uniform samplerCube uReflectionMap;
+layout (location = LOCATION_TEX_REFLECTION_MAP) uniform samplerCube uReflectionMap;
 
 vec3 GetReflectionAt(in vec3 reflectVec, in samplerCube reflectMap, float roughness)
 {
@@ -452,12 +453,67 @@ inline void replace(std::string& str, const char* target, const char* source)
 	}
 }
 
-void StandardRoutine::s_generate_shaders(const Options& options, std::string& s_vertex, std::string& s_frag)
+void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindings, std::string& s_vertex, std::string& s_frag)
 {
 	s_vertex = g_vertex;
 	s_frag = g_frag;
 
 	std::string defines = "";
+
+	{
+		bindings.location_attrib_pos = 0;
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_ATTRIB_POS %d\n", bindings.location_attrib_pos);
+			defines += line;
+		}
+	}
+
+	{
+		bindings.location_attrib_norm = bindings.location_attrib_pos+1;
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_ATTRIB_NORM %d\n", bindings.location_attrib_norm);
+			defines += line;
+		}
+	}
+
+	{
+		bindings.binding_camera = 0;
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_CAMERA %d\n", bindings.binding_camera);
+			defines += line;
+		}
+	}
+
+	{
+		bindings.binding_model = bindings.binding_camera + 1;
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_MODEL %d\n", bindings.binding_model);
+			defines += line;
+		}
+	}
+
+	{
+		bindings.location_varying_viewdir = 0;
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_VARYING_VIEWDIR %d\n", bindings.location_varying_viewdir);
+			defines += line;
+		}
+	}
+
+	{
+		bindings.location_varying_norm = bindings.location_varying_viewdir + 1;
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_VARYING_NORM %d\n", bindings.location_varying_norm);
+			defines += line;
+		}
+	}
+
 
 	if (options.alpha_mode == AlphaMode::Mask)
 	{
@@ -487,13 +543,38 @@ void StandardRoutine::s_generate_shaders(const Options& options, std::string& s_
 		defines += "#define IS_HIGHTLIGHT 0\n";
 	}
 
+	{
+		bindings.binding_material = bindings.binding_model + 1;
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_MATERIAL %d\n", bindings.binding_material);
+			defines += line;
+		}
+	}
+
 	if (options.has_color)
 	{
 		defines += "#define HAS_COLOR 1\n";
+		bindings.location_attrib_color = bindings.location_attrib_norm + 1;
+		bindings.location_varying_color = bindings.location_varying_norm + 1;
+
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_ATTRIB_COLOR %d\n", bindings.location_attrib_color);
+			defines += line;
+		}
+
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_VARYING_COLOR %d\n", bindings.location_varying_color);
+			defines += line;
+		}
 	}
 	else
 	{
 		defines += "#define HAS_COLOR 0\n";
+		bindings.location_attrib_color = bindings.location_attrib_norm;
+		bindings.location_varying_color = bindings.location_varying_norm;
 	}
 
 	bool has_uv = options.has_color_texture || options.has_metalness_map || options.has_roughness_map || options.has_normal_map || options.has_emissive_map;
@@ -501,55 +582,145 @@ void StandardRoutine::s_generate_shaders(const Options& options, std::string& s_
 	if (has_uv)
 	{
 		defines += "#define HAS_UV 1\n";
+		bindings.location_attrib_uv = bindings.location_attrib_color + 1;
+		bindings.location_varying_uv = bindings.location_varying_color + 1;
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_ATTRIB_UV %d\n", bindings.location_attrib_uv);
+			defines += line;
+		}
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_VARYING_UV %d\n", bindings.location_varying_uv);
+			defines += line;
+		}		
 	}
 	else
 	{
 		defines += "#define HAS_UV 0\n";
+		bindings.location_attrib_uv = bindings.location_attrib_color;
+		bindings.location_varying_uv = bindings.location_varying_color;
 	}
 	
 	if (options.has_color_texture)
 	{
 		defines += "#define HAS_COLOR_TEX 1\n";
+
+		bindings.location_tex_color = 0;
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_TEX_COLOR %d\n", bindings.location_tex_color);
+			defines += line;
+		}
 	}
 	else
 	{
 		defines += "#define HAS_COLOR_TEX 0\n";
+		bindings.location_tex_color = -1;
 	}
 
 	if (options.has_metalness_map)
 	{
 		defines += "#define HAS_METALNESS_MAP 1\n";
+
+		bindings.location_tex_metalness = bindings.location_tex_color + 1;
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_TEX_METALNESS %d\n", bindings.location_tex_metalness);
+			defines += line;
+		}
 	}
 	else
 	{
 		defines += "#define HAS_METALNESS_MAP 0\n";
+		bindings.location_tex_metalness = bindings.location_tex_color;
 	}
 
 	if (options.has_roughness_map)
 	{
 		defines += "#define HAS_ROUGHNESS_MAP 1\n";
+		bindings.location_tex_roughness = bindings.location_tex_metalness + 1;
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_TEX_ROUGHNESS %d\n", bindings.location_tex_roughness);
+			defines += line;
+		}
 	}
 	else
 	{
 		defines += "#define HAS_ROUGHNESS_MAP 0\n";
+		bindings.location_tex_roughness = bindings.location_tex_metalness;
 	}
 
 	if (options.has_normal_map)
 	{
 		defines += "#define HAS_NORMAL_MAP 1\n";
+		bindings.location_tex_normal = bindings.location_tex_roughness + 1;
+		bindings.location_attrib_tangent = bindings.location_attrib_uv + 1;
+		bindings.location_varying_tangent = bindings.location_varying_uv + 1;
+		bindings.location_attrib_bitangent = bindings.location_attrib_tangent + 1;
+		bindings.location_varying_bitangent = bindings.location_varying_tangent + 1;
+
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_TEX_NORMAL %d\n", bindings.location_tex_normal);
+			defines += line;
+		}
+
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_ATTRIB_TANGENT %d\n", bindings.location_attrib_tangent);
+			defines += line;
+		}
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_VARYING_TANGENT %d\n", bindings.location_varying_tangent);
+			defines += line;
+		}
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_ATTRIB_BITANGENT %d\n", bindings.location_attrib_bitangent);
+			defines += line;
+		}
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_VARYING_BITANGENT %d\n", bindings.location_varying_bitangent);
+			defines += line;
+		}
 	}
 	else
 	{
 		defines += "#define HAS_NORMAL_MAP 0\n";
+		bindings.location_tex_normal = bindings.location_tex_roughness;
+		bindings.location_attrib_tangent = bindings.location_attrib_uv;
+		bindings.location_varying_tangent = bindings.location_varying_uv;
+		bindings.location_attrib_bitangent = bindings.location_attrib_tangent;
+		bindings.location_varying_bitangent = bindings.location_varying_tangent;
+	}
+
+	{
+		bindings.location_varying_world_pos = bindings.location_varying_bitangent + 1;
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_VARYING_WORLD_POS %d\n", bindings.location_varying_world_pos);
+			defines += line;
+		}
 	}
 
 	if (options.has_emissive_map)
 	{
 		defines += "#define HAS_EMISSIVE_MAP 1\n";
+		bindings.location_tex_emissive = bindings.location_tex_normal + 1;
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_TEX_EMISSIVE %d\n", bindings.location_tex_emissive);
+			defines += line;
+		}
 	}
 	else
 	{
 		defines += "#define HAS_EMISSIVE_MAP 0\n";
+		bindings.location_tex_emissive = bindings.location_tex_normal;
 	}
 
 	{
@@ -558,22 +729,56 @@ void StandardRoutine::s_generate_shaders(const Options& options, std::string& s_
 		defines += line;
 	}
 
+	if (options.num_directional_lights > 0)
+	{
+		bindings.binding_directional_lights = bindings.binding_material + 1;
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_DIRECTIONAL_LIGHTS %d\n", bindings.binding_directional_lights);
+			defines += line;
+		}
+	}
+	else
+	{
+		bindings.binding_directional_lights = bindings.binding_material;
+	}
+
 	{
 		char line[64];
 		sprintf(line, "#define NUM_DIRECTIONAL_SHADOWS %d\n", options.num_directional_shadows);
 		defines += line;
 	}
 
+	bindings.location_tex_directional_shadow = bindings.location_tex_emissive + options.num_directional_shadows;
+
+	if (options.num_directional_shadows > 0)
+	{		
+		char line[64];
+		sprintf(line, "#define LOCATION_TEX_DIRECTIONAL_SHADOW %d\n", bindings.location_tex_directional_shadow - options.num_directional_shadows + 1);
+		defines += line;
+	}
+
 	if (options.has_environment_map)
 	{
 		defines += "#define HAS_ENVIRONMENT_MAP 1\n";
-		char line[64];
-		sprintf(line, "#define TEX_IDX_REFLECTION %d\n", 5 + options.num_directional_shadows);
-		defines += line;
+		bindings.binding_environment_map = bindings.binding_directional_lights + 1;
+		bindings.location_tex_reflection_map = bindings.location_tex_directional_shadow + 1;
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_ENVIRONMEN_MAP %d\n", bindings.binding_environment_map);
+			defines += line;
+		}
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_TEX_REFLECTION_MAP %d\n", bindings.location_tex_reflection_map);
+			defines += line;
+		}
 	}
 	else
 	{
 		defines += "#define HAS_ENVIRONMENT_MAP 0\n";
+		bindings.binding_environment_map = bindings.binding_directional_lights;
+		bindings.location_tex_reflection_map = bindings.location_tex_directional_shadow;
 	}
 
 	replace(s_vertex, "#DEFINES#", defines.c_str());
@@ -583,7 +788,7 @@ void StandardRoutine::s_generate_shaders(const Options& options, std::string& s_
 StandardRoutine::StandardRoutine(const Options& options) : m_options(options)
 {
 	std::string s_vertex, s_frag;
-	s_generate_shaders(options, s_vertex, s_frag);
+	s_generate_shaders(options, m_bindings, s_vertex, s_frag);
 	
 	m_vert_shader = std::unique_ptr<GLShader>(new GLShader(GL_VERTEX_SHADER, s_vertex.c_str()));
 	m_frag_shader = std::unique_ptr<GLShader>(new GLShader(GL_FRAGMENT_SHADER, s_frag.c_str()));
@@ -608,112 +813,112 @@ void StandardRoutine::render(const RenderParams& params)
 	}
 
 	glUseProgram(m_prog->m_id);
-	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.constant_camera->m_id);
-	glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.constant_model->m_id);
-	glBindBufferBase(GL_UNIFORM_BUFFER, 2, material.constant_material.m_id);
+	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_camera, params.constant_camera->m_id);
+	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_model, params.constant_model->m_id);
+	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_material, material.constant_material.m_id);
 
 	if (m_options.num_directional_lights > 0)
 	{		
-		glBindBufferBase(GL_UNIFORM_BUFFER, 3, params.lights->constant_directional_lights->m_id);
+		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_directional_lights, params.lights->constant_directional_lights->m_id);
 	}
 
 	if (m_options.has_environment_map)
 	{
-		glBindBufferBase(GL_UNIFORM_BUFFER, 4, params.lights->environment_map->m_constant.m_id);
+		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_environment_map, params.lights->environment_map->m_constant.m_id);
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, geo.pos_buf->m_id);
-	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
-	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(m_bindings.location_attrib_pos, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
+	glEnableVertexAttribArray(m_bindings.location_attrib_pos);
 
 	glBindBuffer(GL_ARRAY_BUFFER, geo.normal_buf->m_id);
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
-	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(m_bindings.location_attrib_norm, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
+	glEnableVertexAttribArray(m_bindings.location_attrib_norm);
 
 	if (m_options.has_color)
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, params.primitive->color_buf->m_id);
-		glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
-		glEnableVertexAttribArray(2);
+		glVertexAttribPointer(m_bindings.location_attrib_color, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
+		glEnableVertexAttribArray(m_bindings.location_attrib_color);
 	}
 
 	bool has_uv = m_options.has_color_texture || m_options.has_metalness_map || m_options.has_roughness_map || m_options.has_normal_map || m_options.has_emissive_map;
 	if (has_uv)
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, params.primitive->uv_buf->m_id);
-		glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
-		glEnableVertexAttribArray(3);
+		glVertexAttribPointer(m_bindings.location_attrib_uv, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+		glEnableVertexAttribArray(m_bindings.location_attrib_uv);
 	}
 
 	if (m_options.has_normal_map)
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, geo.tangent_buf->m_id);
-		glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
-		glEnableVertexAttribArray(4);
+		glVertexAttribPointer(m_bindings.location_attrib_tangent, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
+		glEnableVertexAttribArray(m_bindings.location_attrib_tangent);
 
 		glBindBuffer(GL_ARRAY_BUFFER, geo.bitangent_buf->m_id);
-		glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
-		glEnableVertexAttribArray(5);
+		glVertexAttribPointer(m_bindings.location_attrib_bitangent, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
+		glEnableVertexAttribArray(m_bindings.location_attrib_bitangent);
 	}
 
 	if (m_options.has_color_texture)
 	{
 		const GLTexture2D& tex = *params.tex_list[material.tex_idx_map];
-		glActiveTexture(GL_TEXTURE0);
+		glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_color);
 		glBindTexture(GL_TEXTURE_2D, tex.tex_id);
-		glUniform1i(0, 0);
+		glUniform1i(m_bindings.location_tex_color, m_bindings.location_tex_color);
 	}
 
 	if (m_options.has_metalness_map)
 	{
 		const GLTexture2D& tex = *params.tex_list[material.tex_idx_metalnessMap];
-		glActiveTexture(GL_TEXTURE1);
+		glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_metalness);
 		glBindTexture(GL_TEXTURE_2D, tex.tex_id);
-		glUniform1i(1, 1);
+		glUniform1i(m_bindings.location_tex_metalness, m_bindings.location_tex_metalness);
 	}
 
 	if (m_options.has_roughness_map)
 	{
 		const GLTexture2D& tex = *params.tex_list[material.tex_idx_roughnessMap];
-		glActiveTexture(GL_TEXTURE2);
+		glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_roughness);
 		glBindTexture(GL_TEXTURE_2D, tex.tex_id);
-		glUniform1i(2, 2);
+		glUniform1i(m_bindings.location_tex_roughness, m_bindings.location_tex_roughness);
 	}
 
 	if (m_options.has_normal_map)
 	{
 		const GLTexture2D& tex = *params.tex_list[material.tex_idx_normalMap];
-		glActiveTexture(GL_TEXTURE3);
+		glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_normal);
 		glBindTexture(GL_TEXTURE_2D, tex.tex_id);
-		glUniform1i(3, 3);
+		glUniform1i(m_bindings.location_tex_normal, m_bindings.location_tex_normal);
 	}
 
 	if (m_options.has_emissive_map)
 	{
 		const GLTexture2D& tex = *params.tex_list[material.tex_idx_emissiveMap];
-		glActiveTexture(GL_TEXTURE4);
+		glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_emissive);
 		glBindTexture(GL_TEXTURE_2D, tex.tex_id);
-		glUniform1i(4, 4);
+		glUniform1i(m_bindings.location_tex_emissive, m_bindings.location_tex_emissive);
 	}	
 
 	if (m_options.num_directional_shadows > 0)
 	{
+		int start_idx = m_bindings.location_tex_directional_shadow - m_options.num_directional_shadows + 1;
 		std::vector<int> values(m_options.num_directional_shadows);
 		for (int i = 0; i < m_options.num_directional_shadows; i++)
 		{
-			glActiveTexture(GL_TEXTURE5+i);
+			glActiveTexture(GL_TEXTURE0 + start_idx + i);
 			glBindTexture(GL_TEXTURE_2D, params.lights->directional_shadow_texs[i]);
-			values[i] = 5 + i;
+			values[i] = start_idx + i;
 		}
-		glUniform1iv(5, m_options.num_directional_shadows, values.data());
-	}
-	int tex_idx_reflection = 5 + m_options.num_directional_shadows;
+		glUniform1iv(start_idx, m_options.num_directional_shadows, values.data());
+	}	
 
 	if (m_options.has_environment_map)
 	{
-		glActiveTexture(GL_TEXTURE0 + tex_idx_reflection);
+		glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_reflection_map);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, params.lights->environment_map->id_cube_reflection);
-		glUniform1i(tex_idx_reflection, tex_idx_reflection);
+		glUniform1i(m_bindings.location_tex_reflection_map, m_bindings.location_tex_reflection_map);
 	}
 
 	if (params.primitive->index_buf != nullptr)
