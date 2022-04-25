@@ -23,6 +23,7 @@ public:
 		int num_directional_lights = 0;
 		int num_directional_shadows = 0;
 		bool has_environment_map = false;
+		bool has_ambient_light = false;
 	};
 
 	StandardRoutine(const Options& options);
@@ -69,6 +70,7 @@ private:
 		int location_tex_directional_shadow;
 		int binding_environment_map;
 		int location_tex_reflection_map;
+		int binding_ambient_light;
 	};
 
 	Bindings m_bindings;

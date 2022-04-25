@@ -53,6 +53,7 @@ void V8VM::RunVM(void (*callback)(void*), void* data)
 #include "lights/DirectionalLight.hpp"
 #include "lights/EnvironmentMap.hpp"
 #include "lights/EnvironmentMapCreator.hpp"
+#include "lights/AmbientLight.hpp"
 
 GlobalDefinitions GameContext::s_globals =
 {
@@ -77,6 +78,7 @@ GlobalDefinitions GameContext::s_globals =
 		{ "DirectionalLight", WrapperDirectionalLight::New, WrapperDirectionalLight::create_template },
 		{ "EnvironmentMap", WrapperEnvironmentMap::New, WrapperEnvironmentMap::create_template },
 		{ "EnvironmentMapCreator", WrapperEnvironmentMapCreator::New, WrapperEnvironmentMapCreator::create_template},
+		{ "AmbientLight", WrapperAmbientLight::New, WrapperAmbientLight::create_template},
 	},
 	{
 		{ "fileLoader", WrapperFileLoader::create_template },

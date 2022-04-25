@@ -138,6 +138,7 @@
     <ClInclude Include="core\Object3D.hpp" />
     <ClInclude Include="GamePlayer.h" />
     <ClInclude Include="GamePlayer.hpp" />
+    <ClInclude Include="lights\AmbientLight.hpp" />
     <ClInclude Include="lights\DirectionalLight.hpp" />
     <ClInclude Include="lights\EnvironmentMap.hpp" />
     <ClInclude Include="lights\EnvironmentMapCreator.hpp" />

@@ -5,6 +5,7 @@
 #include <vector>
 #include "renderers/GLUtils.h"
 #include "lights/EnvironmentMap.h"
+#include "lights/AmbientLight.h"
 
 struct Lights
 {
@@ -14,5 +15,6 @@ struct Lights
 	std::vector<unsigned> directional_shadow_texs;
 
 	const EnvironmentMap* environment_map = nullptr;
+	const AmbientLight* ambient_light = nullptr;
 };
 

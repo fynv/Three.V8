@@ -177,6 +177,7 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 	options.num_directional_lights = lights->num_directional_lights;
 	options.num_directional_shadows = (int)lights->directional_shadow_texs.size();
 	options.has_environment_map = lights->environment_map != nullptr;
+	options.has_ambient_light = lights->ambient_light != nullptr;
 	StandardRoutine* routine = get_routine(options);
 	routine->render(params);
 }
@@ -466,6 +467,15 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 		if (envMap != nullptr)
 		{
 			lights.environment_map = envMap;
+		}
+	}
+
+	{
+		AmbientLight* ambientLight = dynamic_cast<AmbientLight*>(scene.indirectLight);
+		if (ambientLight != nullptr)
+		{
+			ambientLight->updateConstant();
+			lights.ambient_light = ambientLight;
 		}
 	}
 

@@ -19,7 +19,7 @@ import { view } from "./view.js";
 };*/
 
 
-let renderer, scene, camera, directional_light, bg, box, sphere, ground, clock, controls;
+let renderer, scene, camera, directional_light, bg, ambient_light, box, sphere, ground, clock, controls;
 
 function init(width, height) {
     renderer = new GLRenderer();
@@ -38,6 +38,11 @@ function init(width, height) {
     bg = new ColorBackground();
     scene.background = bg;
     bg.setColor(0.0, 0.52, 1.0);
+    
+    ambient_light = new AmbientLight();
+    ambient_light.setColor(0.2, 0.6, 1.0);
+    ambient_light.intensity = 0.5;
+    scene.indirectLight = ambient_light;
 
     box = new SimpleModel();
     box.name = "box";
@@ -86,6 +91,7 @@ function dispose() {
     ground.dispose();
     sphere.dispose();
     box.dispose();
+    ambient_light.dispose();
     bg.dispose();
     directional_light.dispose();
     camera.dispose();

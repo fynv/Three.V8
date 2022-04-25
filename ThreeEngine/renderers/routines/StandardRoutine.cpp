@@ -301,6 +301,13 @@ vec3 GetReflectionAt(in vec3 reflectVec, in samplerCube reflectMap, float roughn
 
 #endif
 
+#if HAS_AMBIENT_LIGHT
+layout (std140, binding = BINDING_AMBIENT_LIGHT) uniform AmbientLight
+{
+	vec4 ambientColorIntensity;
+};
+#endif
+
 layout (location = 0) out vec4 out0;
 
 #if ALPHA_BLEND
@@ -397,13 +404,17 @@ void main()
 	}
 #endif
 
-#if HAS_ENVIRONMENT_MAP
+#if HAS_INDIRECT_LIGHT
 	{
-		vec3 irradiance = shGetIrradianceAt(norm, uSHCoefficients);
 		vec3 reflectVec = reflect(-viewDir, norm);
 		reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );
-		vec3 radiance = GetReflectionAt(reflectVec, uReflectionMap, material.roughness);		
-
+#if HAS_ENVIRONMENT_MAP
+		vec3 irradiance = shGetIrradianceAt(norm, uSHCoefficients);		
+		vec3 radiance = GetReflectionAt(reflectVec, uReflectionMap, material.roughness);
+#elif HAS_AMBIENT_LIGHT
+		vec3 irradiance = ambientColorIntensity.xyz * ambientColorIntensity.w;
+		vec3 radiance = irradiance;
+#endif
 		vec3 singleScattering = vec3( 0.0 );
 		vec3 multiScattering = vec3( 0.0 );
 		vec3 cosineWeightedIrradiance = irradiance * RECIPROCAL_PI;
@@ -413,12 +424,9 @@ void main()
 		specular +=  multiScattering * cosineWeightedIrradiance;
 		diffuse += material.diffuseColor * (1.0-(singleScattering + multiScattering))*cosineWeightedIrradiance;
 	}
-	vec3 col = emissive + specular;
-#else
-	vec3 ambient = 0.3 * BRDF_Lambert( base_color.xyz );
-	vec3 col = emissive + specular + ambient;
 #endif
 
+	vec3 col = emissive + specular;
 #if !IS_HIGHTLIGHT
 	col += diffuse;
 #endif
@@ -758,6 +766,16 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 		defines += line;
 	}
 
+	bool has_indirect_light = options.has_environment_map || options.has_ambient_light;
+	if (has_indirect_light)
+	{
+		defines += "#define HAS_INDIRECT_LIGHT 1\n";
+	}
+	else
+	{
+		defines += "#define HAS_INDIRECT_LIGHT 0\n";
+	}
+
 	if (options.has_environment_map)
 	{
 		defines += "#define HAS_ENVIRONMENT_MAP 1\n";
@@ -779,6 +797,22 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 		defines += "#define HAS_ENVIRONMENT_MAP 0\n";
 		bindings.binding_environment_map = bindings.binding_directional_lights;
 		bindings.location_tex_reflection_map = bindings.location_tex_directional_shadow;
+	}
+
+	if (options.has_ambient_light)
+	{
+		defines += "#define HAS_AMBIENT_LIGHT 1\n";
+		bindings.binding_ambient_light = bindings.binding_environment_map + 1;
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_AMBIENT_LIGHT %d\n", bindings.binding_ambient_light);
+			defines += line;
+		}
+	}
+	else
+	{
+		defines += "#define HAS_AMBIENT_LIGHT 0\n";
+		bindings.binding_ambient_light = bindings.binding_environment_map;
 	}
 
 	replace(s_vertex, "#DEFINES#", defines.c_str());
@@ -825,6 +859,11 @@ void StandardRoutine::render(const RenderParams& params)
 	if (m_options.has_environment_map)
 	{
 		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_environment_map, params.lights->environment_map->m_constant.m_id);
+	}
+
+	if (m_options.has_ambient_light)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_ambient_light, params.lights->ambient_light->m_constant.m_id);
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, geo.pos_buf->m_id);

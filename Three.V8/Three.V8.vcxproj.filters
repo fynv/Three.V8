@@ -105,6 +105,9 @@
     <ClInclude Include="lights\EnvironmentMapCreator.hpp">
       <Filter>Header Files\lights</Filter>
     </ClInclude>
+    <ClInclude Include="lights\AmbientLight.hpp">
+      <Filter>Header Files\lights</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="binding.cpp">
