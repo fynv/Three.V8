@@ -9,6 +9,7 @@
 #include "renderers/routines/DirectionalShadowCast.h"
 #include "renderers/routines/DrawTexture.h"
 #include "renderers/routines/DrawSkyBox.h"
+#include "renderers/routines/DrawHemisphere.h"
 
 class Scene;
 class Camera;
@@ -64,6 +65,7 @@ private:
 
 	std::unique_ptr<DrawTexture> TextureVisualizer;
 	std::unique_ptr<DrawSkyBox> SkyBoxDraw;
+	std::unique_ptr<DrawHemisphere> HemisphereDraw;
 	
 };
 

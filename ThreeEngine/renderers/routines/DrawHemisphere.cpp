@@ -1,6 +1,6 @@
 #include <string>
 #include <GL/glew.h>
-#include "DrawSkyBox.h"
+#include "DrawHemisphere.h"
 
 
 static std::string g_vertex =
@@ -29,33 +29,40 @@ void main()
 static std::string g_frag =
 R"(#version 430
 layout (location = 0) in vec3 vCubeMapCoord;
-layout (location = 0) uniform samplerCube uCubeSky;
+
+layout (std140, binding = 1) uniform Hemisphere
+{
+	vec4 uHemisphereSkyColor;
+	vec4 uHemisphereGroundColor;
+};
+
 layout (location = 0) out vec4 outColor;
+
 void main()
 {
-    outColor = texture(uCubeSky, vCubeMapCoord);
+    vec3 dir = normalize(vCubeMapCoord);
+    float k = dir.y * 0.5 + 0.5;
+	outColor = vec4(mix( uHemisphereGroundColor.xyz, uHemisphereSkyColor.xyz, k), 1.0);
 }
 )";
 
 
-DrawSkyBox::DrawSkyBox()
+DrawHemisphere::DrawHemisphere()
 {
-	m_vert_shader = std::unique_ptr<GLShader>(new GLShader(GL_VERTEX_SHADER, g_vertex.c_str()));
-	m_frag_shader = std::unique_ptr<GLShader>(new GLShader(GL_FRAGMENT_SHADER, g_frag.c_str()));
-	m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(*m_vert_shader, *m_frag_shader));
+    m_vert_shader = std::unique_ptr<GLShader>(new GLShader(GL_VERTEX_SHADER, g_vertex.c_str()));
+    m_frag_shader = std::unique_ptr<GLShader>(new GLShader(GL_FRAGMENT_SHADER, g_frag.c_str()));
+    m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(*m_vert_shader, *m_frag_shader));
 }
 
-void DrawSkyBox::render(const GLDynBuffer* constant_camera, const GLCubemap* cubemap)
+void DrawHemisphere::render(const GLDynBuffer* constant_camera, const GLDynBuffer* constant_hemisphere)
 {
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_BLEND);
 
     glUseProgram(m_prog->m_id);
     glBindBufferBase(GL_UNIFORM_BUFFER, 0, constant_camera->m_id);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap->tex_id);
-    glUniform1i(0, 0);
-    glDrawArrays(GL_TRIANGLES, 0, 3);   
+    glBindBufferBase(GL_UNIFORM_BUFFER, 1, constant_hemisphere->m_id);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
     glUseProgram(0);
 }
 

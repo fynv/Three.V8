@@ -180,6 +180,9 @@
     <ClCompile Include="lights\HemisphereLight.cpp">
       <Filter>Source Files\lights</Filter>
     </ClCompile>
+    <ClCompile Include="renderers\routines\DrawHemisphere.cpp">
+      <Filter>Source Files\renderers\routines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -292,6 +295,9 @@
     </ClInclude>
     <ClInclude Include="lights\HemisphereLight.h">
       <Filter>Header Files\lights</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\routines\DrawHemisphere.h">
+      <Filter>Header Files\renderers\routines</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

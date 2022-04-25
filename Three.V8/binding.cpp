@@ -70,6 +70,7 @@ GlobalDefinitions GameContext::s_globals =
 		{ "PerspectiveCamera", WrapperPerspectiveCamera::New,  WrapperPerspectiveCamera::create_template },
 		{ "ColorBackground", WrapperColorBackground::New,  WrapperColorBackground::create_template },
 		{ "CubeBackground", WrapperCubeBackground::New,  WrapperCubeBackground::create_template },
+		{ "HemisphereBackground", WrapperHemisphereBackground::New,  WrapperHemisphereBackground::create_template },
 		{ "Scene", WrapperScene::New,  WrapperScene::create_template },
 		{ "GLRenderer", WrapperGLRenderer::New,  WrapperGLRenderer::create_template },
 		{ "SimpleModel", WrapperSimpleModel::New,  WrapperSimpleModel::create_template },

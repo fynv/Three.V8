@@ -463,7 +463,7 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 		}
 	}
 
-	do
+	while(scene.indirectLight)
 	{
 		{
 			EnvironmentMap* envMap = dynamic_cast<EnvironmentMap*>(scene.indirectLight);
@@ -493,15 +493,16 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 				break;
 			}
 		}
-
-	} while (false);
+		break;
+	}
 
 	// render scene
 	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_msaa);
 
 	glEnable(GL_FRAMEBUFFER_SRGB);
 	glViewport(0, 0, width, height);
-	if (scene.background != nullptr)
+
+	while(scene.background!=nullptr)
 	{
 		{
 			ColorBackground* bg = dynamic_cast<ColorBackground*>(scene.background);
@@ -509,6 +510,7 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 			{
 				glClearColor(bg->color.r, bg->color.g, bg->color.b, 1.0f);
 				glClear(GL_COLOR_BUFFER_BIT);
+				break;
 			}
 		}
 		{
@@ -520,8 +522,22 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 					SkyBoxDraw = std::unique_ptr<DrawSkyBox>(new DrawSkyBox);
 				}
 				SkyBoxDraw->render(&camera.m_constant, &bg->cubemap);
+				break;
 			}
 		}
+		{
+			HemisphereBackground* bg = dynamic_cast<HemisphereBackground*>(scene.background);
+			if (bg != nullptr)
+			{
+				bg->updateConstant();
+				if (HemisphereDraw == nullptr)
+				{
+					HemisphereDraw = std::unique_ptr<DrawHemisphere>(new DrawHemisphere);
+				}
+				HemisphereDraw->render(&camera.m_constant, &bg->m_constant);
+			}
+		}
+		break;
 	}
 
 	glDepthMask(GL_TRUE);

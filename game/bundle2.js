@@ -4348,9 +4348,10 @@ function init(width, height) {
     directional_light2.setShadowProjection(-20.0, 20.0, -20.0, 20.0, 0.0, 60.0);
     scene.add(directional_light2);
     
-    bg = new ColorBackground();
+    bg = new HemisphereBackground();   
+    bg.setSkyColor(1.0, 1.0, 1.0);
+    bg.setGroundColor(0.02843, 0.07819, 0.07819);
     scene.background = bg;
-    bg.setColor(0.0, 0.52, 1.0);
     
     envLight = new HemisphereLight();
     envLight.setSkyColor(1.0, 1.0, 1.0);
