@@ -9,7 +9,7 @@ class Scene : public Object3D
 {
 public:
 	Background* background = nullptr;
-	EnvironmentMap* environmentMap = nullptr;
+	IndirectLight* indirectLight = nullptr;
 
 	bool has_opaque = false;
 	bool has_alpha = false;

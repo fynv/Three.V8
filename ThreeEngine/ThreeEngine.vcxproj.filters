@@ -278,5 +278,8 @@
     <ClInclude Include="lights\FilterCoeffs.hpp">
       <Filter>Header Files\lights</Filter>
     </ClInclude>
+    <ClInclude Include="lights\IndirectLight.h">
+      <Filter>Header Files\lights</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

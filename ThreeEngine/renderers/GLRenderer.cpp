@@ -461,7 +461,13 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 		}
 	}
 
-	lights.environment_map = scene.environmentMap;
+	{
+		EnvironmentMap* envMap = dynamic_cast<EnvironmentMap*>(scene.indirectLight);
+		if (envMap != nullptr)
+		{
+			lights.environment_map = envMap;
+		}
+	}
 
 	// render scene
 	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_msaa);

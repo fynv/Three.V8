@@ -2,8 +2,9 @@
 
 #include <glm.hpp>
 #include "renderers/GLUtils.h"
+#include "lights/IndirectLight.h"
 
-class EnvironmentMap
+class EnvironmentMap : public IndirectLight
 {
 public:
 	EnvironmentMap();
