@@ -19,7 +19,7 @@ const getCircularReplacer = () => {
 };
 
 
-let renderer, scene, directional_light, directional_light2, camera, bg, ambient_light, model, ground, clock, controls;
+let renderer, scene, directional_light, directional_light2, camera, bg, envLight, model, ground, clock, controls;
 
 function init(width, height) {
     renderer = new GLRenderer();
@@ -47,10 +47,11 @@ function init(width, height) {
     scene.background = bg;
     bg.setColor(0.0, 0.52, 1.0);
     
-    ambient_light = new AmbientLight();
-    ambient_light.setColor(0.2, 0.6, 1.0);
-    ambient_light.intensity = 0.5;
-    scene.indirectLight = ambient_light;
+    envLight = new HemisphereLight();
+    envLight.setSkyColor(1.0, 1.0, 1.0);
+    envLight.setGroundColor(0.02843, 0.07819, 0.07819);
+    envLight.intensity = 1.0;
+    scene.indirectLight = envLight;
 
     camera.setPosition(0.0, 0.0, 20.0);
     model = gltfLoader.loadModelFromFile("../game/assets/models/RZYAS.glb");
@@ -75,7 +76,7 @@ function init(width, height) {
 function dispose() {
     ground.dispose();
     model.dispose();
-    ambient_light.dispose();
+    envLight.dispose();
     bg.dispose();
     directional_light2.dispose();
     directional_light.dispose();

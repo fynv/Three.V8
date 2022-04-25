@@ -24,6 +24,7 @@ public:
 		int num_directional_shadows = 0;
 		bool has_environment_map = false;
 		bool has_ambient_light = false;
+		bool has_hemisphere_light = false;
 	};
 
 	StandardRoutine(const Options& options);
@@ -71,6 +72,7 @@ private:
 		int binding_environment_map;
 		int location_tex_reflection_map;
 		int binding_ambient_light;
+		int binding_hemisphere_light;
 	};
 
 	Bindings m_bindings;

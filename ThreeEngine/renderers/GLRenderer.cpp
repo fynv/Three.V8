@@ -178,6 +178,7 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 	options.num_directional_shadows = (int)lights->directional_shadow_texs.size();
 	options.has_environment_map = lights->environment_map != nullptr;
 	options.has_ambient_light = lights->ambient_light != nullptr;
+	options.has_hemisphere_light = lights->hemisphere_light != nullptr;
 	StandardRoutine* routine = get_routine(options);
 	routine->render(params);
 }
@@ -462,22 +463,38 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 		}
 	}
 
+	do
 	{
-		EnvironmentMap* envMap = dynamic_cast<EnvironmentMap*>(scene.indirectLight);
-		if (envMap != nullptr)
 		{
-			lights.environment_map = envMap;
+			EnvironmentMap* envMap = dynamic_cast<EnvironmentMap*>(scene.indirectLight);
+			if (envMap != nullptr)
+			{
+				lights.environment_map = envMap;
+				break;
+			}			
 		}
-	}
 
-	{
-		AmbientLight* ambientLight = dynamic_cast<AmbientLight*>(scene.indirectLight);
-		if (ambientLight != nullptr)
 		{
-			ambientLight->updateConstant();
-			lights.ambient_light = ambientLight;
+			AmbientLight* ambientLight = dynamic_cast<AmbientLight*>(scene.indirectLight);
+			if (ambientLight != nullptr)
+			{
+				ambientLight->updateConstant();
+				lights.ambient_light = ambientLight;
+				break;
+			}
 		}
-	}
+
+		{
+			HemisphereLight* hemisphereLight = dynamic_cast<HemisphereLight*>(scene.indirectLight);
+			if (hemisphereLight != nullptr)
+			{
+				hemisphereLight->updateConstant();
+				lights.hemisphere_light = hemisphereLight;
+				break;
+			}
+		}
+
+	} while (false);
 
 	// render scene
 	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_msaa);

@@ -142,6 +142,7 @@
     <ClInclude Include="lights\DirectionalLight.hpp" />
     <ClInclude Include="lights\EnvironmentMap.hpp" />
     <ClInclude Include="lights\EnvironmentMapCreator.hpp" />
+    <ClInclude Include="lights\HemisphereLight.hpp" />
     <ClInclude Include="lights\Light.hpp" />
     <ClInclude Include="loaders\FileLoader.hpp" />
     <ClInclude Include="loaders\GLTFLoader.hpp" />

@@ -3,7 +3,7 @@
 
 struct AmbientLightConst
 {
-	glm::vec4 ambientColorIntensity;
+	glm::vec4 ambientColor;
 };
 
 AmbientLight::AmbientLight()
@@ -15,6 +15,6 @@ AmbientLight::AmbientLight()
 void AmbientLight::updateConstant()
 {
 	AmbientLightConst c;
-	c.ambientColorIntensity = glm::vec4(color, intensity);
+	c.ambientColor = glm::vec4(color* intensity, 1.0f);
 	m_constant.upload(&c);
 }

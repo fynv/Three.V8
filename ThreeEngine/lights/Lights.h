@@ -6,6 +6,7 @@
 #include "renderers/GLUtils.h"
 #include "lights/EnvironmentMap.h"
 #include "lights/AmbientLight.h"
+#include "lights/HemisphereLight.h"
 
 struct Lights
 {
@@ -16,5 +17,6 @@ struct Lights
 
 	const EnvironmentMap* environment_map = nullptr;
 	const AmbientLight* ambient_light = nullptr;
+	const HemisphereLight* hemisphere_light = nullptr;
 };
 

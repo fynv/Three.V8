@@ -138,6 +138,7 @@
     <ClCompile Include="lights\DirectionalLightShadow.cpp" />
     <ClCompile Include="lights\EnvironmentMap.cpp" />
     <ClCompile Include="lights\EnvironmentMapCreator.cpp" />
+    <ClCompile Include="lights\HemisphereLight.cpp" />
     <ClCompile Include="lights\Light.cpp" />
     <ClCompile Include="loaders\FileLoader.cpp" />
     <ClCompile Include="loaders\GLTFLoader.cpp" />
@@ -173,6 +174,7 @@
     <ClInclude Include="lights\EnvironmentMap.h" />
     <ClInclude Include="lights\EnvironmentMapCreator.h" />
     <ClInclude Include="lights\FilterCoeffs.hpp" />
+    <ClInclude Include="lights\HemisphereLight.h" />
     <ClInclude Include="lights\IndirectLight.h" />
     <ClInclude Include="lights\Light.h" />
     <ClInclude Include="lights\Lights.h" />

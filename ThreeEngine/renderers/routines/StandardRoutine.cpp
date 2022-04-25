@@ -304,8 +304,22 @@ vec3 GetReflectionAt(in vec3 reflectVec, in samplerCube reflectMap, float roughn
 #if HAS_AMBIENT_LIGHT
 layout (std140, binding = BINDING_AMBIENT_LIGHT) uniform AmbientLight
 {
-	vec4 ambientColorIntensity;
+	vec4 uAmbientColor;
 };
+#endif
+
+#if HAS_HEMISPHERE_LIGHT
+layout (std140, binding = BINDING_HEMISPHERE_LIGHT) uniform HemisphereLight
+{
+	vec4 uHemisphereSkyColor;
+	vec4 uHemisphereGroundColor;
+};
+
+vec3 HemisphereColor(in vec3 dir)
+{
+	float k = dir.y * 0.5 + 0.5;
+	return mix( uHemisphereGroundColor.xyz, uHemisphereSkyColor.xyz, k);
+}
 #endif
 
 layout (location = 0) out vec4 out0;
@@ -412,8 +426,11 @@ void main()
 		vec3 irradiance = shGetIrradianceAt(norm, uSHCoefficients);		
 		vec3 radiance = GetReflectionAt(reflectVec, uReflectionMap, material.roughness);
 #elif HAS_AMBIENT_LIGHT
-		vec3 irradiance = ambientColorIntensity.xyz * ambientColorIntensity.w;
+		vec3 irradiance = uAmbientColor.xyz;
 		vec3 radiance = irradiance;
+#elif HAS_HEMISPHERE_LIGHT
+		vec3 irradiance = HemisphereColor(norm);
+		vec3 radiance = HemisphereColor(reflectVec);
 #endif
 		vec3 singleScattering = vec3( 0.0 );
 		vec3 multiScattering = vec3( 0.0 );
@@ -766,7 +783,7 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 		defines += line;
 	}
 
-	bool has_indirect_light = options.has_environment_map || options.has_ambient_light;
+	bool has_indirect_light = options.has_environment_map || options.has_ambient_light || options.has_hemisphere_light;
 	if (has_indirect_light)
 	{
 		defines += "#define HAS_INDIRECT_LIGHT 1\n";
@@ -815,6 +832,22 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 		bindings.binding_ambient_light = bindings.binding_environment_map;
 	}
 
+	if (options.has_hemisphere_light)
+	{
+		defines += "#define HAS_HEMISPHERE_LIGHT 1\n";
+		bindings.binding_hemisphere_light = bindings.binding_ambient_light + 1;
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_HEMISPHERE_LIGHT %d\n", bindings.binding_hemisphere_light);
+			defines += line;
+		}
+	}
+	else
+	{
+		defines += "#define HAS_HEMISPHERE_LIGHT 0\n";
+		bindings.binding_hemisphere_light = bindings.binding_ambient_light;
+	}
+
 	replace(s_vertex, "#DEFINES#", defines.c_str());
 	replace(s_frag, "#DEFINES#", defines.c_str());
 }
@@ -854,7 +887,7 @@ void StandardRoutine::render(const RenderParams& params)
 	if (m_options.num_directional_lights > 0)
 	{		
 		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_directional_lights, params.lights->constant_directional_lights->m_id);
-	}
+	} 
 
 	if (m_options.has_environment_map)
 	{
@@ -864,6 +897,11 @@ void StandardRoutine::render(const RenderParams& params)
 	if (m_options.has_ambient_light)
 	{
 		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_ambient_light, params.lights->ambient_light->m_constant.m_id);
+	}
+
+	if (m_options.has_hemisphere_light)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_hemisphere_light, params.lights->hemisphere_light->m_constant.m_id);
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, geo.pos_buf->m_id);

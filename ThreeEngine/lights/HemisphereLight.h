@@ -4,12 +4,13 @@
 #include "renderers/GLUtils.h"
 #include "lights/IndirectLight.h"
 
-class AmbientLight : public IndirectLight
+class HemisphereLight : public IndirectLight
 {
 public:
-	AmbientLight();
+	HemisphereLight();
 
-	glm::vec3 color = { 1.0f, 1.0f, 1.0f };
+	glm::vec3 skyColor = { 1.0f, 1.0f, 1.0f };
+	glm::vec3 groundColor = { 1.0f, 1.0f, 1.0f };
 	float intensity = 0.2f;
 
 	GLDynBuffer m_constant;

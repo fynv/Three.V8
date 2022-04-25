@@ -54,6 +54,7 @@ void V8VM::RunVM(void (*callback)(void*), void* data)
 #include "lights/EnvironmentMap.hpp"
 #include "lights/EnvironmentMapCreator.hpp"
 #include "lights/AmbientLight.hpp"
+#include "lights/HemisphereLight.hpp"
 
 GlobalDefinitions GameContext::s_globals =
 {
@@ -79,6 +80,7 @@ GlobalDefinitions GameContext::s_globals =
 		{ "EnvironmentMap", WrapperEnvironmentMap::New, WrapperEnvironmentMap::create_template },
 		{ "EnvironmentMapCreator", WrapperEnvironmentMapCreator::New, WrapperEnvironmentMapCreator::create_template},
 		{ "AmbientLight", WrapperAmbientLight::New, WrapperAmbientLight::create_template},
+		{ "HemisphereLight", WrapperHemisphereLight::New, WrapperHemisphereLight::create_template},
 	},
 	{
 		{ "fileLoader", WrapperFileLoader::create_template },

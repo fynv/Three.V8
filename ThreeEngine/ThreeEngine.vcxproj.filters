@@ -177,6 +177,9 @@
     <ClCompile Include="lights\AmbientLight.cpp">
       <Filter>Source Files\lights</Filter>
     </ClCompile>
+    <ClCompile Include="lights\HemisphereLight.cpp">
+      <Filter>Source Files\lights</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -285,6 +288,9 @@
       <Filter>Header Files\lights</Filter>
     </ClInclude>
     <ClInclude Include="lights\AmbientLight.h">
+      <Filter>Header Files\lights</Filter>
+    </ClInclude>
+    <ClInclude Include="lights\HemisphereLight.h">
       <Filter>Header Files\lights</Filter>
     </ClInclude>
   </ItemGroup>
