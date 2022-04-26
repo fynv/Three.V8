@@ -86,6 +86,19 @@ function init(width, height) {
 
     controls = new OrbitControls(camera, view);
     controls.enableDamping = true;
+    
+    /*let bvh = new BoundingVolumeHierarchy([box, sphere]);
+    let origin =  new Vector3(0.0, 0.0, 7.0);
+    let dir = new Vector3(-1.5, 0.0, -7.0);
+    dir.normalize();
+    
+    let ray = {
+        origin: origin,
+        direction: dir, 
+    };
+    let inter = bvh.intersect(ray);
+    print(JSON.stringify(inter));    
+    bvh.dispose();*/
 
 }
 

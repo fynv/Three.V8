@@ -183,6 +183,9 @@
     <ClCompile Include="renderers\routines\DrawHemisphere.cpp">
       <Filter>Source Files\renderers\routines</Filter>
     </ClCompile>
+    <ClCompile Include="core\BoundingVolumeHierarchy.cpp">
+      <Filter>Source Files\core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -298,6 +301,9 @@
     </ClInclude>
     <ClInclude Include="renderers\routines\DrawHemisphere.h">
       <Filter>Header Files\renderers\routines</Filter>
+    </ClInclude>
+    <ClInclude Include="core\BoundingVolumeHierarchy.h">
+      <Filter>Header Files\core</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

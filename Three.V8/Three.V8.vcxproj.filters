@@ -111,6 +111,9 @@
     <ClInclude Include="lights\HemisphereLight.hpp">
       <Filter>Header Files\lights</Filter>
     </ClInclude>
+    <ClInclude Include="core\BoundingVolumeHierarchy.hpp">
+      <Filter>Header Files\core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="binding.cpp">

@@ -116,7 +116,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS; GLEW_STATIC=1; %(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>.;../thirdparty;../thirdparty/glew/include; ../thirdparty/glm/glm; ../thirdparty/draco/include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;../thirdparty;../thirdparty/glew/include; ../thirdparty/glm/glm; ../thirdparty/draco/include; ../thirdparty/bvh/include;</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -132,6 +132,7 @@
     <ClCompile Include="backgrounds\Background.cpp" />
     <ClCompile Include="cameras\Camera.cpp" />
     <ClCompile Include="cameras\PerspectiveCamera.cpp" />
+    <ClCompile Include="core\BoundingVolumeHierarchy.cpp" />
     <ClCompile Include="core\Object3D.cpp" />
     <ClCompile Include="lights\AmbientLight.cpp" />
     <ClCompile Include="lights\DirectionalLight.cpp" />
@@ -168,6 +169,7 @@
     <ClInclude Include="backgrounds\Background.h" />
     <ClInclude Include="cameras\Camera.h" />
     <ClInclude Include="cameras\PerspectiveCamera.h" />
+    <ClInclude Include="core\BoundingVolumeHierarchy.h" />
     <ClInclude Include="core\Object3D.h" />
     <ClInclude Include="lights\AmbientLight.h" />
     <ClInclude Include="lights\DirectionalLight.h" />

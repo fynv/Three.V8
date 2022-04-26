@@ -56,6 +56,8 @@ void V8VM::RunVM(void (*callback)(void*), void* data)
 #include "lights/AmbientLight.hpp"
 #include "lights/HemisphereLight.hpp"
 
+#include "core/BoundingVolumeHierarchy.hpp"
+
 GlobalDefinitions GameContext::s_globals =
 {
 	{
@@ -82,6 +84,7 @@ GlobalDefinitions GameContext::s_globals =
 		{ "EnvironmentMapCreator", WrapperEnvironmentMapCreator::New, WrapperEnvironmentMapCreator::create_template},
 		{ "AmbientLight", WrapperAmbientLight::New, WrapperAmbientLight::create_template},
 		{ "HemisphereLight", WrapperHemisphereLight::New, WrapperHemisphereLight::create_template},
+		{ "BoundingVolumeHierarchy", WrappeBoundingVolumeHierarchy::New, WrappeBoundingVolumeHierarchy::create_template},
 	},
 	{
 		{ "fileLoader", WrapperFileLoader::create_template },
