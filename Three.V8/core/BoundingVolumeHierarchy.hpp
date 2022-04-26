@@ -90,16 +90,17 @@ void WrappeBoundingVolumeHierarchy::Intersect(const v8::FunctionCallbackInfo<v8:
 	auto intersection = self->intersect(bvh_ray);
 
 	v8::Local<v8::Object> ret = v8::Object::New(isolate);
-	if (intersection->object == nullptr)
-	{		
-		ret->Set(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked(), v8::Null(isolate));
+	if (intersection.has_value())
+	{	
+		v8::Local<v8::String> name = v8::String::NewFromUtf8(isolate, intersection->object->name.c_str()).ToLocalChecked();
+		ret->Set(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked(), name);
+		ret->Set(context, v8::String::NewFromUtf8(isolate, "distance").ToLocalChecked(), v8::Number::New(isolate, (double)intersection->distance()));
+		info.GetReturnValue().Set(ret);		
 	}
 	else
 	{
-		v8::Local<v8::String> name = v8::String::NewFromUtf8(isolate, intersection->object->name.c_str()).ToLocalChecked();
-		ret->Set(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked(), name);
+		info.GetReturnValue().SetNull();
 	}
-	ret->Set(context, v8::String::NewFromUtf8(isolate, "distance").ToLocalChecked(), v8::Number::New(isolate, (double)intersection->distance()));
-	info.GetReturnValue().Set(ret);
+	
 }
 

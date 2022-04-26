@@ -105,16 +105,19 @@ bvh::BoundingBox<float> BoundingVolumeHierarchy::BLAS::bounding_box() const
 
 std::optional<BoundingVolumeHierarchy::BLAS::Intersection> BoundingVolumeHierarchy::BLAS::intersect(const bvh::Ray<float>& ray) const
 {
+	
 	auto hit = m_traverser->traverse(ray, *m_intersector);
-	auto intersection = hit->intersection;
-
-	Intersection ret;
-	ret.triangle_index = hit->primitive_index;
-	ret.t = intersection.t;
-	ret.u = intersection.u;
-	ret.v = intersection.v;
-
-	return std::make_optional<Intersection>(ret);	
+	if (hit.has_value())
+	{
+		auto intersection = hit->intersection;
+		Intersection ret;
+		ret.triangle_index = hit->primitive_index;
+		ret.t = intersection.t;
+		ret.u = intersection.u;
+		ret.v = intersection.v;
+		return std::make_optional<Intersection>(ret);
+	}
+	return std::nullopt;		
 }
 
 
@@ -210,23 +213,11 @@ BoundingVolumeHierarchy::~BoundingVolumeHierarchy()
 std::optional<BoundingVolumeHierarchy::Intersection> BoundingVolumeHierarchy::intersect(const bvh::Ray<float>& ray) const
 {
 	auto hit = m_traverser->traverse(ray, *m_intersector);
-	auto intersection = hit->intersection;
-
-	if (hit->primitive_index < 0)
+	
+	if (hit.has_value())
 	{
-		Intersection ret;
-		ret.object = nullptr;
-		ret.primitive_index = -1;
-		ret.triangle_index = intersection.triangle_index;
-		ret.t = intersection.t;
-		ret.u = intersection.u;
-		ret.v = intersection.v;
-
-		return std::make_optional<Intersection>(ret);
-	}
-	else
-	{
-		const PrimitiveInfo& info = m_primitive_map[hit->primitive_index];
+		auto intersection = hit->intersection;
+		const PrimitiveInfo& info = m_primitive_map[hit->primitive_index];		
 		Intersection ret;
 		ret.object = info.obj;
 		ret.primitive_index = info.primitive_idx;
@@ -235,7 +226,7 @@ std::optional<BoundingVolumeHierarchy::Intersection> BoundingVolumeHierarchy::in
 		ret.u = intersection.u;
 		ret.v = intersection.v;
 		return std::make_optional<Intersection>(ret);
-	}
-	
+	}	
+	return std::nullopt;	
 }
 

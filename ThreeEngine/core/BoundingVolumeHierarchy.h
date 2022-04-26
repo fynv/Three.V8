@@ -25,8 +25,10 @@ public:
 	{
 	public:
 		struct Intersection {
-			int triangle_index;
-			float t, u, v;
+			int triangle_index = -1;
+			float t = -1.0f;
+			float u = 0.0f;
+			float v = 0.0f;
 			float distance() const { return t; }
 		};
 
@@ -53,10 +55,12 @@ public:
 	};
 
 	struct Intersection {
-		Object3D* object;
-		int primitive_index;
-		int triangle_index;
-		float t, u, v;
+		Object3D* object = nullptr;
+		int primitive_index = -1;
+		int triangle_index = -1;
+		float t = -1.0f;
+		float u = 0.0f;
+		float v = 0.0f;
 		float distance() const { return t; }
 	};
 
