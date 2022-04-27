@@ -511,18 +511,6 @@ EnvironmentMapCreator::EnvironmentMapCreator() : m_buf_coeffs(sizeof(s_coeffs), 
 	m_comp_filter = std::unique_ptr<GLShader>(new GLShader(GL_COMPUTE_SHADER, g_compute_filter.c_str()));
 	m_prog_filter = (std::unique_ptr<GLProgram>)(new GLProgram(*m_comp_filter));
 	 
-	glGenFramebuffers(2, m_down_bufs);
-
-	glGenTextures(1, &m_tex_128);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex_128);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	glTexStorage2D(GL_TEXTURE_CUBE_MAP, 1, GL_RGBA8, 128, 128);
-
-
 	glGenTextures(1, &m_tex_src);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex_src);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -538,8 +526,6 @@ EnvironmentMapCreator::EnvironmentMapCreator() : m_buf_coeffs(sizeof(s_coeffs), 
 EnvironmentMapCreator::~EnvironmentMapCreator()
 {
 	glDeleteTextures(1, &m_tex_src);
-	glDeleteTextures(1, &m_tex_128);
-	glDeleteFramebuffers(2, m_down_bufs);
 }
 
 void EnvironmentMapCreator::Create(const GLCubemap * cubemap, EnvironmentMap * envMap)
@@ -549,117 +535,6 @@ void EnvironmentMapCreator::Create(const GLCubemap * cubemap, EnvironmentMap * e
 	glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_TEXTURE_WIDTH, &width);
 	glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_TEXTURE_HEIGHT, &height);
 
-	// w_h => 128_128
-	for (int i = 0; i < 6; i++)
-	{	
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_down_bufs[0]);
-		glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, cubemap->tex_id, 0);
-
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_down_bufs[1]);
-		glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, m_tex_128, 0);
-
-		glBlitFramebuffer(0, 0, width, height, 0, 0, 128, 128, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-	}
-	
-	glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex_128);
-
-	std::vector<uint8_t> faces[6];
-	for (int i = 0; i < 6; i++)
-	{
-		faces[i].resize(128 * 128 * 4);
-		glGetTexImage(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, GL_UNSIGNED_BYTE, faces[i].data());		
-	}
-
-	float pixelSize = 2.0f / 128.0f;
-	float totalWeight = 0.0f;
-	memset(envMap->shCoefficients, 0, sizeof(glm::vec4) * 9);
-
-	for (int i = 0; i < 6; i++)
-	{
-		std::vector<uint8_t>& face = faces[i];
-
-		for (int j = 0; j < 128 * 128; j+=4)
-		{
-			float dir_x[4];
-			float dir_y[4];
-			float dir_z[4];
-			float weight[4];
-			glm::vec3 color[4];
-
-			for (int k = 0; k < 4; k++)
-			{
-				int pixelIndex = j + k;
-
-				float col = -1.0f + ((float)(pixelIndex % 128) + 0.5f) * pixelSize;
-				float row = -1.0f + ((float)(pixelIndex / 128) + 0.5f) * pixelSize;
-				glm::vec3 coord;
-				switch (i)
-				{
-				case 0:
-					coord = { 1.0f, -row, -col };
-					break;
-				case 1:
-					coord = { -1.0f, -row, col };
-					break;
-				case 2:
-					coord = { col, 1, row };
-					break;
-				case 3:
-					coord = { col, -1, -row };
-					break;
-				case 4:
-					coord = { col, -row, 1 };
-					break;
-				case 5:
-					coord = { -col, -row, -1 };
-					break;
-				}
-				float lengthSq = glm::dot(coord, coord);
-				weight[k] = 4.0f / (sqrtf(lengthSq) * lengthSq);
-				totalWeight += weight[k];
-				glm::vec3 dir = glm::normalize(coord);
-				dir_x[k] = dir.x;
-				dir_y[k] = dir.y;
-				dir_z[k] = dir.z;
-
-				const uint8_t* pixel = &face[(size_t)pixelIndex * 4];
-				color[k] = { (float)pixel[0] / 255.0f, (float)pixel[1] / 255.0f, (float)pixel[2] / 255.0f };
-			}
-			
-#if 1
-			float shBasis[36];
-			SHEval3(dir_x, dir_y, dir_z, shBasis);
-
-			for (int k = 0; k < 36; k++)
-			{
-				int idx_col = k % 4;
-				int idx_coeff = k / 4;
-				envMap->shCoefficients[idx_coeff] += glm::vec4(shBasis[k] * weight[idx_col] * color[idx_col], 0.0f);
-			}
-#else
-			for (int k = 0; k < 4; k++)
-			{
-				float shBasis[9];
-				SHEval3(dir_x[k], dir_y[k], dir_z[k], shBasis);
-
-				for (int l = 0; l < 9; l++)
-				{
-					envMap->shCoefficients[l] += glm::vec4(shBasis[l] * weight[k] * color[k], 0.0f);
-				}
-			}
-#endif
-		}
-	}
-
-	float norm = (4.0f * PI) / totalWeight;
-
-	for (int k = 0; k < 9; k++)
-	{
-		envMap->shCoefficients[k] *= norm;
-	}
-
-	envMap->updateConstant();
-
 	// downsample pass
 	glUseProgram(m_prog_downsample->m_id);
 
@@ -667,7 +542,7 @@ void EnvironmentMapCreator::Create(const GLCubemap * cubemap, EnvironmentMap * e
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex_128);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap->tex_id);
 		glUniform1i(0, 0);
 
 		glBindImageTexture(0, m_tex_src, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
@@ -718,6 +593,105 @@ void EnvironmentMapCreator::Create(const GLCubemap * cubemap, EnvironmentMap * e
 	}
 
 	glUseProgram(0);
+
+	glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex_src);
+
+	std::vector<uint8_t> faces[6];
+	for (int i = 0; i < 6; i++)
+	{
+		faces[i].resize(128 * 128 * 4);
+		glGetTexImage(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, GL_UNSIGNED_BYTE, faces[i].data());
+	}
+
+	float pixelSize = 2.0f / 128.0f;
+	float totalWeight = 0.0f;
+	memset(envMap->shCoefficients, 0, sizeof(glm::vec4) * 9);
+
+	for (int i = 0; i < 6; i++)
+	{
+		std::vector<uint8_t>& face = faces[i];
+
+		for (int j = 0; j < 128 * 128; j += 4)
+		{
+			float dir_x[4];
+			float dir_y[4];
+			float dir_z[4];
+			float weight[4];
+			glm::vec3 color[4];
+
+			for (int k = 0; k < 4; k++)
+			{
+				int pixelIndex = j + k;
+
+				float col = -1.0f + ((float)(pixelIndex % 128) + 0.5f) * pixelSize;
+				float row = -1.0f + ((float)(pixelIndex / 128) + 0.5f) * pixelSize;
+				glm::vec3 coord;
+				switch (i)
+				{
+				case 0:
+					coord = { 1.0f, -row, -col };
+					break;
+				case 1:
+					coord = { -1.0f, -row, col };
+					break;
+				case 2:
+					coord = { col, 1, row };
+					break;
+				case 3:
+					coord = { col, -1, -row };
+					break;
+				case 4:
+					coord = { col, -row, 1 };
+					break;
+				case 5:
+					coord = { -col, -row, -1 };
+					break;
+				}
+				float lengthSq = glm::dot(coord, coord);
+				weight[k] = 4.0f / (sqrtf(lengthSq) * lengthSq);
+				totalWeight += weight[k];
+				glm::vec3 dir = glm::normalize(coord);
+				dir_x[k] = dir.x;
+				dir_y[k] = dir.y;
+				dir_z[k] = dir.z;
+
+				const uint8_t* pixel = &face[(size_t)pixelIndex * 4];
+				color[k] = { (float)pixel[0] / 255.0f, (float)pixel[1] / 255.0f, (float)pixel[2] / 255.0f };
+			}
+
+#if 1
+			float shBasis[36];
+			SHEval3(dir_x, dir_y, dir_z, shBasis);
+
+			for (int k = 0; k < 36; k++)
+			{
+				int idx_col = k % 4;
+				int idx_coeff = k / 4;
+				envMap->shCoefficients[idx_coeff] += glm::vec4(shBasis[k] * weight[idx_col] * color[idx_col], 0.0f);
+			}
+#else
+			for (int k = 0; k < 4; k++)
+			{
+				float shBasis[9];
+				SHEval3(dir_x[k], dir_y[k], dir_z[k], shBasis);
+
+				for (int l = 0; l < 9; l++)
+				{
+					envMap->shCoefficients[l] += glm::vec4(shBasis[l] * weight[k] * color[k], 0.0f);
+				}
+			}
+#endif
+			}
+		}
+
+	float norm = (4.0f * PI) / totalWeight;
+
+	for (int k = 0; k < 9; k++)
+	{
+		envMap->shCoefficients[k] *= norm;
+	}
+
+	envMap->updateConstant();
 
 }
 

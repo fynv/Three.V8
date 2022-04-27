@@ -29,8 +29,6 @@ private:
 	std::unique_ptr<GLShader> m_comp_filter;
 	std::unique_ptr<GLProgram> m_prog_filter;
 
-	unsigned m_down_bufs[2]; // for initial down-sampling
-	unsigned m_tex_128; // for initial down-sampling
 	unsigned m_tex_src; // downsampled mipmaps	
 	GLBuffer m_buf_coeffs;
 };

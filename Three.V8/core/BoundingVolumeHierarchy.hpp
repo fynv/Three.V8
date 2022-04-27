@@ -129,8 +129,8 @@ void WrappeBoundingVolumeHierarchy::Test(const v8::FunctionCallbackInfo<v8::Valu
 	{
 		for (int x = 0; x < width; x++)
 		{			
-			float fx = ((float)x + 0.5f) / (float)width * 2.0f - 1.0f;
-			float fy = 1.0f - ((float)y + 0.5f) / (float)height * 2.0f;
+			float fx = ((float)x + 0.0f) / (float)width * 2.0f - 1.0f;
+			float fy = 1.0f - ((float)y + 0.0f) / (float)height * 2.0f;
 
 			glm::vec4 view_pos = camera->projectionMatrixInverse * glm::vec4(fx, fy, 0.0f, 1.0f);
 			view_pos /= view_pos.w;			
