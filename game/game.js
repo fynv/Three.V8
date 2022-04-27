@@ -101,9 +101,9 @@ function init(width, height) {
     print(JSON.stringify(inter));    
     
     camera.updateMatrixWorld(true);
-    bvh.test(camera);*/
+    bvh.test(camera);
     
-    bvh.dispose();
+    bvh.dispose();*/
 
 }
 
