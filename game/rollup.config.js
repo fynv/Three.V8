@@ -11,4 +11,10 @@ export default [
             file: 'bundle2.js'
         }
     },    
+    {
+        input: 'game_cube.js',
+        output: {
+            file: 'bundle_cube.js'
+        }
+    },
 ]
