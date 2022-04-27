@@ -14,6 +14,8 @@ private:
 	static void Dispose(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 	static void Intersect(const v8::FunctionCallbackInfo<v8::Value>& info);
+	
+	static void Test(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 };
 
@@ -23,6 +25,7 @@ v8::Local<v8::FunctionTemplate> WrappeBoundingVolumeHierarchy::create_template(v
 	templ->InstanceTemplate()->SetInternalFieldCount(1);
 	templ->InstanceTemplate()->Set(isolate, "dispose", v8::FunctionTemplate::New(isolate, Dispose));
 	templ->InstanceTemplate()->Set(isolate, "intersect", v8::FunctionTemplate::New(isolate, Intersect));
+	templ->InstanceTemplate()->Set(isolate, "test", v8::FunctionTemplate::New(isolate, Test));
 
 	return templ;
 }
@@ -104,3 +107,59 @@ void WrappeBoundingVolumeHierarchy::Intersect(const v8::FunctionCallbackInfo<v8:
 	
 }
 
+void WrappeBoundingVolumeHierarchy::Test(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	v8::Isolate* isolate = info.GetIsolate();
+	v8::HandleScope handle_scope(isolate);
+
+	v8::Local<v8::Object> holder_camera = info[0].As<v8::Object>();
+	v8::Local<v8::External> wrap_camera = v8::Local<v8::External>::Cast(holder_camera->GetInternalField(0));
+	PerspectiveCamera* camera = (PerspectiveCamera*)wrap_camera->Value();
+
+	int width = 800;
+	int height = (int)(800.0f / camera->aspect);
+
+	printf("%d %d\n", width, height);
+
+	glm::vec3 origin = camera->getWorldPosition();
+	BoundingVolumeHierarchy* self = get_self<BoundingVolumeHierarchy>(info);
+
+	std::vector<uint8_t> depth(width * height);
+	for (int y = 0; y < height; y++)
+	{
+		for (int x = 0; x < width; x++)
+		{			
+			float fx = (float)x / (float)width * 2.0f - 1.0f;
+			float fy = 1.0f - (float)y / (float)height * 2.0f;
+
+			glm::vec4 view_pos = camera->projectionMatrixInverse * glm::vec4(fx, fy, 0.0f, 1.0f);
+			view_pos /= view_pos.w;			
+			glm::vec3 world_pos = camera->localToWorld(view_pos);
+			glm::vec3 direction = glm::normalize(world_pos - origin);			
+
+			bvh::Ray<float> bvh_ray = bvh::Ray<float>(
+				bvh::Vector3<float>(origin.x, origin.y, origin.z),
+				bvh::Vector3<float>(direction.x, direction.y, direction.z)			
+			);
+
+			float d = 1.0f;
+
+			auto intersection = self->intersect(bvh_ray);
+			if (intersection.has_value())
+			{
+				//d = (intersection->t - camera->z_near) / (camera->z_far - camera->z_near);
+				d = intersection->t / 15.0f;
+				if (d < 0.0f) d = 0.0f;
+				if (d > 1.0f) d = 1.0f;
+			}
+
+			size_t i = x + y * width;
+			depth[i] = (uint8_t)(d * 255.0f + 0.5f);
+		}
+	}
+
+	FILE* fp = fopen("dmp_depth.raw", "wb");
+	fwrite(depth.data(), 1, width * height, fp);
+	fclose(fp);
+
+}
