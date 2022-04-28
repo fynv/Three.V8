@@ -40,6 +40,6 @@ The engine doesn't support ES6 modules eg. "import". User scripts need to be pre
 ## License
 The source code is licensed under ['"Anti 996" License'](https://github.com/996icu/996.ICU/blob/master/LICENSE) by Fei Yang and Vulcan Eon (北京鲜衣怒马文化传媒有限公司).
 
-## User Script APIs
-Way to go...
+## Documentation
 
+[APIs and Features](docs)
