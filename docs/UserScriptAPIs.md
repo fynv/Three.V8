@@ -56,7 +56,83 @@ Called when mouse pointer is moved.
 
 Called when mouse wheel is moved.
 
+# Image
+
+`class Image`
+
+Class that represents an image that resides in CPU memory.
+
+## Constructor 
+
+### `Image`()
+### `Image`(`width`: Number, `height`: Number, `hasAlpha`: Boolean)
+
+`hasAlpha` -- When set to True, the image has 4 channels, otherwise it has 3 channels.
+
+Note that this class is not intended to be called directly.
+
+## Properties
+
+### `.hasAlpha`: Boolean
+
+When set to True, the image has 4 channels, otherwise it has 3 channels.
+
+Read-only.
+
+### `.width`: Number
+
+Width of the image.
+
+Read-only.
+
+### `.height`: Number
+
+Height of the image.
+
+Read-only.
+
+## Methods
+
+### `.dispose`(): undefined
+
+Dispose the unmanaged resource.
+
+# CubeImage
+
+Class that represents an cubemap image that resides in CPU memory.
+
+An CubeImage contains 6 Images.
+
+## Constructor 
+
+### `CubeImage`()
+
+Note that this class is not intended to be called directly.
+
+## Properties
+
+### `.width`: Number
+
+Width of the image.
+
+Read-only.
+
+### `.height`: Number
+
+Height of the image.
+
+Read-only.
+
+## Methods
+
+### `.dispose`(): undefined
+
+Dispose the unmanaged resource.
+
+
 # Object3D
+
+`class Object3D`
 
 Base class of all 3D objects visible to user script.
 
@@ -131,6 +207,10 @@ The global transform of the object. If the Object3D has no parent, then it's ide
 Read-only.
 
 ## Methods
+
+### `.dispose`(): undefined
+
+Dispose the unmanaged resource.
 
 ### `.getUp`(`vector`: Vector3): Vector3
 
@@ -357,15 +437,362 @@ Note that for most objects the name is an empty string by default. You will have
 Executes the callback on this object and all descendants.
 Note: Modifying the scene graph inside the callback is discouraged.
 
+# Camera
 
-# `GamePlayer`
+`class Camera extends Object3D`
+
+Base class for cameras. 
+
+## Constructor
+
+### `Camera`()
+
+Creates a new Camera. Note that this class is not intended to be called directly.
+
+## Properties
+
+See the base Object3D class for common properties.
+
+`.matrixWorldInverse`: Object
+
+This is the inverse of `.matrixWorld`. `.matrixWorld` contains the Matrix which has the world transform of the Camera.
+
+Read-only.
+
+`.projectionMatrix`: Object
+
+This is the matrix which contains the projection.
+
+Read-only.
+
+`.projectionMatrixInverse`: Object
+
+The inverse of projectionMatrix.
+
+Read-only.
+
+## Methods
+
+See the base Object3D class for common methods.
+
+`.getMatrixWorldInverse`(`matrix`: Matrix4) : Matrix4
+
+Copy the value of `.matrixWorldInverse` into `matrix`.
+
+`.getProjectionMatrix`(`matrix`: Matrix4) : Matrix4
+
+Copy the value of `.projectionMatrix` into `matrix`.
+
+`.getProjectionMatrixInverse`(`matrix`: Matrix4) : Matrix4
+
+Copy the value of `.projectionMatrixInverse` into `matrix`.
+
+# PerspectiveCamera
+
+`class PerspectiveCamera extends Camera`
+
+## Constructor
+
+### `PerspectiveCamera`(`fov`: Number, `aspect`: Number, `near`: Number, `far`: Number)
+
+`fov` -- Camera frustum vertical field of view.
+`aspect` -- Camera frustum aspect ratio.
+`near` -- Camera frustum near plane.
+`far` -- Camera frustum far plane.
+
+Together these define the camera's viewing frustum.
+
+## Properties
+
+See the base Camera class for common properties.
+Note that after making changes to most of these properties you will have to call `.updateProjectionMatrix` for the changes to take effect.
+
+`.isPerspectiveCamera`: Boolean 
+
+Read-only flag to check if a given object is of type PerspectiveCamera.
+
+`.fov`: Number
+
+Camera frustum vertical field of view, from bottom to top of view, in degrees. Default is 50.
+
+Readable and writable.
+
+`.aspect`: Number
+
+Camera frustum aspect ratio, usually the canvas width / canvas height. Default is 1 (square canvas).
+
+Readable and writable.
+
+`.near`: Number
+
+Camera frustum near plane. Default is 0.1.
+
+The valid range is greater than 0 and less than the current value of the far plane.
+
+Readable and writable.
+
+`.far`: Number
+
+Camera frustum far plane. Default is 200.
+
+Must be greater than the current value of near plane.
+
+Readable and writable.
+
+## Methods
+
+See the base Camera class for common methods.
+
+`.updateProjectionMatrix`(): undefined
+
+Updates the camera projection matrix. Must be called after any change of parameters.
+
+# Backround
+
+`class Background`
+
+Abstract class for all backgrounds
+
+No contructor, never used directly.
+
+## Methods
+
+### `.dispose`(): undefined
+
+Dispose the unmanaged resource.
+
+# ColorBackground
+
+`class ColorBackground extends Backround`
+
+A background that has a monotone color.
+
+## Constructor
+
+### `ColorBackground`()
+
+Creates a new ColorBackground. 
+
+## Properties
+
+### `.color`: Object
+
+The color of the background.
+
+Read-only. Use the method `.setColor` to modify this property.
+
+## Methods
+
+### `.getColor`(`color`: Vector3) : Vector3
+
+Copy the value of `.color` into `color`.
+
+### `.setColor`(`color`: Vector3): undefined
+### `.setColor`(`r`: Number, `g`: Number, `b`: Number ): undefined
+
+Set the value of `.color` according to `color`.
+
+Or, set the value of `.color` according to the `r`, `g`, `b` values.
+
+# CubeBackground
+
+`class CubeBackground extends Backround`
+
+A background using a CubeMap.
+
+## `CubeBackground`()
+
+Creates a new CubeBackground. 
+
+## Methods
+
+### `.setCubemap`(`cubeMap`: CubeMap): undefined
+
+Set the cube-map data.
+
+# HemisphereBackground
+
+`class HemisphereBackground extends Backround`
+
+A background that has a sky color and a ground color.
+
+## Constructor
+
+### `HemisphereBackground`()
+
+Creates a new HemisphereBackground. 
+
+## Properties
+
+### `.skyColor`: Object
+
+The sky color of the background.
+
+Read-only. Use the method `.setSkyColor` to modify this property.
+
+### `.groundColor`: Object
+
+The ground color of the background.
+
+Read-only. Use the method `.setGroundColor` to modify this property.
+
+## Methods
+
+### `.getSkyColor`(`color`: Vector3) : Vector3
+
+Copy the value of `.skyColor` into `color`.
+
+### `.setSkyColor`(`color`: Vector3): undefined
+### `.setSkyColor`(`r`: Number, `g`: Number, `b`: Number ): undefined
+
+Set the value of `.skyColor` according to `color`.
+
+Or, set the value of `.skyColor` according to the `r`, `g`, `b` values.
+
+### `.getGroundColor`(`color`: Vector3) : Vector3
+
+Copy the value of `.groundColor` into `color`.
+
+### `.setGroundColor`(`color`: Vector3): undefined
+### `.setGroundColor`(`r`: Number, `g`: Number, `b`: Number ): undefined
+
+Set the value of `.groundColor` according to `color`.
+
+Or, set the value of `.groundColor` according to the `r`, `g`, `b` values.
+
+# Light
+
+`class Light extends Object3D`
+
+Abstract class for all direct lights.
+
+No contructor, never used directly.
+
+## Properties
+
+### `.color`: Object
+
+Color of the light object.
+
+Read-only. Use the method `.setColor` to modify this property.
+
+### `.intensity`: Number
+
+Intensity of the light object.
+
+Readable and writable.
+
+## Methods
+
+### `.getColor`(`color`: Vector3) : Vector3
+
+Copy the value of `.color` into `color`.
+
+### `.setColor`(`color`: Vector3): undefined
+### `.setColor`(`r`: Number, `g`: Number, `b`: Number ): undefined
+
+Set the value of `.color` according to `color`.
+
+Or, set the value of `.color` according to the `r`, `g`, `b` values.
+
+# DirectionalLight
+
+`class Light extends Light`
+
+A light that gets emitted in a specific direction. This light will behave as though it is infinitely far away and the rays produced from it are all parallel. The common use case for this is to simulate daylight; the sun is far enough away that its position can be considered to be infinite, and all light rays coming from it are parallel. 
+
+This light can cast shadows.
+
+## Constructor
+
+### `DirectionalLight`()
+
+Creates a new DirectionalLight.
+
+## Properties
+
+See the base Light class for common properties.
+
+### `.target`: Object3D
+
+The DirectionalLight points from its position to target.position. The default position of the target is (0, 0, 0).
+
+## Methods
+
+See the base Light class for common methods.
+
+### `.setShadow`(`enable` : Boolean, `width`: Number, `height`: Number): undefined
+
+`enable` -- If set to true light will cast dynamic shadows.
+
+`width` -- width of the shadow map.
+
+`height` -- height of the shadow map.
+
+### `.setShadowProjection`(`left`: Number, `right`: Number, `bottom`: Number, `top`: Number, `zNear`: Number, `zFar`: Number): undefined
+
+Set the orthographic frustum parameters.
+
+`left` -- Frustum left plane.
+
+`right` -- Frustum right plane.
+
+`top` -- Frustum top plane.
+
+`bottom` -- Frustum bottom plane.
+
+`near` -- Frustum near plane.
+
+`far` -- Frustum far plane.
+
+# IndirectLight
+
+`class IndirectLight`
+
+Abstract class for all indirect lights
+
+No contructor, never used directly.
+
+## Methods
+
+### `.dispose`(): undefined
+
+Dispose the unmanaged resource.
+
+# Scene
+
+`class Scene extends Object3D`
+
+Scenes allow you to set up what and where is to be rendered by Three.V8. This is where you place objects, lights and cameras.
+
+## Constructor
+
+### `Scene`()
+
+Create a new scene object.
+
+## Properties
+
+### `.background`: Background
+
+Object used as background.
+
+Readable and writable.
+
+### `.indirectLight`: IndirectLight
+
+Object used as the indirect light-source.
+
+Readable and writable.
+
+# GamePlayer
 No constructor, exposed as global object `gamePlayer`.
 
-# `FileLoader`
+# FileLoader
 No constructor, exposed as global object `fileLoader`.
 
-# `ImageLoader`
+# ImageLoader
 No constructor, exposed as global object `imageLoader`.
 
-# `GLTFLoader`
+# GLTFLoader
 No constructor, exposed as global object `gltfLoader`.

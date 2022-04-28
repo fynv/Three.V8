@@ -34,29 +34,35 @@ void V8VM::RunVM(void (*callback)(void*), void* data)
 }
 
 
+#include "utils/Image.hpp"
+
 #include "core/Object3D.hpp"
+
 #include "cameras/Camera.hpp"
 #include "cameras/PerspectiveCamera.hpp"
+
 #include "backgrounds/Background.hpp"
-#include "scenes/Scene.hpp"
-#include "renderers/GLRenderer.hpp"
-#include "models/SimpleModel.hpp"
-#include "utils/Image.hpp"
-#include "models/GLTFModel.hpp"
-
-#include "GamePlayer.hpp"
-
-#include "loaders/FileLoader.hpp"
-#include "loaders/ImageLoader.hpp"
-#include "loaders/GLTFLoader.hpp"
-
 #include "lights/DirectionalLight.hpp"
 #include "lights/EnvironmentMap.hpp"
 #include "lights/EnvironmentMapCreator.hpp"
 #include "lights/AmbientLight.hpp"
 #include "lights/HemisphereLight.hpp"
 
+#include "models/SimpleModel.hpp"
+#include "models/GLTFModel.hpp"
+
+#include "scenes/Scene.hpp"
+
+#include "renderers/GLRenderer.hpp"
+
 #include "core/BoundingVolumeHierarchy.hpp"
+
+#include "GamePlayer.hpp"
+#include "loaders/FileLoader.hpp"
+#include "loaders/ImageLoader.hpp"
+#include "loaders/GLTFLoader.hpp"
+
+
 
 GlobalDefinitions GameContext::s_globals =
 {
