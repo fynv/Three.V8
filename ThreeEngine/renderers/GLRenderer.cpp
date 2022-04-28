@@ -500,6 +500,7 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_msaa);
 
 	glEnable(GL_FRAMEBUFFER_SRGB);
+	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 	glViewport(0, 0, width, height);
 
 	while(scene.background!=nullptr)
