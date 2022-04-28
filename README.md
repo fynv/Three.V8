@@ -42,4 +42,4 @@ The source code is licensed under ['"Anti 996" License'](https://github.com/996i
 
 ## Documentation
 
-[APIs and Features](docs)
+[APIs and Features](docs/APIs%20and%20Features)
