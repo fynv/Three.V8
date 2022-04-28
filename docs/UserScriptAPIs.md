@@ -22,7 +22,7 @@ Get the last OpenGL error code for debugging.
 
 User scripts are event driven programs. Callback functions need to be registered in the global scope by calling:
 
-### `setCallback`(`name`: String, `callback`: Function): undefined
+`setCallback`(`name`: String, `callback`: Function): undefined
 
 The host program calls these functions at specific events according to their names. 
 
