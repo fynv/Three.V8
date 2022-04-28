@@ -4486,7 +4486,7 @@ setCallback('OnMouseUp', OnMouseUp);
 setCallback('OnMouseMove', OnMouseMove);
 setCallback('OnMouseWheel', OnMouseWheel);
 
-let rubiks_cube, matrices, solve, renderer, scene, camera, directional_light, background, envMap, cube, ground, controls;
+let rubiks_cube, rotations, solve, renderer, scene, camera, directional_light, background, envMap, cube, ground, controls;
 
 function reset_cube()
 {    
@@ -4500,10 +4500,10 @@ function init(width, height)
     reset_cube();
     solve = RubiksCube.parse_seq("F'LF2'BUR'U'B2R'U2'R'URU2R'URUBU'B'B'UBUFU'F'U2F'UFU2F'U'FULU'L'U'B'UBU2FU'F'U'L'ULRU2R'U'RU'R'R2URUR'U'R'U'R'UR'U2");
     
-    matrices = new Array(26);
+    rotations = new Array(26);
     for (let i=0;i<26;i++)
     {
-        matrices[i] = new Matrix4();
+        rotations[i] = new Quaternion();
     }
     
     renderer = new GLRenderer();
@@ -4574,9 +4574,57 @@ const s_dirs2 = [
 const ids_center = [ 31, 22, 13, 4, 40, 49 ];
 const ids_edge = [[ 16, 30 ], [7, 32], [ 43, 28], [ 52, 34], [ 14, 39], [41, 3], [ 5, 48], [ 50, 12], [ 10, 21], [1, 23], [ 37, 25], [ 46, 19]];
 const ids_corner = [[ 27, 17, 42 ], [ 29, 44, 6], [ 35, 8, 51 ], [ 33, 53, 15], [ 24, 36, 11 ], [ 26, 0, 38], [ 20, 45, 2], [ 18, 9, 47] ];
+let inverse_rest_matrices = null;
+
+function compute_inverse_rest_matrices()
+{
+    inverse_rest_matrices = new Array(26);
+    
+    for (let i=0; i<6; i++)
+    {
+        let face_in = ids_center[i];
+        let dir1_in = s_dirs[ Math.floor(face_in / 9)];
+        let dir2_in = s_dirs2[ Math.floor(face_in / 9) * 4];        
+        let dir3_in = dir1_in.clone();
+        dir3_in.cross(dir2_in);
+        dir3_in.normalize();
+        inverse_rest_matrices[i] = new Matrix4();
+        inverse_rest_matrices[i].makeBasis(dir1_in, dir2_in, dir3_in);
+        inverse_rest_matrices[i].invert();
+    }
+    
+    for (let i=0; i<12; i++)
+    {
+        let face_in = ids_edge[i];
+        let dir1_in = s_dirs[ Math.floor(face_in[0] / 9)];
+        let dir2_in = s_dirs[ Math.floor(face_in[1] / 9)];
+        let dir3_in = dir1_in.clone();
+        dir3_in.cross(dir2_in);
+        dir3_in.normalize();
+        inverse_rest_matrices[i + 6] = new Matrix4();
+        inverse_rest_matrices[i + 6].makeBasis(dir1_in, dir2_in, dir3_in);
+        inverse_rest_matrices[i + 6].invert();
+    }
+    
+    for (let i=0; i<8; i++)
+    {
+        let face_in = ids_corner[i];
+        let dir1_in = s_dirs[ Math.floor(face_in[0] / 9)];
+        let dir2_in = s_dirs[ Math.floor(face_in[1] / 9)];
+        let dir3_in = s_dirs[ Math.floor(face_in[2] / 9)];
+        inverse_rest_matrices[i + 18] = new Matrix4();
+        inverse_rest_matrices[i + 18].makeBasis(dir1_in, dir2_in, dir3_in);
+        inverse_rest_matrices[i + 18].invert();
+    }
+}
  
 function set_transforms(op = "", progress = 0.0)
 {
+    if (inverse_rest_matrices== null)
+    {
+        compute_inverse_rest_matrices();
+    }
+    
     let reverse = new RubiksCube();
     reverse.divide(rubiks_cube);
     
@@ -4644,19 +4692,13 @@ function set_transforms(op = "", progress = 0.0)
         trans_moving.makeRotationZ(-Math.PI*0.5*progress);
     }
    
-    let mat_in = new Matrix4();
     let mat_out = new Matrix4();
     
     for (let i=0; i<6; i++)
     {
-        let face_in = ids_center[i];
-        let dir1_in = s_dirs[ Math.floor(face_in / 9)];
-        let dir2_in = s_dirs2[ Math.floor(face_in / 9) * 4];        
-        let dir3_in = dir1_in.clone();
-        dir3_in.cross(dir2_in);
-        dir3_in.normalize();        
-        mat_in.makeBasis(dir1_in, dir2_in, dir3_in);
+        let mat_in = inverse_rest_matrices[i];
         
+        let face_in = ids_center[i];
         let face_out = reverse.map[face_in];
         let dir1_out = s_dirs[ Math.floor(face_out / 9)];
         let dir2_out = s_dirs2[ Math.floor(face_out / 9) * 4 + reverse.dirs[face_out]];
@@ -4665,81 +4707,68 @@ function set_transforms(op = "", progress = 0.0)
         dir3_out.normalize();
         mat_out.makeBasis(dir1_out, dir2_out, dir3_out);
         
-        mat_in.invert();
-        matrices[i].multiplyMatrices(mat_out, mat_in);
-        
+        mat_out.multiply(mat_in);        
         if (Math.floor(face_out/9) == moving_face)
         {
-            matrices[i].premultiply(trans_moving);
-        }
+            mat_out.premultiply(trans_moving);
+        }        
+        rotations[i].setFromRotationMatrix(mat_out);
     }
     
     for (let i=0; i<12; i++)
     {
-        let face_in = ids_edge[i];
-        let dir1_in = s_dirs[ Math.floor(face_in[0] / 9)];
-        let dir2_in = s_dirs[ Math.floor(face_in[1] / 9)];
-        let dir3_in = dir1_in.clone();
-        dir3_in.cross(dir2_in);
-        dir3_in.normalize();
-        mat_in.makeBasis(dir1_in, dir2_in, dir3_in);
+        let mat_in = inverse_rest_matrices[i+6];
         
+        let face_in = ids_edge[i];
         let face_out = [reverse.map[face_in[0]], reverse.map[face_in[1]]];
         let dir1_out = s_dirs[Math.floor(face_out[0] / 9)];
         let dir2_out = s_dirs[Math.floor(face_out[1] / 9)];
         let dir3_out = dir1_out.clone();
         dir3_out.cross(dir2_out);
         dir3_out.normalize();
-        mat_out.makeBasis(dir1_out, dir2_out, dir3_out);
-        
-        mat_in.invert();
-        matrices[i + 6].multiplyMatrices(mat_out, mat_in);
-        
+        mat_out.makeBasis(dir1_out, dir2_out, dir3_out);        
+
+        mat_out.multiply(mat_in);        
         if (Math.floor(face_out[0] /9) == moving_face || Math.floor(face_out[1]/9) == moving_face)
         {
-            matrices[i + 6].premultiply(trans_moving);
-        }
+            mat_out.premultiply(trans_moving);
+        }        
+        rotations[i+6].setFromRotationMatrix(mat_out);
     }
     
     for (let i=0; i<8; i++)
     {
-        let face_in = ids_corner[i];
-        let dir1_in = s_dirs[ Math.floor(face_in[0] / 9)];
-        let dir2_in = s_dirs[ Math.floor(face_in[1] / 9)];
-        let dir3_in = s_dirs[ Math.floor(face_in[2] / 9)];
-        mat_in.makeBasis(dir1_in, dir2_in, dir3_in);
+        let mat_in = inverse_rest_matrices[i+18];
         
+        let face_in = ids_corner[i];
         let face_out = [reverse.map[face_in[0]], reverse.map[face_in[1]], reverse.map[face_in[2]]];
         let dir1_out = s_dirs[Math.floor(face_out[0] / 9)];
         let dir2_out = s_dirs[Math.floor(face_out[1] / 9)];
         let dir3_out = s_dirs[Math.floor(face_out[2] / 9)];
-        mat_out.makeBasis(dir1_out, dir2_out, dir3_out);
-        
-        mat_in.invert();
-        matrices[i + 18].multiplyMatrices(mat_out, mat_in);
-        
+        mat_out.makeBasis(dir1_out, dir2_out, dir3_out);        
+
+        mat_out.multiply(mat_in);        
         if (Math.floor(face_out[0] /9) == moving_face || Math.floor(face_out[1]/9) == moving_face || Math.floor(face_out[2]/9) == moving_face)
         {
-            matrices[i + 18].premultiply(trans_moving);
-        }        
+            mat_out.premultiply(trans_moving);
+        }
+        rotations[i+18].setFromRotationMatrix(mat_out);
     }
     
-    rotations = [];
+    let rotation_tracks = [];
     for (let i=0; i<26; i++)
     {        
-        let quat = new Quaternion();
-        quat.setFromRotationMatrix(matrices[i]);
         name = "Cube."+String(i).padStart(3, '0');
         rot = {
             name: name,
-            rotation: quat
+            rotation: rotations[i]
         };
-        rotations.push(rot);
+        rotation_tracks.push(rot);
     }
     
     let frame = 
     {
-        rotations: rotations
+        rotations: rotation_tracks
     };
     cube.setAnimationFrame(frame);
 }
