@@ -88,7 +88,7 @@ function init(width, height) {
     controls.enableDamping = true;
     
     // bvh test code
-    let bvh = new BoundingVolumeHierarchy([box, sphere]);
+    /*let bvh = new BoundingVolumeHierarchy([box, sphere]);
     let origin =  new Vector3(0.0, 0.0, 7.0);
     let dir = new Vector3(-1.5, 0.0, -7.0);
     dir.normalize();
@@ -100,10 +100,10 @@ function init(width, height) {
     let inter = bvh.intersect(ray);
     print(JSON.stringify(inter));    
     
-    camera.updateMatrixWorld(true);
-    bvh.test(camera);
+    // camera.updateMatrixWorld(true);
+    // bvh.test(camera);
     
-    bvh.dispose();
+    bvh.dispose();*/
 
 }
 

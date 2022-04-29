@@ -1,5 +1,7 @@
 #pragma once
 
+#define ENABLE_TEST 0
+
 #include "WrapperUtils.hpp"
 #include <core/Object3D.h>
 #include <core/BoundingVolumeHierarchy.h>
@@ -15,7 +17,9 @@ private:
 
 	static void Intersect(const v8::FunctionCallbackInfo<v8::Value>& info);
 	
+#if ENABLE_TEST
 	static void Test(const v8::FunctionCallbackInfo<v8::Value>& info);
+#endif
 
 };
 
@@ -25,7 +29,10 @@ v8::Local<v8::FunctionTemplate> WrappeBoundingVolumeHierarchy::create_template(v
 	templ->InstanceTemplate()->SetInternalFieldCount(1);
 	templ->InstanceTemplate()->Set(isolate, "dispose", v8::FunctionTemplate::New(isolate, Dispose));
 	templ->InstanceTemplate()->Set(isolate, "intersect", v8::FunctionTemplate::New(isolate, Intersect));
+
+#if ENABLE_TEST
 	templ->InstanceTemplate()->Set(isolate, "test", v8::FunctionTemplate::New(isolate, Test));
+#endif
 
 	return templ;
 }
@@ -107,6 +114,7 @@ void WrappeBoundingVolumeHierarchy::Intersect(const v8::FunctionCallbackInfo<v8:
 	
 }
 
+#if ENABLE_TEST
 void WrappeBoundingVolumeHierarchy::Test(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	v8::Isolate* isolate = info.GetIsolate();
@@ -163,3 +171,5 @@ void WrappeBoundingVolumeHierarchy::Test(const v8::FunctionCallbackInfo<v8::Valu
 	fclose(fp);
 
 }
+#endif 
+

@@ -9,7 +9,7 @@ GamePlayer::GamePlayer(V8VM* v8vm, int width, int height)
 	, m_width(width)
 	, m_height(height)
 {
-
+	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 }
 
 GamePlayer::~GamePlayer()

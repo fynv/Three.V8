@@ -6,6 +6,8 @@
 Game::Game(int width, int height) 
 	: m_camera(45.0f, (float)width / (float)height, 0.1f, 100.0f)
 {
+	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
 	m_camera.position = { 0.0f, 0.0f, 10.0f };
 	m_scene.background = &m_bg;
 	m_bg.color = { 0.0f, 0.52f, 1.0f };
