@@ -63,7 +63,6 @@ void V8VM::RunVM(void (*callback)(void*), void* data)
 #include "loaders/GLTFLoader.hpp"
 
 
-
 GlobalDefinitions GameContext::s_globals =
 {
 	{

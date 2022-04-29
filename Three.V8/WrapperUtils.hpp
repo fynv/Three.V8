@@ -163,7 +163,7 @@ inline void jframe_to_frame(v8::Isolate* isolate, v8::Local<v8::Object> jFrame, 
 
 			ScaleFrame& scale = frame.scales[i];
 			scale.name = *name;
-			v8::Local<v8::Object> jScale = jScaleFrame->Get(context, v8::String::NewFromUtf8(isolate, "translation").ToLocalChecked()).ToLocalChecked().As<v8::Object>();
+			v8::Local<v8::Object> jScale = jScaleFrame->Get(context, v8::String::NewFromUtf8(isolate, "scale").ToLocalChecked()).ToLocalChecked().As<v8::Object>();
 			jvec3_to_vec3(isolate, jScale, scale.scale);
 		}
 	}

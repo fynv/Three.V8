@@ -44,23 +44,55 @@ Called when rendering a video frame.
 
 Called when mouse button is pressed down.
 
+The parameter `e` has the following properties:
+
+`e.x`: Number
+
+x coordinate of mouse pointer
+
+`e.y`: Number
+
+y coordinate of mouse pointer
+
+`e.delta`: Number
+
+wheel delta
+
+`e.button`: Number
+
+0 = Left Button
+
+1 = Middle Button
+
+2 = Right Button
+
+3 = XButton1
+
+4 = XButton2
+
 ### `OnMouseUp`(`e`: Object): undefined
 
 Called when mouse button is up.
+
+The parameter `e` has the same structure as in `OnMouseDown`
 
 ### `OnMouseMove`(`e`: Object): undefined
 
 Called when mouse pointer is moved.
 
+The parameter `e` has the same structure as in `OnMouseDown`
+
 ### `OnMouseWheel`(`e`: Object): undefined
 
 Called when mouse wheel is moved.
+
+The parameter `e` has the same structure as in `OnMouseDown`
 
 # Image
 
 `class Image`
 
-Class that represents an image that resides in CPU memory.
+Class that represents an image that resides in CPU memory. Usually not created directly. Use ImageLoader class to create an image.
 
 ## Constructor 
 
@@ -101,7 +133,9 @@ Dispose the unmanaged resource.
 
 Class that represents an cubemap image that resides in CPU memory.
 
-An CubeImage contains 6 Images.
+An CubeImage contains 6 images.
+
+Usually not created directly. Use ImageLoader class to create an cubemap image.
 
 ## Constructor 
 
@@ -759,6 +793,421 @@ No contructor, never used directly.
 
 Dispose the unmanaged resource.
 
+# EnvironmentMap
+
+`class EnvironmentMap extends IndirectLight`
+
+## Constructor 
+
+### `EnvironmentMap`()
+
+Usually not created directly. Use EnvironmentMapCreator class to create an EnvironmentMap object.
+
+# EnvironmentMapCreator
+
+`class EnvironmentMapCreator`
+
+## Constructor
+
+### `EnvironmentMapCreator`()
+
+Create an EnvironmentMapCreator object, which can be used to create EnvironmentMap objects.
+
+## Methods
+
+### `.dispose`(): undefined
+
+Dispose the unmanaged resource.
+
+### `.create`(`image`: CubeImage): EnvironmentMap
+### `.create`(`background`: CubeBackground): EnvironmentMap
+
+Create an EnvironmentMap object using a cubemap image or a cubemap background.
+
+# AmbientLight
+
+`class AmbientLight extends IndirectLight`
+
+Create an ambient light object.
+
+This light globally illuminates all objects in the scene equally.
+
+This light cannot be used to cast shadows as it does not have a direction.
+
+## Constructor
+
+### `AmbientLight`()
+
+Creates a new AmbientLight.
+
+## Properties
+
+### `.color`: Object
+
+The color of the ambient light.
+
+Read-only. Use the method `.setColor` to modify this property.
+
+### `.intensity`: Number
+
+The intensity of the ambient light.
+
+Readable and writable.
+
+## Methods
+
+### `.getColor`(`color`: Vector3) : Vector3
+
+Copy the value of `.color` into `color`.
+
+### `.setColor`(`color`: Vector3): undefined
+### `.setColor`(`r`: Number, `g`: Number, `b`: Number ): undefined
+
+Set the value of `.color` according to `color`.
+
+Or, set the value of `.color` according to the `r`, `g`, `b` values.
+
+# HemisphereLight
+
+`class HemisphereLight extends IndirectLight`
+
+A light source positioned directly above the scene, with color fading from the sky color to the ground color.
+
+This light cannot be used to cast shadows.
+
+## Constructor
+
+### `HemisphereLight`()
+
+Creates a new HemisphereLight.
+
+## Properties
+
+### `.skyColor`: Object
+
+The sky color of the hemisphere light.
+
+Read-only. Use the method `.setSkyColor` to modify this property.
+
+### `.groundColor`: Object
+
+The ground color of the hemisphere light.
+
+Read-only. Use the method `.setGroundColor` to modify this property.
+
+### `.intensity`: Number
+
+The intensity of the hemisphere light.
+
+Readable and writable.
+
+## Methods
+
+### `.getSkyColor`(`color`: Vector3) : Vector3
+
+Copy the value of `.skyColor` into `color`.
+
+### `.setSkyColor`(`color`: Vector3): undefined
+### `.setSkyColor`(`r`: Number, `g`: Number, `b`: Number ): undefined
+
+Set the value of `.skyColor` according to `color`.
+
+Or, set the value of `.skyColor` according to the `r`, `g`, `b` values.
+
+### `.getGroundColor`(`color`: Vector3) : Vector3
+
+Copy the value of `.groundColor` into `color`.
+
+### `.setGroundColor`(`color`: Vector3): undefined
+### `.setGroundColor`(`r`: Number, `g`: Number, `b`: Number ): undefined
+
+Set the value of `.groundColor` according to `color`.
+
+Or, set the value of `.groundColor` according to the `r`, `g`, `b` values.
+
+# SimpleModel
+
+`class SimpleModel extends Object3D`
+
+A Model containing a single simple geometry.
+
+## Constructor
+
+### `SimpleModel`()
+
+Creates a new SimpleModel.
+
+## Properties
+
+### `.color`: Object
+
+Base-color of the material of the model.
+
+Read-only. Use the method `.setColor` to modify this property.
+
+### `.metalness`: Number
+
+Metalness factor of the material of the model.
+
+Readable and writable.
+
+### `.roughness`: Number
+
+Roughness factor of the material of the model.
+
+Readable and writable.
+
+## Methods
+
+### `.createBox`(`width`: Number, `height`: Number, `depth`: Number): undefined
+
+Create a Box shaped geometry for the model.
+
+`width` -- width of the Box
+
+`height` -- height of the Box
+
+`depth` -- depth of the Box
+
+### `.createSphere`(`radius`: Number, `widthSegments`: Number, `heightSegments`: Number): undefined
+
+Create a Sphere shaped geometry for the model.
+
+`radius` -- radius of the Sphere
+
+`widthSegments` -- number of width segments of the triangulated Sphere.
+
+`heightSegments` -- number of height segments of the triangulated Sphere.
+
+### `.createPlane`(`width`: Number, `height`: Number): undefined
+
+Create a Plane shaped geometry for the model.
+
+`width` -- width of the Plane
+
+`height` -- height of the Plane
+
+### `.getColor`(`color`: Vector3) : Vector3
+
+Copy the value of `.color` into `color`.
+
+### `.setColor`(`color`: Vector3): undefined
+### `.setColor`(`r`: Number, `g`: Number, `b`: Number ): undefined
+
+Set the value of `.color` according to `color`.
+
+Or, set the value of `.color` according to the `r`, `g`, `b` values.
+
+### `.setColorTexture`(`image`: Image): undefined
+
+Set a texture image as the based color map of the model.
+
+# GLTFModel
+
+`class GLTFModel extends Object3D`
+
+A Model that has a GLTF style internal structure.
+
+## Constructor
+
+### `GLTFModel`()
+
+Creates a new GLTFModel. Usually not created directly. Use GLTFLoader class to create an GLTFModel.
+
+## Properties
+
+### `.meshes`: Object
+
+Read-only property for displaying the info of internal meshes.
+
+### `.animations`: Object
+
+Read-only property for displaying the info of internal animation clips.
+
+## Methods
+
+### `.setAnimationFrame`(`frame`: Object): undefined
+
+Assign the current stage of movable parts using a JS object.
+
+The object should have the following properties:
+
+`frame.morphs`: Array
+
+Optional. Morph state for morphable meshes.
+
+`frame.morphs[i].name`: String
+
+Name of a morphable mesh.
+
+`frame.morphs[i].weights`: Array
+
+Weight for each morph target of the mesh.
+
+`frame.translations`: Array
+
+Optional. Translation states for nodes.
+
+`frame.translations[i].name`: String
+
+Name of the targeted node.
+
+`frame.translations[i].translation`: Vector3
+
+Translation state of the node.
+
+`frame.rotations`: Array
+
+Optional. Rotation states for nodes.
+
+`frame.rotations[i].name`: String
+
+Name of the targeted node.
+
+`frame.rotations[i].rotation`: Quaternion
+
+Rotation state of the node.
+
+`frame.scales`: Array
+
+Optional. Scale states for nodes.
+
+`frame.scales[i].name`: String
+
+Name of the targeted node.
+
+`frame.translations[i].scale`: Vector3
+
+Scale state of the node.
+
+### `.getAnimation`(`name`: String): Object
+
+Get an loaded animation clip by name. 
+
+The returned object has the following properties:
+
+`.name`: String
+
+Name of the animation clip.
+
+`.duration`: Number
+
+Duration of the animation clip in seconds.
+
+`.morphs`: Array
+
+Optional. Morph tracks.
+
+`.morphs[i].name`: String
+
+Name of the morphable mesh.
+
+`.morphs[i].targets`: Number
+
+Number of morph targets of the morphable mesh.
+
+`.morphs[i].interpolation`: String
+
+Interpolation method: "STEP", "LINEAR" or "CUBICSPLINE"
+
+`.morphs[i].times`: Float32Array
+
+Time stamp of each frame.
+
+`.morphs[i].values`: Float32Array
+
+Weight values of each frame. 
+
+`.translations`: Array
+
+Optional. Translation tracks.
+
+`.translations[i].name`: String
+
+Name of the targeted node.
+
+`.translations[i].interpolation`: String
+
+Interpolation method: "STEP", "LINEAR" or "CUBICSPLINE"
+
+`.translations[i].times`: Float32Array
+
+Time stamp of each frame.
+
+`.translations[i].values`: Float32Array
+
+Translation values of each frame. 
+
+`.rotations`: Array
+
+Optional. Rotation tracks.
+
+`.rotations[i].name`: String
+
+Name of the targeted node.
+
+`.rotations[i].interpolation`: String
+
+Interpolation method: "STEP", "LINEAR"
+
+`.rotations[i].times`: Float32Array
+
+Time stamp of each frame.
+
+`.rotations[i].values`: Float32Array
+
+Rotation values of each frame. 
+
+`.scales`: Array
+
+Optional. Scale tracks.
+
+`.scales[i].name`: String
+
+Name of the targeted node.
+
+`.scales[i].interpolation`: String
+
+Interpolation method: "STEP", "LINEAR" or "CUBICSPLINE"
+
+`.scales[i].times`: Float32Array
+
+Time stamp of each frame.
+
+`.scales[i].values`: Float32Array
+
+Scale values of each frame. 
+
+### `.getAnimations`(): Array
+
+Get all loaded animation clips.
+
+Each element of the returned array has the same structure as the return value of `.getAnimation`.
+
+### `.addAnimation`(`animation`: Object): undefined
+
+Add an animation clip to the model.
+
+The animation object should have the same structure as the return value of `.getAnimation`.
+
+### `.AddAnimations`(`animations`: Array): undefined
+
+Add multiple animation clips to the model.
+
+Each element of the array should have the same structure as the return value of `.getAnimation`.
+
+### `.playAnimation`(`name`: String): undefined
+
+Play the animation clip of the given name.
+
+### `.stopAnimation`(`name`: String): undefined
+
+Stop the animation clip of the given name.
+
+### `.updateAnimation`(): undefined
+
+Update the movable parts according to the current frame.
+
 # Scene
 
 `class Scene extends Object3D`
@@ -785,14 +1234,175 @@ Object used as the indirect light-source.
 
 Readable and writable.
 
+# GLRenderer
+
+The OpenGL renderer displays your beautifully crafted scenes using OpenGL.
+
+## Constructor
+
+### `GLRenderer`()
+
+Create a GLRenderer.
+
+## Methods
+
+### `.dispose`(): undefined
+
+Dispose the unmanaged resource.
+
+### `.render`(`width`: Number, `height`: Number, `scene`: Scene, `camera`: Camera): undefined
+
+Should be called inside the `render` callback.
+
+`width` -- width of the current video
+
+`height` -- height of the current video
+
+`scene` -- scene object to be rendered
+
+`camera` -- camera object from where the scene is rendered
+
+# BoundingVolumeHierarchy
+
+Acceleration structure for ray-casting.
+
+## Constructor
+
+### `BoundingVolumeHierarchy`(`objects`: Array)
+
+Create a BoundingVolumeHierarchy from a list of Object3D objects.
+
+## Methods
+
+### `.dispose`(): undefined
+
+Dispose the unmanaged resource.
+
+### `.intersect`(`ray`: Object): Object
+
+Intersect the given ray with the acceleration structure.
+
+The input `ray` object should have the following properties:
+
+`ray.origin`: Vector3
+
+Origin of the ray.
+
+`ray.direction`: Vector3
+
+Direction of the ray.
+
+`ray.near`: Number
+
+Optional. Nearest distance of search.
+
+`ray.far`: Number
+
+Optional. Furthest distance of search.
+
+The returned object has the following properties:
+
+`.name`: String 
+
+Name of the first intersected object.
+
+`.distance`: Number
+
+Distance of the first intersection point.
+
+At the event of missing intersection, it will return null;
+
 # GamePlayer
-No constructor, exposed as global object `gamePlayer`.
+
+Provides a few interfaces to access the host GamePlayer object.
+
+No constructor, exposed as a global object `gamePlayer`.
+
+## Properties
+
+### `.width`: Number
+
+Read-only value of current video width.
+
+### `.height`: Number
+
+Read-only value of current video height.
+
+## Methods
+
+### `.setMouseCapture`(): undefined
+
+Set the mouse capture state to True.
+
+### `.releaseMouseCapture`(): undefined
+
+Set the mouse capture state to False.
 
 # FileLoader
-No constructor, exposed as global object `fileLoader`.
+
+Provides a few interfaces to loading local files into memory.
+
+No constructor, exposed as a global object `fileLoader`.
+
+## Methods
+
+### `.loadBinaryFile`(`name`: String): ArrayBuffer
+
+Load a binary file into memory.
+
+### `.loadTextFile`(`name`: String): String
+
+Load a text file (utf8 encoding assumed) into memory.
 
 # ImageLoader
-No constructor, exposed as global object `imageLoader`.
+
+Provides a few interfaces to load images from local files or from memory.
+
+No constructor, exposed as a global object `imageLoader`.
+
+## Methods
+
+### `.loadFile`(`name`: String): Image
+
+Load an image from local file.
+
+### `.loadMemory`(`buf`: ArrayBuffer): Image
+
+Load an image from a memory buffer.
+
+### `.loadCubeFromFile`(`name0`: String, `name1`: String, `name2`: String, `name3`: String, `name4`: String, `name5`: String) : CubeImage 
+
+Load 6 images from local files to form a cubemap image.
+
+### `.loadCubeFromMemory`(`buf0`: ArrayBuffer, `buf1`: ArrayBuffer, `buf2`: ArrayBuffer, `buf3`: ArrayBuffer, `buf4`: ArrayBuffer, `buf5`: ArrayBuffer) : CubeImage 
+
+Load 6 images from memory buffers to form a cubemap image.
 
 # GLTFLoader
-No constructor, exposed as global object `gltfLoader`.
+
+Provides a few interfaces to load GLTF models from local files or from memory.
+
+No constructor, exposed as a global object `gltfLoader`.
+
+## Methods
+
+### `.loadModelFromFile`(`name`: String): GLTFModel
+
+Load a GLTF model from a local GLTF file.
+
+### `.loadAnimationsFromFile`(`name`: String): Object
+
+Load only animation data from a local GLTF file.
+
+The returned object has the same structure as the return value of `GLTFModel.getAnimations`.
+
+### `.loadModelFromMemory`(`buf`: ArrayBuffer): GLTFModel
+
+Load a GLTF model from a memory buffer.
+
+### `.loadAnimationsFromMemory`(`buf`: ArrayBuffer): Object
+
+Load only animation data from a memory buffer.
+
+The returned object has the same structure as the return value of `GLTFModel.getAnimations`.
+
