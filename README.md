@@ -23,6 +23,16 @@ An alternative is to run [Three.js](https://threejs.org/) directly in an embedde
 * GamePlayer: C# WPF GUI embedding the V8 engine.
 * game: Game script test code. The math library and other utilities are borrowed directly from Three.js. Most assets are from [discoverthreejs.com](https://discoverthreejs.com/)and [sketchfab.com](https://sketchfab.com/tags/glb).
 
+## 3rd-party libraries
+
+* [tiny-gltf](https://github.com/syoyo/tinygltf): For loading GLTF models.
+* [draco](https://github.com/google/draco): Mesh decoder. Used by tiny-gltf.
+* [stb_image](https://github.com/nothings/stb): For loading images.
+* [glm](https://github.com/g-truc/glm): For geometry maths.
+* [glew](https://github.com/nigels-com/glew): For OpenGL Wrangling.
+* [bvh](https://github.com/madmann91/bvh): For acceleration of ray-casting.
+* [crc64](https://github.com/srned/baselib): For state hashing.
+
 ## Building
 
 Building is straightforward using Visual Studio 2019. Just make sure to resolve the git submodules first.
