@@ -53,3 +53,6 @@ The source code is licensed under ['"Anti 996" License'](https://github.com/996i
 ## Documentation
 
 [User Script APIs](docs/UserScriptAPIs.md)
+
+[Features and Code Snippets](docs/Features.md)
+
