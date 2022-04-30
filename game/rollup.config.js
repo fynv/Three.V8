@@ -17,4 +17,10 @@ export default [
             file: 'bundle_cube.js'
         }
     },
+    {
+        input: 'game_materials.js',
+        output: {
+            file: 'bundle_materials.js'
+        }
+    },
 ]
