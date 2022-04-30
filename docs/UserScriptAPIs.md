@@ -1218,7 +1218,7 @@ Stop the animation clip of the given name.
 
 ### `.updateAnimation`(): undefined
 
-Update the movable parts according to the current frame.
+Update the movable parts according to the current frame. This function should be called from the `render` callback function.
 
 # Scene
 
@@ -1270,7 +1270,7 @@ Dispose the unmanaged resource.
 
 ### `.render`(`width`: Number, `height`: Number, `scene`: Scene, `camera`: Camera): undefined
 
-Should be called inside the `render` callback.
+Should be called from the `render` callback function.
 
 `width` -- width of the current video
 

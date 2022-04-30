@@ -245,3 +245,44 @@ The effect after adding a DirectionalLight, without shadow:
 The effect after enabling shadow:
 ![screenshot.png](screenshot.png)
 
+# Animation 
+
+Animation features are enabled on a per model basis. 
+
+Currently, only GLTFModel has the animation features.
+
+## Animation Clip Management
+
+Animation clips are owned by each model. When a model is loaded, the animations clips are also loaded if they are present
+
+[`GLTFModel.addAnimation`](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#addanimationanimation-object-undefined) and [`GLTFModel.addAnimations`](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#addanimationsanimations-array-undefined): add more animation clips to a model. These animation clips might be loaded separately.
+
+## Animation Control
+
+First, a static pose can be specified without involving any animation clip.
+
+[`GLTFModel.setAnimationFrame`](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#setanimationframeframe-object-undefined): specify the state of each movable parts.
+
+Second, the play/stop state of each animation clip can be controlled separately. 
+
+[`GLTFModel.playAnimation`](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#playanimationname-string-undefined): start playing an animation clip.
+
+[`GLTFModel.stopAnimation`](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#stopanimationname-string-undefined): stop playing an animation clip.
+
+In order to have the animation clip being played to take effect, call [`GLTFModel.updateAnimation`](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#updateanimation-undefined) from the `render` callback function.
+
+The following code loads the Parrot model and starts the animation that comes with the model:
+```js
+model = gltfLoader.loadModelFromFile("../game/assets/models/Parrot.glb");
+model.playAnimation("KeyAction");
+```
+![Parrot.png](Parrot.png)
+
+# Ray Casting
+
+Accelerated ray-casting is most handy for basic physical simulation such as collision detection. Three.V8 provides a [BoundingVolumeHierarchy](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#boundingvolumehierarchy) helper class to accelerate ray-geometry intersection calculation, which is powered by the [bvh](https://github.com/madmann91/bvh) library.
+
+The [constructor](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#constructor-16) creates a bvh acceleration structure from a list of 3d objects. 
+
+The [.intersect](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#intersectray-object-object) method intersects the accleration structure with a given ray. Both input and output are expressed using ordinary JS objects.
+
