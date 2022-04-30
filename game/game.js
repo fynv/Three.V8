@@ -1,25 +1,6 @@
 import { Vector3 } from "./math/Vector3.js";
-import { Matrix4 } from "./math/Matrix4.js";
-import { Clock } from "./utils/Clock.js";
 import { OrbitControls } from "./controls/OrbitControls.js";
-
 import { view } from "./view.js";
-
-/*const getCircularReplacer = () => {
-  const seen = new WeakSet();
-  return (key, value) => {
-    if (typeof value === "object" && value !== null) {
-      if (seen.has(value)) {
-        return;
-      }
-      seen.add(value);
-    }
-    return value;
-  };
-};*/
-
-
-let renderer, scene, camera, directional_light, bg, envLight, box, sphere, ground, clock, controls;
 
 function init(width, height) {
     renderer = new GLRenderer();
@@ -43,7 +24,6 @@ function init(width, height) {
     envLight = new HemisphereLight();
     envLight.setSkyColor(1.0, 1.0, 1.0);
     envLight.setGroundColor(0.02843, 0.07819, 0.07819);
-    envLight.intensity = 1.0;
     scene.indirectLight = envLight;
 
     box = new SimpleModel();
@@ -54,7 +34,6 @@ function init(width, height) {
     let axis = new Vector3(1.0, 1.0, 0.0);
     axis.normalize();
     box.rotateOnAxis(axis, 1.0);
-    //box.setColor(0.8, 0.4, 0.4);
     {
         let img = imageLoader.loadFile("assets/textures/uv-test-bw.png");
         box.setColorTexture(img);
@@ -66,7 +45,6 @@ function init(width, height) {
     sphere.name = "sphere";
     sphere.createSphere(1.0);
     sphere.translateX(1.5);
-    //sphere.setColor(0.4, 0.8, 0.4);
     {
         let img = imageLoader.loadFile("assets/textures/uv-test-col.png");
         sphere.setColorTexture(img);
@@ -82,29 +60,8 @@ function init(width, height) {
     ground.rotateX(-3.1416*0.5);
     scene.add(ground);  
 
-    clock = new Clock();
-
     controls = new OrbitControls(camera, view);
     controls.enableDamping = true;
-    
-    // bvh test code
-    /*let bvh = new BoundingVolumeHierarchy([box, sphere]);
-    let origin =  new Vector3(0.0, 0.0, 7.0);
-    let dir = new Vector3(-1.5, 0.0, -7.0);
-    dir.normalize();
-    
-    let ray = {
-        origin: origin,
-        direction: dir, 
-    };
-    let inter = bvh.intersect(ray);
-    print(JSON.stringify(inter));    
-    
-    // camera.updateMatrixWorld(true);
-    // bvh.test(camera);
-    
-    bvh.dispose();*/
-
 }
 
 function dispose() {
@@ -113,23 +70,18 @@ function dispose() {
     box.dispose();
     envLight.dispose();
     bg.dispose();
-    directional_light.dispose();
+   // directional_light.dispose();
     camera.dispose();
     scene.dispose();
     renderer.dispose();
 }
 
-const axis = new Vector3(0, 1, 0);
-const rotation = new Matrix4();
-
 function render(width, height, size_changed) {    
-    if (size_changed) {
+    if (size_changed) 
+    {
         camera.aspect = width / height;
         camera.updateProjectionMatrix();
     }
-    let delta = clock.getDelta();
-    /*rotation.makeRotationAxis(axis, delta * 0.5);
-    camera.applyMatrix4(rotation);*/
 
     if (controls.hasOwnProperty('update'))
     {

@@ -704,6 +704,8 @@ No contructor, never used directly.
 
 ## Properties
 
+See the base Object3D class for common properties.
+
 ### `.color`: Object
 
 Color of the light object.
@@ -717,6 +719,8 @@ Intensity of the light object.
 Readable and writable.
 
 ## Methods
+
+See the base Object3D class for common methods.
 
 ### `.getColor`(`color`: Vector3) : Vector3
 
@@ -939,6 +943,8 @@ Creates a new SimpleModel.
 
 ## Properties
 
+See the base Object3D class for common properties.
+
 ### `.color`: Object
 
 Base-color of the material of the model.
@@ -958,6 +964,8 @@ Roughness factor of the material of the model.
 Readable and writable.
 
 ## Methods
+
+See the base Object3D class for common methods.
 
 ### `.createBox`(`width`: Number, `height`: Number, `depth`: Number): undefined
 
@@ -1016,6 +1024,8 @@ Creates a new GLTFModel. Usually not created directly. Use GLTFLoader class to c
 
 ## Properties
 
+See the base Object3D class for common properties.
+
 ### `.meshes`: Object
 
 Read-only property for displaying the info of internal meshes.
@@ -1025,6 +1035,8 @@ Read-only property for displaying the info of internal meshes.
 Read-only property for displaying the info of internal animation clips.
 
 ## Methods
+
+See the base Object3D class for common methods.
 
 ### `.setAnimationFrame`(`frame`: Object): undefined
 
@@ -1222,6 +1234,8 @@ Create a new scene object.
 
 ## Properties
 
+See the base Object3D class for common properties.
+
 ### `.background`: Background
 
 Object used as background.
@@ -1233,6 +1247,10 @@ Readable and writable.
 Object used as the indirect light-source.
 
 Readable and writable.
+
+## Methods
+
+See the base Object3D class for common methods.
 
 # GLRenderer
 

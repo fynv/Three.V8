@@ -1439,6 +1439,659 @@ Vector3.prototype.isVector3 = true;
 const _vector = /*@__PURE__*/ new Vector3();
 const _quaternion = /*@__PURE__*/ new Quaternion();
 
+/**
+ * https://github.com/mrdoob/eventdispatcher.js/
+ */
+
+class EventDispatcher {
+
+	addEventListener( type, listener ) {
+
+		if ( this._listeners === undefined ) this._listeners = {};
+
+		const listeners = this._listeners;
+
+		if ( listeners[ type ] === undefined ) {
+
+			listeners[ type ] = [];
+
+		}
+
+		if ( listeners[ type ].indexOf( listener ) === - 1 ) {
+
+			listeners[ type ].push( listener );
+
+		}
+
+	}
+
+	hasEventListener( type, listener ) {
+
+		if ( this._listeners === undefined ) return false;
+
+		const listeners = this._listeners;
+
+		return listeners[ type ] !== undefined && listeners[ type ].indexOf( listener ) !== - 1;
+
+	}
+
+	removeEventListener( type, listener ) {
+
+		if ( this._listeners === undefined ) return;
+
+		const listeners = this._listeners;
+		const listenerArray = listeners[ type ];
+
+		if ( listenerArray !== undefined ) {
+
+			const index = listenerArray.indexOf( listener );
+
+			if ( index !== - 1 ) {
+
+				listenerArray.splice( index, 1 );
+
+			}
+
+		}
+
+	}
+
+	dispatchEvent( event ) {
+		if ( this._listeners === undefined ) return;
+
+		const listeners = this._listeners;
+		const listenerArray = listeners[event.type];		
+
+		if ( listenerArray !== undefined ) {
+
+			event.target = this;
+
+			// Make a copy, in case listeners are removed while iterating.
+			const array = listenerArray.slice( 0 );
+
+			for ( let i = 0, l = array.length; i < l; i ++ ) {
+
+				array[ i ].call( this, event );
+
+			}
+
+			event.target = null;
+
+		}
+
+	}
+
+}
+
+const MOUSE = { LEFT: 0, MIDDLE: 1, RIGHT: 2, ROTATE: 0, DOLLY: 1, PAN: 2 };
+const TOUCH = { ROTATE: 0, PAN: 1, DOLLY_PAN: 2, DOLLY_ROTATE: 3 };
+
+/**
+ * Ref: https://en.wikipedia.org/wiki/Spherical_coordinate_system
+ *
+ * The polar angle (phi) is measured from the positive y-axis. The positive y-axis is up.
+ * The azimuthal angle (theta) is measured from the positive z-axis.
+ */
+
+class Spherical {
+
+	constructor( radius = 1, phi = 0, theta = 0 ) {
+
+		this.radius = radius;
+		this.phi = phi; // polar angle
+		this.theta = theta; // azimuthal angle
+
+		return this;
+
+	}
+
+	set( radius, phi, theta ) {
+
+		this.radius = radius;
+		this.phi = phi;
+		this.theta = theta;
+
+		return this;
+
+	}
+
+	copy( other ) {
+
+		this.radius = other.radius;
+		this.phi = other.phi;
+		this.theta = other.theta;
+
+		return this;
+
+	}
+
+	// restrict phi to be betwee EPS and PI-EPS
+	makeSafe() {
+
+		const EPS = 0.000001;
+		this.phi = Math.max( EPS, Math.min( Math.PI - EPS, this.phi ) );
+
+		return this;
+
+	}
+
+	setFromVector3( v ) {
+
+		return this.setFromCartesianCoords( v.x, v.y, v.z );
+
+	}
+
+	setFromCartesianCoords( x, y, z ) {
+
+		this.radius = Math.sqrt( x * x + y * y + z * z );
+
+		if ( this.radius === 0 ) {
+
+			this.theta = 0;
+			this.phi = 0;
+
+		} else {
+
+			this.theta = Math.atan2( x, z );
+			this.phi = Math.acos( clamp( y / this.radius, - 1, 1 ) );
+
+		}
+
+		return this;
+
+	}
+
+	clone() {
+
+		return new this.constructor().copy( this );
+
+	}
+
+}
+
+class Vector2 {
+
+	constructor( x = 0, y = 0 ) {
+
+		this.x = x;
+		this.y = y;
+
+	}
+
+	get width() {
+
+		return this.x;
+
+	}
+
+	set width( value ) {
+
+		this.x = value;
+
+	}
+
+	get height() {
+
+		return this.y;
+
+	}
+
+	set height( value ) {
+
+		this.y = value;
+
+	}
+
+	set( x, y ) {
+
+		this.x = x;
+		this.y = y;
+
+		return this;
+
+	}
+
+	setScalar( scalar ) {
+
+		this.x = scalar;
+		this.y = scalar;
+
+		return this;
+
+	}
+
+	setX( x ) {
+
+		this.x = x;
+
+		return this;
+
+	}
+
+	setY( y ) {
+
+		this.y = y;
+
+		return this;
+
+	}
+
+	setComponent( index, value ) {
+
+		switch ( index ) {
+
+			case 0: this.x = value; break;
+			case 1: this.y = value; break;
+			default: throw new Error( 'index is out of range: ' + index );
+
+		}
+
+		return this;
+
+	}
+
+	getComponent( index ) {
+
+		switch ( index ) {
+
+			case 0: return this.x;
+			case 1: return this.y;
+			default: throw new Error( 'index is out of range: ' + index );
+
+		}
+
+	}
+
+	clone() {
+
+		return new this.constructor( this.x, this.y );
+
+	}
+
+	copy( v ) {
+
+		this.x = v.x;
+		this.y = v.y;
+
+		return this;
+
+	}
+
+	add( v, w ) {
+
+		if ( w !== undefined ) {
+
+			console.warn( 'THREE.Vector2: .add() now only accepts one argument. Use .addVectors( a, b ) instead.' );
+			return this.addVectors( v, w );
+
+		}
+
+		this.x += v.x;
+		this.y += v.y;
+
+		return this;
+
+	}
+
+	addScalar( s ) {
+
+		this.x += s;
+		this.y += s;
+
+		return this;
+
+	}
+
+	addVectors( a, b ) {
+
+		this.x = a.x + b.x;
+		this.y = a.y + b.y;
+
+		return this;
+
+	}
+
+	addScaledVector( v, s ) {
+
+		this.x += v.x * s;
+		this.y += v.y * s;
+
+		return this;
+
+	}
+
+	sub( v, w ) {
+
+		if ( w !== undefined ) {
+
+			console.warn( 'THREE.Vector2: .sub() now only accepts one argument. Use .subVectors( a, b ) instead.' );
+			return this.subVectors( v, w );
+
+		}
+
+		this.x -= v.x;
+		this.y -= v.y;
+
+		return this;
+
+	}
+
+	subScalar( s ) {
+
+		this.x -= s;
+		this.y -= s;
+
+		return this;
+
+	}
+
+	subVectors( a, b ) {
+
+		this.x = a.x - b.x;
+		this.y = a.y - b.y;
+
+		return this;
+
+	}
+
+	multiply( v ) {
+
+		this.x *= v.x;
+		this.y *= v.y;
+
+		return this;
+
+	}
+
+	multiplyScalar( scalar ) {
+
+		this.x *= scalar;
+		this.y *= scalar;
+
+		return this;
+
+	}
+
+	divide( v ) {
+
+		this.x /= v.x;
+		this.y /= v.y;
+
+		return this;
+
+	}
+
+	divideScalar( scalar ) {
+
+		return this.multiplyScalar( 1 / scalar );
+
+	}
+
+	applyMatrix3( m ) {
+
+		const x = this.x, y = this.y;
+		const e = m.elements;
+
+		this.x = e[ 0 ] * x + e[ 3 ] * y + e[ 6 ];
+		this.y = e[ 1 ] * x + e[ 4 ] * y + e[ 7 ];
+
+		return this;
+
+	}
+
+	min( v ) {
+
+		this.x = Math.min( this.x, v.x );
+		this.y = Math.min( this.y, v.y );
+
+		return this;
+
+	}
+
+	max( v ) {
+
+		this.x = Math.max( this.x, v.x );
+		this.y = Math.max( this.y, v.y );
+
+		return this;
+
+	}
+
+	clamp( min, max ) {
+
+		// assumes min < max, componentwise
+
+		this.x = Math.max( min.x, Math.min( max.x, this.x ) );
+		this.y = Math.max( min.y, Math.min( max.y, this.y ) );
+
+		return this;
+
+	}
+
+	clampScalar( minVal, maxVal ) {
+
+		this.x = Math.max( minVal, Math.min( maxVal, this.x ) );
+		this.y = Math.max( minVal, Math.min( maxVal, this.y ) );
+
+		return this;
+
+	}
+
+	clampLength( min, max ) {
+
+		const length = this.length();
+
+		return this.divideScalar( length || 1 ).multiplyScalar( Math.max( min, Math.min( max, length ) ) );
+
+	}
+
+	floor() {
+
+		this.x = Math.floor( this.x );
+		this.y = Math.floor( this.y );
+
+		return this;
+
+	}
+
+	ceil() {
+
+		this.x = Math.ceil( this.x );
+		this.y = Math.ceil( this.y );
+
+		return this;
+
+	}
+
+	round() {
+
+		this.x = Math.round( this.x );
+		this.y = Math.round( this.y );
+
+		return this;
+
+	}
+
+	roundToZero() {
+
+		this.x = ( this.x < 0 ) ? Math.ceil( this.x ) : Math.floor( this.x );
+		this.y = ( this.y < 0 ) ? Math.ceil( this.y ) : Math.floor( this.y );
+
+		return this;
+
+	}
+
+	negate() {
+
+		this.x = - this.x;
+		this.y = - this.y;
+
+		return this;
+
+	}
+
+	dot( v ) {
+
+		return this.x * v.x + this.y * v.y;
+
+	}
+
+	cross( v ) {
+
+		return this.x * v.y - this.y * v.x;
+
+	}
+
+	lengthSq() {
+
+		return this.x * this.x + this.y * this.y;
+
+	}
+
+	length() {
+
+		return Math.sqrt( this.x * this.x + this.y * this.y );
+
+	}
+
+	manhattanLength() {
+
+		return Math.abs( this.x ) + Math.abs( this.y );
+
+	}
+
+	normalize() {
+
+		return this.divideScalar( this.length() || 1 );
+
+	}
+
+	angle() {
+
+		// computes the angle in radians with respect to the positive x-axis
+
+		const angle = Math.atan2( - this.y, - this.x ) + Math.PI;
+
+		return angle;
+
+	}
+
+	distanceTo( v ) {
+
+		return Math.sqrt( this.distanceToSquared( v ) );
+
+	}
+
+	distanceToSquared( v ) {
+
+		const dx = this.x - v.x, dy = this.y - v.y;
+		return dx * dx + dy * dy;
+
+	}
+
+	manhattanDistanceTo( v ) {
+
+		return Math.abs( this.x - v.x ) + Math.abs( this.y - v.y );
+
+	}
+
+	setLength( length ) {
+
+		return this.normalize().multiplyScalar( length );
+
+	}
+
+	lerp( v, alpha ) {
+
+		this.x += ( v.x - this.x ) * alpha;
+		this.y += ( v.y - this.y ) * alpha;
+
+		return this;
+
+	}
+
+	lerpVectors( v1, v2, alpha ) {
+
+		this.x = v1.x + ( v2.x - v1.x ) * alpha;
+		this.y = v1.y + ( v2.y - v1.y ) * alpha;
+
+		return this;
+
+	}
+
+	equals( v ) {
+
+		return ( ( v.x === this.x ) && ( v.y === this.y ) );
+
+	}
+
+	fromArray( array, offset = 0 ) {
+
+		this.x = array[ offset ];
+		this.y = array[ offset + 1 ];
+
+		return this;
+
+	}
+
+	toArray( array = [], offset = 0 ) {
+
+		array[ offset ] = this.x;
+		array[ offset + 1 ] = this.y;
+
+		return array;
+
+	}
+
+	fromBufferAttribute( attribute, index, offset ) {
+
+		if ( offset !== undefined ) {
+
+			console.warn( 'THREE.Vector2: offset has been removed from .fromBufferAttribute().' );
+
+		}
+
+		this.x = attribute.getX( index );
+		this.y = attribute.getY( index );
+
+		return this;
+
+	}
+
+	rotateAround( center, angle ) {
+
+		const c = Math.cos( angle ), s = Math.sin( angle );
+
+		const x = this.x - center.x;
+		const y = this.y - center.y;
+
+		this.x = x * c - y * s + center.x;
+		this.y = x * s + y * c + center.y;
+
+		return this;
+
+	}
+
+	random() {
+
+		this.x = Math.random();
+		this.y = Math.random();
+
+		return this;
+
+	}
+
+	*[ Symbol.iterator ]() {
+
+		yield this.x;
+		yield this.y;
+
+	}
+
+}
+
+Vector2.prototype.isVector2 = true;
+
 class Matrix4 {
 
 	constructor() {
@@ -2320,726 +2973,6 @@ const _one = /*@__PURE__*/ new Vector3( 1, 1, 1 );
 const _x = /*@__PURE__*/ new Vector3();
 const _y = /*@__PURE__*/ new Vector3();
 const _z = /*@__PURE__*/ new Vector3();
-
-class Clock {
-
-	constructor( autoStart = true ) {
-
-		this.autoStart = autoStart;
-
-		this.startTime = 0;
-		this.oldTime = 0;
-		this.elapsedTime = 0;
-
-		this.running = false;
-
-	}
-
-	start() {
-
-		this.startTime = now();
-
-		this.oldTime = this.startTime;
-		this.elapsedTime = 0;
-		this.running = true;
-
-	}
-
-	stop() {
-
-		this.getElapsedTime();
-		this.running = false;
-		this.autoStart = false;
-
-	}
-
-	getElapsedTime() {
-
-		this.getDelta();
-		return this.elapsedTime;
-
-	}
-
-	getDelta() {
-
-		let diff = 0;
-
-		if ( this.autoStart && ! this.running ) {
-
-			this.start();
-			return 0;
-
-		}
-
-		if ( this.running ) {
-
-			const newTime = now();
-
-			diff = ( newTime - this.oldTime ) / 1000;
-			this.oldTime = newTime;
-
-			this.elapsedTime += diff;
-
-		}
-
-		return diff;
-
-	}
-
-}
-
-/**
- * https://github.com/mrdoob/eventdispatcher.js/
- */
-
-class EventDispatcher {
-
-	addEventListener( type, listener ) {
-
-		if ( this._listeners === undefined ) this._listeners = {};
-
-		const listeners = this._listeners;
-
-		if ( listeners[ type ] === undefined ) {
-
-			listeners[ type ] = [];
-
-		}
-
-		if ( listeners[ type ].indexOf( listener ) === - 1 ) {
-
-			listeners[ type ].push( listener );
-
-		}
-
-	}
-
-	hasEventListener( type, listener ) {
-
-		if ( this._listeners === undefined ) return false;
-
-		const listeners = this._listeners;
-
-		return listeners[ type ] !== undefined && listeners[ type ].indexOf( listener ) !== - 1;
-
-	}
-
-	removeEventListener( type, listener ) {
-
-		if ( this._listeners === undefined ) return;
-
-		const listeners = this._listeners;
-		const listenerArray = listeners[ type ];
-
-		if ( listenerArray !== undefined ) {
-
-			const index = listenerArray.indexOf( listener );
-
-			if ( index !== - 1 ) {
-
-				listenerArray.splice( index, 1 );
-
-			}
-
-		}
-
-	}
-
-	dispatchEvent( event ) {
-		if ( this._listeners === undefined ) return;
-
-		const listeners = this._listeners;
-		const listenerArray = listeners[event.type];		
-
-		if ( listenerArray !== undefined ) {
-
-			event.target = this;
-
-			// Make a copy, in case listeners are removed while iterating.
-			const array = listenerArray.slice( 0 );
-
-			for ( let i = 0, l = array.length; i < l; i ++ ) {
-
-				array[ i ].call( this, event );
-
-			}
-
-			event.target = null;
-
-		}
-
-	}
-
-}
-
-const MOUSE = { LEFT: 0, MIDDLE: 1, RIGHT: 2, ROTATE: 0, DOLLY: 1, PAN: 2 };
-const TOUCH = { ROTATE: 0, PAN: 1, DOLLY_PAN: 2, DOLLY_ROTATE: 3 };
-
-/**
- * Ref: https://en.wikipedia.org/wiki/Spherical_coordinate_system
- *
- * The polar angle (phi) is measured from the positive y-axis. The positive y-axis is up.
- * The azimuthal angle (theta) is measured from the positive z-axis.
- */
-
-class Spherical {
-
-	constructor( radius = 1, phi = 0, theta = 0 ) {
-
-		this.radius = radius;
-		this.phi = phi; // polar angle
-		this.theta = theta; // azimuthal angle
-
-		return this;
-
-	}
-
-	set( radius, phi, theta ) {
-
-		this.radius = radius;
-		this.phi = phi;
-		this.theta = theta;
-
-		return this;
-
-	}
-
-	copy( other ) {
-
-		this.radius = other.radius;
-		this.phi = other.phi;
-		this.theta = other.theta;
-
-		return this;
-
-	}
-
-	// restrict phi to be betwee EPS and PI-EPS
-	makeSafe() {
-
-		const EPS = 0.000001;
-		this.phi = Math.max( EPS, Math.min( Math.PI - EPS, this.phi ) );
-
-		return this;
-
-	}
-
-	setFromVector3( v ) {
-
-		return this.setFromCartesianCoords( v.x, v.y, v.z );
-
-	}
-
-	setFromCartesianCoords( x, y, z ) {
-
-		this.radius = Math.sqrt( x * x + y * y + z * z );
-
-		if ( this.radius === 0 ) {
-
-			this.theta = 0;
-			this.phi = 0;
-
-		} else {
-
-			this.theta = Math.atan2( x, z );
-			this.phi = Math.acos( clamp( y / this.radius, - 1, 1 ) );
-
-		}
-
-		return this;
-
-	}
-
-	clone() {
-
-		return new this.constructor().copy( this );
-
-	}
-
-}
-
-class Vector2 {
-
-	constructor( x = 0, y = 0 ) {
-
-		this.x = x;
-		this.y = y;
-
-	}
-
-	get width() {
-
-		return this.x;
-
-	}
-
-	set width( value ) {
-
-		this.x = value;
-
-	}
-
-	get height() {
-
-		return this.y;
-
-	}
-
-	set height( value ) {
-
-		this.y = value;
-
-	}
-
-	set( x, y ) {
-
-		this.x = x;
-		this.y = y;
-
-		return this;
-
-	}
-
-	setScalar( scalar ) {
-
-		this.x = scalar;
-		this.y = scalar;
-
-		return this;
-
-	}
-
-	setX( x ) {
-
-		this.x = x;
-
-		return this;
-
-	}
-
-	setY( y ) {
-
-		this.y = y;
-
-		return this;
-
-	}
-
-	setComponent( index, value ) {
-
-		switch ( index ) {
-
-			case 0: this.x = value; break;
-			case 1: this.y = value; break;
-			default: throw new Error( 'index is out of range: ' + index );
-
-		}
-
-		return this;
-
-	}
-
-	getComponent( index ) {
-
-		switch ( index ) {
-
-			case 0: return this.x;
-			case 1: return this.y;
-			default: throw new Error( 'index is out of range: ' + index );
-
-		}
-
-	}
-
-	clone() {
-
-		return new this.constructor( this.x, this.y );
-
-	}
-
-	copy( v ) {
-
-		this.x = v.x;
-		this.y = v.y;
-
-		return this;
-
-	}
-
-	add( v, w ) {
-
-		if ( w !== undefined ) {
-
-			console.warn( 'THREE.Vector2: .add() now only accepts one argument. Use .addVectors( a, b ) instead.' );
-			return this.addVectors( v, w );
-
-		}
-
-		this.x += v.x;
-		this.y += v.y;
-
-		return this;
-
-	}
-
-	addScalar( s ) {
-
-		this.x += s;
-		this.y += s;
-
-		return this;
-
-	}
-
-	addVectors( a, b ) {
-
-		this.x = a.x + b.x;
-		this.y = a.y + b.y;
-
-		return this;
-
-	}
-
-	addScaledVector( v, s ) {
-
-		this.x += v.x * s;
-		this.y += v.y * s;
-
-		return this;
-
-	}
-
-	sub( v, w ) {
-
-		if ( w !== undefined ) {
-
-			console.warn( 'THREE.Vector2: .sub() now only accepts one argument. Use .subVectors( a, b ) instead.' );
-			return this.subVectors( v, w );
-
-		}
-
-		this.x -= v.x;
-		this.y -= v.y;
-
-		return this;
-
-	}
-
-	subScalar( s ) {
-
-		this.x -= s;
-		this.y -= s;
-
-		return this;
-
-	}
-
-	subVectors( a, b ) {
-
-		this.x = a.x - b.x;
-		this.y = a.y - b.y;
-
-		return this;
-
-	}
-
-	multiply( v ) {
-
-		this.x *= v.x;
-		this.y *= v.y;
-
-		return this;
-
-	}
-
-	multiplyScalar( scalar ) {
-
-		this.x *= scalar;
-		this.y *= scalar;
-
-		return this;
-
-	}
-
-	divide( v ) {
-
-		this.x /= v.x;
-		this.y /= v.y;
-
-		return this;
-
-	}
-
-	divideScalar( scalar ) {
-
-		return this.multiplyScalar( 1 / scalar );
-
-	}
-
-	applyMatrix3( m ) {
-
-		const x = this.x, y = this.y;
-		const e = m.elements;
-
-		this.x = e[ 0 ] * x + e[ 3 ] * y + e[ 6 ];
-		this.y = e[ 1 ] * x + e[ 4 ] * y + e[ 7 ];
-
-		return this;
-
-	}
-
-	min( v ) {
-
-		this.x = Math.min( this.x, v.x );
-		this.y = Math.min( this.y, v.y );
-
-		return this;
-
-	}
-
-	max( v ) {
-
-		this.x = Math.max( this.x, v.x );
-		this.y = Math.max( this.y, v.y );
-
-		return this;
-
-	}
-
-	clamp( min, max ) {
-
-		// assumes min < max, componentwise
-
-		this.x = Math.max( min.x, Math.min( max.x, this.x ) );
-		this.y = Math.max( min.y, Math.min( max.y, this.y ) );
-
-		return this;
-
-	}
-
-	clampScalar( minVal, maxVal ) {
-
-		this.x = Math.max( minVal, Math.min( maxVal, this.x ) );
-		this.y = Math.max( minVal, Math.min( maxVal, this.y ) );
-
-		return this;
-
-	}
-
-	clampLength( min, max ) {
-
-		const length = this.length();
-
-		return this.divideScalar( length || 1 ).multiplyScalar( Math.max( min, Math.min( max, length ) ) );
-
-	}
-
-	floor() {
-
-		this.x = Math.floor( this.x );
-		this.y = Math.floor( this.y );
-
-		return this;
-
-	}
-
-	ceil() {
-
-		this.x = Math.ceil( this.x );
-		this.y = Math.ceil( this.y );
-
-		return this;
-
-	}
-
-	round() {
-
-		this.x = Math.round( this.x );
-		this.y = Math.round( this.y );
-
-		return this;
-
-	}
-
-	roundToZero() {
-
-		this.x = ( this.x < 0 ) ? Math.ceil( this.x ) : Math.floor( this.x );
-		this.y = ( this.y < 0 ) ? Math.ceil( this.y ) : Math.floor( this.y );
-
-		return this;
-
-	}
-
-	negate() {
-
-		this.x = - this.x;
-		this.y = - this.y;
-
-		return this;
-
-	}
-
-	dot( v ) {
-
-		return this.x * v.x + this.y * v.y;
-
-	}
-
-	cross( v ) {
-
-		return this.x * v.y - this.y * v.x;
-
-	}
-
-	lengthSq() {
-
-		return this.x * this.x + this.y * this.y;
-
-	}
-
-	length() {
-
-		return Math.sqrt( this.x * this.x + this.y * this.y );
-
-	}
-
-	manhattanLength() {
-
-		return Math.abs( this.x ) + Math.abs( this.y );
-
-	}
-
-	normalize() {
-
-		return this.divideScalar( this.length() || 1 );
-
-	}
-
-	angle() {
-
-		// computes the angle in radians with respect to the positive x-axis
-
-		const angle = Math.atan2( - this.y, - this.x ) + Math.PI;
-
-		return angle;
-
-	}
-
-	distanceTo( v ) {
-
-		return Math.sqrt( this.distanceToSquared( v ) );
-
-	}
-
-	distanceToSquared( v ) {
-
-		const dx = this.x - v.x, dy = this.y - v.y;
-		return dx * dx + dy * dy;
-
-	}
-
-	manhattanDistanceTo( v ) {
-
-		return Math.abs( this.x - v.x ) + Math.abs( this.y - v.y );
-
-	}
-
-	setLength( length ) {
-
-		return this.normalize().multiplyScalar( length );
-
-	}
-
-	lerp( v, alpha ) {
-
-		this.x += ( v.x - this.x ) * alpha;
-		this.y += ( v.y - this.y ) * alpha;
-
-		return this;
-
-	}
-
-	lerpVectors( v1, v2, alpha ) {
-
-		this.x = v1.x + ( v2.x - v1.x ) * alpha;
-		this.y = v1.y + ( v2.y - v1.y ) * alpha;
-
-		return this;
-
-	}
-
-	equals( v ) {
-
-		return ( ( v.x === this.x ) && ( v.y === this.y ) );
-
-	}
-
-	fromArray( array, offset = 0 ) {
-
-		this.x = array[ offset ];
-		this.y = array[ offset + 1 ];
-
-		return this;
-
-	}
-
-	toArray( array = [], offset = 0 ) {
-
-		array[ offset ] = this.x;
-		array[ offset + 1 ] = this.y;
-
-		return array;
-
-	}
-
-	fromBufferAttribute( attribute, index, offset ) {
-
-		if ( offset !== undefined ) {
-
-			console.warn( 'THREE.Vector2: offset has been removed from .fromBufferAttribute().' );
-
-		}
-
-		this.x = attribute.getX( index );
-		this.y = attribute.getY( index );
-
-		return this;
-
-	}
-
-	rotateAround( center, angle ) {
-
-		const c = Math.cos( angle ), s = Math.sin( angle );
-
-		const x = this.x - center.x;
-		const y = this.y - center.y;
-
-		this.x = x * c - y * s + center.x;
-		this.y = x * s + y * c + center.y;
-
-		return this;
-
-	}
-
-	random() {
-
-		this.x = Math.random();
-		this.y = Math.random();
-
-		return this;
-
-	}
-
-	*[ Symbol.iterator ]() {
-
-		yield this.x;
-		yield this.y;
-
-	}
-
-}
-
-Vector2.prototype.isVector2 = true;
 
 // This set of controls performs orbiting, dollying (zooming), and panning.
 // Unlike TrackballControls, it maintains the "up" direction object.up (+Y by default).
@@ -4324,22 +4257,6 @@ setCallback('OnMouseUp', OnMouseUp);
 setCallback('OnMouseMove', OnMouseMove);
 setCallback('OnMouseWheel', OnMouseWheel);
 
-/*const getCircularReplacer = () => {
-  const seen = new WeakSet();
-  return (key, value) => {
-    if (typeof value === "object" && value !== null) {
-      if (seen.has(value)) {
-        return;
-      }
-      seen.add(value);
-    }
-    return value;
-  };
-};*/
-
-
-let renderer, scene, camera, directional_light, bg, envLight, box, sphere, ground, clock, controls;
-
 function init(width, height) {
     renderer = new GLRenderer();
     scene = new Scene();
@@ -4362,7 +4279,6 @@ function init(width, height) {
     envLight = new HemisphereLight();
     envLight.setSkyColor(1.0, 1.0, 1.0);
     envLight.setGroundColor(0.02843, 0.07819, 0.07819);
-    envLight.intensity = 1.0;
     scene.indirectLight = envLight;
 
     box = new SimpleModel();
@@ -4373,7 +4289,6 @@ function init(width, height) {
     let axis = new Vector3(1.0, 1.0, 0.0);
     axis.normalize();
     box.rotateOnAxis(axis, 1.0);
-    //box.setColor(0.8, 0.4, 0.4);
     {
         let img = imageLoader.loadFile("assets/textures/uv-test-bw.png");
         box.setColorTexture(img);
@@ -4385,7 +4300,6 @@ function init(width, height) {
     sphere.name = "sphere";
     sphere.createSphere(1.0);
     sphere.translateX(1.5);
-    //sphere.setColor(0.4, 0.8, 0.4);
     {
         let img = imageLoader.loadFile("assets/textures/uv-test-col.png");
         sphere.setColorTexture(img);
@@ -4401,29 +4315,8 @@ function init(width, height) {
     ground.rotateX(-3.1416*0.5);
     scene.add(ground);  
 
-    clock = new Clock();
-
     controls = new OrbitControls(camera, view);
     controls.enableDamping = true;
-    
-    // bvh test code
-    /*let bvh = new BoundingVolumeHierarchy([box, sphere]);
-    let origin =  new Vector3(0.0, 0.0, 7.0);
-    let dir = new Vector3(-1.5, 0.0, -7.0);
-    dir.normalize();
-    
-    let ray = {
-        origin: origin,
-        direction: dir, 
-    };
-    let inter = bvh.intersect(ray);
-    print(JSON.stringify(inter));    
-    
-    // camera.updateMatrixWorld(true);
-    // bvh.test(camera);
-    
-    bvh.dispose();*/
-
 }
 
 function dispose() {
@@ -4432,23 +4325,18 @@ function dispose() {
     box.dispose();
     envLight.dispose();
     bg.dispose();
-    directional_light.dispose();
+   // directional_light.dispose();
     camera.dispose();
     scene.dispose();
     renderer.dispose();
 }
 
-new Vector3(0, 1, 0);
-new Matrix4();
-
 function render(width, height, size_changed) {    
-    if (size_changed) {
+    if (size_changed) 
+    {
         camera.aspect = width / height;
         camera.updateProjectionMatrix();
     }
-    clock.getDelta();
-    /*rotation.makeRotationAxis(axis, delta * 0.5);
-    camera.applyMatrix4(rotation);*/
 
     if (controls.hasOwnProperty('update'))
     {

@@ -25,6 +25,8 @@ An alternative is to run [Three.js](https://threejs.org/) directly in an embedde
 
 ## 3rd-party libraries
 
+* [V8](https://www.nuget.org/packages/v8-v142-x64): For running user script.
+* [Three.js](https://threejs.org/): Reusing existing JS utilities.
 * [tiny-gltf](https://github.com/syoyo/tinygltf): For loading GLTF models.
 * [draco](https://github.com/google/draco): Mesh decoder. Used by tiny-gltf.
 * [stb_image](https://github.com/nothings/stb): For loading images.

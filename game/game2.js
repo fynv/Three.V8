@@ -51,7 +51,6 @@ function init(width, height) {
     envLight = new HemisphereLight();
     envLight.setSkyColor(1.0, 1.0, 1.0);
     envLight.setGroundColor(0.02843, 0.07819, 0.07819);
-    envLight.intensity = 1.0;
     scene.indirectLight = envLight;
 
     camera.setPosition(0.0, 0.0, 20.0);

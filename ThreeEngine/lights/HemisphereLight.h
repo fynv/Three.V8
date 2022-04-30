@@ -11,7 +11,7 @@ public:
 
 	glm::vec3 skyColor = { 1.0f, 1.0f, 1.0f };
 	glm::vec3 groundColor = { 1.0f, 1.0f, 1.0f };
-	float intensity = 0.2f;
+	float intensity = 1.0f;
 
 	GLDynBuffer m_constant;
 	void updateConstant();
