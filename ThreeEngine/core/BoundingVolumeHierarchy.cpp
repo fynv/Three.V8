@@ -47,7 +47,7 @@ BoundingVolumeHierarchy::BLAS::BLAS(const Primitive* primitive, const glm::mat4&
 			v1 = model_matrix * v1;
 			v2 = model_matrix * v2;
 
-			m_triangles.emplace_back(bvh::Triangle<float>(
+			m_triangles.emplace_back(PrimitiveType(
 				bvh::Vector3<float>(v0.x, v0.y, v0.z),
 				bvh::Vector3<float>(v1.x, v1.y, v1.z),
 				bvh::Vector3<float>(v2.x, v2.y, v2.z)
@@ -68,7 +68,7 @@ BoundingVolumeHierarchy::BLAS::BLAS(const Primitive* primitive, const glm::mat4&
 			v1 = model_matrix * v1;
 			v2 = model_matrix * v2;
 
-			m_triangles.emplace_back(bvh::Triangle<float>(
+			m_triangles.emplace_back(PrimitiveType(
 				bvh::Vector3<float>(v0.x, v0.y, v0.z),
 				bvh::Vector3<float>(v1.x, v1.y, v1.z),
 				bvh::Vector3<float>(v2.x, v2.y, v2.z)

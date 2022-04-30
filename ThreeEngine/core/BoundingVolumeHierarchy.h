@@ -44,10 +44,11 @@ public:
 		std::optional<Intersection> intersect(const bvh::Ray<float>& ray) const;
 
 	private:
-		typedef bvh::ClosestPrimitiveIntersector<bvh::Bvh<float>, bvh::Triangle<float>> IntersectorType;
+		typedef bvh::Triangle<float, true, true> PrimitiveType;
+		typedef bvh::ClosestPrimitiveIntersector<bvh::Bvh<float>, PrimitiveType> IntersectorType;
 		typedef bvh::SingleRayTraverser<bvh::Bvh<float>> TraversorType;
 
-		std::vector<bvh::Triangle<float>> m_triangles;
+		std::vector<PrimitiveType> m_triangles;
 		bvh::BoundingBox<float> m_bounding_box;
 		std::unique_ptr<bvh::Bvh<float>> m_bvh;
 		std::unique_ptr<IntersectorType> m_intersector;

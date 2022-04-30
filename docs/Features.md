@@ -55,6 +55,14 @@ In the basic routine above, we register 3 callback functions for `init`, `dispos
 
 Wrappers of engine objects are created in the `init` function. All of these objects needs a `dispose` call in the `dispose` callback function. Three.V8 has such a design because of the concern that all graphics resources need to be released while the OpenGL context is still present, so there's no way to rely on the garbage collector.
 
+All scripts need to be pre-bundled. Use GamePlayer to load the bundled script.
+
+For exmaple:
+
+```
+rollup game.js --file bundle.js
+```
+
 ## Backgrounds
 
 The Scene class has a [`.background`](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#background-background) property.
