@@ -26,6 +26,8 @@ public:
 	void render(Scene& scene, Camera& camera, GLRenderTarget& target);
 
 private:
+	std::unique_ptr<WeightedOIT> oit_resolvers[2];
+
 	void update_simple_model(SimpleModel* model);
 	void update_gltf_model(GLTFModel* model);
 
@@ -53,7 +55,6 @@ private:
 	void render_shadow_primitive(const DirectionalShadowCast::RenderParams& params);
 	void render_shadow_model(DirectionalLightShadow* shadow, SimpleModel* model);
 	void render_shadow_model(DirectionalLightShadow* shadow, GLTFModel* model);
-
 
 	std::unique_ptr<DrawTexture> TextureVisualizer;
 	std::unique_ptr<DrawSkyBox> SkyBoxDraw;

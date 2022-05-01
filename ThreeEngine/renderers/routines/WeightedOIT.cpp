@@ -69,15 +69,25 @@ WeightedOIT::WeightedOIT(bool msaa) : m_msaa(msaa)
 
 WeightedOIT::~WeightedOIT()
 {
-    if (m_fbo != -1)
-        glDeleteFramebuffers(1, &m_fbo);
-    if (m_tex1 != -1)
-        glDeleteTextures(1, &m_tex1);
-    if (m_tex0 != -1)
-        glDeleteTextures(1, &m_tex0);
+ 
 }
 
-void WeightedOIT::PreDraw(int width, int height, unsigned depth_rbo)
+WeightedOIT::Buffers::Buffers()
+{
+
+}
+
+WeightedOIT::Buffers::~Buffers()
+{
+	if (m_fbo != -1)
+		glDeleteFramebuffers(1, &m_fbo);
+	if (m_tex1 != -1)
+		glDeleteTextures(1, &m_tex1);
+	if (m_tex0 != -1)
+		glDeleteTextures(1, &m_tex0);
+}
+
+void WeightedOIT::Buffers::update(int width, int height, unsigned depth_rbo, bool msaa)
 {
 	if (m_width != width || m_height != height)
 	{
@@ -90,7 +100,7 @@ void WeightedOIT::PreDraw(int width, int height, unsigned depth_rbo)
 
 		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 
-		if (m_msaa)
+		if (msaa)
 		{
 			glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_tex0);
 			glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_RGBA16F, width, height, true);
@@ -128,12 +138,15 @@ void WeightedOIT::PreDraw(int width, int height, unsigned depth_rbo)
 		m_width = width;
 		m_height = height;
 	}
+}
 
-	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+void WeightedOIT::PreDraw(Buffers& bufs)
+{
+	glBindFramebuffer(GL_FRAMEBUFFER, bufs.m_fbo);
 
 	const GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
 	glDrawBuffers(2, drawBuffers);
-	glViewport(0, 0, m_width, m_height);
+	glViewport(0, 0, bufs.m_width, bufs.m_height);
 
 	float clearColorZero[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	float clearColorOne[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -146,7 +159,7 @@ void WeightedOIT::PreDraw(int width, int height, unsigned depth_rbo)
 	glDepthMask(GL_FALSE);
 }
 
-void WeightedOIT::PostDraw()
+void WeightedOIT::PostDraw(Buffers& bufs)
 {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
@@ -161,22 +174,22 @@ void WeightedOIT::PostDraw()
 	glActiveTexture(GL_TEXTURE0);
 	if (m_msaa)
 	{
-		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_tex0);
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, bufs.m_tex0);
 	}
 	else
 	{
-		glBindTexture(GL_TEXTURE_2D, m_tex0);
+		glBindTexture(GL_TEXTURE_2D, bufs.m_tex0);
 	}
 	glUniform1i(0, 0);
 
 	glActiveTexture(GL_TEXTURE1);
 	if (m_msaa)
 	{
-		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_tex1);
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, bufs.m_tex1);
 	}
 	else
 	{
-		glBindTexture(GL_TEXTURE_2D, m_tex1);
+		glBindTexture(GL_TEXTURE_2D, bufs.m_tex1);
 	}
 	glUniform1i(1, 1);
 

@@ -9,6 +9,11 @@ public:
 	GLRenderTarget(bool default_buffer, bool msaa);
 	~GLRenderTarget();
 
+	bool msaa() const
+	{
+		return m_fbo_msaa != (unsigned)(-1);
+	}
+
 	int m_width = -1;
 	int m_height = -1;
 	
@@ -21,15 +26,11 @@ public:
 	unsigned m_fbo_msaa = -1;
 	void update_framebuffers(int width, int height);
 
-	std::unique_ptr<WeightedOIT> OITResolver;
+	WeightedOIT::Buffers m_OITBuffers;
+	void update_oit_buffers();
 
-	void render_begin();
-	
-	void transparent_begin();
-	void transparent_end();
-
+	void bind_buffer();
 	void resolve_msaa();
-
 	void blit_buffer(int width_wnd, int height_wnd, int margin);
 
 };

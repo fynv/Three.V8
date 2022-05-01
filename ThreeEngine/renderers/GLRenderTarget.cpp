@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <GL/glew.h>
 #include "GLRenderTarget.h"
 
@@ -91,8 +92,20 @@ void GLRenderTarget::update_framebuffers(int width, int height)
 	}
 }
 
+void GLRenderTarget::update_oit_buffers()
+{
+	if (m_fbo_msaa == (unsigned)(-1))
+	{
+		m_OITBuffers.update(m_width, m_height, m_rbo_video, false);	
+	}
+	else
+	{
+		m_OITBuffers.update(m_width, m_height, m_rbo_msaa, true);		
+	}
+}
 
-void GLRenderTarget::render_begin()
+
+void GLRenderTarget::bind_buffer()
 {
 	if (m_fbo_msaa!=(unsigned)(-1))
 	{
@@ -101,39 +114,9 @@ void GLRenderTarget::render_begin()
 	else
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_video);
-	}
-	glEnable(GL_FRAMEBUFFER_SRGB);
-	glViewport(0, 0, m_width, m_height);
+	}	
 }
 
-void GLRenderTarget::transparent_begin()
-{
-	if (OITResolver == nullptr)
-	{
-		OITResolver = std::unique_ptr<WeightedOIT>(new WeightedOIT(m_fbo_msaa != (unsigned)(-1)));
-	}
-	if (m_fbo_msaa != (unsigned)(-1))
-	{
-		OITResolver->PreDraw(m_width, m_height, m_rbo_msaa);
-	}
-	else
-	{
-		OITResolver->PreDraw(m_width, m_height, m_rbo_video);
-	}
-}
-
-void GLRenderTarget::transparent_end()
-{
-	if (m_fbo_msaa != (unsigned)(-1))
-	{
-		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_msaa);
-	}
-	else
-	{
-		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_video);
-	}
-	OITResolver->PostDraw();
-}
 
 void GLRenderTarget::resolve_msaa()
 {

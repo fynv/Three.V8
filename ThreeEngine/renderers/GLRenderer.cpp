@@ -458,7 +458,9 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 	}
 
 	// render scene
-	target.render_begin();
+	target.bind_buffer();
+	glEnable(GL_FRAMEBUFFER_SRGB);
+	glViewport(0, 0, target.m_width, target.m_height);
 
 	while(scene.background!=nullptr)
 	{
@@ -541,7 +543,23 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 			render_model(p_camera, *p_lights, model, Pass::Highlight);
 		}
 
-		target.transparent_begin();		
+		target.update_oit_buffers();
+		if (!target.msaa())
+		{			
+			if (oit_resolvers[0] == nullptr)
+			{
+				oit_resolvers[0] = std::unique_ptr<WeightedOIT>(new WeightedOIT(false));
+			}
+			oit_resolvers[0]->PreDraw(target.m_OITBuffers);
+		}
+		else
+		{		
+			if (oit_resolvers[1] == nullptr)
+			{
+				oit_resolvers[1] = std::unique_ptr<WeightedOIT>(new WeightedOIT(true));
+			}
+			oit_resolvers[1]->PreDraw(target.m_OITBuffers);
+		}
 
 		for (size_t i = 0; i < lists.simple_models.size(); i++)
 		{
@@ -555,7 +573,16 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 			render_model(p_camera, *p_lights, model, Pass::Alpha);
 		}
 
-		target.transparent_end();
+		target.bind_buffer();
+
+		if (!target.msaa())
+		{			
+			oit_resolvers[0]->PostDraw(target.m_OITBuffers);
+		}
+		else
+		{			
+			oit_resolvers[1]->PostDraw(target.m_OITBuffers);			
+		}
 	}
 
 #if 0
