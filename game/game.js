@@ -70,7 +70,7 @@ function dispose() {
     box.dispose();
     envLight.dispose();
     bg.dispose();
-   // directional_light.dispose();
+    directional_light.dispose();
     camera.dispose();
     scene.dispose();
     renderer.dispose();
