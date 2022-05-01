@@ -4,6 +4,7 @@
 #include <renderers/GLRenderer.h>
 #include <scenes/Scene.h>
 #include <cameras/Camera.h>
+#include "GamePlayer.h"
 
 class WrapperGLRenderer
 {
@@ -41,16 +42,20 @@ void WrapperGLRenderer::Render(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	v8::Isolate* isolate = info.GetIsolate();
 	v8::HandleScope handle_scope(isolate);
+	v8::Local<v8::Context> context = isolate->GetCurrentContext();
+	
 	GLRenderer* self = get_self<GLRenderer>(info);
 
-	int width = (int)info[0].As<v8::Number>()->Value();
-	int height = (int)info[1].As<v8::Number>()->Value();
+	v8::Local<v8::Object> global = context->Global();
+	v8::Local<v8::Object> holder_player = global->Get(context, v8::String::NewFromUtf8(isolate, "gamePlayer").ToLocalChecked()).ToLocalChecked().As<v8::Object>();
+	v8::Local<v8::External> wrap_player = v8::Local<v8::External>::Cast(holder_player->GetInternalField(0));
+	GamePlayer* player = (GamePlayer*)wrap_player->Value();
 
-	v8::Local<v8::Object> holder_scene = info[2].As<v8::Object>();
+	v8::Local<v8::Object> holder_scene = info[0].As<v8::Object>();
 	Scene* scene = (Scene*)v8::Local<v8::External>::Cast(holder_scene->GetInternalField(0))->Value();
 
-	v8::Local<v8::Object> holder_camera = info[3].As<v8::Object>();
+	v8::Local<v8::Object> holder_camera = info[1].As<v8::Object>();
 	Camera* camera = (Camera*)v8::Local<v8::External>::Cast(holder_camera->GetInternalField(0))->Value();
 
-	self->render(width, height, *scene, *camera);
+	self->render(*scene, *camera, player->renderTarget());
 }

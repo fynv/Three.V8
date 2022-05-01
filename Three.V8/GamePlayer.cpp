@@ -8,6 +8,7 @@ GamePlayer::GamePlayer(V8VM* v8vm, int width, int height)
 	: m_v8vm(v8vm)
 	, m_width(width)
 	, m_height(height)
+	, m_render_target(true, true)
 {
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 }
@@ -58,6 +59,7 @@ void GamePlayer::Draw(int width, int height)
 		m_width = width;
 		m_height = height;
 	}
+	m_render_target.update_framebuffers(width, height);
 
 	if (m_context != nullptr)
 	{

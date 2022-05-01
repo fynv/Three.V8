@@ -21,41 +21,7 @@ GLRenderer::GLRenderer()
 
 GLRenderer::~GLRenderer()
 {
-	if (m_fbo_msaa != -1)
-		glDeleteFramebuffers(1, &m_fbo_msaa);
-	if (m_tex_msaa != -1)
-		glDeleteTextures(1, &m_tex_msaa);
-	if (m_rbo_msaa != -1)
-		glDeleteRenderbuffers(1, &m_rbo_msaa);
-}
 
-
-void GLRenderer::_update_framebuffers(int width, int height)
-{
-	if (m_width != width || m_height != height)
-	{
-		if (m_fbo_msaa == -1)
-		{
-			glGenFramebuffers(1, &m_fbo_msaa);
-			glGenTextures(1, &m_tex_msaa);
-			glGenRenderbuffers(1, &m_rbo_msaa);
-		}
-
-		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_msaa);
-
-		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_tex_msaa);
-		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_SRGB8_ALPHA8, width, height, true);
-		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, m_tex_msaa, 0);
-
-		glBindRenderbuffer(GL_RENDERBUFFER, m_rbo_msaa);
-		glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH_COMPONENT24, width, height);
-		glBindRenderbuffer(GL_RENDERBUFFER, 0);
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_rbo_msaa);
-
-		m_width = width;
-		m_height = height;
-	}
 }
 
 void GLRenderer::update_simple_model(SimpleModel* model)
@@ -311,13 +277,8 @@ void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, GLTFModel* 
 	}
 }
 
-void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
+void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 {
-	GLint video_buf_id = 0;
-	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &video_buf_id);
-
-	_update_framebuffers(width, height);
-
 	camera.updateMatrixWorld(false);
 	camera.updateConstant();	
 
@@ -497,10 +458,10 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 	}
 
 	// render scene
-	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_msaa);
+	glBindFramebuffer(GL_FRAMEBUFFER, target.m_fbo_msaa);
 
 	glEnable(GL_FRAMEBUFFER_SRGB);	
-	glViewport(0, 0, width, height);
+	glViewport(0, 0, target.m_width, target.m_height);
 
 	while(scene.background!=nullptr)
 	{
@@ -583,11 +544,11 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 			render_model(p_camera, *p_lights, model, Pass::Highlight);
 		}
 
-		if (OITResolver == nullptr)
+		if (target.OITResolver == nullptr)
 		{
-			OITResolver = std::unique_ptr<WeightedOIT>(new WeightedOIT);
+			target.OITResolver = std::unique_ptr<WeightedOIT>(new WeightedOIT);
 		}
-		OITResolver->PreDraw(width, height, m_rbo_msaa);
+		target.OITResolver->PreDraw(target.m_width, target.m_height, target.m_rbo_msaa);
 
 		for (size_t i = 0; i < lists.simple_models.size(); i++)
 		{
@@ -601,14 +562,14 @@ void GLRenderer::render(int width, int height, Scene& scene, Camera& camera)
 			render_model(p_camera, *p_lights, model, Pass::Alpha);
 		}
 
-		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_msaa);
-		OITResolver->PostDraw();
+		glBindFramebuffer(GL_FRAMEBUFFER, target.m_fbo_msaa);
+		target.OITResolver->PostDraw();
 	}
 
 	
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, video_buf_id);
-	glBlitFramebuffer(0, 0, m_width, m_height, 0, 0, m_width, m_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, video_buf_id);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, target.m_fbo_video);
+	glBlitFramebuffer(0, 0, target.m_width, target.m_height, 0, 0, target.m_width, target.m_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, target.m_fbo_video);
 
 #if 0
 	// visualize shadow map

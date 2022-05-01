@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <unordered_map>
+#include "renderers/GLRenderTarget.h"
 #include "renderers/routines/StandardRoutine.h"
 #include "renderers/routines/MorphUpdate.h"
 #include "renderers/routines/SkinUpdate.h"
@@ -22,16 +23,9 @@ class GLRenderer
 public:
 	GLRenderer();
 	~GLRenderer();
-	void render(int width, int height, Scene& scene, Camera& camera);
+	void render(Scene& scene, Camera& camera, GLRenderTarget& target);
 
 private:
-	int m_width = -1;
-	int m_height = -1;
-	unsigned m_tex_msaa = -1;
-	unsigned m_rbo_msaa = -1;
-	unsigned m_fbo_msaa = -1;
-	void _update_framebuffers(int width, int height);
-
 	void update_simple_model(SimpleModel* model);
 	void update_gltf_model(GLTFModel* model);
 
@@ -51,8 +45,6 @@ private:
 
 	std::unique_ptr<MorphUpdate> morphers[2];
 	std::unique_ptr<SkinUpdate> skinners[2];
-
-	std::unique_ptr<WeightedOIT> OITResolver;
 
 	// directional shadow maps
 	std::unordered_map<uint64_t, std::unique_ptr<DirectionalShadowCast>> directional_shadow_caster_map;

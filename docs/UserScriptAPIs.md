@@ -1268,13 +1268,9 @@ Create a GLRenderer.
 
 Dispose the unmanaged resource.
 
-### `.render`(`width`: Number, `height`: Number, `scene`: Scene, `camera`: Camera): undefined
+### `.render`(`scene`: Scene, `camera`: Camera): undefined
 
 Should be called from the `render` callback function.
-
-`width` -- width of the current video
-
-`height` -- height of the current video
 
 `scene` -- scene object to be rendered
 

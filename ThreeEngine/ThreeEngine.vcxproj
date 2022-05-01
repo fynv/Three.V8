@@ -152,6 +152,7 @@
     <ClCompile Include="models\ModelComponents.cpp" />
     <ClCompile Include="models\SimpleModel.cpp" />
     <ClCompile Include="renderers\GLRenderer.cpp" />
+    <ClCompile Include="renderers\GLRenderTarget.cpp" />
     <ClCompile Include="renderers\GLUtils.cpp" />
     <ClCompile Include="renderers\routines\DirectionalShadowCast.cpp" />
     <ClCompile Include="renderers\routines\DrawHemisphere.cpp" />
@@ -192,6 +193,7 @@
     <ClInclude Include="models\ModelComponents.h" />
     <ClInclude Include="models\SimpleModel.h" />
     <ClInclude Include="renderers\GLRenderer.h" />
+    <ClInclude Include="renderers\GLRenderTarget.h" />
     <ClInclude Include="renderers\GLUtils.h" />
     <ClInclude Include="renderers\routines\DirectionalShadowCast.h" />
     <ClInclude Include="renderers\routines\DrawHemisphere.h" />

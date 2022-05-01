@@ -104,7 +104,7 @@ function render(width, height, size_changed) {
 
     model.updateAnimation();
 
-    renderer.render(width, height, scene, camera);
+    renderer.render(scene, camera);
 }
 
 setCallback('init', init);

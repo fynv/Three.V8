@@ -1,9 +1,13 @@
 #pragma once
 
+#include <renderers/GLRenderTarget.h>
 #include <renderers/GLRenderer.h>
 #include <scenes/Scene.h>
-#include <backgrounds/Background.h>
 #include <cameras/PerspectiveCamera.h>
+#include <lights/DirectionalLight.h>
+#include <lights/HemisphereLight.h>
+#include <backgrounds/Background.h>
+
 #include <models/SimpleModel.h>
 #include <models/GLTFModel.h>
 
@@ -18,11 +22,15 @@ public:
 private:
 	int m_width = -1;
 	int m_height = -1;
+	GLRenderTarget m_render_target;
 
 	GLRenderer m_renderer;
 	Scene m_scene;
 	PerspectiveCamera m_camera;
-	ColorBackground m_bg;
+	DirectionalLight m_directional_light;
+	HemisphereBackground m_bg;
+	HemisphereLight m_envLight;
+
 	SimpleModel m_box;
 	SimpleModel m_sphere;
 

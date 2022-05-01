@@ -83,7 +83,7 @@ function render(width, height, size_changed) {
         controls.update();
     }
 
-    renderer.render(width, height, scene, camera);
+    renderer.render(scene, camera);
 }
 
 setCallback('init', init);

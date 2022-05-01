@@ -1,5 +1,6 @@
 #pragma once
 
+#include <renderers/GLRenderTarget.h>
 #include "binding.h"
 
 struct WindowCalls
@@ -34,9 +35,15 @@ public:
 	void SetMouseCapture();
 	void ReleaseMouseCapture();
 
+	GLRenderTarget& renderTarget()
+	{
+		return m_render_target;
+	}
+
 private:
 	int m_width = -1;
 	int m_height = -1;
+	GLRenderTarget m_render_target;
 
 	V8VM* m_v8vm;
 	std::unique_ptr<GameContext> m_context;

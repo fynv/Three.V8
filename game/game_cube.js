@@ -313,7 +313,7 @@ function render(width, height, size_changed) {
     
     set_transforms(solve.notes[pos], prog);
     
-    renderer.render(width, height, scene, camera);
+    renderer.render(scene, camera);
       
     if (rotating)
     {

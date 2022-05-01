@@ -186,6 +186,9 @@
     <ClCompile Include="core\BoundingVolumeHierarchy.cpp">
       <Filter>Source Files\core</Filter>
     </ClCompile>
+    <ClCompile Include="renderers\GLRenderTarget.cpp">
+      <Filter>Source Files\renderers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -304,6 +307,9 @@
     </ClInclude>
     <ClInclude Include="core\BoundingVolumeHierarchy.h">
       <Filter>Header Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\GLRenderTarget.h">
+      <Filter>Header Files\renderers</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
