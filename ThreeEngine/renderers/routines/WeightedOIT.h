@@ -6,18 +6,19 @@
 class WeightedOIT
 {
 public:
-	WeightedOIT();
+	WeightedOIT(bool msaa);
 	~WeightedOIT();
 
-	void PreDraw(int width_video, int height_video, unsigned depth_rbo);
+	void PreDraw(int width, int height, unsigned depth_rbo);
 	void PostDraw();
 
 private:
-	int m_width_video = -1;
-	int m_height_video = -1;
-	unsigned m_tex_msaa0 = -1;
-	unsigned m_tex_msaa1 = -1;
-	unsigned m_fbo_msaa = -1;
+	bool m_msaa;
+	int m_width = -1;
+	int m_height = -1;
+	unsigned m_tex0 = -1;
+	unsigned m_tex1 = -1;
+	unsigned m_fbo = -1;
 
 	std::unique_ptr<GLShader> m_vert_shader;
 	std::unique_ptr<GLShader> m_frag_shader;

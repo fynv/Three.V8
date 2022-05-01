@@ -4,7 +4,11 @@
 #include <loaders/GLTFLoader.h>
 
 Game::Game(int width, int height) 
+#if ENABLE_MSAA
 	: m_render_target(true, true)
+#else
+	: m_render_target(false, false)
+#endif
 	, m_camera(45.0f, (float)width / (float)height, 0.1f, 100.0f)
 
 {
@@ -67,6 +71,10 @@ void Game::Draw(int width, int height)
 
 	m_render_target.update_framebuffers(width, height);
 	m_renderer.render(m_scene, m_camera, m_render_target);
+
+#if !ENABLE_MSAA
+	m_render_target.blit_buffer(width, height, 0);
+#endif
 	
 }
 

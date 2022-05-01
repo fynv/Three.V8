@@ -14,7 +14,27 @@ void main()
 }
 )";
 
-static std::string g_frag =
+static std::string g_frag_noaa =
+R"(#version 430
+layout (location = 0) in vec2 vUV;
+layout (location = 0) out vec4 outColor;
+layout (location = 0) uniform sampler2D uTex0;
+layout (location = 1) uniform sampler2D uTex1;
+void main()
+{
+    ivec2 coord = ivec2(gl_FragCoord.xy);
+    float reveal = texelFetch(uTex1, coord).x;
+    if (reveal>=1.0) discard;
+    reveal = 1.0 - reveal;
+    vec4 col = texelFetch(uTex0, coord);
+    col.xyz = col.xyz*reveal/max(col.w, 1e-5);
+    col.w = reveal;
+    outColor = col;
+}
+)";
+
+
+static std::string g_frag_msaa =
 R"(#version 430
 layout (location = 0) in vec2 vUV;
 layout (location = 0) out vec4 outColor;
@@ -33,57 +53,79 @@ void main()
 }
 )";
 
-WeightedOIT::WeightedOIT()
+WeightedOIT::WeightedOIT(bool msaa) : m_msaa(msaa)
 {
     m_vert_shader = std::unique_ptr<GLShader>(new GLShader(GL_VERTEX_SHADER, g_vertex.c_str()));
-    m_frag_shader = std::unique_ptr<GLShader>(new GLShader(GL_FRAGMENT_SHADER, g_frag.c_str()));
+	if (msaa)
+	{
+		m_frag_shader = std::unique_ptr<GLShader>(new GLShader(GL_FRAGMENT_SHADER, g_frag_msaa.c_str()));
+	}
+	else
+	{
+		m_frag_shader = std::unique_ptr<GLShader>(new GLShader(GL_FRAGMENT_SHADER, g_frag_noaa.c_str()));
+	}
     m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(*m_vert_shader, *m_frag_shader));
 }
 
 WeightedOIT::~WeightedOIT()
 {
-    if (m_fbo_msaa != -1)
-        glDeleteFramebuffers(1, &m_fbo_msaa);
-    if (m_tex_msaa1 != -1)
-        glDeleteTextures(1, &m_tex_msaa1);
-    if (m_tex_msaa0 != -1)
-        glDeleteTextures(1, &m_tex_msaa0);
+    if (m_fbo != -1)
+        glDeleteFramebuffers(1, &m_fbo);
+    if (m_tex1 != -1)
+        glDeleteTextures(1, &m_tex1);
+    if (m_tex0 != -1)
+        glDeleteTextures(1, &m_tex0);
 }
 
-void WeightedOIT::PreDraw(int width_video, int height_video, unsigned depth_rbo)
+void WeightedOIT::PreDraw(int width, int height, unsigned depth_rbo)
 {
-	if (m_width_video != width_video || m_height_video != height_video)
+	if (m_width != width || m_height != height)
 	{
-		if (m_fbo_msaa == -1)
+		if (m_fbo == -1)
 		{
-			glGenFramebuffers(1, &m_fbo_msaa);
-			glGenTextures(1, &m_tex_msaa0);
-			glGenTextures(1, &m_tex_msaa1);
+			glGenFramebuffers(1, &m_fbo);
+			glGenTextures(1, &m_tex0);
+			glGenTextures(1, &m_tex1);
 		}
 
-		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_msaa);
+		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 
-		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_tex_msaa0);
-		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_RGBA16F, width_video, height_video, true);
-		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, m_tex_msaa0, 0);
+		if (m_msaa)
+		{
+			glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_tex0);
+			glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_RGBA16F, width, height, true);
+			glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, m_tex0, 0);
 
-		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_tex_msaa1);
-		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_R8, width_video, height_video, true);
-		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D_MULTISAMPLE, m_tex_msaa1, 0);
+			glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_tex1);
+			glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_R8, width, height, true);
+			glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D_MULTISAMPLE, m_tex1, 0);
+		}
+		else
+		{
+			glBindTexture(GL_TEXTURE_2D, m_tex0);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+			glBindTexture(GL_TEXTURE_2D, 0);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_tex0, 0);
+
+			glBindTexture(GL_TEXTURE_2D, m_tex1);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
+			glBindTexture(GL_TEXTURE_2D, 0);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_tex1, 0);
+		}
 
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_rbo);
 
-		m_width_video = width_video;
-		m_height_video = height_video;
+		m_width = width;
+		m_height = height;
 	}
 
-	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_msaa);
+	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 
 	const GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
 	glDrawBuffers(2, drawBuffers);
-	glViewport(0, 0, m_width_video, m_height_video);
+	glViewport(0, 0, m_width, m_height);
 
 	float clearColorZero[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	float clearColorOne[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -100,22 +142,49 @@ void WeightedOIT::PostDraw()
 {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-	glEnable(GL_SAMPLE_SHADING);
+	if (m_msaa)
+	{
+		glEnable(GL_SAMPLE_SHADING);
+	}
 
 	glDisable(GL_DEPTH_TEST);
 	glUseProgram(m_prog->m_id);
 
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_tex_msaa0);
+	if (m_msaa)
+	{
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_tex0);
+	}
+	else
+	{
+		glBindTexture(GL_TEXTURE_2D, m_tex0);
+	}
 	glUniform1i(0, 0);
 
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_tex_msaa1);
+	if (m_msaa)
+	{
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_tex1);
+	}
+	else
+	{
+		glBindTexture(GL_TEXTURE_2D, m_tex1);
+	}
 	glUniform1i(1, 1);
 
 	glDrawArrays(GL_TRIANGLES, 0, 3);
-	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+	if (m_msaa)
+	{
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+	}
+	else
+	{
+		glBindTexture(GL_TEXTURE_2D, 0);
+	}
 	glUseProgram(0);
 
-	glDisable(GL_SAMPLE_SHADING);
+	if (m_msaa)
+	{
+		glDisable(GL_SAMPLE_SHADING);
+	}
 }

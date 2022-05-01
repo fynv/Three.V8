@@ -1,5 +1,7 @@
 #pragma once
 
+#define ENABLE_MSAA 1
+
 #include <renderers/GLRenderTarget.h>
 #include <renderers/GLRenderer.h>
 #include <scenes/Scene.h>

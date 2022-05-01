@@ -458,10 +458,7 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 	}
 
 	// render scene
-	glBindFramebuffer(GL_FRAMEBUFFER, target.m_fbo_msaa);
-
-	glEnable(GL_FRAMEBUFFER_SRGB);	
-	glViewport(0, 0, target.m_width, target.m_height);
+	target.render_begin();
 
 	while(scene.background!=nullptr)
 	{
@@ -544,11 +541,7 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 			render_model(p_camera, *p_lights, model, Pass::Highlight);
 		}
 
-		if (target.OITResolver == nullptr)
-		{
-			target.OITResolver = std::unique_ptr<WeightedOIT>(new WeightedOIT);
-		}
-		target.OITResolver->PreDraw(target.m_width, target.m_height, target.m_rbo_msaa);
+		target.transparent_begin();		
 
 		for (size_t i = 0; i < lists.simple_models.size(); i++)
 		{
@@ -562,14 +555,10 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 			render_model(p_camera, *p_lights, model, Pass::Alpha);
 		}
 
-		glBindFramebuffer(GL_FRAMEBUFFER, target.m_fbo_msaa);
-		target.OITResolver->PostDraw();
+		target.transparent_end();
 	}
 
-	
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, target.m_fbo_video);
-	glBlitFramebuffer(0, 0, target.m_width, target.m_height, 0, 0, target.m_width, target.m_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, target.m_fbo_video);
+	target.resolve_msaa();
 
 #if 0
 	// visualize shadow map

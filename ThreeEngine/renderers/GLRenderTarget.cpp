@@ -12,6 +12,10 @@ GLRenderTarget::GLRenderTarget(bool default_buffer, bool msaa)
 			glGenRenderbuffers(1, &m_rbo_video);
 		}
 	}
+	else if (!msaa)
+	{
+		printf("Using default buffer without MSAA, Order-Indepent-Transparency will fail.\n");
+	}
 
 	if (msaa)
 	{
@@ -24,11 +28,13 @@ GLRenderTarget::GLRenderTarget(bool default_buffer, bool msaa)
 GLRenderTarget::~GLRenderTarget()
 {
 	if (m_fbo_video != 0)
+	{
 		glDeleteFramebuffers(1, &m_fbo_video);
-	if (m_tex_video != (unsigned)(-1))
-		glDeleteTextures(1, &m_tex_video);
-	if (m_rbo_video != (unsigned)(-1))
-		glDeleteRenderbuffers(1, &m_rbo_video);
+		if (m_tex_video != (unsigned)(-1))
+			glDeleteTextures(1, &m_tex_video);
+		if (m_rbo_video != (unsigned)(-1))
+			glDeleteRenderbuffers(1, &m_rbo_video);
+	}
 
 	if (m_fbo_msaa != (unsigned)(-1))
 		glDeleteFramebuffers(1, &m_fbo_msaa);
@@ -86,3 +92,94 @@ void GLRenderTarget::update_framebuffers(int width, int height)
 }
 
 
+void GLRenderTarget::render_begin()
+{
+	if (m_fbo_msaa!=(unsigned)(-1))
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_msaa);
+	}
+	else
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_video);
+	}
+	glEnable(GL_FRAMEBUFFER_SRGB);
+	glViewport(0, 0, m_width, m_height);
+}
+
+void GLRenderTarget::resolve_msaa()
+{
+	if (m_fbo_msaa != (unsigned)(-1))
+	{
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo_video);
+		glBlitFramebuffer(0, 0, m_width, m_height, 0, 0, m_width, m_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo_video);
+	}
+}
+
+void GLRenderTarget::transparent_begin()
+{
+	if (OITResolver == nullptr)
+	{
+		OITResolver = std::unique_ptr<WeightedOIT>(new WeightedOIT(m_fbo_msaa != (unsigned)(-1)));
+	}
+	if (m_fbo_msaa != (unsigned)(-1))
+	{
+		OITResolver->PreDraw(m_width, m_height, m_rbo_msaa);
+	}
+	else
+	{
+		OITResolver->PreDraw(m_width, m_height, m_rbo_video);
+	}
+}
+
+void GLRenderTarget::transparent_end()
+{
+	if (m_fbo_msaa != (unsigned)(-1))
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_msaa);
+	}
+	else
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_video);
+	}
+	OITResolver->PostDraw();
+}
+
+void GLRenderTarget::blit_buffer(int width_wnd, int height_wnd, int margin)
+{
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	glDisable(GL_FRAMEBUFFER_SRGB);
+
+	glViewport(0, 0, width_wnd, height_wnd);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	int client_w = width_wnd - margin * 2;
+	int client_h = height_wnd - margin * 2;
+
+	if (client_w < m_width || client_h < m_height)
+	{
+		// scale down
+		int dst_w = m_width * client_h / m_height;
+		if (dst_w <= client_w)
+		{
+			int dst_offset = (client_w - dst_w) / 2;
+			glBlitFramebuffer(0, 0, m_width, m_height, margin + dst_offset, margin, margin + dst_offset + dst_w, margin + client_h, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+		}
+		else
+		{
+			int dst_h = m_height * client_w / m_width;
+			int dst_offset = (client_h - dst_h) / 2;
+			glBlitFramebuffer(0, 0, m_width, m_height, margin, margin + dst_offset, margin + client_w, margin + dst_offset + dst_h, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+		}
+	}
+	else
+	{
+		// center
+		int offset_x = (width_wnd - m_width) / 2;
+		int offset_y = (height_wnd - m_height) / 2;
+		glBlitFramebuffer(0, 0, m_width, m_height, offset_x, offset_y, offset_x + m_width, offset_y + m_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+	}
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+}
