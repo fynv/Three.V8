@@ -3,6 +3,8 @@
 #include <models/GeometryCreator.h>
 #include <loaders/GLTFLoader.h>
 
+#define ENABLE_MSAA 1
+
 Game::Game(int width, int height) 
 #if ENABLE_MSAA
 	: m_render_target(true, true)
@@ -72,7 +74,9 @@ void Game::Draw(int width, int height)
 	m_render_target.update_framebuffers(width, height);
 	m_renderer.render(m_scene, m_camera, m_render_target);
 
-#if !ENABLE_MSAA
+#if ENABLE_MSAA
+	m_render_target.resolve_msaa();
+#else
 	m_render_target.blit_buffer(width, height, 0);
 #endif
 	

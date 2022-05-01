@@ -1,7 +1,5 @@
 #pragma once
 
-#define ENABLE_MSAA 1
-
 #include <renderers/GLRenderTarget.h>
 #include "binding.h"
 

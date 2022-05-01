@@ -23,10 +23,10 @@ layout (location = 1) uniform sampler2D uTex1;
 void main()
 {
     ivec2 coord = ivec2(gl_FragCoord.xy);
-    float reveal = texelFetch(uTex1, coord).x;
+    float reveal = texelFetch(uTex1, coord, 0).x;
     if (reveal>=1.0) discard;
     reveal = 1.0 - reveal;
-    vec4 col = texelFetch(uTex0, coord);
+    vec4 col = texelFetch(uTex0, coord, 0);
     col.xyz = col.xyz*reveal/max(col.w, 1e-5);
     col.w = reveal;
     outColor = col;
@@ -105,12 +105,20 @@ void WeightedOIT::PreDraw(int width, int height, unsigned depth_rbo)
 		else
 		{
 			glBindTexture(GL_TEXTURE_2D, m_tex0);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 			glBindTexture(GL_TEXTURE_2D, 0);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_tex0, 0);
 
 			glBindTexture(GL_TEXTURE_2D, m_tex1);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 			glBindTexture(GL_TEXTURE_2D, 0);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_tex1, 0);
 		}

@@ -106,16 +106,6 @@ void GLRenderTarget::render_begin()
 	glViewport(0, 0, m_width, m_height);
 }
 
-void GLRenderTarget::resolve_msaa()
-{
-	if (m_fbo_msaa != (unsigned)(-1))
-	{
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo_video);
-		glBlitFramebuffer(0, 0, m_width, m_height, 0, 0, m_width, m_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo_video);
-	}
-}
-
 void GLRenderTarget::transparent_begin()
 {
 	if (OITResolver == nullptr)
@@ -143,6 +133,16 @@ void GLRenderTarget::transparent_end()
 		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_video);
 	}
 	OITResolver->PostDraw();
+}
+
+void GLRenderTarget::resolve_msaa()
+{
+	if (m_fbo_msaa != (unsigned)(-1))
+	{
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo_video);
+		glBlitFramebuffer(0, 0, m_width, m_height, 0, 0, m_width, m_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo_video);
+	}
 }
 
 void GLRenderTarget::blit_buffer(int width_wnd, int height_wnd, int margin)

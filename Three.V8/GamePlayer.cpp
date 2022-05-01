@@ -3,6 +3,7 @@
 #include <filesystem>
 #include "GamePlayer.h"
 
+#define ENABLE_MSAA 1
 
 GamePlayer::GamePlayer(V8VM* v8vm, int width, int height) 
 	: m_v8vm(v8vm)
@@ -79,7 +80,10 @@ void GamePlayer::Draw(int width, int height)
 			m_context->InvokeCallback(callback, args);
 		}
 	}
-#if !ENABLE_MSAA
+
+#if ENABLE_MSAA
+	m_render_target.resolve_msaa();
+#else
 	m_render_target.blit_buffer(width, height, 0);
 #endif
 

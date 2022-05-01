@@ -558,8 +558,6 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 		target.transparent_end();
 	}
 
-	target.resolve_msaa();
-
 #if 0
 	// visualize shadow map
 	for (size_t i = 0; i < lists.directional_lights.size(); i++)
