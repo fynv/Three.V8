@@ -49,16 +49,16 @@ void main()
 	vec2 norm2 = vec2(-norm.y, norm.x);
 	vec2 pos_out;
 	pos_out = pos0_screen + (-norm + norm2)*radius;
-	gl_Position = vec4(pos_out*2.0/uViewport, z0, 1.0);
+	gl_Position = vec4(pos_out*2.0/uViewport, z0, 1.0)*gl_in[0].gl_Position.w;
 	EmitVertex();
 	pos_out = pos0_screen + (-norm - norm2)*radius;
-	gl_Position = vec4(pos_out*2.0/uViewport, z0, 1.0);
+	gl_Position = vec4(pos_out*2.0/uViewport, z0, 1.0)*gl_in[0].gl_Position.w;
 	EmitVertex();
 	pos_out = pos1_screen + (norm + norm2)*radius;
-	gl_Position = vec4(pos_out*2.0/uViewport, z1, 1.0);
+	gl_Position = vec4(pos_out*2.0/uViewport, z1, 1.0)*gl_in[1].gl_Position.w;
 	EmitVertex();
 	pos_out = pos1_screen + (norm - norm2)*radius;
-	gl_Position = vec4(pos_out*2.0/uViewport, z1, 1.0);
+	gl_Position = vec4(pos_out*2.0/uViewport, z1, 1.0)*gl_in[1].gl_Position.w;
 	EmitVertex();
 	EndPrimitive();
 }
