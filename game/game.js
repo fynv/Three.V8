@@ -51,7 +51,7 @@ function init(width, height) {
         box.setColorTexture(img);
         img.dispose();
     }
-    box.setToonShading(1);
+    //box.setToonShading(1);
     scene.add(box);
 
     sphere = new SimpleModel();
@@ -65,7 +65,7 @@ function init(width, height) {
     }
     sphere.metalness = 0.5;
     sphere.roughness = 0.5;
-    sphere.setToonShading(1);
+    //sphere.setToonShading(1);
     scene.add(sphere);
     
     ground = new SimpleModel();
