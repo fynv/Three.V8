@@ -175,6 +175,11 @@ vec3 BRDF_Lambert(const in vec3 diffuseColor)
 	return RECIPROCAL_PI * diffuseColor;
 }
 
+float BRDF_Lambert_Toon()
+{
+	return RECIPROCAL_PI;
+}
+
 vec3 BRDF_GGX( const in vec3 lightDir, const in vec3 viewDir, const in vec3 normal, const in vec3 f0, const in float f90, const in float roughness ) 
 {
 	float alpha = pow2(roughness);
@@ -192,6 +197,25 @@ vec3 BRDF_GGX( const in vec3 lightDir, const in vec3 viewDir, const in vec3 norm
 	return F*(V*D);
 }
 
+float BRDF_GGX_Toon(const in vec3 lightDir, const in vec3 viewDir, const in vec3 normal, const in float roughness )
+{
+	float alpha = pow2(roughness);
+
+	vec3 halfDir = normalize(lightDir + viewDir);
+
+	float dotNL = saturate(dot(normal, lightDir));
+	float dotNV = saturate(dot(normal, viewDir));
+	float dotNH = saturate(dot(normal, halfDir));	
+
+	float V = V_GGX_SmithCorrelated(alpha, dotNL, dotNV);
+	float D = D_GGX( alpha, dotNH );
+	return V*D;
+}
+
+float luminance(in vec3 color)
+{
+	return color.x * 0.2126 + color.y * 0.7152 + color.z *0.0722;
+}
 
 struct DirectionalLight
 {
@@ -199,6 +223,12 @@ struct DirectionalLight
 	vec4 color;
 	vec4 direction;
 	int has_shadow;
+	float diffuse_thresh;
+	float diffuse_high;
+	float diffuse_low;
+	float specular_thresh;
+	float specular_high;
+	float specular_low;
 };
 
 #if NUM_DIRECTIONAL_LIGHTS>0
@@ -230,6 +260,12 @@ float computeShadowCoef(in mat4 VPSB, sampler2D shadowTex)
 layout (std140, binding = BINDING_ENVIRONMEN_MAP) uniform EnvironmentMap
 {
 	vec4 uSHCoefficients[9];
+	float uDiffuseThresh;
+	float uDiffuseHigh;
+	float uDiffuseLow;
+	float uSpecularThresh;
+	float uSpecularHigh;
+	float uSpecularLow;
 };
 
 vec3 shGetIrradianceAt( in vec3 normal, in vec4 shCoefficients[ 9 ] ) {
@@ -282,6 +318,12 @@ vec3 GetReflectionAt(in vec3 reflectVec, in samplerCube reflectMap, float roughn
 layout (std140, binding = BINDING_AMBIENT_LIGHT) uniform AmbientLight
 {
 	vec4 uAmbientColor;
+	float uDiffuseThresh;
+	float uDiffuseHigh;
+	float uDiffuseLow;
+	float uSpecularThresh;
+	float uSpecularHigh;
+	float uSpecularLow;
 };
 #endif
 
@@ -290,6 +332,12 @@ layout (std140, binding = BINDING_HEMISPHERE_LIGHT) uniform HemisphereLight
 {
 	vec4 uHemisphereSkyColor;
 	vec4 uHemisphereGroundColor;
+	float uDiffuseThresh;
+	float uDiffuseHigh;
+	float uDiffuseLow;
+	float uSpecularThresh;
+	float uSpecularHigh;
+	float uSpecularLow;
 };
 
 vec3 HemisphereColor(in vec3 dir)
@@ -390,10 +438,53 @@ void main()
 		float dotNL =  saturate(dot(norm, directLight.direction));
 		vec3 irradiance = dotNL * directLight.color;
 
+#if TONE_SHADING < 1
 		specular += irradiance * BRDF_GGX( directLight.direction, viewDir, norm, material.specularColor, material.specularF90, material.roughness );
 		diffuse += irradiance * BRDF_Lambert( material.diffuseColor );
+#else
+		float diffuse_thresh = light_source.diffuse_thresh;
+		float diffuse_high = light_source.diffuse_high;
+		float diffuse_low = light_source.diffuse_low;
+		float specular_thresh = light_source.specular_thresh;
+		float specular_high =  light_source.specular_high;
+		float specular_low =  light_source.specular_low;
+
+		vec3 specular_light = irradiance * BRDF_GGX_Toon(directLight.direction, viewDir, norm, material.roughness);
+		float lum_specular = luminance(specular_light);
+		if (lum_specular > specular_thresh)
+		{
+			specular_light *= specular_high/lum_specular;
+		}
+		else if (lum_specular>0.0)
+		{
+			specular_light *= specular_low/lum_specular;
+		}
+		else
+		{
+			specular_light = vec3(specular_low);
+		}
+		specular += specular_light* material.specularColor;
+
+		vec3 diffuse_light = irradiance * BRDF_Lambert_Toon();
+		float lum_diffuse = luminance(diffuse_light);
+		if (lum_diffuse > diffuse_thresh)
+		{
+			diffuse_light *= diffuse_high/lum_diffuse;			
+		}
+		else if (lum_diffuse>0.0)
+		{
+			diffuse_light *= diffuse_low/lum_diffuse;
+		}
+		else
+		{
+			diffuse_light = vec3(diffuse_low);
+		}
+
+		diffuse += diffuse_light* material.diffuseColor;
+#endif
 	}
 #endif
+
 
 #if HAS_INDIRECT_LIGHT
 	{
@@ -409,8 +500,51 @@ void main()
 		vec3 irradiance = HemisphereColor(norm);
 		vec3 radiance = HemisphereColor(reflectVec);
 #endif
+
+#if TONE_SHADING < 2
 		specular +=  material.specularColor * radiance;		
 		diffuse += material.diffuseColor * irradiance * RECIPROCAL_PI;
+#else
+		float diffuse_thresh = uDiffuseThresh;
+		float diffuse_high = uDiffuseHigh;
+		float diffuse_low = uDiffuseLow;
+		float specular_thresh = uSpecularThresh;
+		float specular_high = uSpecularHigh;
+		float specular_low = uSpecularLow;
+
+		vec3 specular_light = radiance;
+		float lum_specular = luminance(specular_light);
+		if (lum_specular > specular_thresh)
+		{
+			specular_light *= specular_high/lum_specular;
+		}
+		else if (lum_specular>0.0)
+		{
+			specular_light *= specular_low/lum_specular;
+		}
+		else
+		{
+			specular_light = vec3(specular_low);
+		}
+		specular += specular_light* material.specularColor;
+
+		vec3 diffuse_light =  irradiance * BRDF_Lambert_Toon();
+		float lum_diffuse = luminance(diffuse_light);
+		if (lum_diffuse > diffuse_thresh)
+		{
+			diffuse_light *= diffuse_high/lum_diffuse;			
+		}
+		else if (lum_diffuse>0.0)
+		{
+			diffuse_light *= diffuse_low/lum_diffuse;
+		}
+		else
+		{
+			diffuse_light = vec3(diffuse_low);
+		}
+		
+		diffuse += diffuse_light* material.diffuseColor;
+#endif
 	}
 #endif
 
@@ -817,6 +951,12 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	{
 		defines += "#define HAS_HEMISPHERE_LIGHT 0\n";
 		bindings.binding_hemisphere_light = bindings.binding_ambient_light;
+	}
+
+	{
+		char line[64];
+		sprintf(line, "#define TONE_SHADING %d\n", options.tone_shading);
+		defines += line;
 	}
 
 	replace(s_vertex, "#DEFINES#", defines.c_str());

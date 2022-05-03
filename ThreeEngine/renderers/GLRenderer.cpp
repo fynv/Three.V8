@@ -131,6 +131,20 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 	const MeshStandardMaterial* material = params.material_list[params.primitive->material_idx];
 	const Lights* lights = params.lights;	
 
+	if (pass == Pass::Opaque && material->tone_shading > 0)
+	{
+		if (WireDraw == nullptr)
+		{
+			WireDraw = std::unique_ptr<DrawWire>(new DrawWire);
+		}
+		DrawWire::RenderParams params2;
+		params2.constant_camera = params.constant_camera;
+		params2.constant_model = params.constant_model;
+		params2.primitive = params.primitive;
+		params2.radius = material->wire_width;
+		WireDraw->render(params2);		
+	}
+	
 	StandardRoutine::Options options;
 	options.alpha_mode = material->alphaMode;
 	options.is_highlight_pass = pass == Pass::Highlight;
@@ -145,8 +159,9 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 	options.has_environment_map = lights->environment_map != nullptr;
 	options.has_ambient_light = lights->ambient_light != nullptr;
 	options.has_hemisphere_light = lights->hemisphere_light != nullptr;
+	options.tone_shading = material->tone_shading;
 	StandardRoutine* routine = get_routine(options);
-	routine->render(params);
+	routine->render(params);	
 }
 
 
@@ -162,6 +177,11 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, SimpleMode
 	else if (pass == Pass::Opaque || pass == Pass::Highlight)
 	{
 		if (material->alphaMode != AlphaMode::Blend) return;
+	}
+
+	if (material->tone_shading > 0 && model->geometry.wire_ind_buf==nullptr)
+	{
+		model->geometry.compute_wires();
 	}
 
 	StandardRoutine::RenderParams params;
@@ -198,6 +218,10 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, GLTFModel*
 			else if (pass == Pass::Opaque || pass == Pass::Highlight)
 			{
 				if (material->alphaMode != AlphaMode::Blend) continue;
+			}
+			if (material->tone_shading > 0 && primitive.wire_ind_buf==nullptr)
+			{
+				primitive.compute_wires();
 			}
 			StandardRoutine::RenderParams params;
 			params.tex_list = tex_lst.data();
@@ -430,6 +454,7 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 			EnvironmentMap* envMap = dynamic_cast<EnvironmentMap*>(scene.indirectLight);
 			if (envMap != nullptr)
 			{
+				envMap->updateConstant();
 				lights.environment_map = envMap;
 				break;
 			}			

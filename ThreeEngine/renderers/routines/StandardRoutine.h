@@ -25,6 +25,7 @@ public:
 		bool has_environment_map = false;
 		bool has_ambient_light = false;
 		bool has_hemisphere_light = false;
+		int tone_shading = 0;
 	};
 
 	StandardRoutine(const Options& options);

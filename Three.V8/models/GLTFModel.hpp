@@ -27,6 +27,8 @@ private:
 	static void PlayAnimation(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void StopAnimation(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void UpdateAnimation(const v8::FunctionCallbackInfo<v8::Value>& info);
+
+	static void SetToonShading(const v8::FunctionCallbackInfo<v8::Value>& info);
 };
 
 
@@ -47,6 +49,8 @@ v8::Local<v8::FunctionTemplate> WrapperGLTFModel::create_template(v8::Isolate* i
 	templ->InstanceTemplate()->Set(isolate, "playAnimation", v8::FunctionTemplate::New(isolate, PlayAnimation));
 	templ->InstanceTemplate()->Set(isolate, "stopAnimation", v8::FunctionTemplate::New(isolate, StopAnimation));
 	templ->InstanceTemplate()->Set(isolate, "updateAnimation", v8::FunctionTemplate::New(isolate, UpdateAnimation));
+
+	templ->InstanceTemplate()->Set(isolate, "setToonShading", v8::FunctionTemplate::New(isolate, SetToonShading));
 
 	return templ;
 }
@@ -248,4 +252,16 @@ void WrapperGLTFModel::UpdateAnimation(const v8::FunctionCallbackInfo<v8::Value>
 	self->updateAnimation();
 }
 
-
+void WrapperGLTFModel::SetToonShading(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	v8::Isolate* isolate = info.GetIsolate();
+	v8::HandleScope handle_scope(isolate);
+	GLTFModel* self = get_self<GLTFModel>(info);
+	int mode = (int)info[0].As<v8::Number>()->Value();
+	float width = 1.5f;
+	if (info.Length() > 1)
+	{
+		width = (float)info[1].As<v8::Number>()->Value();
+	}
+	self->set_toon_shading(mode, width);
+}

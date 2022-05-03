@@ -14,6 +14,14 @@ function init(width, height) {
     directional_light.setPosition(5.0, 10.0, 5.0);
     directional_light.setShadow(true, 4096, 4096);
     directional_light.setShadowProjection(-10.0, 10.0, -10.0, 10.0, 0.0, 50.0);
+    
+    directional_light.diffuseThresh = 0.2*2.0;
+    directional_light.diffuseHigh = 0.8 *2.0;
+    directional_light.diffuseLow = 0.2 *2.0;
+    directional_light.specularThresh = 0.2*2.0;
+    directional_light.specularHigh = 0.8 *2.0;
+    directional_light.specularLow = 0.2 *2.0;
+    
     scene.add(directional_light);
     
     bg = new HemisphereBackground();   
@@ -24,6 +32,10 @@ function init(width, height) {
     envLight = new HemisphereLight();
     envLight.setSkyColor(1.0, 1.0, 1.0);
     envLight.setGroundColor(0.02843, 0.07819, 0.07819);
+        
+    envLight.diffuseThresh = 0.2*0.5;
+    envLight.diffuseHigh = 0.8 *0.5;
+    envLight.diffuseLow = 0.2 *0.5;
     scene.indirectLight = envLight;
 
     box = new SimpleModel();
@@ -39,6 +51,7 @@ function init(width, height) {
         box.setColorTexture(img);
         img.dispose();
     }
+    box.setToonShading(1);
     scene.add(box);
 
     sphere = new SimpleModel();
@@ -52,6 +65,7 @@ function init(width, height) {
     }
     sphere.metalness = 0.5;
     sphere.roughness = 0.5;
+    sphere.setToonShading(1);
     scene.add(sphere);
     
     ground = new SimpleModel();

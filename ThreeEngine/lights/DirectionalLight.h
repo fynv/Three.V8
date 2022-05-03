@@ -9,7 +9,13 @@ struct ConstDirectionalLight
 	glm::vec4 color;
 	glm::vec4 direction;
 	int has_shadow;
-	int padding[3];
+	float diffuseThresh;
+	float diffuseHigh;
+	float diffuseLow;
+	float specularThresh;
+	float specularHigh;
+	float specularLow;
+	int padding;
 };
 
 class DirectionalLightShadow;

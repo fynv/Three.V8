@@ -21,6 +21,8 @@ public:
 	void set_color(const glm::vec3& color);
 	void set_metalness(float metalness);
 	void set_roughness(float roughness);
+
+	void set_toon_shading(int mode, float wire_width);
 };
 
 

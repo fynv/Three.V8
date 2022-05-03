@@ -196,3 +196,12 @@ void GLTFModel::updateAnimation()
 		this->setAnimationFrame(frame);
 	}
 }
+
+void GLTFModel::set_toon_shading(int mode, float wire_width)
+{
+	for (size_t i = 0; i < m_materials.size(); i++)
+	{
+		m_materials[i]->tone_shading = mode;
+		m_materials[i]->wire_width = wire_width;
+	}
+}

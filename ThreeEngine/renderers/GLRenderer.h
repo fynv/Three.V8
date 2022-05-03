@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include "renderers/GLRenderTarget.h"
 #include "renderers/routines/StandardRoutine.h"
+#include "renderers/routines/DrawWire.h"
 #include "renderers/routines/MorphUpdate.h"
 #include "renderers/routines/SkinUpdate.h"
 #include "renderers/routines/WeightedOIT.h"
@@ -40,6 +41,8 @@ private:
 
 	std::unordered_map<uint64_t, std::unique_ptr<StandardRoutine>> routine_map;
 	StandardRoutine* get_routine(const StandardRoutine::Options& options);
+
+	std::unique_ptr<DrawWire> WireDraw;
 
 	void render_primitive(const StandardRoutine::RenderParams& params, Pass pass);
 	void render_model(Camera* p_camera, const Lights& lights, SimpleModel* model, Pass pass);

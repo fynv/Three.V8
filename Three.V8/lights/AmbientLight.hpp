@@ -1,6 +1,7 @@
 #pragma once
 
 #include "WrapperUtils.hpp"
+#include "IndirectLight.hpp"
 #include <lights/AmbientLight.h>
 
 
@@ -11,8 +12,6 @@ public:
 	static void New(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 private:
-	static void Dispose(const v8::FunctionCallbackInfo<v8::Value>& info);
-
 	static void GetColor(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void GetColor(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void SetColor(const v8::FunctionCallbackInfo<v8::Value>& info);
@@ -24,10 +23,9 @@ private:
 
 v8::Local<v8::FunctionTemplate> WrapperAmbientLight::create_template(v8::Isolate* isolate, v8::FunctionCallback constructor)
 {
-	v8::Local<v8::FunctionTemplate> templ = v8::FunctionTemplate::New(isolate, constructor);
+	v8::Local<v8::FunctionTemplate> templ = WrapperIndirectLight::create_template(isolate, constructor);
 	templ->InstanceTemplate()->SetInternalFieldCount(1);
-	templ->InstanceTemplate()->Set(isolate, "dispose", v8::FunctionTemplate::New(isolate, Dispose));
-
+	
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "color").ToLocalChecked(), GetColor, 0);
 	templ->InstanceTemplate()->Set(isolate, "getColor", v8::FunctionTemplate::New(isolate, GetColor));
 	templ->InstanceTemplate()->Set(isolate, "setColor", v8::FunctionTemplate::New(isolate, SetColor));
@@ -41,12 +39,6 @@ void WrapperAmbientLight::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	AmbientLight* self = new AmbientLight();
 	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));
-}
-
-void WrapperAmbientLight::Dispose(const v8::FunctionCallbackInfo<v8::Value>& info)
-{
-	AmbientLight* self = get_self<AmbientLight>(info);
-	delete self;
 }
 
 

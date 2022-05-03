@@ -49,5 +49,5 @@ public:
 
 	void updateAnimation();
 
-
+	void set_toon_shading(int mode, float wire_width);
 };

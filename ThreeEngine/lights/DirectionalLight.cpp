@@ -55,4 +55,10 @@ void DirectionalLight::makeConst(ConstDirectionalLight& const_light)
 	{
 		const_light.has_shadow = 0;
 	}
+	const_light.diffuseThresh = diffuse_thresh;
+	const_light.diffuseHigh = diffuse_high;
+	const_light.diffuseLow = diffuse_low;
+	const_light.specularThresh = specular_thresh;
+	const_light.specularHigh = specular_high;
+	const_light.specularLow = specular_low;
 }

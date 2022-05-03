@@ -30,21 +30,20 @@ function init(width, height)
     renderer = new GLRenderer();
     scene = new Scene();
     
-    camera = new PerspectiveCamera(45.0, width / height, 1.0, 500.0);
+    camera = new PerspectiveCamera(45.0, width / height, 1.0, 1000.0);
     camera.setPosition(30.0, 60.0, 90.0);
     
     ground = new SimpleModel();
-    ground.createPlane(150.0, 150.0);    
-    ground.translateY(-50);
+    ground.createPlane(300.0, 300.0);    
+    ground.setPosition(-100, -51, -88);
     ground.rotateX(-Math.PI*0.5);
     scene.add(ground);  
     
     directional_light = new DirectionalLight();
     directional_light.intensity = 4.0;
-    directional_light.setPosition(50.0, 100.0, 50.0);
-    directional_light.target = ground;
+    directional_light.setPosition(6.0, 6.0*0.51, 6.0*0.88);     
     directional_light.setShadow(true, 4096, 4096);
-    directional_light.setShadowProjection(-100.0, 100.0, -100.0, 100.0, 0.0, 300.0);
+    directional_light.setShadowProjection(-100.0, 100.0, -100.0, 100.0, 0.0, 400.0);
     scene.add(directional_light);
     
     background = new CubeBackground();

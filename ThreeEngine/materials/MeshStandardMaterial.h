@@ -33,4 +33,8 @@ public:
 
 	GLBuffer constant_material;
 	void update_uniform();
+
+	// 0: off 1:direct lights only 2:direct/indirect lights
+	int tone_shading = 0;
+	float wire_width = 1.5f;
 };

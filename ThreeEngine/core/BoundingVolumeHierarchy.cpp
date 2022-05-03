@@ -19,7 +19,7 @@ inline void get_indices(void* indices, int type_indices, int face_id, unsigned& 
 	{
 		t_get_indices((uint8_t*)indices, face_id, i0, i1, i2);
 	}
-	if (type_indices == 2)
+	else if (type_indices == 2)
 	{
 		t_get_indices((uint16_t*)indices, face_id, i0, i1, i2);
 	}

@@ -31,6 +31,10 @@ public:
 	int type_indices = 2; // 1:uchar; 2: ushort; 4: uint
 	Index index_buf;
 
+	int num_wires;
+	Index wire_ind_buf;
+	void compute_wires();
+
 	int num_targets = 0;
 	GeometrySet targets;
 

@@ -46,3 +46,8 @@ void SimpleModel::set_roughness(float roughness)
 	material.update_uniform();
 }
 
+void SimpleModel::set_toon_shading(int mode, float wire_width)
+{
+	material.tone_shading = mode;
+	material.wire_width = wire_width;
+}

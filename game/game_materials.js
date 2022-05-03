@@ -13,7 +13,7 @@ function init(width, height) {
     
     directional_light = new DirectionalLight();
     directional_light.intensity = 2.0;    
-    directional_light.setPosition(3.0, 6.0, 3.0);
+    directional_light.setPosition(6.0, 6.0*0.51, 6.0*0.88); 
     scene.add(directional_light);     
     
     background = new CubeBackground();
@@ -31,6 +31,10 @@ function init(width, height) {
         cube_img.dispose();     
     }
     scene.background = background;
+    
+    envMap.diffuseThresh = 0.2*0.4;
+    envMap.diffuseHigh = 0.8 *0.4;
+    envMap.diffuseLow = 0.2 *0.4;
     scene.indirectLight = envMap;
     
     for (let y=0; y<5; y++)
@@ -44,6 +48,7 @@ function init(width, height) {
             spheres[i].metalness = y * 0.25;
             spheres[i].roughness = 1.0 - x*0.25;            
             spheres[i].setPosition(-1.2 + x*0.6, 1.2 - y*0.6, 0.0);
+            spheres[i].setToonShading(1);
             scene.add(spheres[i]);
         
         }

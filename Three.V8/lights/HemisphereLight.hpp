@@ -1,6 +1,7 @@
 #pragma once
 
 #include "WrapperUtils.hpp"
+#include "IndirectLight.hpp"
 #include <lights/HemisphereLight.h>
 
 class WrapperHemisphereLight
@@ -10,8 +11,6 @@ public:
 	static void New(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 private:
-	static void Dispose(const v8::FunctionCallbackInfo<v8::Value>& info);
-
 	static void GetSkyColor(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void GetSkyColor(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void SetSkyColor(const v8::FunctionCallbackInfo<v8::Value>& info);
@@ -27,9 +26,8 @@ private:
 
 v8::Local<v8::FunctionTemplate> WrapperHemisphereLight::create_template(v8::Isolate* isolate, v8::FunctionCallback constructor)
 {
-	v8::Local<v8::FunctionTemplate> templ = v8::FunctionTemplate::New(isolate, constructor);
+	v8::Local<v8::FunctionTemplate> templ = WrapperIndirectLight::create_template(isolate, constructor);
 	templ->InstanceTemplate()->SetInternalFieldCount(1);
-	templ->InstanceTemplate()->Set(isolate, "dispose", v8::FunctionTemplate::New(isolate, Dispose));
 
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "skyColor").ToLocalChecked(), GetSkyColor, 0);
 	templ->InstanceTemplate()->Set(isolate, "getSkyColor", v8::FunctionTemplate::New(isolate, GetSkyColor));
@@ -49,13 +47,6 @@ void WrapperHemisphereLight::New(const v8::FunctionCallbackInfo<v8::Value>& info
 	HemisphereLight* self = new HemisphereLight();
 	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));
 }
-
-void WrapperHemisphereLight::Dispose(const v8::FunctionCallbackInfo<v8::Value>& info)
-{
-	HemisphereLight* self = get_self<HemisphereLight>(info);
-	delete self;
-}
-
 
 void WrapperHemisphereLight::GetSkyColor(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {

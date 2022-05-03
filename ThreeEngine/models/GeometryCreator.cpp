@@ -31,6 +31,7 @@ void GeometryCreator::create(Primitive* primitive, const std::vector<glm::vec4>&
 
 	primitive->cpu_indices = std::unique_ptr<std::vector<uint8_t>>(new std::vector<uint8_t>(primitive->index_buf->m_size));
 	memcpy(primitive->cpu_indices->data(), faces.data(), primitive->index_buf->m_size);
+
 }
 
 void GeometryCreator::CreateBox(Primitive* primitive, float width, float height, float depth)

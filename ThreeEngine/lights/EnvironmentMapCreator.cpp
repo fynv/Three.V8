@@ -691,8 +691,6 @@ void EnvironmentMapCreator::Create(const GLCubemap * cubemap, EnvironmentMap * e
 		envMap->shCoefficients[k] *= norm;
 	}
 
-	envMap->updateConstant();
-
 }
 
 void EnvironmentMapCreator::Create(const CubeImage* image, EnvironmentMap* envMap)
