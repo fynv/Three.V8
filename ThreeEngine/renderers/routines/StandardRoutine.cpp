@@ -438,13 +438,34 @@ void main()
 		float dotNL =  saturate(dot(norm, directLight.direction));
 		vec3 irradiance = dotNL * directLight.color;
 
-#if TONE_SHADING < 1
-		specular += irradiance * BRDF_GGX( directLight.direction, viewDir, norm, material.specularColor, material.specularF90, material.roughness );
+#if (TONE_SHADING & 1) == 0
 		diffuse += irradiance * BRDF_Lambert( material.diffuseColor );
 #else
 		float diffuse_thresh = light_source.diffuse_thresh;
 		float diffuse_high = light_source.diffuse_high;
 		float diffuse_low = light_source.diffuse_low;
+
+		vec3 diffuse_light = irradiance * BRDF_Lambert_Toon();
+		float lum_diffuse = luminance(diffuse_light);
+		if (lum_diffuse > diffuse_thresh)
+		{
+			diffuse_light *= diffuse_high/lum_diffuse;			
+		}
+		else if (lum_diffuse>0.0)
+		{
+			diffuse_light *= diffuse_low/lum_diffuse;
+		}
+		else
+		{
+			diffuse_light = vec3(diffuse_low);
+		}
+
+		diffuse += diffuse_light* material.diffuseColor;
+#endif
+
+#if (TONE_SHADING & 2) == 0
+		specular += irradiance * BRDF_GGX( directLight.direction, viewDir, norm, material.specularColor, material.specularF90, material.roughness );
+#else
 		float specular_thresh = light_source.specular_thresh;
 		float specular_high =  light_source.specular_high;
 		float specular_low =  light_source.specular_low;
@@ -464,23 +485,6 @@ void main()
 			specular_light = vec3(specular_low);
 		}
 		specular += specular_light* material.specularColor;
-
-		vec3 diffuse_light = irradiance * BRDF_Lambert_Toon();
-		float lum_diffuse = luminance(diffuse_light);
-		if (lum_diffuse > diffuse_thresh)
-		{
-			diffuse_light *= diffuse_high/lum_diffuse;			
-		}
-		else if (lum_diffuse>0.0)
-		{
-			diffuse_light *= diffuse_low/lum_diffuse;
-		}
-		else
-		{
-			diffuse_light = vec3(diffuse_low);
-		}
-
-		diffuse += diffuse_light* material.diffuseColor;
 #endif
 	}
 #endif
@@ -501,13 +505,34 @@ void main()
 		vec3 radiance = HemisphereColor(reflectVec);
 #endif
 
-#if TONE_SHADING < 2
-		specular +=  material.specularColor * radiance;		
+#if (TONE_SHADING & 4) == 0
 		diffuse += material.diffuseColor * irradiance * RECIPROCAL_PI;
 #else
 		float diffuse_thresh = uDiffuseThresh;
 		float diffuse_high = uDiffuseHigh;
 		float diffuse_low = uDiffuseLow;
+		
+		vec3 diffuse_light =  irradiance * BRDF_Lambert_Toon();
+		float lum_diffuse = luminance(diffuse_light);
+		if (lum_diffuse > diffuse_thresh)
+		{
+			diffuse_light *= diffuse_high/lum_diffuse;			
+		}
+		else if (lum_diffuse>0.0)
+		{
+			diffuse_light *= diffuse_low/lum_diffuse;
+		}
+		else
+		{
+			diffuse_light = vec3(diffuse_low);
+		}
+		
+		diffuse += diffuse_light* material.diffuseColor;
+#endif
+
+#if (TONE_SHADING & 8) == 0
+		specular +=  material.specularColor * radiance;
+#else		
 		float specular_thresh = uSpecularThresh;
 		float specular_high = uSpecularHigh;
 		float specular_low = uSpecularLow;
@@ -526,24 +551,8 @@ void main()
 		{
 			specular_light = vec3(specular_low);
 		}
-		specular += specular_light* material.specularColor;
+		specular += specular_light* material.specularColor;		
 
-		vec3 diffuse_light =  irradiance * BRDF_Lambert_Toon();
-		float lum_diffuse = luminance(diffuse_light);
-		if (lum_diffuse > diffuse_thresh)
-		{
-			diffuse_light *= diffuse_high/lum_diffuse;			
-		}
-		else if (lum_diffuse>0.0)
-		{
-			diffuse_light *= diffuse_low/lum_diffuse;
-		}
-		else
-		{
-			diffuse_light = vec3(diffuse_low);
-		}
-		
-		diffuse += diffuse_light* material.diffuseColor;
 #endif
 	}
 #endif
