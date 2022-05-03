@@ -518,7 +518,7 @@ EnvironmentMapCreator::EnvironmentMapCreator() : m_buf_coeffs(sizeof(s_coeffs), 
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	glTexStorage2D(GL_TEXTURE_CUBE_MAP, 7, GL_RGBA8, 128, 128);
+	glTexStorage2D(GL_TEXTURE_CUBE_MAP, 8, GL_RGBA8, 128, 128);
 
 	m_buf_coeffs.upload(s_coeffs);
 }
@@ -552,7 +552,7 @@ void EnvironmentMapCreator::Create(const GLCubemap * cubemap, EnvironmentMap * e
 		glDispatchCompute(128 / 8, 128 / 8, 6);
 	}
 
-	for (int level = 0; level < 6; level++)
+	for (int level = 0; level < 7; level++)
 	{ 
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 		
