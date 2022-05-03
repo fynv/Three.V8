@@ -131,7 +131,7 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 	const MeshStandardMaterial* material = params.material_list[params.primitive->material_idx];
 	const Lights* lights = params.lights;	
 
-	if (pass == Pass::Opaque && material->tone_shading > 0)
+	if (pass == Pass::Opaque && material->alphaMode== AlphaMode::Opaque &&  material->tone_shading > 0)
 	{
 		if (WireDraw == nullptr)
 		{
