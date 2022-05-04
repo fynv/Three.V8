@@ -48,7 +48,7 @@ function init(width, height) {
             spheres[i].metalness = y * 0.25;
             spheres[i].roughness = 1.0 - x*0.25;            
             spheres[i].setPosition(-1.2 + x*0.6, 1.2 - y*0.6, 0.0);
-            //spheres[i].setToonShading(5);
+            //spheres[i].setToonShading(1);
             scene.add(spheres[i]);
         
         }
