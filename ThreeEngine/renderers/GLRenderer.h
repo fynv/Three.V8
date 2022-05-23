@@ -15,7 +15,6 @@
 
 class Scene;
 class Camera;
-class Caches;
 class SimpleModel;
 class GLTFModel;
 class DirectionalLightShadow;

@@ -36,7 +36,7 @@ layout (location = LOCATION_VARYING_COLOR) out vec4 vColor;
 
 #if HAS_UV
 layout (location = LOCATION_ATTRIB_UV) in vec2 aUV;
-layout (location = LOCATION_ATTRIB_UV) out vec2 vUV;
+layout (location = LOCATION_VARYING_UV) out vec2 vUV;
 #endif
 
 #if HAS_NORMAL_MAP

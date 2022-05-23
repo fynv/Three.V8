@@ -529,9 +529,6 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 	glClearDepth(1.0f);
 	glClear(GL_DEPTH_BUFFER_BIT);
 
-	auto* p_camera = &camera;
-	auto* p_lights = &lights;
-
 	if (scene.has_opaque)
 	{
 		glDisable(GL_BLEND);
@@ -540,13 +537,13 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 		for (size_t i = 0; i < lists.simple_models.size(); i++)
 		{
 			SimpleModel* model = lists.simple_models[i];
-			render_model(p_camera, *p_lights, model, Pass::Opaque);
+			render_model(&camera, lights, model, Pass::Opaque);
 		}
 
 		for (size_t i = 0; i < lists.gltf_models.size(); i++)
 		{
 			GLTFModel* model = lists.gltf_models[i];
-			render_model(p_camera, *p_lights, model, Pass::Opaque);
+			render_model(&camera, lights, model, Pass::Opaque);
 		}
 	}
 
@@ -559,13 +556,13 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 		for (size_t i = 0; i < lists.simple_models.size(); i++)
 		{
 			SimpleModel* model = lists.simple_models[i];
-			render_model(p_camera, *p_lights, model, Pass::Highlight);
+			render_model(&camera, lights, model, Pass::Highlight);
 		}
 
 		for (size_t i = 0; i < lists.gltf_models.size(); i++)
 		{
 			GLTFModel* model = lists.gltf_models[i];
-			render_model(p_camera, *p_lights, model, Pass::Highlight);
+			render_model(&camera, lights, model, Pass::Highlight);
 		}
 
 		target.update_oit_buffers();
@@ -589,13 +586,13 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 		for (size_t i = 0; i < lists.simple_models.size(); i++)
 		{
 			SimpleModel* model = lists.simple_models[i];
-			render_model(p_camera, *p_lights, model, Pass::Alpha);
+			render_model(&camera, lights, model, Pass::Alpha);
 		}
 
 		for (size_t i = 0; i < lists.gltf_models.size(); i++)
 		{
 			GLTFModel* model = lists.gltf_models[i];
-			render_model(p_camera, *p_lights, model, Pass::Alpha);
+			render_model(&camera, lights, model, Pass::Alpha);
 		}
 
 		target.bind_buffer();
