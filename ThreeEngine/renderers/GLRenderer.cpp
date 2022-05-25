@@ -174,7 +174,7 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, SimpleMode
 	{
 		if (material->alphaMode == AlphaMode::Blend) return;
 	}
-	else if (pass == Pass::Opaque || pass == Pass::Highlight)
+	else if (pass == Pass::Alpha || pass == Pass::Highlight)
 	{
 		if (material->alphaMode != AlphaMode::Blend) return;
 	}
@@ -215,7 +215,7 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, GLTFModel*
 			{
 				if (material->alphaMode == AlphaMode::Blend) continue;
 			}
-			else if (pass == Pass::Opaque || pass == Pass::Highlight)
+			else if (pass == Pass::Alpha || pass == Pass::Highlight)
 			{
 				if (material->alphaMode != AlphaMode::Blend) continue;
 			}
