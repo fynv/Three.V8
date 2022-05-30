@@ -163,10 +163,9 @@ void WrapperObject3D::dtor(void* ptr)
 void WrapperObject3D::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	Object3D* self = new Object3D();
-	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));
-	info.This()->SetInternalField(1, v8::External::New(info.GetIsolate(), dtor));
+	info.This()->SetAlignedPointerInInternalField(0, self);
 	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This());
+	ctx->regiter_object(info.This(), dtor);
 }
 
 
@@ -208,9 +207,9 @@ void WrapperObject3D::SetParent(v8::Local<v8::String> property, v8::Local<v8::Va
 	v8::HandleScope handle_scope(isolate);
 	v8::Local<v8::Context> context = isolate->GetCurrentContext();
 	v8::Local<v8::Object> holder = info.Holder();
-	Object3D* self = (Object3D*)v8::Local<v8::External>::Cast(holder->GetInternalField(0))->Value();
+	Object3D* self = (Object3D*)holder->GetAlignedPointerFromInternalField(0);
 	holder->Set(context, v8::String::NewFromUtf8(isolate, "_parent").ToLocalChecked(), value);
-	Object3D* parent = (Object3D*)v8::Local<v8::External>::Cast(value.As<v8::Object>()->GetInternalField(0))->Value();	
+	Object3D* parent = (Object3D*)value.As<v8::Object>()->GetAlignedPointerFromInternalField(0);
 	self->parent = parent;
 }
 
@@ -747,10 +746,10 @@ void WrapperObject3D::Add(const v8::FunctionCallbackInfo<v8::Value>& info)
 	v8::HandleScope handle_scope(isolate);
 	v8::Local<v8::Context> context = isolate->GetCurrentContext();
 	v8::Local<v8::Object> holder = info.Holder();
-	Object3D* self = (Object3D*)v8::Local<v8::External>::Cast(holder->GetInternalField(0))->Value();
+	Object3D* self = (Object3D*)holder->GetAlignedPointerFromInternalField(0);
 
 	v8::Local<v8::Object> holder_object = info[0].As<v8::Object>();
-	Object3D* object = (Object3D*)v8::Local<v8::External>::Cast(holder_object->GetInternalField(0))->Value();
+	Object3D* object = (Object3D*)holder_object->GetAlignedPointerFromInternalField(0);
 
 	self->add(object);
 
@@ -776,10 +775,10 @@ void WrapperObject3D::Remove(const v8::FunctionCallbackInfo<v8::Value>& info)
 	v8::HandleScope handle_scope(isolate);
 	v8::Local<v8::Context> context = isolate->GetCurrentContext();
 	v8::Local<v8::Object> holder = info.Holder();
-	Object3D* self = (Object3D*)v8::Local<v8::External>::Cast(holder->GetInternalField(0))->Value();
+	Object3D* self = (Object3D*)holder->GetAlignedPointerFromInternalField(0);
 
 	v8::Local<v8::Object> holder_object = info[0].As<v8::Object>();
-	Object3D* object = (Object3D*)v8::Local<v8::External>::Cast(holder_object->GetInternalField(0))->Value();
+	Object3D* object = (Object3D*)holder_object->GetAlignedPointerFromInternalField(0);
 
 	self->remove(object);
 
@@ -810,7 +809,7 @@ void WrapperObject3D::RemoveFromParent(const v8::FunctionCallbackInfo<v8::Value>
 	v8::HandleScope handle_scope(isolate);
 	v8::Local<v8::Context> context = isolate->GetCurrentContext();
 	v8::Local<v8::Object> holder = info.Holder();
-	Object3D* self = (Object3D*)v8::Local<v8::External>::Cast(holder->GetInternalField(0))->Value();
+	Object3D* self = (Object3D*)holder->GetAlignedPointerFromInternalField(0);
 	self->removeFromParent();
 	if (holder->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "_parent").ToLocalChecked()).ToChecked())
 	{
@@ -829,7 +828,7 @@ void WrapperObject3D::Clear(const v8::FunctionCallbackInfo<v8::Value>& info)
 	v8::HandleScope handle_scope(isolate);
 	v8::Local<v8::Context> context = isolate->GetCurrentContext();
 	v8::Local<v8::Object> holder = info.Holder();
-	Object3D* self = (Object3D*)v8::Local<v8::External>::Cast(holder->GetInternalField(0))->Value();
+	Object3D* self = (Object3D*)holder->GetAlignedPointerFromInternalField(0);
 	self->clear();
 
 	v8::Local<v8::Array> children = holder->Get(context, v8::String::NewFromUtf8(isolate, "children").ToLocalChecked()).ToLocalChecked().As<v8::Array>();

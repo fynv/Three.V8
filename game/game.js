@@ -49,8 +49,8 @@ function init(width, height) {
     {
         let img = imageLoader.loadFile("assets/textures/uv-test-bw.png");
         box.setColorTexture(img);
-        img.dispose();
     }
+    
     //box.setToonShading(1);
     scene.add(box);
 
@@ -58,11 +58,12 @@ function init(width, height) {
     sphere.name = "sphere";
     sphere.createSphere(1.0);
     sphere.translateX(1.5);
+
     {
         let img = imageLoader.loadFile("assets/textures/uv-test-col.png");
         sphere.setColorTexture(img);
-        img.dispose();
     }
+    
     sphere.metalness = 0.5;
     sphere.roughness = 0.5;
     //sphere.setToonShading(1);
@@ -76,18 +77,6 @@ function init(width, height) {
 
     controls = new OrbitControls(camera, view);
     controls.enableDamping = true;
-}
-
-function dispose() {
-    ground.dispose();
-    sphere.dispose();
-    box.dispose();
-    envLight.dispose();
-    bg.dispose();
-    directional_light.dispose();
-    camera.dispose();
-    scene.dispose();
-    renderer.dispose();
 }
 
 function render(width, height, size_changed) {    
@@ -106,5 +95,4 @@ function render(width, height, size_changed) {
 }
 
 setCallback('init', init);
-setCallback('dispose', dispose);
 setCallback('render', render);

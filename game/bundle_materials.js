@@ -4272,6 +4272,7 @@ function init(width, height) {
     scene.add(directional_light);     
     
     background = new CubeBackground();
+
     {
         let cube_img = new imageLoader.loadCubeFromFile(
         "assets/textures/sky_cube_face0.jpg", "assets/textures/sky_cube_face1.jpg",
@@ -4281,9 +4282,6 @@ function init(width, height) {
         
         let envMapCreator = new EnvironmentMapCreator();
         envMap = envMapCreator.create(background);
-        
-        envMapCreator.dispose();
-        cube_img.dispose();     
     }
     scene.background = background;
     
@@ -4315,23 +4313,6 @@ function init(width, height) {
 
 }
 
-function dispose() {
-    for (let i=0; i<25; i++)
-    {
-        if (spheres[i])
-        {
-            spheres[i].dispose();
-        }
-    }
-    envMap.dispose();
-    background.dispose();
-    directional_light.dispose();
-    camera.dispose();
-    scene.dispose();
-    renderer.dispose();
-}
-
-
 function render(width, height, size_changed) {    
     if (size_changed) {
         camera.aspect = width / height;
@@ -4347,5 +4328,4 @@ function render(width, height, size_changed) {
 }
 
 setCallback('init', init);
-setCallback('dispose', dispose);
 setCallback('render', render);

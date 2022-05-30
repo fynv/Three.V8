@@ -35,8 +35,7 @@ void WrapperImageLoader::LoadFile(const v8::FunctionCallbackInfo<v8::Value>& inf
 	v8::Local<v8::Function> ctor_image = global->Get(context, v8::String::NewFromUtf8(isolate, "Image").ToLocalChecked()).ToLocalChecked().As<v8::Function>();
 	
 	v8::Local<v8::Object> holder = ctor_image->CallAsConstructor(context, 0, nullptr).ToLocalChecked().As<v8::Object>();
-	v8::Local<v8::External> wrap = v8::Local<v8::External>::Cast(holder->GetInternalField(0));
-	Image* self = (Image*)wrap->Value();
+	Image* self = (Image*)holder->GetAlignedPointerFromInternalField(0);
 	
 	v8::String::Utf8Value filename(isolate, info[0]);
 	ImageLoader::LoadFile(self, *filename);
@@ -53,8 +52,7 @@ void WrapperImageLoader::LoadMemory(const v8::FunctionCallbackInfo<v8::Value>& i
 	v8::Local<v8::Function> ctor_image = global->Get(context, v8::String::NewFromUtf8(isolate, "Image").ToLocalChecked()).ToLocalChecked().As<v8::Function>();
 
 	v8::Local<v8::Object> holder = ctor_image->CallAsConstructor(context, 0, nullptr).ToLocalChecked().As<v8::Object>();
-	v8::Local<v8::External> wrap = v8::Local<v8::External>::Cast(holder->GetInternalField(0));
-	Image* self = (Image*)wrap->Value();
+	Image* self = (Image*)holder->GetAlignedPointerFromInternalField(0);
 
 	v8::Local<v8::ArrayBuffer> data = info[0].As<v8::ArrayBuffer>();
 	ImageLoader::LoadMemory(self, (unsigned char*)data->GetBackingStore()->Data(), data->ByteLength());	
@@ -70,8 +68,7 @@ void WrapperImageLoader::LoadCubeFromFile(const v8::FunctionCallbackInfo<v8::Val
 	v8::Local<v8::Function> ctor_image = global->Get(context, v8::String::NewFromUtf8(isolate, "CubeImage").ToLocalChecked()).ToLocalChecked().As<v8::Function>();
 
 	v8::Local<v8::Object> holder = ctor_image->CallAsConstructor(context, 0, nullptr).ToLocalChecked().As<v8::Object>();
-	v8::Local<v8::External> wrap = v8::Local<v8::External>::Cast(holder->GetInternalField(0));
-	CubeImage* self = (CubeImage*)wrap->Value();
+	CubeImage* self = (CubeImage*)holder->GetAlignedPointerFromInternalField(0);
 
 	v8::String::Utf8Value filenames[6] = {
 		v8::String::Utf8Value(isolate, info[0]),
@@ -96,8 +93,7 @@ void WrapperImageLoader::LoadCubeFromMemory(const v8::FunctionCallbackInfo<v8::V
 	v8::Local<v8::Function> ctor_image = global->Get(context, v8::String::NewFromUtf8(isolate, "CubeImage").ToLocalChecked()).ToLocalChecked().As<v8::Function>();
 
 	v8::Local<v8::Object> holder = ctor_image->CallAsConstructor(context, 0, nullptr).ToLocalChecked().As<v8::Object>();
-	v8::Local<v8::External> wrap = v8::Local<v8::External>::Cast(holder->GetInternalField(0));
-	CubeImage* self = (CubeImage*)wrap->Value();
+	CubeImage* self = (CubeImage*)holder->GetAlignedPointerFromInternalField(0);
 
 	v8::Local<v8::ArrayBuffer> data[6];
 	for (int i = 0; i < 6; i++)

@@ -7,8 +7,6 @@ import { OrbitControls } from "./controls/OrbitControls.js";
 
 import { view } from "./view.js";
 
-let rubiks_cube, rotations, solve, renderer, scene, camera, directional_light, background, envMap, cube, ground, controls;
-
 function reset_cube()
 {    
     rubiks_cube = new RubiksCube();  
@@ -47,6 +45,7 @@ function init(width, height)
     scene.add(directional_light);
     
     background = new CubeBackground();
+
     {
         let cube_img = new imageLoader.loadCubeFromFile(
         "assets/textures/sky_cube_face0.jpg", "assets/textures/sky_cube_face1.jpg",
@@ -55,11 +54,9 @@ function init(width, height)
         background.setCubemap(cube_img);                
         
         let envMapCreator = new EnvironmentMapCreator();
-        envMap = envMapCreator.create(cube_img);
-        
-        envMapCreator.dispose();
-        cube_img.dispose();     
+        envMap = envMapCreator.create(cube_img);    
     }
+ 
     scene.background = background;
     scene.indirectLight = envMap;
     
@@ -68,17 +65,6 @@ function init(width, height)
 
     controls = new OrbitControls(camera, view);
     controls.enableDamping = true;        
-}
-
-function dispose() {
-    ground.dispose();
-    cube.dispose();
-    envMap.dispose();
-    background.dispose();
-    directional_light.dispose();
-    camera.dispose();
-    scene.dispose();
-    renderer.dispose();
 }
 
 const s_dirs = [ new Vector3(1.0, 0.0, 0.0), new Vector3(-1.0, 0.0, 0.0), new Vector3(0.0, 1.0, 0.0), new Vector3(0.0, -1.0, 0.0), new Vector3(0.0, 0.0, 1.0), new Vector3(0.0, 0.0, -1.0) ];
@@ -347,5 +333,4 @@ function render(width, height, size_changed) {
 }
 
 setCallback('init', init);
-setCallback('dispose', dispose);
 setCallback('render', render);

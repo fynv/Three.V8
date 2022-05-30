@@ -6,6 +6,7 @@
 #include <vector>
 #include <unordered_map>
 #include <string>
+#include <utility>
 
 class V8VM
 {
@@ -62,7 +63,7 @@ public:
 	v8::MaybeLocal<v8::Value> InvokeCallback(v8::Function* callback, const std::vector<v8::Local<v8::Value>>& args);
 
 	typedef void (*Dtor)(void* ptr);
-	void regiter_object(v8::Local<v8::Object> obj);
+	void regiter_object(v8::Local<v8::Object> obj, Dtor dtor);
 	void remove_object(void* ptr);
 
 private:
@@ -78,7 +79,7 @@ private:
 	std::unordered_map<std::string, CallbackT> m_callbacks;
 
 	typedef v8::Global<v8::Object> ObjectT;
-	std::unordered_map<void*, ObjectT> m_objects;
+	std::unordered_map<void*, std::pair<ObjectT, Dtor>> m_objects;
 
 	static void Print(const v8::FunctionCallbackInfo<v8::Value>& args);
 	static void SetCallback(const v8::FunctionCallbackInfo<v8::Value>& args);

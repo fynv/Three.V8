@@ -57,10 +57,9 @@ v8::Local<v8::FunctionTemplate> WrapperSimpleModel::create_template(v8::Isolate*
 void WrapperSimpleModel::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	SimpleModel* self = new SimpleModel();
-	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));
-	info.This()->SetInternalField(1, v8::External::New(info.GetIsolate(), WrapperObject3D::dtor));
+	info.This()->SetAlignedPointerInInternalField(0, self);
 	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This());
+	ctx->regiter_object(info.This(), WrapperObject3D::dtor);
 }
 
 void WrapperSimpleModel::CreateBox(const v8::FunctionCallbackInfo<v8::Value>& info)
@@ -147,7 +146,7 @@ void WrapperSimpleModel::SetColorTexture(const v8::FunctionCallbackInfo<v8::Valu
 	v8::HandleScope handle_scope(isolate);
 	SimpleModel* self = get_self<SimpleModel>(info);
 	v8::Local<v8::Object> holder_image = info[0].As<v8::Object>();
-	Image* image = (Image*)v8::Local<v8::External>::Cast(holder_image->GetInternalField(0))->Value();
+	Image* image = (Image*)holder_image->GetAlignedPointerFromInternalField(0);
 	if (image != nullptr)
 	{
 		self->texture.load_memory_bgr(image->width(), image->height(), image->data(), true);

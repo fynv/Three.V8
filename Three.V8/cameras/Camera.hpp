@@ -37,10 +37,9 @@ v8::Local<v8::FunctionTemplate> WrapperCamera::create_template(v8::Isolate* isol
 void WrapperCamera::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	Camera* self = new Camera();
-	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));
-	info.This()->SetInternalField(1, v8::External::New(info.GetIsolate(), WrapperObject3D::dtor));
+	info.This()->SetAlignedPointerInInternalField(0, self);
 	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This());
+	ctx->regiter_object(info.This(), WrapperObject3D::dtor);
 }
 
 

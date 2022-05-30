@@ -55,16 +55,14 @@ void WrappeBoundingVolumeHierarchy::New(const v8::FunctionCallbackInfo<v8::Value
 
 	for (unsigned i = 0; i < num_objects; i++)
 	{
-		v8::Local<v8::Object> holder = objects->Get(context, i).ToLocalChecked().As<v8::Object>();
-		v8::Local<v8::External> wrap = v8::Local<v8::External>::Cast(holder->GetInternalField(0));
-		p_objs[i] = (Object3D*)wrap->Value();
+		v8::Local<v8::Object> holder = objects->Get(context, i).ToLocalChecked().As<v8::Object>();	
+		p_objs[i] = (Object3D*)holder->GetAlignedPointerFromInternalField(0);
 	}
 
 	BoundingVolumeHierarchy* self = new BoundingVolumeHierarchy(p_objs);
-	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));
-	info.This()->SetInternalField(1, v8::External::New(info.GetIsolate(), dtor));
+	info.This()->SetAlignedPointerInInternalField(0, self);
 	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This());
+	ctx->regiter_object(info.This(), dtor);
 }
 
 
@@ -122,9 +120,8 @@ void WrappeBoundingVolumeHierarchy::Test(const v8::FunctionCallbackInfo<v8::Valu
 	v8::Isolate* isolate = info.GetIsolate();
 	v8::HandleScope handle_scope(isolate);
 
-	v8::Local<v8::Object> holder_camera = info[0].As<v8::Object>();
-	v8::Local<v8::External> wrap_camera = v8::Local<v8::External>::Cast(holder_camera->GetInternalField(0));
-	PerspectiveCamera* camera = (PerspectiveCamera*)wrap_camera->Value();
+	v8::Local<v8::Object> holder_camera = info[0].As<v8::Object>();	
+	PerspectiveCamera* camera = holder_camera->GetAlignedPointerFromInternalField(0);
 
 	int width = 800;
 	int height = (int)(800.0f / camera->aspect);

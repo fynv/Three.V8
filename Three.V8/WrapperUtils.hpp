@@ -11,8 +11,7 @@ inline T* get_self(const InfoType& info)
 {
 	v8::HandleScope handle_scope(info.GetIsolate());
 	v8::Local<v8::Object> holder = info.Holder();
-	v8::Local<v8::External> wrap = v8::Local<v8::External>::Cast(holder->GetInternalField(0));
-	T* self = (T*)wrap->Value();
+	T* self = (T*)holder->GetAlignedPointerFromInternalField(0);
 	return self;
 }
 
@@ -22,9 +21,8 @@ inline GameContext* get_context(const InfoType& info)
 	v8::Isolate* isolate = info.GetIsolate();
 	v8::HandleScope handle_scope(isolate);
 	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> global = context->Global();
-	v8::Local<v8::External> wrap = v8::Local<v8::External>::Cast(global->GetInternalField(0));
-	GameContext* ctx = (GameContext*)wrap->Value();
+	v8::Local<v8::Object> global = context->Global();	
+	GameContext* ctx = (GameContext*)global->GetAlignedPointerFromInternalField(0);
 	return ctx;
 }
 

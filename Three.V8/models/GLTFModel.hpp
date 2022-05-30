@@ -58,10 +58,9 @@ v8::Local<v8::FunctionTemplate> WrapperGLTFModel::create_template(v8::Isolate* i
 void WrapperGLTFModel::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	GLTFModel* self = new GLTFModel();
-	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));
-	info.This()->SetInternalField(1, v8::External::New(info.GetIsolate(), WrapperObject3D::dtor));
+	info.This()->SetAlignedPointerInInternalField(0, self);
 	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This());
+	ctx->regiter_object(info.This(), WrapperObject3D::dtor);
 }
 
 void WrapperGLTFModel::GetMeshes(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)

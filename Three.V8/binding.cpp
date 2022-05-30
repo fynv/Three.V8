@@ -109,11 +109,10 @@ GameContext::~GameContext()
 	auto iter = m_objects.begin();
 	while (iter != m_objects.end())
 	{
-		v8::Local<v8::Object> obj = iter->second.Get(isolate);
-		v8::Local<v8::External> wrap_dtor = v8::Local<v8::External>::Cast(obj->GetInternalField(1));
-		Dtor dtor = (Dtor)wrap_dtor->Value();
+		v8::Local<v8::Object> obj = iter->second.first.Get(isolate);		
+		Dtor dtor = iter->second.second;
 		dtor(iter->first);
-		iter->second.Reset();
+		iter->second.first.Reset();
 		iter++;
 	}
 }
@@ -140,13 +139,13 @@ void GameContext::_create_context()
 	
 	v8::Local<v8::Context> context = v8::Context::New(isolate, NULL, global_tmpl);
 	v8::Local<v8::Object> global_obj = context->Global();
-	global_obj->SetInternalField(0, v8::External::New(isolate, this));
+	global_obj->SetAlignedPointerInInternalField(0, this);
 
 	// gamePlayer
 	{
 		v8::Local<v8::ObjectTemplate> templ = WrapperGamePlayer::create_template(isolate);
 		v8::Local<v8::Object> obj = templ->NewInstance(context).ToLocalChecked();
-		obj->SetInternalField(0, v8::External::New(isolate, m_gamePlayer));
+		obj->SetAlignedPointerInInternalField(0, m_gamePlayer);
 		global_obj->Set(context, v8::String::NewFromUtf8(isolate, "gamePlayer").ToLocalChecked(), obj);
 	}
 	
@@ -332,17 +331,17 @@ void GameContext::GetGLError(const v8::FunctionCallbackInfo<v8::Value>& args)
 void GameContext::WeakCallback(v8::WeakCallbackInfo<GameContext> const& data)
 {
 	void* self = data.GetInternalField(0);	
-	GameContext* ctx = get_context(data);
+	GameContext* ctx = (GameContext *)data.GetInternalField(1);	
 	ctx->remove_object(self);
 }
 
-void GameContext::regiter_object(v8::Local<v8::Object> obj)
+void GameContext::regiter_object(v8::Local<v8::Object> obj, Dtor dtor)
 {
-	v8::Local<v8::External> wrap = v8::Local<v8::External>::Cast(obj->GetInternalField(0));
-	void* self = wrap->Value();
+	obj->SetAlignedPointerInInternalField(1, this);	
+	void* self = obj->GetAlignedPointerFromInternalField(0);
 	ObjectT pptr(m_vm->m_isolate, obj);
 	pptr.SetWeak(this, WeakCallback, v8::WeakCallbackType::kInternalFields);
-	m_objects.emplace(self, std::move(pptr));
+	m_objects.emplace(self, std::pair<ObjectT, Dtor>(std::move(pptr), dtor));
 }
 
 void GameContext::remove_object(void* ptr)
@@ -350,11 +349,10 @@ void GameContext::remove_object(void* ptr)
 	v8::Isolate* isolate = m_vm->m_isolate;
 	v8::HandleScope handle_scope(isolate);
 
-	v8::Local<v8::Object> obj = m_objects[ptr].Get(isolate);
-	v8::Local<v8::External> wrap_dtor = v8::Local<v8::External>::Cast(obj->GetInternalField(1));
-	Dtor dtor = (Dtor)wrap_dtor->Value();
+	v8::Local<v8::Object> obj = m_objects[ptr].first.Get(isolate);	
+	Dtor dtor = m_objects[ptr].second;
 	dtor(ptr);
 
-	m_objects[ptr].Reset();
+	m_objects[ptr].first.Reset();
 	m_objects.erase(ptr);
 }

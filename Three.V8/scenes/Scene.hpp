@@ -32,10 +32,9 @@ v8::Local<v8::FunctionTemplate> WrapperScene::create_template(v8::Isolate* isola
 void WrapperScene::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	Scene* self = new Scene();
-	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));
-	info.This()->SetInternalField(1, v8::External::New(info.GetIsolate(), WrapperObject3D::dtor));
+	info.This()->SetAlignedPointerInInternalField(0, self);
 	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This());
+	ctx->regiter_object(info.This(), WrapperObject3D::dtor);
 }
 
 void WrapperScene::GetBackground(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
@@ -59,11 +58,11 @@ void WrapperScene::SetBackground(v8::Local<v8::String> property, v8::Local<v8::V
 	v8::HandleScope handle_scope(isolate);
 	v8::Local<v8::Context> context = isolate->GetCurrentContext();
 	v8::Local<v8::Object> holder = info.Holder();
-	Scene* self = (Scene*)v8::Local<v8::External>::Cast(holder->GetInternalField(0))->Value();
+	Scene* self = (Scene*)holder->GetAlignedPointerFromInternalField(0);
 	holder->Set(context, v8::String::NewFromUtf8(isolate, "_background").ToLocalChecked(), value);
 	if (!value->IsNull())
 	{
-		Background* background = (Background*)v8::Local<v8::External>::Cast(value.As<v8::Object>()->GetInternalField(0))->Value();
+		Background* background = (Background*)value.As<v8::Object>()->GetAlignedPointerFromInternalField(0);
 		self->background = background;
 	}
 	else
@@ -94,11 +93,11 @@ void WrapperScene::SetIndirectLight(v8::Local<v8::String> property, v8::Local<v8
 	v8::HandleScope handle_scope(isolate);
 	v8::Local<v8::Context> context = isolate->GetCurrentContext();
 	v8::Local<v8::Object> holder = info.Holder();
-	Scene* self = (Scene*)v8::Local<v8::External>::Cast(holder->GetInternalField(0))->Value();
+	Scene* self = (Scene*)holder->GetAlignedPointerFromInternalField(0);
 	holder->Set(context, v8::String::NewFromUtf8(isolate, "_indirectLight").ToLocalChecked(), value);
 	if (!value->IsNull())
 	{
-		IndirectLight* indirectLight = (IndirectLight*)v8::Local<v8::External>::Cast(value.As<v8::Object>()->GetInternalField(0))->Value();
+		IndirectLight* indirectLight = (IndirectLight*)value.As<v8::Object>()->GetAlignedPointerFromInternalField(0);
 		self->indirectLight = indirectLight;
 	}
 	else

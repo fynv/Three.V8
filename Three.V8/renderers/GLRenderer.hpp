@@ -34,10 +34,9 @@ void WrapperGLRenderer::dtor(void* ptr)
 void WrapperGLRenderer::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	GLRenderer* self = new GLRenderer();
-	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));
-	info.This()->SetInternalField(1, v8::External::New(info.GetIsolate(), dtor));
+	info.This()->SetAlignedPointerInInternalField(0, self);
 	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This());
+	ctx->regiter_object(info.This(), dtor);
 }
 
 void WrapperGLRenderer::Render(const v8::FunctionCallbackInfo<v8::Value>& info)
@@ -50,14 +49,13 @@ void WrapperGLRenderer::Render(const v8::FunctionCallbackInfo<v8::Value>& info)
 
 	v8::Local<v8::Object> global = context->Global();
 	v8::Local<v8::Object> holder_player = global->Get(context, v8::String::NewFromUtf8(isolate, "gamePlayer").ToLocalChecked()).ToLocalChecked().As<v8::Object>();
-	v8::Local<v8::External> wrap_player = v8::Local<v8::External>::Cast(holder_player->GetInternalField(0));
-	GamePlayer* player = (GamePlayer*)wrap_player->Value();
+	GamePlayer* player = (GamePlayer*)holder_player->GetAlignedPointerFromInternalField(0);
 
 	v8::Local<v8::Object> holder_scene = info[0].As<v8::Object>();
-	Scene* scene = (Scene*)v8::Local<v8::External>::Cast(holder_scene->GetInternalField(0))->Value();
+	Scene* scene = (Scene*)holder_scene->GetAlignedPointerFromInternalField(0);
 
 	v8::Local<v8::Object> holder_camera = info[1].As<v8::Object>();
-	Camera* camera = (Camera*)v8::Local<v8::External>::Cast(holder_camera->GetInternalField(0))->Value();
+	Camera* camera = (Camera*)holder_camera->GetAlignedPointerFromInternalField(0);
 
 	self->render(*scene, *camera, player->renderTarget());
 }

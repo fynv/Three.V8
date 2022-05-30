@@ -22,8 +22,7 @@ v8::Local<v8::FunctionTemplate> WrapperEnvironmentMap::create_template(v8::Isola
 void WrapperEnvironmentMap::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	EnvironmentMap* self = new EnvironmentMap();
-	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));
-	info.This()->SetInternalField(1, v8::External::New(info.GetIsolate(), WrapperIndirectLight::dtor));
+	info.This()->SetAlignedPointerInInternalField(0, self);
 	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This());
+	ctx->regiter_object(info.This(), WrapperIndirectLight::dtor);
 }

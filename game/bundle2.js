@@ -4324,8 +4324,6 @@ setCallback('OnMouseUp', OnMouseUp);
 setCallback('OnMouseMove', OnMouseMove);
 setCallback('OnMouseWheel', OnMouseWheel);
 
-let renderer, scene, directional_light, directional_light2, camera, bg, envLight, model, ground, clock, controls;
-
 function init(width, height) {
     renderer = new GLRenderer();
     scene = new Scene();
@@ -4378,18 +4376,6 @@ function init(width, height) {
 
 }
 
-function dispose() {
-    ground.dispose();
-    model.dispose();
-    envLight.dispose();
-    bg.dispose();
-    directional_light2.dispose();
-    directional_light.dispose();
-    camera.dispose();
-    scene.dispose();
-    renderer.dispose();
-}
-
 new Vector3(0, 1, 0);
 new Matrix4();
 
@@ -4413,5 +4399,4 @@ function render(width, height, size_changed) {
 }
 
 setCallback('init', init);
-setCallback('dispose', dispose);
 setCallback('render', render);

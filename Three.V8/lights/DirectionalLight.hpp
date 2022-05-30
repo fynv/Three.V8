@@ -31,10 +31,9 @@ v8::Local<v8::FunctionTemplate> WrapperDirectionalLight::create_template(v8::Iso
 void WrapperDirectionalLight::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	DirectionalLight* self = new DirectionalLight();
-	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));
-	info.This()->SetInternalField(1, v8::External::New(info.GetIsolate(), WrapperObject3D::dtor));
+	info.This()->SetAlignedPointerInInternalField(0, self);
 	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This());
+	ctx->regiter_object(info.This(), WrapperObject3D::dtor);
 }
 
 
@@ -59,9 +58,9 @@ void WrapperDirectionalLight::SetTarget(v8::Local<v8::String> property, v8::Loca
 	v8::HandleScope handle_scope(isolate);
 	v8::Local<v8::Context> context = isolate->GetCurrentContext();
 	v8::Local<v8::Object> holder = info.Holder();
-	DirectionalLight* self = (DirectionalLight*)v8::Local<v8::External>::Cast(holder->GetInternalField(0))->Value();
+	DirectionalLight* self = (DirectionalLight*)holder->GetAlignedPointerFromInternalField(0);
 	holder->Set(context, v8::String::NewFromUtf8(isolate, "_target").ToLocalChecked(), value);
-	Object3D* target = (Object3D*)v8::Local<v8::External>::Cast(value.As<v8::Object>()->GetInternalField(0))->Value();
+	Object3D* target = (Object3D*)value.As<v8::Object>()->GetAlignedPointerFromInternalField(0);
 	self->target = target;
 }
 

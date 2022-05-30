@@ -41,10 +41,9 @@ void WrapperColorBackground::dtor(void* ptr)
 void WrapperColorBackground::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	ColorBackground* self = new ColorBackground();
-	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));	
-	info.This()->SetInternalField(1, v8::External::New(info.GetIsolate(), dtor));
+	info.This()->SetAlignedPointerInInternalField(0, self);	
 	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This());
+	ctx->regiter_object(info.This(), dtor);
 }
 
 
@@ -120,10 +119,9 @@ void WrapperCubeBackground::dtor(void* ptr)
 void WrapperCubeBackground::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	CubeBackground* self = new CubeBackground();
-	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));
-	info.This()->SetInternalField(1, v8::External::New(info.GetIsolate(), dtor));
+	info.This()->SetAlignedPointerInInternalField(0, self);
 	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This());
+	ctx->regiter_object(info.This(), dtor);
 }
 
 
@@ -133,7 +131,7 @@ void WrapperCubeBackground::SetCubemap(const v8::FunctionCallbackInfo<v8::Value>
 	v8::HandleScope handle_scope(isolate);
 	CubeBackground* self = get_self<CubeBackground>(info);
 	v8::Local<v8::Object> holder_image = info[0].As<v8::Object>();
-	CubeImage* image = (CubeImage*)v8::Local<v8::External>::Cast(holder_image->GetInternalField(0))->Value();
+	CubeImage* image = (CubeImage*)holder_image->GetAlignedPointerFromInternalField(0);
 	self->cubemap.load_memory_bgr(image->images[0].width(), image->images[0].height(),
 		image->images[0].data(), image->images[1].data(), image->images[2].data(), image->images[3].data(), image->images[4].data(), image->images[5].data());
 }
@@ -183,10 +181,9 @@ void WrapperHemisphereBackground::dtor(void* ptr)
 void WrapperHemisphereBackground::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	HemisphereBackground* self = new HemisphereBackground();
-	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));
-	info.This()->SetInternalField(1, v8::External::New(info.GetIsolate(), dtor));
+	info.This()->SetAlignedPointerInInternalField(0, self);
 	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This());
+	ctx->regiter_object(info.This(), dtor);
 }
 
 void WrapperHemisphereBackground::GetSkyColor(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)

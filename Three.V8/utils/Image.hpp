@@ -51,10 +51,9 @@ void WrapperImage::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 	{
 		self = new Image();
 	}	
-	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));
-	info.This()->SetInternalField(1, v8::External::New(info.GetIsolate(), dtor));
+	info.This()->SetAlignedPointerInInternalField(0, self);
 	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This());
+	ctx->regiter_object(info.This(), dtor);
 }
 
 void WrapperImage::GetHasAlpha(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
@@ -116,10 +115,9 @@ void WrapperCubeImage::dtor(void* ptr)
 void WrapperCubeImage::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	CubeImage* self = new CubeImage();
-	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));
-	info.This()->SetInternalField(1, v8::External::New(info.GetIsolate(), dtor));
+	info.This()->SetAlignedPointerInInternalField(0, self);
 	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This());
+	ctx->regiter_object(info.This(), dtor);
 }
 
 void WrapperCubeImage::GetWidth(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)

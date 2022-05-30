@@ -35,8 +35,7 @@ void WrapperGLTFLoader::LoadModelFromFile(const v8::FunctionCallbackInfo<v8::Val
 	v8::Local<v8::Function> ctor_model = global->Get(context, v8::String::NewFromUtf8(isolate, "GLTFModel").ToLocalChecked()).ToLocalChecked().As<v8::Function>();
 
 	v8::Local<v8::Object> holder = ctor_model->CallAsConstructor(context, 0, nullptr).ToLocalChecked().As<v8::Object>();
-	v8::Local<v8::External> wrap = v8::Local<v8::External>::Cast(holder->GetInternalField(0));
-	GLTFModel* self = (GLTFModel*)wrap->Value();
+	GLTFModel* self = (GLTFModel*)holder->GetAlignedPointerFromInternalField(0);
 
 	v8::String::Utf8Value filename(isolate, info[0]);
 	GLTFLoader::LoadModelFromFile(self, *filename);
@@ -76,8 +75,7 @@ void WrapperGLTFLoader::LoadModelFromMemory(const v8::FunctionCallbackInfo<v8::V
 	v8::Local<v8::Function> ctor_model = global->Get(context, v8::String::NewFromUtf8(isolate, "GLTFModel").ToLocalChecked()).ToLocalChecked().As<v8::Function>();
 
 	v8::Local<v8::Object> holder = ctor_model->CallAsConstructor(context, 0, nullptr).ToLocalChecked().As<v8::Object>();
-	v8::Local<v8::External> wrap = v8::Local<v8::External>::Cast(holder->GetInternalField(0));
-	GLTFModel* self = (GLTFModel*)wrap->Value();
+	GLTFModel* self = (GLTFModel*)holder->GetAlignedPointerFromInternalField(0);
 
 	v8::Local<v8::ArrayBuffer> data = info[0].As<v8::ArrayBuffer>();
 	GLTFLoader::LoadModelFromMemory(self, (unsigned char*)data->GetBackingStore()->Data(), data->ByteLength());
