@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="..\packages\v8-v142-x64.9.3.345.3\build\native\v8-v142-x64.props" Condition="Exists('..\packages\v8-v142-x64.9.3.345.3\build\native\v8-v142-x64.props')" />
-  <Import Project="..\packages\v8.redist-v142-x64.9.3.345.3\build\native\v8.redist-v142-x64.props" Condition="Exists('..\packages\v8.redist-v142-x64.9.3.345.3\build\native\v8.redist-v142-x64.props')" />
+  <Import Project="..\packages\v8-v142-x64.10.0.139.9\build\native\v8-v142-x64.props" Condition="Exists('..\packages\v8-v142-x64.10.0.139.9\build\native\v8-v142-x64.props')" />
+  <Import Project="..\packages\v8.redist-v142-x64.10.0.139.9\build\native\v8.redist-v142-x64.props" Condition="Exists('..\packages\v8.redist-v142-x64.10.0.139.9\build\native\v8.redist-v142-x64.props')" />
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -128,9 +128,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="backgrounds\Background.hpp" />
     <ClInclude Include="binding.h" />
     <ClInclude Include="cameras\Camera.hpp" />
@@ -160,13 +157,16 @@
     <ClCompile Include="binding.cpp" />
     <ClCompile Include="GamePlayer.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\v8.redist-v142-x64.9.3.345.3\build\native\v8.redist-v142-x64.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\v8.redist-v142-x64.9.3.345.3\build\native\v8.redist-v142-x64.props'))" />
-    <Error Condition="!Exists('..\packages\v8-v142-x64.9.3.345.3\build\native\v8-v142-x64.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\v8-v142-x64.9.3.345.3\build\native\v8-v142-x64.props'))" />
+    <Error Condition="!Exists('..\packages\v8.redist-v142-x64.10.0.139.9\build\native\v8.redist-v142-x64.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\v8.redist-v142-x64.10.0.139.9\build\native\v8.redist-v142-x64.props'))" />
+    <Error Condition="!Exists('..\packages\v8-v142-x64.10.0.139.9\build\native\v8-v142-x64.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\v8-v142-x64.10.0.139.9\build\native\v8-v142-x64.props'))" />
   </Target>
 </Project>

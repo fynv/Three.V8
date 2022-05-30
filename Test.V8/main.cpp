@@ -63,7 +63,7 @@ private:
 	std::unique_ptr<GamePlayer> m_game_player;
 };
 
-int main(int argc, char* argv[])
+int main(int argc, const char* argv[])
 {
 	AppMain app(argv[0]);
 	app.LoadScript("../game", "bundle.js");
