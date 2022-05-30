@@ -133,51 +133,6 @@ namespace CLRBinding
 		}
 	}
 
-	struct VMCallbackData
-	{
-		void* p_delegate;
-		void* data;
-	};
-
-	static void s_vm_callback(void* ptr)
-	{
-		VMCallbackData* data = (VMCallbackData*)ptr;	
-
-		GCHandle handle_callback = GCHandle::FromIntPtr((IntPtr)data->p_delegate);
-		VMCallback^ callback = (VMCallback^)handle_callback.Target;		
-		
-		GCHandle handle_data = GCHandle::FromIntPtr((IntPtr)data->data);
-		Object^ callback_data = (Object^)handle_data.Target;
-		
-		callback(callback_data);
-	}
-
-	CV8VM::CV8VM(String^ exec_path)
-	{
-		const char* path = (const char*)(void*)Marshal::StringToHGlobalAnsi(exec_path);
-		m_native = new V8VM(path);
-	}
-
-	CV8VM::!CV8VM()
-	{
-		delete m_native;
-	}
-
-	void CV8VM::RunVM(VMCallback^ callback, Object^ data)
-	{
-		GCHandle handle_callback = GCHandle::Alloc(callback, GCHandleType::Normal);
-		GCHandle handle_data = GCHandle::Alloc(data, GCHandleType::Normal);
-
-		VMCallbackData callback_data;
-		callback_data.p_delegate = (void*)GCHandle::ToIntPtr(handle_callback);
-		callback_data.data = (void*)GCHandle::ToIntPtr(handle_data);
-
-		m_native->RunVM(s_vm_callback, &callback_data);
-
-		handle_data.Free();
-		handle_callback.Free();
-	}
-
 	static void SetMouseCapture(void* pwin)
 	{
 		GCHandle handle_win = GCHandle::FromIntPtr((IntPtr)pwin);
@@ -192,9 +147,10 @@ namespace CLRBinding
 		win->Capture = false;
 	}
 
-	CGamePlayer::CGamePlayer(CV8VM^ v8vm, Control^ window)
+	CGamePlayer::CGamePlayer(String^ exec_path, Control^ window)
 	{
-		m_native = new GamePlayer(v8vm->native(), window->Width, window->Height);
+		const char* cpath = (const char*)(void*)Marshal::StringToHGlobalAnsi(exec_path);
+		m_native = new GamePlayer(cpath, window->Width, window->Height);
 
 		m_handle_win = GCHandle::Alloc(window, GCHandleType::Normal);
 		WindowCalls wincalls;

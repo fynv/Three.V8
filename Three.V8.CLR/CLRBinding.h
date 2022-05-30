@@ -44,29 +44,6 @@ namespace CLRBinding
 		bool m_finalized = false;
 	};
 
-	public delegate void VMCallback(Object^);
-	public ref class CV8VM
-	{
-	public:
-		V8VM* native() { return m_native;  }
-
-		CV8VM(String^ exec_path);
-		!CV8VM();
-		~CV8VM()
-		{
-			if (!m_finalized)
-			{
-				this->!CV8VM();
-				m_finalized = true;
-			}
-		}
-
-		void RunVM(VMCallback^ callback, Object^ data);
-
-	private:
-		V8VM* m_native = nullptr;
-		bool m_finalized = false;
-	};
 
 	public value struct MouseEventArgs
 	{
@@ -80,7 +57,7 @@ namespace CLRBinding
 	public ref class CGamePlayer
 	{
 	public:
-		CGamePlayer(CV8VM^ v8vm, Control^ window);
+		CGamePlayer(String^ exec_path, Control^ window);
 		!CGamePlayer();
 		~CGamePlayer()
 		{

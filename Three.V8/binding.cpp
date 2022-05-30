@@ -26,13 +26,6 @@ V8VM::~V8VM()
 	delete m_array_buffer_allocator;
 }
 
-void V8VM::RunVM(void (*callback)(void*), void* data)
-{
-	v8::Isolate::Scope isolate_scope(m_isolate);
-	v8::HandleScope handle_scope(m_isolate);
-	callback(data);
-}
-
 
 #include "utils/Image.hpp"
 
@@ -103,6 +96,7 @@ GameContext::GameContext(V8VM* vm, GamePlayer* gamePlayer, const char* filename)
 	, m_gamePlayer(gamePlayer)
 {
 	_create_context();
+	v8::HandleScope handle_scope(m_vm->m_isolate);
 	v8::Context::Scope context_scope(m_context.Get(m_vm->m_isolate));
 	_run_script(filename);
 }
@@ -207,7 +201,6 @@ void GameContext::_report_exception(v8::TryCatch* try_catch)
 
 bool GameContext::_execute_string(v8::Local<v8::String> source, v8::Local<v8::Value> name, bool print_result, bool report_exceptions)
 {
-	v8::HandleScope handle_scope(m_vm->m_isolate);
 	v8::TryCatch try_catch(m_vm->m_isolate);
 	v8::ScriptOrigin origin(m_vm->m_isolate, name);
 	v8::ScriptCompiler::Source script_source(source, origin);
@@ -306,7 +299,6 @@ v8::Function* GameContext::GetCallback(const char* name)
 v8::MaybeLocal<v8::Value> GameContext::InvokeCallback(v8::Function* callback, const std::vector<v8::Local<v8::Value>>& args)
 {
 	v8::Isolate* isolate = m_vm->m_isolate;
-	v8::HandleScope handle_scope(isolate);
 	v8::Local<v8::Context> context = isolate->GetCurrentContext();
 	v8::Local<v8::Object> global = context->Global();	
 	return callback->Call(context, global, (int)args.size(), (v8::Local<v8::Value>*)args.data());

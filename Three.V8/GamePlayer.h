@@ -13,7 +13,7 @@ struct WindowCalls
 class GamePlayer
 {
 public:
-	GamePlayer(V8VM* v8vm, int width, int height);
+	GamePlayer(const char* exec_path, int width, int height);
 	~GamePlayer();
 
 	int width() const { return m_width; }
@@ -41,11 +41,12 @@ public:
 	}
 
 private:
+	V8VM m_v8vm;
+
 	int m_width = -1;
 	int m_height = -1;
 	GLRenderTarget m_render_target;
-
-	V8VM* m_v8vm;
+	
 	std::unique_ptr<GameContext> m_context;
 
 	void _unloadScript();

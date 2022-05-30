@@ -13,8 +13,7 @@ public:
 	V8VM(const char* exec_path);
 	~V8VM();
 
-	v8::Isolate* m_isolate;
-	void RunVM(void (*callback)(void*), void* data);
+	v8::Isolate* m_isolate;	
    
 private:
 	std::unique_ptr<v8::Platform> m_platform;

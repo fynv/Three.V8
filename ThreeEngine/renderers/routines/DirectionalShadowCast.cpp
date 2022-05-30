@@ -196,9 +196,6 @@ void DirectionalShadowCast::s_generate_shaders(const Options& options, Bindings&
 			sprintf(line, "#define LOCATION_VARYING_ALPHA %d\n", bindings.location_varying_alpha);
 			defines += line;
 		}
-
-		bindings.location_attrib_uv = 2;
-		bindings.location_varying_uv = 1;
 	}
 	else
 	{

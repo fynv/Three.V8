@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Windows;
+using System.Diagnostics;
 using Microsoft.Win32;
 using CLRBinding;
 
@@ -10,20 +11,19 @@ namespace GamePlayer
     /// </summary>
     public partial class MainWindow : Window
     {
-        private CV8VM v8vm;
         private CGLControl glControl = null;
         private CGamePlayer game_player = null;
         private string default_script = "../../../game/bundle.js";
 
         private void glControl_Load(object sender, System.EventArgs e)
         {
-            game_player = new CGamePlayer(v8vm, glControl);       
+            string exe_name = Process.GetCurrentProcess().ProcessName;
+            game_player = new CGamePlayer(exe_name, glControl);       
             game_player.LoadScript(default_script);
         }
 
-        public MainWindow(CV8VM v8vm)
-        {
-            this.v8vm = v8vm;
+        public MainWindow()
+        {            
             InitializeComponent();
             glControl = new CGLControl();
             glControl.SetFramerate(60.0f);

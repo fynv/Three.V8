@@ -5,8 +5,8 @@
 
 #define ENABLE_MSAA 1
 
-GamePlayer::GamePlayer(V8VM* v8vm, int width, int height) 
-	: m_v8vm(v8vm)
+GamePlayer::GamePlayer(const char* exec_path, int width, int height)
+	: m_v8vm(exec_path)
 	, m_width(width)
 	, m_height(height)
 #if ENABLE_MSAA
@@ -15,25 +15,28 @@ GamePlayer::GamePlayer(V8VM* v8vm, int width, int height)
 	, m_render_target(false, false)
 #endif
 {
+	m_v8vm.m_isolate->Enter();
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 }
 
 GamePlayer::~GamePlayer()
 {
 	_unloadScript();
+	m_v8vm.m_isolate->Exit();
 }
 
 void GamePlayer::LoadScript(const char* dir, const char* filename)
 {
 	_unloadScript();
 	std::filesystem::current_path(dir);
-	m_context = std::unique_ptr<GameContext>(new GameContext(m_v8vm, this, filename));
+	m_context = std::unique_ptr<GameContext>(new GameContext(&m_v8vm, this, filename));
 
-	v8::Context::Scope context_scope(m_context->m_context.Get(m_v8vm->m_isolate));
+	v8::Isolate* isolate = m_v8vm.m_isolate;
+	v8::HandleScope handle_scope(isolate);
+	v8::Context::Scope context_scope(m_context->m_context.Get(isolate));
 	v8::Function* callback_init = m_context->GetCallback("init");
 	if (callback_init != nullptr)
 	{
-		v8::Isolate* isolate = m_context->m_vm->m_isolate;
 		std::vector<v8::Local<v8::Value>> args(2);
 		args[0] = v8::Number::New(isolate, (double)m_width);
 		args[1] = v8::Number::New(isolate, (double)m_height);
@@ -45,7 +48,9 @@ void GamePlayer::_unloadScript()
 {
 	if (m_context != nullptr)
 	{
-		v8::Context::Scope context_scope(m_context->m_context.Get(m_v8vm->m_isolate));
+		v8::Isolate* isolate = m_v8vm.m_isolate;
+		v8::HandleScope handle_scope(isolate);
+		v8::Context::Scope context_scope(m_context->m_context.Get(isolate));
 		v8::Function* callback_dispose = m_context->GetCallback("dispose");
 		if (callback_dispose != nullptr)
 		{
@@ -68,11 +73,12 @@ void GamePlayer::Draw(int width, int height)
 
 	if (m_context != nullptr)
 	{
-		v8::Context::Scope context_scope(m_context->m_context.Get(m_v8vm->m_isolate));
+		v8::Isolate* isolate = m_v8vm.m_isolate;
+		v8::HandleScope handle_scope(isolate);
+		v8::Context::Scope context_scope(m_context->m_context.Get(isolate));
 		v8::Function* callback = m_context->GetCallback("render");
 		if (callback != nullptr)
 		{
-			v8::Isolate* isolate = m_context->m_vm->m_isolate;
 			std::vector<v8::Local<v8::Value>> args(3);
 			args[0] = v8::Number::New(isolate, (double)width);
 			args[1] = v8::Number::New(isolate, (double)height);
@@ -104,14 +110,14 @@ void GamePlayer::OnMouseDown(int button, int clicks, int delta, int x, int y)
 {
 	if (m_context != nullptr)
 	{
-		v8::Context::Scope context_scope(m_context->m_context.Get(m_v8vm->m_isolate));
+		v8::Isolate* isolate = m_v8vm.m_isolate;
+		v8::HandleScope handle_scope(isolate);
+		v8::Context::Scope context_scope(m_context->m_context.Get(isolate));
 		v8::Function* callback = m_context->GetCallback("OnMouseDown");
 		if (callback != nullptr)
-		{			
-			v8::Isolate* isolate = m_context->m_vm->m_isolate;
-			v8::HandleScope handle_scope(isolate);			
+		{						
 			std::vector<v8::Local<v8::Value>> args(1);
-			args[0] = g_CreateMouseEvent(isolate, m_context->m_context.Get(m_v8vm->m_isolate), button, clicks, delta, x, y);
+			args[0] = g_CreateMouseEvent(isolate, m_context->m_context.Get(isolate), button, clicks, delta, x, y);
 			m_context->InvokeCallback(callback, args);
 		}
 	}
@@ -121,14 +127,14 @@ void GamePlayer::OnMouseUp(int button, int clicks, int delta, int x, int y)
 {
 	if (m_context != nullptr)
 	{
-		v8::Context::Scope context_scope(m_context->m_context.Get(m_v8vm->m_isolate));
+		v8::Isolate* isolate = m_v8vm.m_isolate;
+		v8::HandleScope handle_scope(isolate);
+		v8::Context::Scope context_scope(m_context->m_context.Get(isolate));
 		v8::Function* callback = m_context->GetCallback("OnMouseUp");
 		if (callback != nullptr)
-		{
-			v8::Isolate* isolate = m_context->m_vm->m_isolate;
-			v8::HandleScope handle_scope(isolate);
+		{			
 			std::vector<v8::Local<v8::Value>> args(1);
-			args[0] = g_CreateMouseEvent(isolate, m_context->m_context.Get(m_v8vm->m_isolate), button, clicks, delta, x, y);
+			args[0] = g_CreateMouseEvent(isolate, m_context->m_context.Get(isolate), button, clicks, delta, x, y);
 			m_context->InvokeCallback(callback, args);
 		}
 	}
@@ -138,14 +144,14 @@ void GamePlayer::OnMouseMove(int button, int clicks, int delta, int x, int y)
 {
 	if (m_context != nullptr)
 	{
-		v8::Context::Scope context_scope(m_context->m_context.Get(m_v8vm->m_isolate));
+		v8::Isolate* isolate = m_v8vm.m_isolate;
+		v8::HandleScope handle_scope(isolate);
+		v8::Context::Scope context_scope(m_context->m_context.Get(isolate));
 		v8::Function* callback = m_context->GetCallback("OnMouseMove");
 		if (callback != nullptr)
-		{
-			v8::Isolate* isolate = m_context->m_vm->m_isolate;
-			v8::HandleScope handle_scope(isolate);
+		{			
 			std::vector<v8::Local<v8::Value>> args(1);
-			args[0] = g_CreateMouseEvent(isolate, m_context->m_context.Get(m_v8vm->m_isolate), button, clicks, delta, x, y);
+			args[0] = g_CreateMouseEvent(isolate, m_context->m_context.Get(isolate), button, clicks, delta, x, y);
 			m_context->InvokeCallback(callback, args);
 		}
 	}
@@ -155,14 +161,14 @@ void GamePlayer::OnMouseWheel(int button, int clicks, int delta, int x, int y)
 {
 	if (m_context != nullptr)
 	{
-		v8::Context::Scope context_scope(m_context->m_context.Get(m_v8vm->m_isolate));
+		v8::Isolate* isolate = m_v8vm.m_isolate;
+		v8::HandleScope handle_scope(isolate);
+		v8::Context::Scope context_scope(m_context->m_context.Get(isolate));
 		v8::Function* callback = m_context->GetCallback("OnMouseWheel");
 		if (callback != nullptr)
-		{
-			v8::Isolate* isolate = m_context->m_vm->m_isolate;
-			v8::HandleScope handle_scope(isolate);
+		{			
 			std::vector<v8::Local<v8::Value>> args(1);
-			args[0] = g_CreateMouseEvent(isolate, m_context->m_context.Get(m_v8vm->m_isolate), button, clicks, delta, x, y);
+			args[0] = g_CreateMouseEvent(isolate, m_context->m_context.Get(isolate), button, clicks, delta, x, y);
 			m_context->InvokeCallback(callback, args);
 		}
 	}
