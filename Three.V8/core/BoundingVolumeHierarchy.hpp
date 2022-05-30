@@ -13,8 +13,7 @@ public:
 	static void New(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 private:
-	static void Dispose(const v8::FunctionCallbackInfo<v8::Value>& info);
-
+	static void dtor(void* ptr);
 	static void Intersect(const v8::FunctionCallbackInfo<v8::Value>& info);
 	
 #if ENABLE_TEST
@@ -26,8 +25,8 @@ private:
 v8::Local<v8::FunctionTemplate> WrappeBoundingVolumeHierarchy::create_template(v8::Isolate* isolate, v8::FunctionCallback constructor)
 {
 	v8::Local<v8::FunctionTemplate> templ = v8::FunctionTemplate::New(isolate, constructor);
-	templ->InstanceTemplate()->SetInternalFieldCount(1);
-	templ->InstanceTemplate()->Set(isolate, "dispose", v8::FunctionTemplate::New(isolate, Dispose));
+	templ->InstanceTemplate()->SetInternalFieldCount(2);
+	templ->InstanceTemplate()->Set(isolate, "dispose", v8::FunctionTemplate::New(isolate, GeneralDispose));
 	templ->InstanceTemplate()->Set(isolate, "intersect", v8::FunctionTemplate::New(isolate, Intersect));
 
 #if ENABLE_TEST
@@ -37,6 +36,11 @@ v8::Local<v8::FunctionTemplate> WrappeBoundingVolumeHierarchy::create_template(v
 	return templ;
 }
 
+
+void WrappeBoundingVolumeHierarchy::dtor(void* ptr)
+{
+	delete (BoundingVolumeHierarchy*)ptr;
+}
 
 void WrappeBoundingVolumeHierarchy::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
@@ -58,13 +62,11 @@ void WrappeBoundingVolumeHierarchy::New(const v8::FunctionCallbackInfo<v8::Value
 
 	BoundingVolumeHierarchy* self = new BoundingVolumeHierarchy(p_objs);
 	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));
+	info.This()->SetInternalField(1, v8::External::New(info.GetIsolate(), dtor));
+	GameContext* ctx = get_context(info);
+	ctx->regiter_object(info.This());
 }
 
-void WrappeBoundingVolumeHierarchy::Dispose(const v8::FunctionCallbackInfo<v8::Value>& info)
-{
-	BoundingVolumeHierarchy* self = get_self<BoundingVolumeHierarchy>(info);
-	delete self;
-}
 
 void WrappeBoundingVolumeHierarchy::Intersect(const v8::FunctionCallbackInfo<v8::Value>& info)
 {

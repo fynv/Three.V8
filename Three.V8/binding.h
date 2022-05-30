@@ -61,6 +61,10 @@ public:
 	v8::Function* GetCallback(const char* name);
 	v8::MaybeLocal<v8::Value> InvokeCallback(v8::Function* callback, const std::vector<v8::Local<v8::Value>>& args);
 
+	typedef void (*Dtor)(void* ptr);
+	void regiter_object(v8::Local<v8::Object> obj);
+	void remove_object(void* ptr);
+
 private:
 	GamePlayer* m_gamePlayer;
 	static GlobalDefinitions s_globals;
@@ -73,8 +77,13 @@ private:
 	typedef v8::Persistent<v8::Function, v8::CopyablePersistentTraits<v8::Function>> CallbackT;
 	std::unordered_map<std::string, CallbackT> m_callbacks;
 
+	typedef v8::Global<v8::Object> ObjectT;
+	std::unordered_map<void*, ObjectT> m_objects;
+
 	static void Print(const v8::FunctionCallbackInfo<v8::Value>& args);
 	static void SetCallback(const v8::FunctionCallbackInfo<v8::Value>& args);
 	static void Now(const v8::FunctionCallbackInfo<v8::Value>& args);
 	static void GetGLError(const v8::FunctionCallbackInfo<v8::Value>& args);
+
+	static void WeakCallback(v8::WeakCallbackInfo<GameContext> const& data);
 };

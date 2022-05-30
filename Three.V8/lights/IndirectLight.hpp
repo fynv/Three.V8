@@ -9,10 +9,9 @@ class WrapperIndirectLight
 {
 public:
 	static v8::Local<v8::FunctionTemplate> create_template(v8::Isolate* isolate, v8::FunctionCallback constructor);
+	static void dtor(void* ptr);
 
 private:
-	static void Dispose(const v8::FunctionCallbackInfo<v8::Value>& info);
-
 	static void GetDiffuseThresh(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void SetDiffuseThresh(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
 
@@ -35,8 +34,8 @@ private:
 v8::Local<v8::FunctionTemplate> WrapperIndirectLight::create_template(v8::Isolate* isolate, v8::FunctionCallback constructor)
 {
 	v8::Local<v8::FunctionTemplate> templ = v8::FunctionTemplate::New(isolate, constructor);
-	templ->InstanceTemplate()->SetInternalFieldCount(1);
-	templ->InstanceTemplate()->Set(isolate, "dispose", v8::FunctionTemplate::New(isolate, Dispose));
+	templ->InstanceTemplate()->SetInternalFieldCount(2);
+	templ->InstanceTemplate()->Set(isolate, "dispose", v8::FunctionTemplate::New(isolate, GeneralDispose));
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "diffuseThresh").ToLocalChecked(), GetDiffuseThresh, SetDiffuseThresh);
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "diffuseHigh").ToLocalChecked(), GetDiffuseHigh, SetDiffuseHigh);
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "diffuseLow").ToLocalChecked(), GetDiffuseLow, SetDiffuseLow);
@@ -46,10 +45,10 @@ v8::Local<v8::FunctionTemplate> WrapperIndirectLight::create_template(v8::Isolat
 	return templ;
 }
 
-void WrapperIndirectLight::Dispose(const v8::FunctionCallbackInfo<v8::Value>& info)
+
+void WrapperIndirectLight::dtor(void* ptr)
 {
-	IndirectLight* self = get_self<IndirectLight>(info);
-	delete self;
+	delete (IndirectLight*)ptr;
 }
 
 void WrapperIndirectLight::GetDiffuseThresh(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)

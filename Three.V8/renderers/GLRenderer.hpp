@@ -13,29 +13,31 @@ public:
 	static void New(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 private:
-	static void Dispose(const v8::FunctionCallbackInfo<v8::Value>& info);
+	static void dtor(void* ptr);
 	static void Render(const v8::FunctionCallbackInfo<v8::Value>& info);
 };
 
 v8::Local<v8::FunctionTemplate> WrapperGLRenderer::create_template(v8::Isolate* isolate, v8::FunctionCallback constructor)
 {
 	v8::Local<v8::FunctionTemplate> templ = v8::FunctionTemplate::New(isolate, constructor);
-	templ->InstanceTemplate()->SetInternalFieldCount(1);
-	templ->InstanceTemplate()->Set(isolate, "dispose", v8::FunctionTemplate::New(isolate, Dispose));
+	templ->InstanceTemplate()->SetInternalFieldCount(2);
+	templ->InstanceTemplate()->Set(isolate, "dispose", v8::FunctionTemplate::New(isolate, GeneralDispose));
 	templ->InstanceTemplate()->Set(isolate, "render", v8::FunctionTemplate::New(isolate, Render));
 	return templ;
+}
+
+void WrapperGLRenderer::dtor(void* ptr)
+{
+	delete (GLRenderer*)ptr;
 }
 
 void WrapperGLRenderer::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	GLRenderer* self = new GLRenderer();
 	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));
-}
-
-void WrapperGLRenderer::Dispose(const v8::FunctionCallbackInfo<v8::Value>& info)
-{
-	GLRenderer* self = get_self<GLRenderer>(info);
-	delete self;
+	info.This()->SetInternalField(1, v8::External::New(info.GetIsolate(), dtor));
+	GameContext* ctx = get_context(info);
+	ctx->regiter_object(info.This());
 }
 
 void WrapperGLRenderer::Render(const v8::FunctionCallbackInfo<v8::Value>& info)

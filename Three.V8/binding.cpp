@@ -103,7 +103,19 @@ GameContext::GameContext(V8VM* vm, GamePlayer* gamePlayer, const char* filename)
 
 GameContext::~GameContext()
 {
+	v8::Isolate* isolate = m_vm->m_isolate;
+	v8::HandleScope handle_scope(isolate);
 
+	auto iter = m_objects.begin();
+	while (iter != m_objects.end())
+	{
+		v8::Local<v8::Object> obj = iter->second.Get(isolate);
+		v8::Local<v8::External> wrap_dtor = v8::Local<v8::External>::Cast(obj->GetInternalField(1));
+		Dtor dtor = (Dtor)wrap_dtor->Value();
+		dtor(iter->first);
+		iter->second.Reset();
+		iter++;
+	}
 }
 
 void GameContext::_create_context()
@@ -275,14 +287,9 @@ void GameContext::Print(const v8::FunctionCallbackInfo<v8::Value>& args)
 }
 
 void GameContext::SetCallback(const v8::FunctionCallbackInfo<v8::Value>& args)
-{
+{	
+	GameContext* self = get_context(args);
 	v8::Isolate* isolate = args.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> global = context->Global();
-	v8::Local<v8::External> wrap = v8::Local<v8::External>::Cast(global->GetInternalField(0));
-	GameContext* self = (GameContext*)wrap->Value();
-
 	v8::String::Utf8Value name(isolate, args[0]);
 	v8::Local<v8::Function> callback = args[1].As<v8::Function>();
 	self->m_callbacks[*name] = CallbackT(isolate, callback);
@@ -320,4 +327,34 @@ void GameContext::GetGLError(const v8::FunctionCallbackInfo<v8::Value>& args)
 	v8::HandleScope handle_scope(isolate);
 	unsigned err = glGetError();
 	args.GetReturnValue().Set(v8::Number::New(isolate, (double)err));
+}
+
+void GameContext::WeakCallback(v8::WeakCallbackInfo<GameContext> const& data)
+{
+	void* self = data.GetInternalField(0);	
+	GameContext* ctx = get_context(data);
+	ctx->remove_object(self);
+}
+
+void GameContext::regiter_object(v8::Local<v8::Object> obj)
+{
+	v8::Local<v8::External> wrap = v8::Local<v8::External>::Cast(obj->GetInternalField(0));
+	void* self = wrap->Value();
+	ObjectT pptr(m_vm->m_isolate, obj);
+	pptr.SetWeak(this, WeakCallback, v8::WeakCallbackType::kInternalFields);
+	m_objects.emplace(self, std::move(pptr));
+}
+
+void GameContext::remove_object(void* ptr)
+{
+	v8::Isolate* isolate = m_vm->m_isolate;
+	v8::HandleScope handle_scope(isolate);
+
+	v8::Local<v8::Object> obj = m_objects[ptr].Get(isolate);
+	v8::Local<v8::External> wrap_dtor = v8::Local<v8::External>::Cast(obj->GetInternalField(1));
+	Dtor dtor = (Dtor)wrap_dtor->Value();
+	dtor(ptr);
+
+	m_objects[ptr].Reset();
+	m_objects.erase(ptr);
 }

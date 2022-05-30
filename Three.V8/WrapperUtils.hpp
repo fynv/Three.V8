@@ -16,6 +16,25 @@ inline T* get_self(const InfoType& info)
 	return self;
 }
 
+template<class InfoType>
+inline GameContext* get_context(const InfoType& info)
+{
+	v8::Isolate* isolate = info.GetIsolate();
+	v8::HandleScope handle_scope(isolate);
+	v8::Local<v8::Context> context = isolate->GetCurrentContext();
+	v8::Local<v8::Object> global = context->Global();
+	v8::Local<v8::External> wrap = v8::Local<v8::External>::Cast(global->GetInternalField(0));
+	GameContext* ctx = (GameContext*)wrap->Value();
+	return ctx;
+}
+
+void GeneralDispose(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	void* self = get_self<void>(info);
+	GameContext* ctx = get_context(info);
+	ctx->remove_object(self);
+}
+
 inline void vec3_to_jvec3(v8::Isolate* isolate, const glm::vec3& vec, v8::Local<v8::Object> jvec)
 {
 	v8::HandleScope handle_scope(isolate);

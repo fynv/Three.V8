@@ -52,7 +52,7 @@ In the basic routine above, we register 3 callback functions for `init`, `dispos
 The basic routine contains a [GLRenderer](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#glrenderer), a [Scene](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#scene), and a [Camera](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#camera). These are 
 wrappers of engine objects. The classes are defined in native code. 
 
-Wrappers of engine objects each needs a `dispose` call in the `dispose` callback function. Three.V8 has such a design because of the concern that all graphics resources need to be released while the OpenGL context is still present, so there's no way to rely on the garbage collector.
+The initial design requires an explicit `dispose` call for every engine object. The latest change allows objects to be automatically garbage-collected. So the `dispose` calls are no longer required.
 
 The OrbitControls is an ordinary JS object. The class is defined in "./controls/OrbitControls.js". The code is directly ported from [Three.js](https://threejs.org/). There are other utilities from Three.js like Vector3, Matrix4, Quaternion, which we are going to use later.
 

@@ -10,7 +10,7 @@ public:
 	static void New(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 private:
-	static void Dispose(const v8::FunctionCallbackInfo<v8::Value>& info);
+	static void dtor(void* ptr);
 	static void GetHasAlpha(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void GetWidth(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void GetHeight(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
@@ -20,12 +20,17 @@ private:
 v8::Local<v8::FunctionTemplate> WrapperImage::create_template(v8::Isolate* isolate, v8::FunctionCallback constructor)
 {
 	v8::Local<v8::FunctionTemplate> templ = v8::FunctionTemplate::New(isolate, constructor);
-	templ->InstanceTemplate()->SetInternalFieldCount(1);
-	templ->InstanceTemplate()->Set(isolate, "dispose", v8::FunctionTemplate::New(isolate, Dispose));	
+	templ->InstanceTemplate()->SetInternalFieldCount(2);
+	templ->InstanceTemplate()->Set(isolate, "dispose", v8::FunctionTemplate::New(isolate, GeneralDispose));
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "hasAlpha").ToLocalChecked(), GetHasAlpha, 0);
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "width").ToLocalChecked(), GetWidth, 0);
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "height").ToLocalChecked(), GetHeight, 0);
 	return templ;
+}
+
+void WrapperImage::dtor(void* ptr)
+{
+	delete (Image*)ptr;
 }
 
 void WrapperImage::New(const v8::FunctionCallbackInfo<v8::Value>& info)
@@ -47,13 +52,9 @@ void WrapperImage::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 		self = new Image();
 	}	
 	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));
-}
-
-
-void WrapperImage::Dispose(const v8::FunctionCallbackInfo<v8::Value>& info)
-{
-	Image* self = get_self<Image>(info);
-	delete self;
+	info.This()->SetInternalField(1, v8::External::New(info.GetIsolate(), dtor));
+	GameContext* ctx = get_context(info);
+	ctx->regiter_object(info.This());
 }
 
 void WrapperImage::GetHasAlpha(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
@@ -90,7 +91,7 @@ public:
 	static void New(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 private:
-	static void Dispose(const v8::FunctionCallbackInfo<v8::Value>& info);	
+	static void dtor(void* ptr);
 	static void GetWidth(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void GetHeight(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 };
@@ -99,26 +100,27 @@ private:
 v8::Local<v8::FunctionTemplate> WrapperCubeImage::create_template(v8::Isolate* isolate, v8::FunctionCallback constructor)
 {
 	v8::Local<v8::FunctionTemplate> templ = v8::FunctionTemplate::New(isolate, constructor);
-	templ->InstanceTemplate()->SetInternalFieldCount(1);
-	templ->InstanceTemplate()->Set(isolate, "dispose", v8::FunctionTemplate::New(isolate, Dispose));	
+	templ->InstanceTemplate()->SetInternalFieldCount(2);
+	templ->InstanceTemplate()->Set(isolate, "dispose", v8::FunctionTemplate::New(isolate, GeneralDispose));
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "width").ToLocalChecked(), GetWidth, 0);
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "height").ToLocalChecked(), GetHeight, 0);
 	return templ;
+}
+
+
+void WrapperCubeImage::dtor(void* ptr)
+{
+	delete (CubeImage*)ptr;
 }
 
 void WrapperCubeImage::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	CubeImage* self = new CubeImage();
 	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));
+	info.This()->SetInternalField(1, v8::External::New(info.GetIsolate(), dtor));
+	GameContext* ctx = get_context(info);
+	ctx->regiter_object(info.This());
 }
-
-
-void WrapperCubeImage::Dispose(const v8::FunctionCallbackInfo<v8::Value>& info)
-{
-	CubeImage* self = get_self<CubeImage>(info);
-	delete self;
-}
-
 
 void WrapperCubeImage::GetWidth(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {

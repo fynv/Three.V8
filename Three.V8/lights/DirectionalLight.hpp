@@ -32,6 +32,9 @@ void WrapperDirectionalLight::New(const v8::FunctionCallbackInfo<v8::Value>& inf
 {
 	DirectionalLight* self = new DirectionalLight();
 	info.This()->SetInternalField(0, v8::External::New(info.GetIsolate(), self));
+	info.This()->SetInternalField(1, v8::External::New(info.GetIsolate(), WrapperObject3D::dtor));
+	GameContext* ctx = get_context(info);
+	ctx->regiter_object(info.This());
 }
 
 
