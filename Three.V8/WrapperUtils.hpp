@@ -28,8 +28,10 @@ inline GameContext* get_context(const InfoType& info)
 
 void GeneralDispose(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	void* self = get_self<void>(info);
-	GameContext* ctx = get_context(info);
+	v8::HandleScope handle_scope(info.GetIsolate());
+	v8::Local<v8::Object> holder = info.Holder();
+	void* self = holder->GetAlignedPointerFromInternalField(0);
+	GameContext* ctx = (GameContext*) holder->GetAlignedPointerFromInternalField(1);
 	ctx->remove_object(self);
 }
 

@@ -103,13 +103,9 @@ GameContext::GameContext(V8VM* vm, GamePlayer* gamePlayer, const char* filename)
 
 GameContext::~GameContext()
 {
-	v8::Isolate* isolate = m_vm->m_isolate;
-	v8::HandleScope handle_scope(isolate);
-
 	auto iter = m_objects.begin();
 	while (iter != m_objects.end())
 	{
-		v8::Local<v8::Object> obj = iter->second.first.Get(isolate);		
 		Dtor dtor = iter->second.second;
 		dtor(iter->first);
 		iter->second.first.Reset();
@@ -346,10 +342,6 @@ void GameContext::regiter_object(v8::Local<v8::Object> obj, Dtor dtor)
 
 void GameContext::remove_object(void* ptr)
 {
-	v8::Isolate* isolate = m_vm->m_isolate;
-	v8::HandleScope handle_scope(isolate);
-
-	v8::Local<v8::Object> obj = m_objects[ptr].first.Get(isolate);	
 	Dtor dtor = m_objects[ptr].second;
 	dtor(ptr);
 
