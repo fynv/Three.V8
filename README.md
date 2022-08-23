@@ -1,6 +1,6 @@
 # Three.V8
 
-Three.V8 was a proof of concept (POC) of an embedabble 3D rendering engine using JavaScript as user script.
+Three.V8 was created as a proof of concept (POC) of an embedabble 3D rendering engine using JavaScript as user script.
 
 The ongoing development targets mobile devices, tries to provide another JavaScript based application framework with 3D rendering as its core-function.
 
