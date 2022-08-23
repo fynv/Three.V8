@@ -1,20 +1,23 @@
 #include <GL/glew.h>
 #include <string>
 #include <filesystem>
+#include <gui/UIManager.h>
 #include "GamePlayer.h"
 
 #define ENABLE_MSAA 1
 
 GamePlayer::GamePlayer(const char* exec_path, int width, int height)
 	: m_v8vm(exec_path)
-	, m_width(width)
-	, m_height(height)
 #if ENABLE_MSAA
 	, m_render_target(true, true)
 #else
 	, m_render_target(false, false)
 #endif
 {
+	if (width > 0 && height > 0)
+	{
+		m_render_target.update_framebuffers(width, height);
+	}
 	m_v8vm.m_isolate->Enter();
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 }
@@ -38,8 +41,8 @@ void GamePlayer::LoadScript(const char* dir, const char* filename)
 	if (callback_init != nullptr)
 	{
 		std::vector<v8::Local<v8::Value>> args(2);
-		args[0] = v8::Number::New(isolate, (double)m_width);
-		args[1] = v8::Number::New(isolate, (double)m_height);
+		args[0] = v8::Number::New(isolate, (double)m_render_target.m_width);
+		args[1] = v8::Number::New(isolate, (double)m_render_target.m_height);
 		m_context->InvokeCallback(callback_init, args);
 	}
 }
@@ -60,16 +63,17 @@ void GamePlayer::_unloadScript()
 	}
 }
 
+void GamePlayer::Idle()
+{
+	if (m_context != nullptr)
+	{
+		m_context->CheckPendings();
+	}
+}
 
 void GamePlayer::Draw(int width, int height)
-{
-	bool size_changed = m_width != width || m_height != height;
-	if (size_changed)
-	{
-		m_width = width;
-		m_height = height;
-	}
-	m_render_target.update_framebuffers(width, height);
+{	
+	bool size_changed =  m_render_target.update_framebuffers(width, height);
 
 	if (m_context != nullptr)
 	{
@@ -93,6 +97,11 @@ void GamePlayer::Draw(int width, int height)
 	m_render_target.blit_buffer(width, height, 0);
 #endif
 
+	if (m_context != nullptr)
+	{
+		// render UI
+		m_ui_renderer.render(*m_context->GetUIManager(), width, height);
+	}
 }
 
 inline v8::Local<v8::Object> g_CreateMouseEvent(v8::Isolate* isolate, v8::Local<v8::Context> context, int button, int clicks, int delta, int x, int y)
@@ -101,8 +110,8 @@ inline v8::Local<v8::Object> g_CreateMouseEvent(v8::Isolate* isolate, v8::Local<
 	e->Set(context, v8::String::NewFromUtf8(isolate, "button").ToLocalChecked(), v8::Number::New(isolate, (double)button));
 	e->Set(context, v8::String::NewFromUtf8(isolate, "clicks").ToLocalChecked(), v8::Number::New(isolate, (double)clicks));
 	e->Set(context, v8::String::NewFromUtf8(isolate, "delta").ToLocalChecked(), v8::Number::New(isolate, (double)delta));
-	e->Set(context, v8::String::NewFromUtf8(isolate, "x").ToLocalChecked(), v8::Number::New(isolate, (double)x));
-	e->Set(context, v8::String::NewFromUtf8(isolate, "y").ToLocalChecked(), v8::Number::New(isolate, (double)y));
+	e->Set(context, v8::String::NewFromUtf8(isolate, "x").ToLocalChecked(), v8::Number::New(isolate, (double)x + 0.5));
+	e->Set(context, v8::String::NewFromUtf8(isolate, "y").ToLocalChecked(), v8::Number::New(isolate, (double)y + 0.5));
 	return e;
 }
 
@@ -110,6 +119,10 @@ void GamePlayer::OnMouseDown(int button, int clicks, int delta, int x, int y)
 {
 	if (m_context != nullptr)
 	{
+		UIManager* ui_manager = m_context->GetUIManager();
+		bool hit = ui_manager->MouseDown(button, clicks, delta, x, y);
+		if (hit) return;
+
 		v8::Isolate* isolate = m_v8vm.m_isolate;
 		v8::HandleScope handle_scope(isolate);
 		v8::Context::Scope context_scope(m_context->m_context.Get(isolate));
@@ -127,6 +140,10 @@ void GamePlayer::OnMouseUp(int button, int clicks, int delta, int x, int y)
 {
 	if (m_context != nullptr)
 	{
+		UIManager* ui_manager = m_context->GetUIManager();
+		bool hit = ui_manager->MouseUp(button, clicks, delta, x, y);
+		if (hit) return;
+
 		v8::Isolate* isolate = m_v8vm.m_isolate;
 		v8::HandleScope handle_scope(isolate);
 		v8::Context::Scope context_scope(m_context->m_context.Get(isolate));
@@ -144,6 +161,10 @@ void GamePlayer::OnMouseMove(int button, int clicks, int delta, int x, int y)
 {
 	if (m_context != nullptr)
 	{
+		UIManager* ui_manager = m_context->GetUIManager();
+		bool hit = ui_manager->MouseMove(button, clicks, delta, x, y);
+		if (hit) return;
+
 		v8::Isolate* isolate = m_v8vm.m_isolate;
 		v8::HandleScope handle_scope(isolate);
 		v8::Context::Scope context_scope(m_context->m_context.Get(isolate));
@@ -161,6 +182,10 @@ void GamePlayer::OnMouseWheel(int button, int clicks, int delta, int x, int y)
 {
 	if (m_context != nullptr)
 	{
+		UIManager* ui_manager = m_context->GetUIManager();
+		bool hit = ui_manager->MouseWheel(button, clicks, delta, x, y);
+		if (hit) return;
+
 		v8::Isolate* isolate = m_v8vm.m_isolate;
 		v8::HandleScope handle_scope(isolate);
 		v8::Context::Scope context_scope(m_context->m_context.Get(isolate));
@@ -171,6 +196,37 @@ void GamePlayer::OnMouseWheel(int button, int clicks, int delta, int x, int y)
 			args[0] = g_CreateMouseEvent(isolate, m_context->m_context.Get(isolate), button, clicks, delta, x, y);
 			m_context->InvokeCallback(callback, args);
 		}
+	}
+}
+
+
+void GamePlayer::OnLongPress(int x, int y)
+{
+	if (m_context != nullptr)
+	{
+		UIManager* ui_manager = m_context->GetUIManager();
+		bool hit = ui_manager->LongPress((float)x + 0.5f, (float)y + 0.5f);
+		if (hit) return;
+	}
+}
+
+void GamePlayer::OnChar(int keyChar)
+{
+	if (m_context != nullptr)
+	{
+		UIManager* ui_manager = m_context->GetUIManager();
+		bool handled = ui_manager->KeyChar(keyChar);
+		if (handled) return;
+	}
+}
+
+void GamePlayer::OnControlKey(unsigned code)
+{
+	if (m_context != nullptr)
+	{
+		UIManager* ui_manager = m_context->GetUIManager();
+		bool handled = ui_manager->ControlKey(code);
+		if (handled) return;
 	}
 }
 

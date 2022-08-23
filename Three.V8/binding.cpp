@@ -51,9 +51,22 @@ V8VM::~V8VM()
 #include "core/BoundingVolumeHierarchy.hpp"
 
 #include "GamePlayer.hpp"
+#include "network/HttpClient.hpp"
 #include "loaders/FileLoader.hpp"
 #include "loaders/ImageLoader.hpp"
 #include "loaders/GLTFLoader.hpp"
+
+#include "gui/UIManager.hpp"
+#include "gui/UIArea.hpp"
+#include "gui/UIBlock.hpp"
+#include "gui/UIPanel.hpp"
+#include "gui/UIButton.hpp"
+#include "gui/UIScrollViewer.hpp"
+#include "gui/UILineEdit.hpp"
+#include "gui/UIText.hpp"
+#include "gui/UITextBlock.hpp"
+#include "gui/UIImage.hpp"
+#include "gui/UI3DViewer.hpp"
 
 
 GlobalDefinitions GameContext::s_globals =
@@ -83,17 +96,30 @@ GlobalDefinitions GameContext::s_globals =
 		{ "AmbientLight", WrapperAmbientLight::New, WrapperAmbientLight::create_template},
 		{ "HemisphereLight", WrapperHemisphereLight::New, WrapperHemisphereLight::create_template},
 		{ "BoundingVolumeHierarchy", WrappeBoundingVolumeHierarchy::New, WrappeBoundingVolumeHierarchy::create_template},
+
+		{ "UIArea", WrapperUIArea::New, WrapperUIArea::create_template},
+		{ "UIBlock", WrapperUIBlock::New, WrapperUIBlock::create_template},
+		{ "UIPanel", WrapperUIPanel::New, WrapperUIPanel::create_template},
+		{ "UIButton", WrapperUIButton::New, WrapperUIButton::create_template},
+		{ "UIScrollViewer", WrapperUIScrollViewer::New, WrapperUIScrollViewer::create_template},
+		{ "UILineEdit", WrapperUILineEdit::New, WrapperUILineEdit::create_template},
+		{ "UIText", WrapperUIText::New, WrapperUIText::create_template},
+		{ "UITextBlock", WrapperUITextBlock::New, WrapperUITextBlock::create_template},
+		{ "UIImage", WrapperUIImage::New, WrapperUIImage::create_template},
+		{ "UI3DViewer", WrapperUI3DViewer::New, WrapperUI3DViewer::create_template},
 	},
 	{
 		{ "fileLoader", WrapperFileLoader::create_template },
 		{ "imageLoader", WrapperImageLoader::create_template},
-		{ "gltfLoader", WrapperGLTFLoader::create_template},
+		{ "gltfLoader", WrapperGLTFLoader::create_template},		
 	}
 };
 
 GameContext::GameContext(V8VM* vm, GamePlayer* gamePlayer, const char* filename)
 	: m_vm(vm)
 	, m_gamePlayer(gamePlayer)
+	, m_http(new HttpClient)
+	, m_ui_manager(new UIManager)
 {
 	_create_context();
 	v8::HandleScope handle_scope(m_vm->m_isolate);
@@ -107,7 +133,7 @@ GameContext::~GameContext()
 	while (iter != m_objects.end())
 	{
 		Dtor dtor = iter->second.second;
-		dtor(iter->first);
+		dtor(iter->first, this);
 		iter->second.first.Reset();
 		iter++;
 	}
@@ -144,6 +170,22 @@ void GameContext::_create_context()
 		obj->SetAlignedPointerInInternalField(0, m_gamePlayer);
 		global_obj->Set(context, v8::String::NewFromUtf8(isolate, "gamePlayer").ToLocalChecked(), obj);
 	}
+
+	// http
+	{
+		v8::Local<v8::ObjectTemplate> templ = WrapperHttpClient::create_template(isolate);
+		v8::Local<v8::Object> obj = templ->NewInstance(context).ToLocalChecked();
+		obj->SetAlignedPointerInInternalField(0, m_http.get());
+		global_obj->Set(context, v8::String::NewFromUtf8(isolate, "http").ToLocalChecked(), obj);
+	}
+
+	// ui-manager
+	{
+		v8::Local<v8::ObjectTemplate> templ = WrapperUIManager::create_template(isolate);
+		v8::Local<v8::Object> obj = templ->NewInstance(context).ToLocalChecked();
+		obj->SetAlignedPointerInInternalField(0, m_ui_manager.get());
+		global_obj->Set(context, v8::String::NewFromUtf8(isolate, "UIManager").ToLocalChecked(), obj);
+	}
 	
 	for (size_t i = 0; i < s_globals.objects.size(); i++)
 	{
@@ -152,6 +194,8 @@ void GameContext::_create_context()
 		v8::Local<v8::Object> obj = templ->NewInstance(context).ToLocalChecked();
 		global_obj->Set(context, v8::String::NewFromUtf8(isolate, d_obj.name.c_str()).ToLocalChecked(), obj);
 	}
+
+	//context->AllowCodeGenerationFromStrings(false);
 
 	m_context = ContextT(isolate, context);
 }
@@ -343,8 +387,13 @@ void GameContext::regiter_object(v8::Local<v8::Object> obj, Dtor dtor)
 void GameContext::remove_object(void* ptr)
 {
 	Dtor dtor = m_objects[ptr].second;
-	dtor(ptr);
+	dtor(ptr, this);
 
 	m_objects[ptr].first.Reset();
 	m_objects.erase(ptr);
+}
+
+void GameContext::CheckPendings()
+{
+	m_http->CheckPendings();
 }

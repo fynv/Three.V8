@@ -48,6 +48,8 @@ struct GlobalDefinitions
 };
 
 class GamePlayer;
+class HttpClient;
+class UIManager;
 class GameContext
 {
 public:
@@ -59,15 +61,22 @@ public:
 	typedef v8::Persistent<v8::Context, v8::CopyablePersistentTraits<v8::Context>> ContextT;
 	ContextT m_context;
 
+	GamePlayer* GetGamePlayer() const { return m_gamePlayer; }
+	UIManager* GetUIManager() const { return m_ui_manager.get(); }
+
 	v8::Function* GetCallback(const char* name);
 	v8::MaybeLocal<v8::Value> InvokeCallback(v8::Function* callback, const std::vector<v8::Local<v8::Value>>& args);
 
-	typedef void (*Dtor)(void* ptr);
+	typedef void (*Dtor)(void* ptr, GameContext* ctx);
 	void regiter_object(v8::Local<v8::Object> obj, Dtor dtor);
 	void remove_object(void* ptr);
 
+	void CheckPendings();
+
 private:
 	GamePlayer* m_gamePlayer;
+	std::unique_ptr<HttpClient> m_http;
+	std::unique_ptr<UIManager> m_ui_manager;
 	static GlobalDefinitions s_globals;
 	void _create_context();
 

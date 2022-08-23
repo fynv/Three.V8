@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <chrono>
+#include <cstdio>
 
 inline uint64_t time_micro_sec()
 {

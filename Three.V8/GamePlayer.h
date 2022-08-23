@@ -1,6 +1,7 @@
 #pragma once
 
 #include <renderers/GLRenderTarget.h>
+#include <renderers/GLUIRenderer.h>
 #include "binding.h"
 
 struct WindowCalls
@@ -14,18 +15,25 @@ class GamePlayer
 {
 public:
 	GamePlayer(const char* exec_path, int width, int height);
-	~GamePlayer();
+	~GamePlayer();	
 
-	int width() const { return m_width; }
-	int height() const { return m_height; }
+	int width() const { return m_render_target.m_width; }
+	int height() const { return m_render_target.m_height; }
 
+	GLUIRenderer& UIRenderer() { return m_ui_renderer; }
+
+	void Idle();
 	void Draw(int width, int height);
 	void LoadScript(const char* dir, const char* filename);
 
-	void OnMouseDown(int button, int clicks, int delta, int x, int y);
+	void OnMouseDown(int button, int clicks, int delta, int x, int y);	
 	void OnMouseUp(int button, int clicks, int delta, int x, int y);
 	void OnMouseMove(int button, int clicks, int delta, int x, int y);
 	void OnMouseWheel(int button, int clicks, int delta, int x, int y);	
+	void OnLongPress(int x, int y);
+
+	void OnChar(int keyChar);
+	void OnControlKey(unsigned code);
 
 	// window calls
 	void SetWindowCalls(const WindowCalls& windowCalls)
@@ -43,9 +51,8 @@ public:
 private:
 	V8VM m_v8vm;
 
-	int m_width = -1;
-	int m_height = -1;
 	GLRenderTarget m_render_target;
+	GLUIRenderer m_ui_renderer;
 	
 	std::unique_ptr<GameContext> m_context;
 

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "WrapperUtils.hpp"
-#include "core/Object3D.hpp"
 #include <lights/IndirectLight.h>
 
 
@@ -9,7 +8,7 @@ class WrapperIndirectLight
 {
 public:
 	static v8::Local<v8::FunctionTemplate> create_template(v8::Isolate* isolate, v8::FunctionCallback constructor);
-	static void dtor(void* ptr);
+	static void dtor(void* ptr, GameContext* ctx);
 
 private:
 	static void GetDiffuseThresh(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
@@ -46,7 +45,7 @@ v8::Local<v8::FunctionTemplate> WrapperIndirectLight::create_template(v8::Isolat
 }
 
 
-void WrapperIndirectLight::dtor(void* ptr)
+void WrapperIndirectLight::dtor(void* ptr, GameContext* ctx)
 {
 	delete (IndirectLight*)ptr;
 }

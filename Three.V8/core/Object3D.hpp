@@ -8,7 +8,7 @@ class WrapperObject3D
 public:	
 	static v8::Local<v8::FunctionTemplate> create_template(v8::Isolate* isolate, v8::FunctionCallback constructor = New);
 	static void New(const v8::FunctionCallbackInfo<v8::Value>& info);
-	static void dtor(void* ptr);
+	static void dtor(void* ptr, GameContext* ctx);
 
 private:	
 	static void GetName(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
@@ -155,7 +155,7 @@ v8::Local<v8::FunctionTemplate> WrapperObject3D::create_template(v8::Isolate* is
 }
 
 
-void WrapperObject3D::dtor(void* ptr)
+void WrapperObject3D::dtor(void* ptr, GameContext* ctx)
 {
 	delete (Object3D*)ptr;
 }

@@ -24,7 +24,7 @@ public:
 	unsigned m_tex_msaa = -1;
 	unsigned m_rbo_msaa = -1;
 	unsigned m_fbo_msaa = -1;
-	void update_framebuffers(int width, int height);
+	bool update_framebuffers(int width, int height);
 
 	WeightedOIT::Buffers m_OITBuffers;
 	void update_oit_buffers();

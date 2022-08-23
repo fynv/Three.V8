@@ -27,17 +27,48 @@ void main()
 )";
 
 
-DrawTexture::DrawTexture()
+static std::string g_frag_premult =
+R"(#version 430
+layout (location = 0) in vec2 vUV;
+layout (location = 0) out vec4 outColor;
+layout (location = 0) uniform sampler2D uTex;
+void main()
+{
+	vec4 col = texture(uTex, vUV);
+	outColor = vec4(col.xyz, col.w);
+}
+)";
+
+
+DrawTexture::DrawTexture(bool premult)
 {
 	m_vert_shader = std::unique_ptr<GLShader>(new GLShader(GL_VERTEX_SHADER, g_vertex.c_str()));
-	m_frag_shader = std::unique_ptr<GLShader>(new GLShader(GL_FRAGMENT_SHADER, g_frag.c_str()));
+	if (premult)
+	{
+		m_frag_shader = std::unique_ptr<GLShader>(new GLShader(GL_FRAGMENT_SHADER, g_frag_premult.c_str()));
+	}
+	else
+	{
+		m_frag_shader = std::unique_ptr<GLShader>(new GLShader(GL_FRAGMENT_SHADER, g_frag.c_str()));
+	}
 	m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(*m_vert_shader, *m_frag_shader));
 }
 
-void DrawTexture::render(unsigned tex_id, int x, int y, int width, int height)
+void DrawTexture::render(unsigned tex_id, int x, int y, int width, int height, bool blending)
 {
 	glViewport(x, y, width, height);
 	glDisable(GL_DEPTH_TEST);
+
+	if (blending)
+	{
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+	}
+	else
+	{
+		glDisable(GL_BLEND);
+	}
+
 	glUseProgram(m_prog->m_id);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, tex_id);

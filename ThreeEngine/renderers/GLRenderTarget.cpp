@@ -46,7 +46,7 @@ GLRenderTarget::~GLRenderTarget()
 }
 
 
-void GLRenderTarget::update_framebuffers(int width, int height)
+bool GLRenderTarget::update_framebuffers(int width, int height)
 {
 	if (m_width != width || m_height != height)
 	{
@@ -89,7 +89,10 @@ void GLRenderTarget::update_framebuffers(int width, int height)
 
 		m_width = width;
 		m_height = height;
+
+		return true;
 	}
+	return false;
 }
 
 void GLRenderTarget::update_oit_buffers()
@@ -131,7 +134,6 @@ void GLRenderTarget::resolve_msaa()
 void GLRenderTarget::blit_buffer(int width_wnd, int height_wnd, int margin)
 {
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-	glDisable(GL_FRAMEBUFFER_SRGB);
 
 	glViewport(0, 0, width_wnd, height_wnd);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);

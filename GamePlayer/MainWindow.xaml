@@ -5,14 +5,15 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:GamePlayer"
         mc:Ignorable="d"
-        Title="Game Player" Height="768" Width="1200" WindowStartupLocation="CenterScreen"
+        Title="Game Player" Height="450" Width="800" WindowStartupLocation="CenterScreen" ResizeMode="NoResize"
         Closing="MainWindow_Closing">
     <DockPanel>
         <DockPanel DockPanel.Dock="Right">
             <StackPanel>
+                <Button x:Name="btn_rotate" Margin="5" Padding="5" Click="btn_rotate_Click">To Portrait</Button>
                 <Button x:Name="btn_load" Margin="5" Padding="5" Click="BtnLoad_Click">Load Script</Button>
             </StackPanel>
         </DockPanel>
-        <WindowsFormsHost x:Name="wf_host" Margin="10"/>
+        <WindowsFormsHost x:Name="wf_host" Margin="10" Width="640" Height="360"/>
     </DockPanel>
 </Window>

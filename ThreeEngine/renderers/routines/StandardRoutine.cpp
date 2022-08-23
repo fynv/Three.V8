@@ -252,7 +252,7 @@ float computeShadowCoef(in mat4 VPSB, sampler2D shadowTex)
 	vec3 shadowCoords;
 	shadowCoords = computeShadowCoords(VPSB);
 	float d = texture(shadowTex, shadowCoords.xy).x;
-	return clamp(1.0 - (shadowCoords.z - d)*1000.0, 0.0, 1.0);
+	return clamp(1.0 - (shadowCoords.z - d)*5000.0, 0.0, 1.0);
 }
 #endif
 
@@ -360,15 +360,21 @@ void main()
 	base_color *= vColor;
 #endif
 
+	float tex_alpha = 1.0;
+
 #if HAS_COLOR_TEX
-	base_color *= texture(uTexColor, vUV);
+	vec4 tex_color = texture(uTexColor, vUV);
+	tex_alpha = tex_color.w;
+	base_color *= tex_color;
 #endif
 
 #if ALPHA_MASK
 	base_color.w = base_color.w > uAlphaCutoff ? 1.0 : 0.0;
 #endif
 
+#if ALPHA_MASK || ALPHA_BLEND
 	if (base_color.w == 0.0) discard;
+#endif
 
 	float metallicFactor = uMetallicFactor;
 	float roughnessFactor = uRoughnessFactor;
@@ -571,7 +577,7 @@ void main()
 	out0 = vec4(col * alpha, alpha) * weight;
 	out1 = alpha;
 #elif IS_HIGHTLIGHT
-	out0 = vec4(col, 0.0);
+	out0 = vec4(col*tex_alpha, 0.0);
 #else
 	out0 = vec4(col, 1.0);
 #endif

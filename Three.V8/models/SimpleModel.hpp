@@ -149,7 +149,7 @@ void WrapperSimpleModel::SetColorTexture(const v8::FunctionCallbackInfo<v8::Valu
 	Image* image = (Image*)holder_image->GetAlignedPointerFromInternalField(0);
 	if (image != nullptr)
 	{
-		self->texture.load_memory_bgr(image->width(), image->height(), image->data(), true);
+		self->texture.load_memory_rgba(image->width(), image->height(), image->data(), true);
 	}
 }
 

@@ -108,7 +108,7 @@ namespace tinygltf {
 #define TINYGLTF_COMPONENT_TYPE_INT (5124)
 #define TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT (5125)
 #define TINYGLTF_COMPONENT_TYPE_FLOAT (5126)
-#define TINYGLTF_COMPONENT_TYPE_DOUBLE (5130)
+#define TINYGLTF_COMPONENT_TYPE_DOUBLE (5130) // OpenGL double type. Note that some of glTF 2.0 validator does not support double type even the schema seems allow any value of integer: https://github.com/KhronosGroup/glTF/blob/b9884a2fd45130b4d673dd6c8a706ee21ee5c5f7/specification/2.0/schema/accessor.schema.json#L22
 
 #define TINYGLTF_TEXTURE_FILTER_NEAREST (9728)
 #define TINYGLTF_TEXTURE_FILTER_LINEAR (9729)
@@ -1424,6 +1424,10 @@ class TinyGLTF {
   bool preserve_image_channels_ = false;  /// Default false(expand channels to
                                           /// RGBA) for backward compatibility.
 
+  // Warning & error messages 
+  std::string warn_;
+  std::string err_;
+
   FsCallbacks fs = {
 #ifndef TINYGLTF_NO_FS
       &tinygltf::FileExists, &tinygltf::ExpandFilePath,
@@ -1608,7 +1612,7 @@ class TinyGLTF {
 #include <wordexp.h>
 #endif
 
-#if defined(__sparcv9)
+#if defined(__sparcv9) || defined(__powerpc__)
 // Big endian
 #else
 #if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__) || MINIZ_X86_OR_X64_CPU
@@ -1933,9 +1937,10 @@ bool Sampler::operator==(const Sampler &other) const {
   return this->extensions == other.extensions && this->extras == other.extras &&
          this->magFilter == other.magFilter &&
          this->minFilter == other.minFilter && this->name == other.name &&
+         this->wrapS == other.wrapS &&
          this->wrapT == other.wrapT;
 
-         //this->wrapR == other.wrapR && this->wrapS == other.wrapS &&
+         //this->wrapR == other.wrapR
 }
 bool Scene::operator==(const Scene &other) const {
   return this->extensions == other.extensions && this->extras == other.extras &&
@@ -2040,8 +2045,7 @@ static std::string GetBaseDir(const std::string &filepath) {
 }
 
 static std::string GetBaseFilename(const std::string &filepath) {
-  constexpr char path_separators[2] = { '/', '\\' };
-  auto idx = filepath.find_last_of(path_separators);
+  auto idx = filepath.find_last_of("/\\");
   if (idx != std::string::npos)
     return filepath.substr(idx + 1);
   return filepath;
@@ -2216,7 +2220,7 @@ std::string base64_decode(std::string const &encoded_string) {
 // FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
 // ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
-// 
+//
 namespace dlib {
 
 inline unsigned char from_hex(unsigned char ch) {
@@ -3092,11 +3096,17 @@ std::string JsonToString(const json &o, int spacing = -1) {
   StringBuffer buffer;
   if (spacing == -1) {
     Writer<StringBuffer> writer(buffer);
-    o.Accept(writer);
+    // TODO: Better error handling.
+    // https://github.com/syoyo/tinygltf/issues/332
+    if (!o.Accept(writer)) {
+      return "tiny_gltf::JsonToString() failed rapidjson conversion";
+    }
   } else {
     PrettyWriter<StringBuffer> writer(buffer);
     writer.SetIndent(' ', uint32_t(spacing));
-    o.Accept(writer);
+    if (!o.Accept(writer)) {
+      return "tiny_gltf::JsonToString() failed rapidjson conversion";
+    }
   }
   return buffer.GetString();
 #else
@@ -3192,6 +3202,7 @@ static bool ParseJsonAsValue(Value *ret, const json &o) {
       break;
     case json::value_t::null:
     case json::value_t::discarded:
+    case json::value_t::binary:
       // default:
       break;
   }
@@ -4215,7 +4226,9 @@ static bool ParseSparseAccessor(Accessor *accessor, std::string *err,
   accessor->sparse.isSparse = true;
 
   int count = 0;
-  ParseIntegerProperty(&count, err, o, "count", true);
+  if (!ParseIntegerProperty(&count, err, o, "count", true, "SparseAccessor")) {
+    return false;
+  }
 
   json_const_iterator indices_iterator;
   json_const_iterator values_iterator;
@@ -4233,18 +4246,24 @@ static bool ParseSparseAccessor(Accessor *accessor, std::string *err,
   const json &values_obj = GetValue(values_iterator);
 
   int indices_buffer_view = 0, indices_byte_offset = 0, component_type = 0;
-  ParseIntegerProperty(&indices_buffer_view, err, indices_obj, "bufferView",
-                       true);
+  if (!ParseIntegerProperty(&indices_buffer_view, err, indices_obj, "bufferView",
+                       true, "SparseAccessor")) {
+    return false;
+  }
   ParseIntegerProperty(&indices_byte_offset, err, indices_obj, "byteOffset",
-                       true);
-  ParseIntegerProperty(&component_type, err, indices_obj, "componentType",
-                       true);
+                       false);
+  if (!ParseIntegerProperty(&component_type, err, indices_obj, "componentType",
+                       true, "SparseAccessor")) {
+    return false;
+  }
 
   int values_buffer_view = 0, values_byte_offset = 0;
-  ParseIntegerProperty(&values_buffer_view, err, values_obj, "bufferView",
-                       true);
+  if (!ParseIntegerProperty(&values_buffer_view, err, values_obj, "bufferView",
+                       true, "SparseAccessor")) {
+    return false;
+  }
   ParseIntegerProperty(&values_byte_offset, err, values_obj, "byteOffset",
-                       true);
+                       false);
 
   accessor->sparse.count = count;
   accessor->sparse.indices.bufferView = indices_buffer_view;
@@ -4252,8 +4271,6 @@ static bool ParseSparseAccessor(Accessor *accessor, std::string *err,
   accessor->sparse.indices.componentType = component_type;
   accessor->sparse.values.bufferView = values_buffer_view;
   accessor->sparse.values.byteOffset = values_byte_offset;
-
-  // todo check theses values
 
   return true;
 }
@@ -6676,6 +6693,27 @@ static void SerializeGltfAccessor(Accessor &accessor, json &o) {
   if (accessor.extras.Type() != NULL_TYPE) {
     SerializeValue("extras", accessor.extras, o);
   }
+
+  // sparse
+  if (accessor.sparse.isSparse)
+  {
+      json sparse;
+      SerializeNumberProperty<int>("count", accessor.sparse.count, sparse);
+      {
+          json indices;
+          SerializeNumberProperty<int>("bufferView", accessor.sparse.indices.bufferView, indices);
+          SerializeNumberProperty<int>("byteOffset", accessor.sparse.indices.byteOffset, indices);
+          SerializeNumberProperty<int>("componentType", accessor.sparse.indices.componentType, indices);
+          JsonAddMember(sparse, "indices", std::move(indices));
+      }
+      {
+          json values;
+          SerializeNumberProperty<int>("bufferView", accessor.sparse.values.bufferView, values);
+          SerializeNumberProperty<int>("byteOffset", accessor.sparse.values.byteOffset, values);
+          JsonAddMember(sparse, "values", std::move(values));
+      }
+      JsonAddMember(o, "sparse", std::move(sparse));
+  }
 }
 
 static void SerializeGltfAnimationChannel(AnimationChannel &channel, json &o) {
@@ -7512,7 +7550,7 @@ static bool WriteGltfFile(const std::string &output,
   return WriteGltfStream(gltfFile, content);
 }
 
-static void WriteBinaryGltfStream(std::ostream &stream,
+static bool WriteBinaryGltfStream(std::ostream &stream,
                                   const std::string &content,
                                   const std::vector<unsigned char> &binBuffer) {
   const std::string header = "glTF";
@@ -7566,9 +7604,12 @@ static void WriteBinaryGltfStream(std::ostream &stream,
                    std::streamsize(padding.size()));
     }
   }
+
+  // TODO: Check error on stream.write
+  return true;
 }
 
-static void WriteBinaryGltfFile(const std::string &output,
+static bool WriteBinaryGltfFile(const std::string &output,
                                 const std::string &content,
                                 const std::vector<unsigned char> &binBuffer) {
 #ifdef _WIN32
@@ -7586,7 +7627,7 @@ static void WriteBinaryGltfFile(const std::string &output,
 #else
   std::ofstream gltfFile(output.c_str(), std::ios::binary);
 #endif
-  WriteBinaryGltfStream(gltfFile, content, binBuffer);
+  return WriteBinaryGltfStream(gltfFile, content, binBuffer);
 }
 
 bool TinyGLTF::WriteGltfSceneToStream(Model *model, std::ostream &stream,
@@ -7625,7 +7666,7 @@ bool TinyGLTF::WriteGltfSceneToStream(Model *model, std::ostream &stream,
       // UpdateImageObject need baseDir but only uses it if embeddedImages is
       // enabled, since we won't write separate images when writing to a stream
       // we
-      UpdateImageObject(model->images[i], dummystring, int(i), false,
+      UpdateImageObject(model->images[i], dummystring, int(i), true,
                         &this->WriteImageData, this->write_image_user_data_);
       SerializeGltfImage(model->images[i], image);
       JsonPushBack(images, std::move(image));
@@ -7634,12 +7675,11 @@ bool TinyGLTF::WriteGltfSceneToStream(Model *model, std::ostream &stream,
   }
 
   if (writeBinary) {
-    WriteBinaryGltfStream(stream, JsonToString(output), binBuffer);
+    return WriteBinaryGltfStream(stream, JsonToString(output), binBuffer);
   } else {
-    WriteGltfStream(stream, JsonToString(output, prettyPrint ? 2 : -1));
+    return WriteGltfStream(stream, JsonToString(output, prettyPrint ? 2 : -1));
   }
 
-  return true;
 }
 
 bool TinyGLTF::WriteGltfSceneToFile(Model *model, const std::string &filename,
@@ -7724,12 +7764,11 @@ bool TinyGLTF::WriteGltfSceneToFile(Model *model, const std::string &filename,
   }
 
   if (writeBinary) {
-    WriteBinaryGltfFile(filename, JsonToString(output), binBuffer);
+    return WriteBinaryGltfFile(filename, JsonToString(output), binBuffer);
   } else {
-    WriteGltfFile(filename, JsonToString(output, (prettyPrint ? 2 : -1)));
+    return WriteGltfFile(filename, JsonToString(output, (prettyPrint ? 2 : -1)));
   }
 
-  return true;
 }
 
 }  // namespace tinygltf

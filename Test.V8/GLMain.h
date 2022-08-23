@@ -16,6 +16,7 @@ public:
 	void PostAction(void(*act)(void*), void* userData);
 
 protected:
+	virtual void idle() {}
 	virtual void paint(int width, int height) {}
 	virtual void mouseDown(int button, int clicks, int delta, int x, int y) {}
 	virtual void mouseUp(int button, int clicks, int delta, int x, int y) {}

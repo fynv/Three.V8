@@ -42,23 +42,14 @@ void GLRenderer::update_gltf_model(GLTFModel* model)
 			{
 				Primitive& primitive = mesh.primitives[j];
 				bool has_tangent = primitive.geometry[0].tangent_buf != nullptr;
-				MorphUpdate* morpher = nullptr;
-				if (!has_tangent)
+				bool sparse = primitive.none_zero_buf!=nullptr;
+				int idx_morpher = (has_tangent ? 1 : 0) + (sparse ? 2 : 0);
+				
+				if (morphers[idx_morpher] == nullptr)
 				{
-					if (morphers[0] == nullptr)
-					{
-						morphers[0] = std::unique_ptr<MorphUpdate>(new MorphUpdate(false));
-					}
-					morpher = morphers[0].get();
+					morphers[idx_morpher] = std::unique_ptr<MorphUpdate>(new MorphUpdate(has_tangent, sparse));
 				}
-				else
-				{
-					if (morphers[1] == nullptr)
-					{
-						morphers[1] = std::unique_ptr<MorphUpdate>(new MorphUpdate(true));
-					}
-					morpher = morphers[1].get();
-				}
+				MorphUpdate* morpher = morphers[idx_morpher].get();
 
 				MorphUpdate::Params params = {
 					mesh.buf_weights.get(),
@@ -232,6 +223,43 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, GLTFModel*
 			params.lights = &lights;
 			render_primitive(params, pass);
 		}
+	}
+
+	if (pass == Pass::Opaque && model->m_show_skeleton)
+	{
+		glm::mat4 mat_proj = p_camera->projectionMatrix;
+		glm::mat4 mat_camera = p_camera->matrixWorldInverse;
+		glm::mat4 mat_model = model->matrixWorld;
+		glm::mat4 model_view = mat_camera * mat_model;
+		glMatrixLoadfEXT(GL_PROJECTION, (float*)&mat_proj);
+		glMatrixLoadfEXT(GL_MODELVIEW, (float*)&model_view);
+
+		glDisable(GL_DEPTH_TEST);
+		glColor3f(0.0f, 1.0f, 0.0f);
+		glBegin(GL_LINES);
+
+		int num_nodes = (int)model->m_nodes.size();
+		for (int i = 0; i < num_nodes; i++)
+		{
+			Node& node1 = model->m_nodes[i];	
+			glm::vec3 p1 = node1.g_trans[3];
+
+			int num_children = node1.children.size();
+			for (int j = 0; j < num_children; j++)
+			{
+				Node& node2 = model->m_nodes[node1.children[j]];
+				glm::vec3 p2 = node2.g_trans[3];
+
+				if (p1 != p2)
+				{
+					glVertex3fv((float*)&p1);
+					glVertex3fv((float*)&p2);
+				}
+			}
+
+		}
+
+		glEnd();
 	}
 }
 
@@ -424,8 +452,8 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 		{
 			lights.directional_shadow_texs.push_back(light->shadow->m_lightTex);
 		}
-	}		
-	
+	}
+
 	{
 		if (lights.num_directional_lights != (int)const_directional_lights.size())
 		{
@@ -435,6 +463,7 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 			{
 				lights.constant_directional_lights = std::unique_ptr<GLDynBuffer>(new GLDynBuffer(const_directional_lights.size() * sizeof(ConstDirectionalLight), GL_UNIFORM_BUFFER));
 			}
+			lights.hash_directional_lights = 0;
 			
 		}
 		if (lights.num_directional_lights > 0)
@@ -447,6 +476,10 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 			}
 		}
 	}
+
+	lights.environment_map = nullptr;
+	lights.ambient_light = nullptr;
+	lights.hemisphere_light = nullptr;
 
 	while(scene.indirectLight)
 	{

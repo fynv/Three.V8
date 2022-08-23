@@ -116,7 +116,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS; GLEW_STATIC=1; GLM_ENABLE_EXPERIMENTAL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>.;../thirdparty;../thirdparty/glew/include; ../thirdparty/glm/glm; ../thirdparty/draco/include; ../thirdparty/bvh/include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;../thirdparty;../thirdparty/glew/include;../thirdparty/glm/glm;../thirdparty/draco/include;../thirdparty/bvh/include;../thirdparty/nanovg</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -129,11 +129,24 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\thirdparty\crc64\crc64.cpp" />
+    <ClCompile Include="..\thirdparty\nanovg\nanovg.c" />
     <ClCompile Include="backgrounds\Background.cpp" />
     <ClCompile Include="cameras\Camera.cpp" />
     <ClCompile Include="cameras\PerspectiveCamera.cpp" />
     <ClCompile Include="core\BoundingVolumeHierarchy.cpp" />
     <ClCompile Include="core\Object3D.cpp" />
+    <ClCompile Include="gui\UI3DViewer.cpp" />
+    <ClCompile Include="gui\UIArea.cpp" />
+    <ClCompile Include="gui\UIBlock.cpp" />
+    <ClCompile Include="gui\UIButton.cpp" />
+    <ClCompile Include="gui\UIElement.cpp" />
+    <ClCompile Include="gui\UIImage.cpp" />
+    <ClCompile Include="gui\UILineEdit.cpp" />
+    <ClCompile Include="gui\UIManager.cpp" />
+    <ClCompile Include="gui\UIPanel.cpp" />
+    <ClCompile Include="gui\UIScrollViewer.cpp" />
+    <ClCompile Include="gui\UIText.cpp" />
+    <ClCompile Include="gui\UITextBlock.cpp" />
     <ClCompile Include="lights\AmbientLight.cpp" />
     <ClCompile Include="lights\DirectionalLight.cpp" />
     <ClCompile Include="lights\DirectionalLightShadow.cpp" />
@@ -151,8 +164,10 @@
     <ClCompile Include="models\GLTFModel.cpp" />
     <ClCompile Include="models\ModelComponents.cpp" />
     <ClCompile Include="models\SimpleModel.cpp" />
+    <ClCompile Include="network\HttpClient.cpp" />
     <ClCompile Include="renderers\GLRenderer.cpp" />
     <ClCompile Include="renderers\GLRenderTarget.cpp" />
+    <ClCompile Include="renderers\GLUIRenderer.cpp" />
     <ClCompile Include="renderers\GLUtils.cpp" />
     <ClCompile Include="renderers\routines\DirectionalShadowCast.cpp" />
     <ClCompile Include="renderers\routines\DrawHemisphere.cpp" />
@@ -168,11 +183,27 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\thirdparty\crc64\crc64.h" />
+    <ClInclude Include="..\thirdparty\nanovg\fontstash.h" />
+    <ClInclude Include="..\thirdparty\nanovg\nanovg.h" />
+    <ClInclude Include="..\thirdparty\nanovg\nanovg_gl.h" />
+    <ClInclude Include="..\thirdparty\nanovg\nanovg_gl_utils.h" />
     <ClInclude Include="backgrounds\Background.h" />
     <ClInclude Include="cameras\Camera.h" />
     <ClInclude Include="cameras\PerspectiveCamera.h" />
     <ClInclude Include="core\BoundingVolumeHierarchy.h" />
     <ClInclude Include="core\Object3D.h" />
+    <ClInclude Include="gui\UI3DViewer.h" />
+    <ClInclude Include="gui\UIArea.h" />
+    <ClInclude Include="gui\UIBlock.h" />
+    <ClInclude Include="gui\UIButton.h" />
+    <ClInclude Include="gui\UIElement.h" />
+    <ClInclude Include="gui\UIImage.h" />
+    <ClInclude Include="gui\UILineEdit.h" />
+    <ClInclude Include="gui\UIManager.h" />
+    <ClInclude Include="gui\UIPanel.h" />
+    <ClInclude Include="gui\UIScrollViewer.h" />
+    <ClInclude Include="gui\UIText.h" />
+    <ClInclude Include="gui\UITextBlock.h" />
     <ClInclude Include="lights\AmbientLight.h" />
     <ClInclude Include="lights\DirectionalLight.h" />
     <ClInclude Include="lights\DirectionalLightShadow.h" />
@@ -193,8 +224,10 @@
     <ClInclude Include="models\GLTFModel.h" />
     <ClInclude Include="models\ModelComponents.h" />
     <ClInclude Include="models\SimpleModel.h" />
+    <ClInclude Include="network\HttpClient.h" />
     <ClInclude Include="renderers\GLRenderer.h" />
     <ClInclude Include="renderers\GLRenderTarget.h" />
+    <ClInclude Include="renderers\GLUIRenderer.h" />
     <ClInclude Include="renderers\GLUtils.h" />
     <ClInclude Include="renderers\routines\DirectionalShadowCast.h" />
     <ClInclude Include="renderers\routines\DrawHemisphere.h" />
@@ -209,7 +242,19 @@
     <ClInclude Include="utils\Image.h" />
     <ClInclude Include="utils\Utils.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\boost.1.79.0\build\boost.targets" Condition="Exists('..\packages\boost.1.79.0\build\boost.targets')" />
+    <Import Project="..\packages\openssl-vc142.1.1.0\build\native\openssl-vc142.targets" Condition="Exists('..\packages\openssl-vc142.1.1.0\build\native\openssl-vc142.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\boost.1.79.0\build\boost.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\boost.1.79.0\build\boost.targets'))" />
+    <Error Condition="!Exists('..\packages\openssl-vc142.1.1.0\build\native\openssl-vc142.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\openssl-vc142.1.1.0\build\native\openssl-vc142.targets'))" />
+  </Target>
 </Project>

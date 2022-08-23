@@ -47,7 +47,7 @@ private:
 	void render_model(Camera* p_camera, const Lights& lights, SimpleModel* model, Pass pass);
 	void render_model(Camera* p_camera, const Lights& lights, GLTFModel* model, Pass pass);
 
-	std::unique_ptr<MorphUpdate> morphers[2];
+	std::unique_ptr<MorphUpdate> morphers[4];
 	std::unique_ptr<SkinUpdate> skinners[2];
 
 	// directional shadow maps

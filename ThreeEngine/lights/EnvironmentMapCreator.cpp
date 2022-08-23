@@ -80,45 +80,45 @@ layout (binding=0, rgba8) uniform imageCube tex_lo_res;
 
 void get_dir_0( out vec3 dir, in float u, in float v )
 {
-	dir[0] = 1;
-	dir[1] = v;
-	dir[2] = -u;
+    dir[0] = 1.0;
+    dir[1] = v;
+    dir[2] = -u;
 }
 void get_dir_1( out vec3 dir, in float u, in float v )
 {
-	dir[0] = -1;
-	dir[1] = v;
-	dir[2] = u;
+    dir[0] = -1.0;
+    dir[1] = v;
+    dir[2] = u;
 }
 void get_dir_2( out vec3 dir, in float u, in float v )
 {
-	dir[0] = u;
-	dir[1] = 1;
-	dir[2] = -v;
+    dir[0] = u;
+    dir[1] = 1.0;
+    dir[2] = -v;
 }
 void get_dir_3( out vec3 dir, in float u, in float v )
 {
-	dir[0] = u;
-	dir[1] = -1;
-	dir[2] = v;
+    dir[0] = u;
+    dir[1] = -1.0;
+    dir[2] = v;
 }
 void get_dir_4( out vec3 dir, in float u, in float v )
 {
-	dir[0] = u;
-	dir[1] = v;
-	dir[2] = 1;
+    dir[0] = u;
+    dir[1] = v;
+    dir[2] = 1.0;
 }
 void get_dir_5( out vec3 dir, in float u, in float v )
 {
-	dir[0] = -u;
-	dir[1] = v;
-	dir[2] = -1;
+    dir[0] = -u;
+    dir[1] = v;
+    dir[2] = -1.0;
 }
 
 float calcWeight( float u, float v )
 {
-	float val = u*u + v*v + 1;
-	return val*sqrt( val );
+    float val = u*u + v*v + 1.0;
+    return val*sqrt( val );
 }
 
 layout (location = 1) uniform float lod;
@@ -264,39 +264,39 @@ layout (std140, binding = 0) uniform Coeffs
 
 void get_dir( out vec3 dir, in vec2 uv, in int face )
 {
-	switch ( face )
-	{
-	case 0:
-		dir[0] = 1;
-		dir[1] = uv.y;
-		dir[2] = -uv.x;
-		break;
-	case 1:
-		dir[0] = -1;
-		dir[1] = uv.y;
-		dir[2] = uv.x;
-		break;
-	case 2:
-		dir[0] = uv.x;
-		dir[1] = 1;
-		dir[2] = -uv.y;
-		break;
-	case 3:
-		dir[0] = uv.x;
-		dir[1] = -1;
-		dir[2] = uv.y;
-		break;
-	case 4:
-		dir[0] = uv.x;
-		dir[1] = uv.y;
-		dir[2] = 1;
-		break;
-	case 5:
-		dir[0] = -uv.x;
-		dir[1] = uv.y;
-		dir[2] = -1;
-		break;
-	}
+    switch ( face )
+    {
+    case 0:
+        dir[0] = 1.0;
+        dir[1] = uv.y;
+        dir[2] = -uv.x;
+        break;
+    case 1:
+        dir[0] = -1.0;
+        dir[1] = uv.y;
+        dir[2] = uv.x;
+        break;
+    case 2:
+        dir[0] = uv.x;
+        dir[1] = 1.0;
+        dir[2] = -uv.y;
+        break;
+    case 3:
+        dir[0] = uv.x;
+        dir[1] = -1.0;
+        dir[2] = uv.y;
+        break;
+    case 4:
+        dir[0] = uv.x;
+        dir[1] = uv.y;
+        dir[2] = 1.0;
+        break;
+    case 5:
+        dir[0] = -uv.x;
+        dir[1] = uv.y;
+        dir[2] = -1.0;
+        break;
+    }
 }
 
 layout(local_size_x = 64) in;
@@ -368,7 +368,7 @@ void main()
 		int otherAxis1 = 2 - ( axis >> 1 );
 
 		float frameweight = ( max( adir[otherAxis0], adir[otherAxis1] ) - 0.75 ) / 0.25;
-		if ( frameweight > 0 )
+        if ( frameweight > 0.0 )
 		{
 			vec3 UpVector;
 			switch ( axis )
@@ -470,10 +470,10 @@ void main()
 		}		
 	}
 	color /= color.w;
-	color.x = max( 0, color.x );
-	color.y = max( 0, color.y );
-	color.z = max( 0, color.z );
-	color.w = 1;
+    color.x = max( 0.0, color.x );
+    color.y = max( 0.0, color.y );
+    color.z = max( 0.0, color.z );
+    color.w = 1.0;
 
 	switch ( level )
 	{
@@ -696,7 +696,7 @@ void EnvironmentMapCreator::Create(const GLCubemap * cubemap, EnvironmentMap * e
 void EnvironmentMapCreator::Create(const CubeImage* image, EnvironmentMap* envMap)
 {
 	GLCubemap cubemap;
-	cubemap.load_memory_bgr(image->images[0].width(), image->images[0].height(),
+	cubemap.load_memory_rgba(image->images[0].width(), image->images[0].height(),
 		image->images[0].data(), image->images[1].data(), image->images[2].data(), image->images[3].data(), image->images[4].data(), image->images[5].data());
 	Create(&cubemap, envMap);
 }

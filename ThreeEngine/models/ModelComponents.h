@@ -37,10 +37,13 @@ public:
 
 	int num_targets = 0;
 	GeometrySet targets;
+	Attribute none_zero_buf;
 
 	int material_idx = -1;
 
 	// keep a cpu copy for ray-cast
+	glm::vec3 min_pos = { FLT_MAX, FLT_MAX, FLT_MAX };
+	glm::vec3 max_pos = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
 	std::unique_ptr<std::vector<glm::vec4>> cpu_pos;
 	std::unique_ptr<std::vector<uint8_t>> cpu_indices;
 };

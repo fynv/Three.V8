@@ -58,20 +58,14 @@ Game::~Game()
 
 void Game::Draw(int width, int height)
 {
-	bool size_changed = m_width != width || m_height != height;
-	if (size_changed)
-	{
-		m_width = width;
-		m_height = height;
-	}
+	bool size_changed = m_render_target.update_framebuffers(width, height);
 
 	if (size_changed)
 	{
 		m_camera.aspect = (float)width / (float)height;
 		m_camera.updateProjectionMatrix();
 	}
-
-	m_render_target.update_framebuffers(width, height);
+	
 	m_renderer.render(m_scene, m_camera, m_render_target);
 
 #if ENABLE_MSAA

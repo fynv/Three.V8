@@ -4,6 +4,7 @@
 #include <renderers/GLRenderer.h>
 #include <scenes/Scene.h>
 #include <cameras/Camera.h>
+#include <gui/UI3DViewer.h>
 #include "GamePlayer.h"
 
 class WrapperGLRenderer
@@ -13,7 +14,7 @@ public:
 	static void New(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 private:
-	static void dtor(void* ptr);
+	static void dtor(void* ptr, GameContext* ctx);
 	static void Render(const v8::FunctionCallbackInfo<v8::Value>& info);
 };
 
@@ -26,7 +27,7 @@ v8::Local<v8::FunctionTemplate> WrapperGLRenderer::create_template(v8::Isolate* 
 	return templ;
 }
 
-void WrapperGLRenderer::dtor(void* ptr)
+void WrapperGLRenderer::dtor(void* ptr, GameContext* ctx)
 {
 	delete (GLRenderer*)ptr;
 }
@@ -45,11 +46,7 @@ void WrapperGLRenderer::Render(const v8::FunctionCallbackInfo<v8::Value>& info)
 	v8::HandleScope handle_scope(isolate);
 	v8::Local<v8::Context> context = isolate->GetCurrentContext();
 	
-	GLRenderer* self = get_self<GLRenderer>(info);
-
-	v8::Local<v8::Object> global = context->Global();
-	v8::Local<v8::Object> holder_player = global->Get(context, v8::String::NewFromUtf8(isolate, "gamePlayer").ToLocalChecked()).ToLocalChecked().As<v8::Object>();
-	GamePlayer* player = (GamePlayer*)holder_player->GetAlignedPointerFromInternalField(0);
+	GLRenderer* self = get_self<GLRenderer>(info);	
 
 	v8::Local<v8::Object> holder_scene = info[0].As<v8::Object>();
 	Scene* scene = (Scene*)holder_scene->GetAlignedPointerFromInternalField(0);
@@ -57,5 +54,17 @@ void WrapperGLRenderer::Render(const v8::FunctionCallbackInfo<v8::Value>& info)
 	v8::Local<v8::Object> holder_camera = info[1].As<v8::Object>();
 	Camera* camera = (Camera*)holder_camera->GetAlignedPointerFromInternalField(0);
 
-	self->render(*scene, *camera, player->renderTarget());
+	if (info.Length() < 3)
+	{
+		v8::Local<v8::Object> global = context->Global();
+		v8::Local<v8::Object> holder_player = global->Get(context, v8::String::NewFromUtf8(isolate, "gamePlayer").ToLocalChecked()).ToLocalChecked().As<v8::Object>();
+		GamePlayer* player = (GamePlayer*)holder_player->GetAlignedPointerFromInternalField(0);
+		self->render(*scene, *camera, player->renderTarget());
+	}
+	else
+	{
+		v8::Local<v8::Object> holder_viewer = info[2].As<v8::Object>();
+		UI3DViewer* viewer = (UI3DViewer*)holder_viewer->GetAlignedPointerFromInternalField(0);
+		self->render(*scene, *camera, viewer->render_target);
+	}
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+#include <vector>
 #include <v8.h>
 #include <unordered_map>
 #include <glm.hpp>
@@ -34,6 +36,23 @@ void GeneralDispose(const v8::FunctionCallbackInfo<v8::Value>& info)
 	GameContext* ctx = (GameContext*) holder->GetAlignedPointerFromInternalField(1);
 	ctx->remove_object(self);
 }
+
+inline void vec2_to_jvec2(v8::Isolate* isolate, const glm::vec2& vec, v8::Local<v8::Object> jvec)
+{
+	v8::HandleScope handle_scope(isolate);
+	v8::Local<v8::Context> context = isolate->GetCurrentContext();
+	jvec->Set(context, v8::String::NewFromUtf8(isolate, "x").ToLocalChecked(), v8::Number::New(isolate, (double)vec.x));
+	jvec->Set(context, v8::String::NewFromUtf8(isolate, "y").ToLocalChecked(), v8::Number::New(isolate, (double)vec.y));	
+}
+
+inline void jvec2_to_vec2(v8::Isolate* isolate, v8::Local<v8::Object> jvec, glm::vec2& vec)
+{
+	v8::HandleScope handle_scope(isolate);
+	v8::Local<v8::Context> context = isolate->GetCurrentContext();
+	vec.x = (float)jvec->Get(context, v8::String::NewFromUtf8(isolate, "x").ToLocalChecked()).ToLocalChecked().As<v8::Number>()->Value();
+	vec.y = (float)jvec->Get(context, v8::String::NewFromUtf8(isolate, "y").ToLocalChecked()).ToLocalChecked().As<v8::Number>()->Value();	
+}
+
 
 inline void vec3_to_jvec3(v8::Isolate* isolate, const glm::vec3& vec, v8::Local<v8::Object> jvec)
 {
@@ -451,5 +470,43 @@ inline void janim_to_anim(v8::Isolate* isolate, v8::Local<v8::Object> janim, Ani
 			memcpy(scale.values.data(), p_values, sizeof(float) * jvalues->Length());
 		}
 	}
+
+}
+
+
+inline std::vector<std::string> SplitWithCharacters(const std::string& str, int splitLength) 
+{
+	int NumSubstrings = str.length() / splitLength;
+	std::vector<std::string> ret;
+
+	for (int i = 0; i < NumSubstrings; i++) {
+		ret.push_back(str.substr(i * splitLength, splitLength));
+	}
+	
+	if (str.length() % splitLength != 0) 
+	{
+		ret.push_back(str.substr(splitLength * NumSubstrings));
+	}
+
+	return ret;
+}
+
+inline void string_to_color(v8::Isolate* isolate, const char* str, glm::u8vec4& color)
+{
+	std::string hex = str;
+	if (hex.at(0) == '#') {
+		hex.erase(0, 1);
+	}
+
+	while (hex.length() != 6) {
+		hex += "0";
+	}
+
+	std::vector<std::string> colori = SplitWithCharacters(hex, 2);
+
+	color.a = (uint8_t)stoi(colori[0], nullptr, 16);
+	color.r = (uint8_t)stoi(colori[1], nullptr, 16);
+	color.g = (uint8_t)stoi(colori[2], nullptr, 16);
+	color.b = (uint8_t)stoi(colori[3], nullptr, 16);
 
 }

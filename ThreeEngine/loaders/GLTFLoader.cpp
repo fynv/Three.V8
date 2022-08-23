@@ -97,7 +97,7 @@ inline void t_calc_tangent(int num_face, int num_pos, const T* p_indices, const 
 
 		float f = 1.0f / (delta1[0] * delta2[1] - delta2[0] * delta1[1]);
 		glm::vec4 tagent = glm::vec4((f * delta2[1]) * edge1 - (f * delta1[1]) * edge2, 0.0f);
-		glm::vec4 bitangent = glm::vec4((-f * delta2[0]) * edge1 + (f * delta1[0]) * edge2, 0.0f)   ;
+		glm::vec4 bitangent = glm::vec4((-f * delta2[0]) * edge1 + (f * delta1[0]) * edge2, 0.0f);
 
 		p_tangent[ind.x] += tagent;
 		p_tangent[ind.y] += tagent;
@@ -135,6 +135,33 @@ inline void g_calc_tangent(int num_face, int num_pos, int type_indices, const vo
 	}
 }
 
+template<typename T>
+inline void t_fill_sparse_positions(int count, const T* p_indices, const glm::vec3* p_pos_in, glm::vec4* p_pos_out, int* p_none_zero)
+{	
+	for (int i = 0; i < count; i++)
+	{
+		T idx = p_indices[i];
+		p_pos_out[idx] = glm::vec4(p_pos_in[i], 0.0f);
+		p_none_zero[idx] = 1;
+	}
+}
+
+inline void g_fill_sparse_positions(int count, int type_idx, const void* p_indices, const glm::vec3* p_pos_in, glm::vec4* p_pos_out, int* p_none_zero)
+{
+	if (type_idx == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE)
+	{
+		t_fill_sparse_positions<uint8_t>(count, (uint8_t*)p_indices, p_pos_in, p_pos_out, p_none_zero);
+	}
+	else if (type_idx == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT)
+	{
+		t_fill_sparse_positions<uint16_t>(count, (uint16_t*)p_indices, p_pos_in, p_pos_out, p_none_zero);
+	}
+	else if (type_idx == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT)
+	{
+		t_fill_sparse_positions<uint32_t>(count, (uint32_t*)p_indices, p_pos_in, p_pos_out, p_none_zero);
+	}
+
+}
 
 template<typename T>
 inline void t_copy_joints(int num_pos, const T* p_in, glm::uvec4* p_out)
@@ -296,6 +323,9 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 			tinygltf::BufferView& view_pos_in = model.bufferViews[acc_pos_in.bufferView];
 			const glm::vec3* p_pos = (const glm::vec3*)(model.buffers[view_pos_in.buffer].data.data() + view_pos_in.byteOffset + acc_pos_in.byteOffset);
 
+			primitive_out.min_pos = { acc_pos_in.minValues[0], acc_pos_in.minValues[1], acc_pos_in.minValues[2] };
+			primitive_out.max_pos = { acc_pos_in.maxValues[0], acc_pos_in.maxValues[1], acc_pos_in.maxValues[2] };
+
 			int id_indices_in = primitive_in.indices;
 			const void* p_indices = nullptr;
 			if (id_indices_in >= 0)
@@ -429,7 +459,7 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 
 			if (num_targets > 0)
 			{
-				std::vector<glm::vec4> pos_targets((size_t)num_targets * (size_t)primitive_out.num_pos);
+				std::vector<glm::vec4> pos_targets((size_t)num_targets * (size_t)primitive_out.num_pos, glm::vec4(0.0f));
 				std::vector<glm::vec4> norm_targets((size_t)num_targets * (size_t)primitive_out.num_pos, glm::vec4(0.0f));
 				std::vector<glm::vec4> tangent_targets;
 				std::vector<glm::vec4> bitangent_targets;
@@ -439,34 +469,79 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 					bitangent_targets.resize((size_t)num_targets * (size_t)primitive_out.num_pos, glm::vec4(0.0f));
 				}
 
+				bool sparse = true;
+				std::vector<int> non_zero((size_t)primitive_out.num_pos, 0);
+
 				for (size_t k = 0; k < num_targets; k++)
 				{
 					std::map<std::string, int>& target_in = primitive_in.targets[k];
 
 					int id_t_pos_in = target_in["POSITION"];
 					tinygltf::Accessor& acc_t_pos_in = model.accessors[id_t_pos_in];
-					tinygltf::BufferView& view_t_pos_in = model.bufferViews[acc_t_pos_in.bufferView];
-					const glm::vec3* t_pos = (const glm::vec3*)(model.buffers[view_t_pos_in.buffer].data.data() + view_t_pos_in.byteOffset + acc_t_pos_in.byteOffset);
+					
+					glm::vec4* pos_delta_k = pos_targets.data() + k * primitive_out.num_pos;
+					if (!acc_t_pos_in.sparse.isSparse)
+					{
+						sparse = false;
+						tinygltf::BufferView& view_t_pos_in = model.bufferViews[acc_t_pos_in.bufferView];
+						const glm::vec3* t_pos = (const glm::vec3*)(model.buffers[view_t_pos_in.buffer].data.data() + view_t_pos_in.byteOffset + acc_t_pos_in.byteOffset);
+						for (int l = 0; l < primitive_out.num_pos; l++)
+							pos_delta_k[l] = glm::vec4(t_pos[l], 0.0f);
+					}
+					else
+					{
+						int count_idx = acc_t_pos_in.sparse.count;
+						tinygltf::BufferView& view_idx = model.bufferViews[acc_t_pos_in.sparse.indices.bufferView];
+						const void* p_idx = model.buffers[view_idx.buffer].data.data() + view_idx.byteOffset + acc_t_pos_in.sparse.indices.byteOffset;
+						int idx_type = acc_t_pos_in.sparse.indices.componentType;
+						tinygltf::BufferView& view_value = model.bufferViews[acc_t_pos_in.sparse.values.bufferView];						
+						const glm::vec3* p_value = (const glm::vec3*)(model.buffers[view_value.buffer].data.data() + view_value.byteOffset + acc_t_pos_in.sparse.values.byteOffset);
+						g_fill_sparse_positions(count_idx, idx_type, p_idx, p_value, pos_delta_k, non_zero.data());
+					}
 
-					glm::vec4* pos_k = pos_targets.data() + k * primitive_out.num_pos;
+					std::vector<glm::vec4> pos_target_k((size_t)primitive_out.num_pos);
+					glm::vec4* pos_k = pos_target_k.data();
+					
 					for (int l = 0; l < primitive_out.num_pos; l++)
-						pos_k[l] = glm::vec4(p_pos[l] + t_pos[l], 1.0f);
+						pos_k[l] = glm::vec4(p_pos[l], 1.0f) + pos_delta_k[l];
 
 					glm::vec4* norm_k = norm_targets.data() + k * primitive_out.num_pos;
 					if (target_in.find("NORMAL") != target_in.end())
 					{
 						int id_t_norm_in = target_in["NORMAL"];
 						tinygltf::Accessor& acc_t_norm_in = model.accessors[id_t_norm_in];
-						tinygltf::BufferView& view_t_norm_in = model.bufferViews[acc_t_norm_in.bufferView];
-						const glm::vec3* t_norm = (const glm::vec3*)(model.buffers[view_t_norm_in.buffer].data.data() + view_t_norm_in.byteOffset + acc_t_norm_in.byteOffset);
-						for (int l = 0; l < primitive_out.num_pos; l++)
-							norm_k[l] = glm::vec4(t_norm[k], 0.0f);
+
+						if (!acc_t_norm_in.sparse.isSparse)
+						{
+							sparse = false;
+							tinygltf::BufferView& view_t_norm_in = model.bufferViews[acc_t_norm_in.bufferView];
+							const glm::vec3* t_norm = (const glm::vec3*)(model.buffers[view_t_norm_in.buffer].data.data() + view_t_norm_in.byteOffset + acc_t_norm_in.byteOffset);
+							for (int l = 0; l < primitive_out.num_pos; l++)
+								norm_k[l] = glm::vec4(t_norm[l], 0.0f);
+						}
+						else
+						{
+							int count_idx = acc_t_norm_in.sparse.count;
+							tinygltf::BufferView& view_idx = model.bufferViews[acc_t_norm_in.sparse.indices.bufferView];
+							const void* p_idx = model.buffers[view_idx.buffer].data.data() + view_idx.byteOffset + acc_t_norm_in.sparse.indices.byteOffset;
+							int idx_type = acc_t_norm_in.sparse.indices.componentType;
+							tinygltf::BufferView& view_value = model.bufferViews[acc_t_norm_in.sparse.values.bufferView];
+							const glm::vec3* p_value = (const glm::vec3*)(model.buffers[view_value.buffer].data.data() + view_value.byteOffset + acc_t_norm_in.sparse.values.byteOffset);
+							g_fill_sparse_positions(count_idx, idx_type, p_idx, p_value, norm_k, non_zero.data());
+						}						
 					}
 					else
 					{
 						g_calc_normal(primitive_out.num_face, primitive_out.num_pos, primitive_out.type_indices, p_indices, pos_k, norm_k);
 						for (int l = 0; l < primitive_out.num_pos; l++)
-							norm_k[l] = norm_k[l] - norms[l];
+						{
+							glm::vec4 norm_delta = norm_k[l] - norms[l];
+							norm_k[l] = norm_delta;
+							if (sparse && (norm_delta.x != 0.0f || norm_delta.y != 0.0f || norm_delta.z != 0.0f))
+							{
+								non_zero[l] = 1;
+							}								
+						}
 					}
 
 					if (has_tangent)
@@ -477,13 +552,19 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 
 						for (int l = 0; l < primitive_out.num_pos; l++)
 						{
-							tangent_k[l] = tangent_k[l] - tangent[l];
-							bitangent_k[l] = bitangent_k[l] - bitangent[l];
+							glm::vec4 tan_delta= tangent_k[l] - tangent[l];
+							glm::vec4 bitan_delta = bitangent_k[l] - bitangent[l];
+							tangent_k[l] = tan_delta;
+							bitangent_k[l] = bitan_delta;
+
+							if (sparse && (
+								tan_delta.x != 0.0f || tan_delta.y != 0.0f || tan_delta.z != 0.0f || 
+								bitan_delta.x != 0.0f || bitan_delta.y != 0.0f || bitan_delta.z != 0.0f))
+							{
+								non_zero[l] = 1;
+							}
 						}
 					}
-
-					for (int l = 0; l < primitive_out.num_pos; l++)
-						pos_k[l] = pos_k[l] - (*primitive_out.cpu_pos)[l];
 				}
 
 				primitive_out.targets.pos_buf = Attribute(new GLBuffer(sizeof(glm::vec4) * primitive_out.num_pos * num_targets));
@@ -496,6 +577,12 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 					primitive_out.targets.tangent_buf->upload(tangent_targets.data());
 					primitive_out.targets.bitangent_buf = Attribute(new GLBuffer(sizeof(glm::vec4) * primitive_out.num_pos * num_targets));
 					primitive_out.targets.bitangent_buf->upload(bitangent_targets.data());
+				}
+
+				if (sparse)
+				{
+					primitive_out.none_zero_buf = Attribute(new GLBuffer(sizeof(int) * primitive_out.num_pos));
+					primitive_out.none_zero_buf->upload(non_zero.data());
 				}
 			}
 
@@ -525,7 +612,7 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 		{
 			if (mesh_out.primitives[0].num_targets > 0)
 			{
-				mesh_out.weights.resize(mesh_out.primitives[0].num_targets, 0.0f);
+				mesh_out.weights.resize(mesh_out.primitives[0].num_targets, 0.0f);				
 				mesh_out.buf_weights = std::unique_ptr<GLDynBuffer>(new GLDynBuffer(sizeof(float) * mesh_out.primitives[0].num_targets, GL_SHADER_STORAGE_BUFFER));
 			}
 		}
@@ -622,12 +709,11 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 	}	
 
 	model_out->updateNodes();
+	model_out->calculate_bounding_box();
 
 	load_animations(model, model_out->m_animations);
-	for (size_t i = 0; i < model_out->m_animations.size(); i++)
-	{
-		model_out->m_animation_dict[model_out->m_animations[i].name] = i;
-	}
+
+	model_out->buildAnimDict();
 
 }
 

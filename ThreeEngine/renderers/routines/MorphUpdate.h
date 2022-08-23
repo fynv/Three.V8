@@ -6,7 +6,7 @@
 class MorphUpdate
 {
 public:
-	MorphUpdate(bool has_tangent);
+	MorphUpdate(bool has_tangent, bool sparse);
 
 	struct Params
 	{
@@ -17,6 +17,7 @@ public:
 
 private:
 	bool m_has_tangent;
+	bool m_sparse;
 	std::unique_ptr<GLShader> m_comp_shader;
 	std::unique_ptr<GLProgram> m_prog;
 };

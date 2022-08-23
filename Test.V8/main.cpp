@@ -34,9 +34,17 @@ public:
 	}
 
 protected:
+	virtual void idle() override
+	{
+		m_game_player->Idle();
+	}
+
 	virtual void paint(int width, int height) override
 	{
-		m_game_player->Draw(width, height);
+		if (width > 0 && height > 0)
+		{
+			m_game_player->Draw(width, height);
+		}
 	}
 
 	virtual void mouseDown(int button, int clicks, int delta, int x, int y) override

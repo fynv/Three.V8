@@ -131,6 +131,7 @@ void GLMain::MainLoop()
 	{
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
+		idle();
 	}
 }
 
@@ -267,6 +268,13 @@ LRESULT CALLBACK GLMain::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 		self->mouseWheel(-1, 0, zDelta, x, y);
 		return 0;
 	}
+
+	case WM_CHAR:
+	{
+		printf("%x\n", wParam);
+		return 0;
+	}
+
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;

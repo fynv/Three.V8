@@ -13,7 +13,7 @@ public:
 	static void New(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 private:
-	static void dtor(void* ptr);
+	static void dtor(void* ptr, GameContext* ctx);
 	static void Intersect(const v8::FunctionCallbackInfo<v8::Value>& info);
 	
 #if ENABLE_TEST
@@ -37,7 +37,7 @@ v8::Local<v8::FunctionTemplate> WrappeBoundingVolumeHierarchy::create_template(v
 }
 
 
-void WrappeBoundingVolumeHierarchy::dtor(void* ptr)
+void WrappeBoundingVolumeHierarchy::dtor(void* ptr, GameContext* ctx)
 {
 	delete (BoundingVolumeHierarchy*)ptr;
 }

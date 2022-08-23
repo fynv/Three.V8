@@ -47,12 +47,12 @@ setCallback('dispose', dispose);
 setCallback('render', render);
 ```
 
-In the basic routine above, we register 3 callback functions for `init`, `dispose`, `render` events. In addition, mouse events are recieved and dispatched by the imported `view` object. The `view` object serves as a event dispatcher. The OrbitControls object uses `view` to listen to the mouse events.
+In the basic routine above, we register 3 callback functions for `init`, `dispose`, `render` events. In addition, mouse events are recieved and dispatched by the imported `view` object. The `view` object serves as an event dispatcher. The OrbitControls object uses `view` to listen to the mouse events.
 
 The basic routine contains a [GLRenderer](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#glrenderer), a [Scene](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#scene), and a [Camera](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#camera). These are 
 wrappers of engine objects. The classes are defined in native code. 
 
-The initial design requires an explicit `dispose` call for every engine object. The latest change allows objects to be automatically garbage-collected. So the `dispose` calls are no longer required.
+The each engine object has a `dispose` method, which can be called explictly to release the underlying resources before garbage collection.
 
 The OrbitControls is an ordinary JS object. The class is defined in "./controls/OrbitControls.js". The code is directly ported from [Three.js](https://threejs.org/). There are other utilities from Three.js like Vector3, Matrix4, Quaternion, which we are going to use later.
 
@@ -72,7 +72,7 @@ The Scene class has a [`.background`](https://github.com/fynv/Three.V8/blob/main
 
 A background is optional in a Three.V8 Scene. It is possible to integrate background/foreground layers from outside the engine. 
 
-When user choose to use a background Three.V8, now we have the following options:
+When user choose to use a Three.V8 background, now we have the following options:
 
 [ColorBackground](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#colorbackground): Use a monotone color.
 

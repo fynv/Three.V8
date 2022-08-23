@@ -75,6 +75,13 @@ layout (std430, binding = 12) buffer BitangentOut
 };
 #endif
 
+#if SPARSE
+layout (std430, binding = 13) buffer Nonzero
+{
+	int nonzero[];
+};
+#endif
+
 layout (location = 0) uniform int num_verts;
 layout (location = 1) uniform int num_deltas;
 layout(local_size_x = 128) in;
@@ -89,27 +96,37 @@ void main()
 	vec4 tangent = tangent_base[idx];
 	vec4 bitangent = bitangent_base[idx];
 #endif
-	for (int i = 0; i< num_deltas; i++)
-	{
-		float coef = clamp(coefs[i], 0.0, 1.0);
-		{
-			vec4 delta = pos_delta[i*num_verts + idx];
-			pos += delta * coef;
-		}
-		{
-			vec4 delta = norm_delta[i*num_verts + idx];
-			norm += delta * coef;
-		}
-#if HAS_TANGENT
-		{
-			vec4 delta = tangent_delta[i*num_verts + idx];
-			tangent += delta * coef;
-		}
-		{
-			vec4 delta = bitangent_delta[i*num_verts + idx];
-			bitangent += delta * coef;
-		}
+
+#if SPARSE
+	bool nonzero = (nonzero[idx]!=0);
+#else
+	bool nonzero = true;
 #endif
+	if (nonzero)
+	{
+		for (int i = 0; i< num_deltas; i++)
+		{
+			float coef = clamp(coefs[i], 0.0, 1.0);
+			if (coef==0.0) continue;
+			{
+				vec4 delta = pos_delta[i*num_verts + idx];
+				pos += delta * coef;
+			}
+			{
+				vec4 delta = norm_delta[i*num_verts + idx];
+				norm += delta * coef;
+			}
+#if HAS_TANGENT
+			{
+				vec4 delta = tangent_delta[i*num_verts + idx];
+				tangent += delta * coef;
+			}
+			{
+				vec4 delta = bitangent_delta[i*num_verts + idx];
+				bitangent += delta * coef;
+			}
+#endif
+		}
 	}
 	pos_out[idx] = pos;
 	norm_out[idx] = norm;
@@ -135,7 +152,9 @@ inline void replace(std::string& str, const char* target, const char* source)
 	}
 }
 
-MorphUpdate::MorphUpdate(bool has_tangent) : m_has_tangent(has_tangent)
+MorphUpdate::MorphUpdate(bool has_tangent, bool sparse) 
+	: m_has_tangent(has_tangent)
+	, m_sparse(sparse)
 {
 	std::string s_compute = g_compute;
 	std::string defines = "";
@@ -147,6 +166,15 @@ MorphUpdate::MorphUpdate(bool has_tangent) : m_has_tangent(has_tangent)
 	else
 	{
 		defines += "#define HAS_TANGENT 0\n";
+	}
+
+	if (sparse)
+	{
+		defines += "#define SPARSE 1\n";
+	}
+	else
+	{
+		defines += "#define SPARSE 0\n";
 	}
 
 	replace(s_compute, "#DEFINES#", defines.c_str());
@@ -181,6 +209,11 @@ void MorphUpdate::update(const Params& params)
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, geo_in.bitangent_buf->m_id);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, params.primitive->targets.bitangent_buf->m_id);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 12, geo_out.bitangent_buf->m_id);
+	}
+
+	if (m_sparse)
+	{
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 13, params.primitive->none_zero_buf->m_id);
 	}
 
 	glUniform1i(0, params.primitive->num_pos);

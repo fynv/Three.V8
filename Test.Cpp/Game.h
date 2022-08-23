@@ -20,8 +20,6 @@ public:
 	void Draw(int width, int height);
 
 private:
-	int m_width = -1;
-	int m_height = -1;
 	GLRenderTarget m_render_target;
 
 	GLRenderer m_renderer;

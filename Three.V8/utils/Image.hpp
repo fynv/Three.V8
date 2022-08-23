@@ -10,8 +10,7 @@ public:
 	static void New(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 private:
-	static void dtor(void* ptr);
-	static void GetHasAlpha(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void dtor(void* ptr, GameContext* ctx);	
 	static void GetWidth(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void GetHeight(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 };
@@ -21,14 +20,13 @@ v8::Local<v8::FunctionTemplate> WrapperImage::create_template(v8::Isolate* isola
 {
 	v8::Local<v8::FunctionTemplate> templ = v8::FunctionTemplate::New(isolate, constructor);
 	templ->InstanceTemplate()->SetInternalFieldCount(2);
-	templ->InstanceTemplate()->Set(isolate, "dispose", v8::FunctionTemplate::New(isolate, GeneralDispose));
-	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "hasAlpha").ToLocalChecked(), GetHasAlpha, 0);
+	templ->InstanceTemplate()->Set(isolate, "dispose", v8::FunctionTemplate::New(isolate, GeneralDispose));	
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "width").ToLocalChecked(), GetWidth, 0);
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "height").ToLocalChecked(), GetHeight, 0);
 	return templ;
 }
 
-void WrapperImage::dtor(void* ptr)
+void WrapperImage::dtor(void* ptr, GameContext* ctx)
 {
 	delete (Image*)ptr;
 }
@@ -39,13 +37,8 @@ void WrapperImage::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 	if (info.Length() > 1)
 	{
 		int width = (int)info[0].As<v8::Number>()->Value();
-		int height = (int)info[1].As<v8::Number>()->Value();
-		bool has_alpha = false;
-		if (info.Length() > 2)
-		{
-			has_alpha = info[2].As<v8::Boolean>()->Value();
-		}
-		self = new Image(width, height, has_alpha);
+		int height = (int)info[1].As<v8::Number>()->Value();	
+		self = new Image(width, height);
 	}
 	else
 	{
@@ -54,15 +47,6 @@ void WrapperImage::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 	info.This()->SetAlignedPointerInInternalField(0, self);
 	GameContext* ctx = get_context(info);
 	ctx->regiter_object(info.This(), dtor);
-}
-
-void WrapperImage::GetHasAlpha(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
-{
-	v8::HandleScope handle_scope(info.GetIsolate());
-	Image* self = get_self<Image>(info);
-	bool has_alpha = self == nullptr ? false : self->has_alpha();
-	v8::Local<v8::Boolean> ret = v8::Boolean::New(info.GetIsolate(), has_alpha);
-	info.GetReturnValue().Set(ret);
 }
 
 void WrapperImage::GetWidth(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
@@ -90,7 +74,7 @@ public:
 	static void New(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 private:
-	static void dtor(void* ptr);
+	static void dtor(void* ptr, GameContext* ctx);
 	static void GetWidth(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void GetHeight(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 };
@@ -107,7 +91,7 @@ v8::Local<v8::FunctionTemplate> WrapperCubeImage::create_template(v8::Isolate* i
 }
 
 
-void WrapperCubeImage::dtor(void* ptr)
+void WrapperCubeImage::dtor(void* ptr, GameContext* ctx)
 {
 	delete (CubeImage*)ptr;
 }

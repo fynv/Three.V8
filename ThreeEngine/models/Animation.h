@@ -107,7 +107,7 @@ class AnimationClip
 {
 public:
 	std::string name;
-	double duration = 0.0f;
+	double duration = 0.0;
 
 	std::vector<MorphTrack> morphs;
 	std::vector<TranslationTrack> translations;

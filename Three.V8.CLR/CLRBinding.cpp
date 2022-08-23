@@ -1,6 +1,7 @@
 #include "CLRBinding.h"
 
 #pragma unmanaged
+#include <unordered_set>
 #include <stdio.h>
 #include <GL/glew.h>
 #include "utils/Utils.h"
@@ -25,49 +26,14 @@ namespace CLRBinding
 	{
 		SetStyle(ControlStyles::Opaque, true);
 		SetStyle(ControlStyles::UserPaint, true);
-		SetStyle(ControlStyles::AllPaintingInWmPaint, true);
+		SetStyle(ControlStyles::AllPaintingInWmPaint, true);		
+		SetStyle(ControlStyles::Selectable, true);
 		DoubleBuffered = false;
+		
 
 		m_func_invalidate = GCHandle::Alloc(gcnew TimerCallback(this, &CGLControl::Invalidate), GCHandleType::Normal);
 		IntPtr p_func_invalidate = GCHandle::ToIntPtr(m_func_invalidate);
 		m_timer = CreateThreadpoolTimer(s_timer_callback, (void*)p_func_invalidate, nullptr);
-	}
-
-	CGLControl::!CGLControl()
-	{
-		if (m_hdc != nullptr)
-		{
-			wglMakeCurrent(m_hdc, NULL);
-			wglDeleteContext(m_hrc);
-		}
-
-		SetThreadpoolTimer(m_timer, NULL, 0, 0);
-		WaitForThreadpoolTimerCallbacks(m_timer, TRUE);
-		CloseThreadpoolTimer(m_timer);
-		m_func_invalidate.Free();
-
-	}
-
-	void CGLControl::MakeCurrent()
-	{
-		wglMakeCurrent(m_hdc, m_hrc);
-	}
-
-	void CGLControl::SetFramerate(float fps)
-	{
-		m_interval = (unsigned)(1000.0f / fps);
-		m_time_scheduled = time_milli_sec();
-		this->Invalidate();
-	}
-
-	void CGLControl::OnLoad(EventArgs^ e)
-	{
-		if (m_hdc != nullptr)
-		{
-			printf("The OpenGL context is being recreated. (This should not happen.)");
-			wglMakeCurrent(m_hdc, NULL);
-			wglDeleteContext(m_hrc);
-		}
 
 		PIXELFORMATDESCRIPTOR pfd =
 		{
@@ -96,15 +62,41 @@ namespace CLRBinding
 		m_hrc = wglCreateContext(m_hdc);
 		wglMakeCurrent(m_hdc, m_hrc);
 		glewInit();
-		UserControl::OnLoad(e);
 	}
 
+	CGLControl::!CGLControl()
+	{
+		if (m_hdc != nullptr)
+		{
+			wglMakeCurrent(m_hdc, NULL);
+			wglDeleteContext(m_hrc);
+		}
+
+		SetThreadpoolTimer(m_timer, NULL, 0, 0);
+		WaitForThreadpoolTimerCallbacks(m_timer, TRUE);
+		CloseThreadpoolTimer(m_timer);
+		m_func_invalidate.Free();
+
+	}
+
+	void CGLControl::MakeCurrent()
+	{
+		wglMakeCurrent(m_hdc, m_hrc);
+	}
+
+	void CGLControl::SetFramerate(float fps)
+	{
+		m_interval = (unsigned)(1000.0f / fps);
+		m_time_scheduled = time_milli_sec();
+		this->Invalidate();
+	}
+	
 	void CGLControl::OnPaint(PaintEventArgs^ e)
 	{
 		if (m_hdc != nullptr)
 		{
 			wglMakeCurrent(m_hdc, m_hrc);
-			UserControl::OnPaint(e);
+			Control::OnPaint(e);
 			SwapBuffers(m_hdc);
 		}
 
@@ -130,7 +122,23 @@ namespace CLRBinding
 			{
 				this->Invalidate();
 			}
-		}
+		}		
+	}
+
+	bool CGLControl::ProcessCmdKey(Message% msg, Keys keyData)
+	{
+		static std::unordered_set<unsigned> s_set =
+		{
+			8, 33, 34, 35, 36, 37, 38, 39, 40, 45, 46, 
+		};
+
+		unsigned code = (unsigned)(keyData);
+		if (s_set.find(code) != s_set.end())
+		{
+			ControlKey(code);
+			return true;
+		}				
+		return Control::ProcessCmdKey(msg, keyData);
 	}
 
 	static void SetMouseCapture(void* pwin)
@@ -170,8 +178,9 @@ namespace CLRBinding
 	}
 
 	void CGamePlayer::Draw(int width, int height)
-	{
+	{		
 		m_native->Draw(width, height);
+		m_native->Idle();
 	}
 
 	void CGamePlayer::LoadScript(String^ fullpath)
@@ -201,6 +210,21 @@ namespace CLRBinding
 	void CGamePlayer::OnMouseWheel(MouseEventArgs e)
 	{
 		m_native->OnMouseWheel(e.button, e.clicks, e.delta, e.x, e.y);
+	}
+
+	void CGamePlayer::OnLongPress(int x, int y)
+	{
+		m_native->OnLongPress(x, y);
+	}
+
+	void CGamePlayer::OnChar(int keyChar)
+	{
+		m_native->OnChar(keyChar);
+	}
+
+	void CGamePlayer::OnControlKey(unsigned code)
+	{
+		m_native->OnControlKey(code);
 	}
 
 }

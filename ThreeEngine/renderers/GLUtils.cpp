@@ -174,7 +174,7 @@ void GLTexture2D::load_file(const char* filename, bool is_srgb)
 {
 	Image img;
 	ImageLoader::LoadFile(&img, filename);
-	load_memory_bgr(img.width(), img.height(), img.data(), is_srgb);
+	load_memory_rgba(img.width(), img.height(), img.data(), is_srgb);
 }
 
 GLCubemap::GLCubemap()
@@ -187,7 +187,7 @@ GLCubemap::~GLCubemap()
 	glDeleteTextures(1, &tex_id);
 }
 
-void GLCubemap::load_memory_bgr(int width, int height, const uint8_t* data_xp, const uint8_t* data_xn, const uint8_t* data_yp, const uint8_t* data_yn, const uint8_t* data_zp, const uint8_t* data_zn)
+void GLCubemap::load_memory_rgba(int width, int height, const uint8_t* data_xp, const uint8_t* data_xn, const uint8_t* data_yp, const uint8_t* data_yn, const uint8_t* data_zp, const uint8_t* data_zn)
 {
 	glBindTexture(GL_TEXTURE_CUBE_MAP, tex_id);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -195,12 +195,12 @@ void GLCubemap::load_memory_bgr(int width, int height, const uint8_t* data_xp, c
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_RGBA, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data_xp);
-	glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 0, GL_RGBA, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data_xn);
-	glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, 0, GL_RGBA, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data_yp);
-	glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, GL_RGBA, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data_yn);
-	glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, GL_RGBA, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data_zp);
-	glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, GL_RGBA, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data_zn);
+	glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data_xp);
+	glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data_xn);
+	glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data_yp);
+	glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data_yn);
+	glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data_zp);
+	glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data_zn);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 }
 
@@ -213,7 +213,7 @@ void GLCubemap::load_files(const char* fn_xp, const char* fn_xn, const char* fn_
 	ImageLoader::LoadFile(&imgs[3], fn_yn);
 	ImageLoader::LoadFile(&imgs[4], fn_zp);
 	ImageLoader::LoadFile(&imgs[5], fn_zn);
-	load_memory_bgr(imgs[0].width(), imgs[0].height(), imgs[0].data(), imgs[1].data(), imgs[2].data(), imgs[3].data(), imgs[4].data(), imgs[5].data());
+	load_memory_rgba(imgs[0].width(), imgs[0].height(), imgs[0].data(), imgs[1].data(), imgs[2].data(), imgs[3].data(), imgs[4].data(), imgs[5].data());
 }
 
 GLBuffer::GLBuffer(size_t size, unsigned target)

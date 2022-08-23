@@ -11,7 +11,7 @@ public:
 	static void New(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 private:
-	static void dtor(void* ptr);
+	static void dtor(void* ptr, GameContext* ctx);
 	static void Create(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 };
@@ -27,7 +27,7 @@ v8::Local<v8::FunctionTemplate> WrapperEnvironmentMapCreator::create_template(v8
 }
 
 
-void WrapperEnvironmentMapCreator::dtor(void* ptr)
+void WrapperEnvironmentMapCreator::dtor(void* ptr, GameContext* ctx)
 {
 	delete (EnvironmentMapCreator*)ptr;
 }

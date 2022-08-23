@@ -13,6 +13,9 @@ public:
 	static void New(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 private:
+	static void GetMinPos(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void GetMaxPos(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
+
 	static void GetMeshes(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 
 	static void SetAnimationFrame(const v8::FunctionCallbackInfo<v8::Value>& info);
@@ -35,6 +38,9 @@ private:
 v8::Local<v8::FunctionTemplate> WrapperGLTFModel::create_template(v8::Isolate* isolate, v8::FunctionCallback constructor)
 {
 	v8::Local<v8::FunctionTemplate> templ = WrapperObject3D::create_template(isolate, constructor);
+	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "minPos").ToLocalChecked(), GetMinPos, 0);
+	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "maxPos").ToLocalChecked(), GetMaxPos, 0);
+
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "meshes").ToLocalChecked(), GetMeshes, 0);
 
 	templ->InstanceTemplate()->Set(isolate, "setAnimationFrame", v8::FunctionTemplate::New(isolate, SetAnimationFrame));
@@ -61,6 +67,26 @@ void WrapperGLTFModel::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 	info.This()->SetAlignedPointerInInternalField(0, self);
 	GameContext* ctx = get_context(info);
 	ctx->regiter_object(info.This(), WrapperObject3D::dtor);
+}
+
+void WrapperGLTFModel::GetMinPos(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+	v8::HandleScope handle_scope(info.GetIsolate());
+	v8::Isolate* isolate = info.GetIsolate();
+	GLTFModel* self = get_self<GLTFModel>(info);
+	v8::Local<v8::Object> minPos = v8::Object::New(isolate);
+	vec3_to_jvec3(isolate, self->m_min_pos, minPos);
+	info.GetReturnValue().Set(minPos);
+}
+
+void WrapperGLTFModel::GetMaxPos(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+	v8::HandleScope handle_scope(info.GetIsolate());
+	v8::Isolate* isolate = info.GetIsolate();
+	GLTFModel* self = get_self<GLTFModel>(info);
+	v8::Local<v8::Object> maxPos = v8::Object::New(isolate);
+	vec3_to_jvec3(isolate, self->m_max_pos, maxPos);
+	info.GetReturnValue().Set(maxPos);
 }
 
 void WrapperGLTFModel::GetMeshes(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)

@@ -14,6 +14,10 @@ class Mesh;
 class GLTFModel : public Object3D
 {
 public:
+	glm::vec3 m_min_pos = { FLT_MAX, FLT_MAX, FLT_MAX };
+	glm::vec3 m_max_pos = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+	void calculate_bounding_box();
+
 	std::vector<std::unique_ptr<GLTexture2D>> m_textures;
 	std::vector<std::unique_ptr<MeshStandardMaterial>> m_materials;
 	
@@ -28,11 +32,15 @@ public:
 	bool needUpdateSkinnedMeshes = false;
 	void updateNodes();
 
+	bool m_show_skeleton = false;
+
 	// animations
 	void setAnimationFrame(const AnimationFrame& frame);
 
 	std::vector<AnimationClip> m_animations;
 	std::unordered_map<std::string, int> m_animation_dict;
+
+	void buildAnimDict();
 
 	void addAnimation(const AnimationClip& anim);
 

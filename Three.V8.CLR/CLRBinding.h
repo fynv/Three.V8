@@ -13,7 +13,9 @@ using namespace System::Runtime::InteropServices;
 
 namespace CLRBinding
 {
-	public ref class CGLControl : public UserControl
+	public delegate void ControlEvent(unsigned code);
+
+	public ref class CGLControl : public Control
 	{
 	public:
 		CGLControl();
@@ -30,9 +32,31 @@ namespace CLRBinding
 		void MakeCurrent();
 		void SetFramerate(float fps);
 
-	protected:
-		virtual void OnLoad(EventArgs^ e) override;
+		ControlEvent^ pControlKey = nullptr;
+
+		event ControlEvent^ ControlKey 
+		{
+			void add(ControlEvent^ p) 
+			{
+				pControlKey = static_cast<ControlEvent^> (Delegate::Combine(pControlKey, p));
+			}
+
+			void remove(ControlEvent^ p) 
+			{
+				pControlKey = static_cast<ControlEvent^> (Delegate::Remove(pControlKey, p));
+			}
+
+			void raise(unsigned code) 
+			{
+				if (pControlKey != nullptr)
+					pControlKey->Invoke(code);
+			}
+		}
+
+
+	protected:		
 		virtual void OnPaint(PaintEventArgs^ e) override;
+		virtual bool ProcessCmdKey(Message% msg, Keys keyData) override;
 
 	private:
 		HDC m_hdc = nullptr;
@@ -75,6 +99,10 @@ namespace CLRBinding
 		void OnMouseUp(MouseEventArgs e);
 		void OnMouseMove(MouseEventArgs e);
 		void OnMouseWheel(MouseEventArgs e);
+		void OnLongPress(int x, int y);
+
+		void OnChar(int keyChar);
+		void OnControlKey(unsigned code);
 
 	private:
 		GamePlayer* m_native = nullptr;

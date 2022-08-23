@@ -3,12 +3,30 @@
 #include "GLTFModel.h"
 #include "utils/Utils.h"
 
+void GLTFModel::calculate_bounding_box()
+{
+	m_min_pos = { FLT_MAX, FLT_MAX, FLT_MAX };
+	m_max_pos = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+
+	size_t num_meshes = m_meshs.size();
+	for (size_t i = 0; i < num_meshes; i++)
+	{
+		Mesh& mesh = m_meshs[i];
+		size_t num_prims = mesh.primitives.size();
+		for (size_t j = 0; j < num_prims; j++)
+		{
+			Primitive& prim = mesh.primitives[j];
+			m_min_pos = glm::min(m_min_pos, prim.min_pos);
+			m_max_pos = glm::max(m_max_pos, prim.max_pos);
+		}
+	}
+}
+
 struct ModelConst
 {
 	glm::mat4 ModelMat;
 	glm::mat4 NormalMat;
 };
-
 
 void GLTFModel::updateMeshConstants()
 {
@@ -134,6 +152,15 @@ void GLTFModel::setAnimationFrame(const AnimationFrame& frame)
 	updateNodes();
 }
 
+void GLTFModel::buildAnimDict()
+{
+	m_animation_dict.clear();
+	for (size_t i = 0; i < m_animations.size(); i++)
+	{
+		m_animation_dict[m_animations[i].name] = i;
+	}
+}
+
 void GLTFModel::addAnimation(const AnimationClip& anim)
 {
 	m_animations.push_back(anim);
@@ -149,7 +176,7 @@ void GLTFModel::playAnimation(const char* name)
 		for (size_t i = 0; i < m_current_playing.size(); i++)
 		{
 			PlayBack& playback = m_current_playing[i];
-			if (i == id_anim)
+			if (playback.id_anim == id_anim)
 			{
 				playback.time_start = time_sec();
 				return;
@@ -168,7 +195,7 @@ void GLTFModel::stopAnimation(const char* name)
 		for (size_t i = 0; i < m_current_playing.size(); i++)
 		{
 			PlayBack& playback = m_current_playing[i];
-			if (i == id_anim)
+			if (playback.id_anim == id_anim)
 			{
 				m_current_playing.erase(m_current_playing.begin() + i);
 				return;
@@ -185,12 +212,15 @@ void GLTFModel::updateAnimation()
 		PlayBack& playback = m_current_playing[i];
 		AnimationClip& anim = m_animations[playback.id_anim];
 		double duration = anim.duration;
-		while (t - playback.time_start >= duration)
+		double x = 0.0;
+		if (duration > 0.0)
 		{
-			playback.time_start += duration;
+			while (t - playback.time_start >= duration)
+			{
+				playback.time_start += duration;
+			}
+			x = t - playback.time_start;
 		}
-		double x = t - playback.time_start;
-
 		AnimationFrame frame;
 		anim.get_frame(x, frame);
 		this->setAnimationFrame(frame);

@@ -49,7 +49,7 @@ public:
 	GLCubemap();
 	~GLCubemap();
 
-	void load_memory_bgr(int width, int height, const  uint8_t* data_xp, const uint8_t* data_xn, const uint8_t* data_yp, const uint8_t* data_yn, const uint8_t* data_zp, const uint8_t* data_zn);
+	void load_memory_rgba(int width, int height, const  uint8_t* data_xp, const uint8_t* data_xn, const uint8_t* data_yp, const uint8_t* data_yn, const uint8_t* data_zp, const uint8_t* data_zn);
 	void load_files(const char* fn_xp, const char* fn_xn, const char* fn_yp, const char* fn_yn, const char* fn_zp, const char* fn_zn);
 private:
 	GLCubemap(const GLCubemap&);

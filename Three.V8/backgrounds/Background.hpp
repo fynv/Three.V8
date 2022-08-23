@@ -11,7 +11,7 @@ public:
 	static void New(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 private:
-	static void dtor(void* ptr);
+	static void dtor(void* ptr, GameContext* ctx);
 
 	static void GetColor(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void GetColor(const v8::FunctionCallbackInfo<v8::Value>& info);
@@ -32,7 +32,7 @@ v8::Local<v8::FunctionTemplate> WrapperColorBackground::create_template(v8::Isol
 	return templ;
 }
 
-void WrapperColorBackground::dtor(void* ptr)
+void WrapperColorBackground::dtor(void* ptr, GameContext* ctx)
 {
 	delete (ColorBackground*)ptr;
 }
@@ -93,7 +93,7 @@ public:
 	static void New(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 private:
-	static void dtor(void* ptr);
+	static void dtor(void* ptr, GameContext* ctx);
 
 	static void SetCubemap(const v8::FunctionCallbackInfo<v8::Value>& info);
 
@@ -110,7 +110,7 @@ v8::Local<v8::FunctionTemplate> WrapperCubeBackground::create_template(v8::Isola
 }
 
 
-void WrapperCubeBackground::dtor(void* ptr)
+void WrapperCubeBackground::dtor(void* ptr, GameContext* ctx)
 {
 	delete (CubeBackground*)ptr;
 }
@@ -132,7 +132,7 @@ void WrapperCubeBackground::SetCubemap(const v8::FunctionCallbackInfo<v8::Value>
 	CubeBackground* self = get_self<CubeBackground>(info);
 	v8::Local<v8::Object> holder_image = info[0].As<v8::Object>();
 	CubeImage* image = (CubeImage*)holder_image->GetAlignedPointerFromInternalField(0);
-	self->cubemap.load_memory_bgr(image->images[0].width(), image->images[0].height(),
+	self->cubemap.load_memory_rgba(image->images[0].width(), image->images[0].height(),
 		image->images[0].data(), image->images[1].data(), image->images[2].data(), image->images[3].data(), image->images[4].data(), image->images[5].data());
 }
 
@@ -143,7 +143,7 @@ public:
 	static void New(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 private:
-	static void dtor(void* ptr);
+	static void dtor(void* ptr, GameContext* ctx);
 
 	static void GetSkyColor(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void GetSkyColor(const v8::FunctionCallbackInfo<v8::Value>& info);
@@ -173,7 +173,7 @@ v8::Local<v8::FunctionTemplate> WrapperHemisphereBackground::create_template(v8:
 }
 
 
-void WrapperHemisphereBackground::dtor(void* ptr)
+void WrapperHemisphereBackground::dtor(void* ptr, GameContext* ctx)
 {
 	delete (HemisphereBackground*)ptr;
 }

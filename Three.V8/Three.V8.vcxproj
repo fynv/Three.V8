@@ -136,6 +136,18 @@
     <ClInclude Include="core\Object3D.hpp" />
     <ClInclude Include="GamePlayer.h" />
     <ClInclude Include="GamePlayer.hpp" />
+    <ClInclude Include="gui\UI3DViewer.hpp" />
+    <ClInclude Include="gui\UIArea.hpp" />
+    <ClInclude Include="gui\UIBlock.hpp" />
+    <ClInclude Include="gui\UIButton.hpp" />
+    <ClInclude Include="gui\UIElement.hpp" />
+    <ClInclude Include="gui\UIImage.hpp" />
+    <ClInclude Include="gui\UILineEdit.hpp" />
+    <ClInclude Include="gui\UIManager.hpp" />
+    <ClInclude Include="gui\UIPanel.hpp" />
+    <ClInclude Include="gui\UIScrollViewer.hpp" />
+    <ClInclude Include="gui\UIText.hpp" />
+    <ClInclude Include="gui\UITextBlock.hpp" />
     <ClInclude Include="lights\AmbientLight.hpp" />
     <ClInclude Include="lights\DirectionalLight.hpp" />
     <ClInclude Include="lights\EnvironmentMap.hpp" />
@@ -148,6 +160,7 @@
     <ClInclude Include="loaders\ImageLoader.hpp" />
     <ClInclude Include="models\GLTFModel.hpp" />
     <ClInclude Include="models\SimpleModel.hpp" />
+    <ClInclude Include="network\HttpClient.hpp" />
     <ClInclude Include="renderers\GLRenderer.hpp" />
     <ClInclude Include="scenes\Scene.hpp" />
     <ClInclude Include="utils\Image.hpp" />
@@ -161,12 +174,17 @@
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\boost.1.79.0\build\boost.targets" Condition="Exists('..\packages\boost.1.79.0\build\boost.targets')" />
+    <Import Project="..\packages\openssl-vc142.1.1.0\build\native\openssl-vc142.targets" Condition="Exists('..\packages\openssl-vc142.1.1.0\build\native\openssl-vc142.targets')" />
+  </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\v8.redist-v142-x64.10.0.139.9\build\native\v8.redist-v142-x64.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\v8.redist-v142-x64.10.0.139.9\build\native\v8.redist-v142-x64.props'))" />
     <Error Condition="!Exists('..\packages\v8-v142-x64.10.0.139.9\build\native\v8-v142-x64.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\v8-v142-x64.10.0.139.9\build\native\v8-v142-x64.props'))" />
+    <Error Condition="!Exists('..\packages\boost.1.79.0\build\boost.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\boost.1.79.0\build\boost.targets'))" />
+    <Error Condition="!Exists('..\packages\openssl-vc142.1.1.0\build\native\openssl-vc142.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\openssl-vc142.1.1.0\build\native\openssl-vc142.targets'))" />
   </Target>
 </Project>
