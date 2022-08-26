@@ -428,7 +428,7 @@ private:
 	void RenderText(NVGcontext* vg, UIText* ui_text)
 	{
 		glm::vec2 origin = ui_text->origin_trans;
-		if (ui_text->alignment_horizontal == 1 || ui_text->alignment_horizontal == 3)
+		if (ui_text->alignment_horizontal == 1 )
 		{
 			if (ui_text->block == nullptr)
 			{
@@ -439,7 +439,19 @@ private:
 				origin.x += ui_text->block->client_size().x * 0.5f;
 			}
 		}
-		if (ui_text->alignment_vertical == 1)
+		else if (ui_text->alignment_horizontal == 2)
+		{
+			if (ui_text->block == nullptr)
+			{
+				origin.x += (float)w;
+			}
+			else
+			{
+				origin.x += ui_text->block->client_size().x;
+			}
+		}
+
+		if (ui_text->alignment_vertical == 1 || ui_text->alignment_vertical == 3)
 		{
 			if (ui_text->block == nullptr)
 			{
@@ -448,6 +460,17 @@ private:
 			else
 			{
 				origin.y += ui_text->block->client_size().y * 0.5f;
+			}
+		}
+		else if (ui_text->alignment_vertical == 2)
+		{
+			if (ui_text->block == nullptr)
+			{
+				origin.y += (float)h;
+			}
+			else
+			{
+				origin.y += ui_text->block->client_size().y;
 			}
 		}
 
@@ -470,7 +493,7 @@ private:
 	void RenderTextBlock(NVGcontext* vg, UITextBlock* ui_text)
 	{
 		glm::vec2 origin = ui_text->origin_trans;
-		if (ui_text->alignment_horizontal == 1 || ui_text->alignment_horizontal == 3)
+		if (ui_text->alignment_horizontal == 1)
 		{
 			if (ui_text->block == nullptr)
 			{
@@ -481,7 +504,19 @@ private:
 				origin.x += ui_text->block->client_size().x * 0.5f;
 			}
 		}
-		if (ui_text->alignment_vertical == 1)
+		else if (ui_text->alignment_horizontal == 2)
+		{
+			if (ui_text->block == nullptr)
+			{
+				origin.x += (float)w;
+			}
+			else
+			{
+				origin.x += ui_text->block->client_size().x;
+			}
+		}
+
+		if (ui_text->alignment_vertical == 1 || ui_text->alignment_vertical == 3)
 		{
 			if (ui_text->block == nullptr)
 			{
@@ -490,6 +525,17 @@ private:
 			else
 			{
 				origin.y += ui_text->block->client_size().y * 0.5f;
+			}
+		}
+		else if (ui_text->alignment_vertical == 2)
+		{
+			if (ui_text->block == nullptr)
+			{
+				origin.y += (float)h;
+			}
+			else
+			{
+				origin.y += ui_text->block->client_size().y;
 			}
 		}
 		convert_pos(origin, origin);
