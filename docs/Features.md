@@ -49,14 +49,14 @@ setCallback('render', render);
 
 In the basic routine above, we register 3 callback functions for `init`, `dispose`, `render` events. In addition, mouse events are recieved and dispatched by the imported `view` object. The `view` object serves as an event dispatcher. The OrbitControls object uses `view` to listen to the mouse events.
 
-The basic routine contains a [GLRenderer](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#glrenderer), a [Scene](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#scene), and a [Camera](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#camera). These are 
+The basic routine contains a [GLRenderer](GLRenderer.html), a [Scene](Scene.html), and a [Camera](Camera.html). These are 
 wrappers of engine objects. The classes are defined in native code. 
 
 The each engine object has a `dispose` method, which can be called explictly to release the underlying resources before garbage collection.
 
 The OrbitControls is an ordinary JS object. The class is defined in "./controls/OrbitControls.js". The code is directly ported from [Three.js](https://threejs.org/). There are other utilities from Three.js like Vector3, Matrix4, Quaternion, which we are going to use later.
 
-Currently, [PerspectiveCamera](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#perspectivecamera) is the only option for camera, but can be easily extended in the future.
+Currently, [PerspectiveCamera](PerspectiveCamera.html) is the only option for camera, but can be easily extended in the future.
 
 All scripts need to be pre-bundled. For exmaple:
 
@@ -68,17 +68,17 @@ To run a script, use GamePlayer to load the bundled script.
 
 # Backgrounds
 
-The Scene class has a [`.background`](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#background-background) property.
+The Scene class has a [`.background`](Scene.html#background) property.
 
 A background is optional in a Three.V8 Scene. It is possible to integrate background/foreground layers from outside the engine. 
 
 When user choose to use a Three.V8 background, now we have the following options:
 
-[ColorBackground](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#colorbackground): Use a monotone color.
+[ColorBackground](ColorBackground.html): Use a monotone color.
 
-[CubeBackground](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#cubebackground): Use a cubemap.
+[CubeBackground](CubeBackground.html): Use a cubemap.
 
-[HemisphereBackground](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#hemispherebackground): Use a gradient change from sky-color to ground-color.
+[HemisphereBackground](HemisphereBackground.html): Use a gradient change from sky-color to ground-color.
 
 ColorBackground:
 ```js
@@ -107,7 +107,7 @@ cube_img.dispose();
 scene.background = bg;
 ```
 
-For CubeBackground, the cubemap image is loaded using the global object [imageLoader](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#imageloader).
+For CubeBackground, the cubemap image is loaded using the global object [imageLoader](Index.html#global-objects).
 
 The effect when a HemisphereBackground is set-up:
 ![background.png](background.png)
@@ -118,9 +118,9 @@ Like Three.js, Three.V8 also has a scene graph, with the Scene object as the roo
 
 Currently, there are the following types of models:
 
-[SimpleModel](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#simplemodel): A Model containing a single simple geometry.
+[SimpleModel](SimpleModel.html): A Model containing a single simple geometry.
 
-[GLTFModel](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#gltfmodel): A Model that has a GLTF style internal structure.
+[GLTFModel](GLTFModel.html): A Model that has a GLTF style internal structure.
 
 SimpleModel:
 ```js
@@ -159,7 +159,7 @@ ground.translateY(-1.7);
 ground.rotateX(-3.1416*0.5);
 scene.add(ground);
 ```
-For SimpleModel, first create by "[new](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#constructor-12)". Then, call one of the "[.create](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#createboxwidth-number-height-number-depth-number-undefined)" functions to create geometry. For material, you can set base color by calling [.setColor](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#setcolorcolor-vector3-undefined-3), or [.setColorTexture](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#setcolortextureimage-image-undefined) to set a base color map. The image is loaded using the global object [imageLoader](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#imageloader).
+For SimpleModel, first create by "[new](SimpleModel.html#simplemodel)". Then, call one of the "[.create](SimpleModel.html#createbox)" functions to create geometry. For material, you can set base color by calling [.setColor](SimpleModel.html#setcolor), or [.setColorTexture](SimpleModel.html#setcolortexture) to set a base color map. The image is loaded using the global object [imageLoader](Index.html#global-objects).
 
 GLTFModel:
 ```js
@@ -167,7 +167,7 @@ model = gltfLoader.loadModelFromFile("../game/assets/models/RZYAS.glb");
 model.setPosition(0, -8, 0); 
 scene.add(model); 
 ```
-For GLTFModel, the global object [gltfLoader](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#gltfmodel-1) should be used to create the model.
+For GLTFModel, the global object [gltfLoader](Index.html#global-objects) should be used to create the model.
 
 The effect when a few simple models are added to the scene:
 ![models.png](models.png)
@@ -175,15 +175,15 @@ Since that no lighting has been set, the models appear black.
 
 # Indirect Lighting
 
-In an open scene, we can use a global indirect light source to create a natural looking. Therefore, we put the indirect lighting before the direct lighting. A global indirect light source can be set through [`scene.indirectLight`](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#indirectlight-indirectlight). In contrary to Three.js, in Three.v8, an [IndirectLight](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#indirectlight) is not an Object3D.
+In an open scene, we can use a global indirect light source to create a natural looking. Therefore, we put the indirect lighting before the direct lighting. A global indirect light source can be set through [`scene.indirectLight`](Scene.html#indirectlight). In contrary to Three.js, in Three.v8, an [IndirectLight](IndirectLight.html) is not an Object3D.
 
 Currently we have to following options for indirect light source. 
 
-[AmbientLight](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#ambientlight): corresponding to ColorBackground. Monotone ambient light.
+[AmbientLight](AmbientLight.html): corresponding to ColorBackground. Monotone ambient light.
 
-[EnvironmentMap](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#environmentmap): corresponding to CubeBackground. Image based lighting.
+[EnvironmentMap](EnvironmentMap.html): corresponding to CubeBackground. Image based lighting.
 
-[HemisphereLight](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#hemispherelight): corresponding to HemisphereBackground. Gradient ambient light.
+[HemisphereLight](HemisphereLight.html): corresponding to HemisphereBackground. Gradient ambient light.
 
 AmbientLight:
 
@@ -225,7 +225,7 @@ Direct light sources are explict light emitting 3d objects placed into the scene
 
 Currently we have to following options for direct light source. 
 
-[DirectionalLight](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#directionallight): A light that gets emitted in a specific direction. This light will behave as though it is infinitely far away and the rays produced from it are all parallel. 
+[DirectionalLight](DirectionalLight.html): A light that gets emitted in a specific direction. This light will behave as though it is infinitely far away and the rays produced from it are all parallel. 
 
 DirectionalLight:
 
@@ -255,21 +255,21 @@ Currently, only GLTFModel has the animation features.
 
 Animation clips are owned by each model. When a model is loaded, the animations clips are also loaded if they are present
 
-[`GLTFModel.addAnimation`](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#addanimationanimation-object-undefined) and [`GLTFModel.addAnimations`](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#addanimationsanimations-array-undefined): add more animation clips to a model. These animation clips might be loaded separately.
+[`GLTFModel.addAnimation`](GLTFModel.html#addanimation) and [`GLTFModel.addAnimations`](GLTFModel.html#addanimations): add more animation clips to a model. These animation clips might be loaded separately.
 
 ## Animation Control
 
 First, a static pose can be specified without involving any animation clip.
 
-[`GLTFModel.setAnimationFrame`](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#setanimationframeframe-object-undefined): specify the state of each movable parts.
+[`GLTFModel.setAnimationFrame`](GLTFModel.html#setanimationframe): specify the state of each movable parts.
 
 Second, the play/stop state of each animation clip can be controlled separately. 
 
-[`GLTFModel.playAnimation`](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#playanimationname-string-undefined): start playing an animation clip.
+[`GLTFModel.playAnimation`](GLTFModel.html#playanimation): start playing an animation clip.
 
-[`GLTFModel.stopAnimation`](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#stopanimationname-string-undefined): stop playing an animation clip.
+[`GLTFModel.stopAnimation`](GLTFModel.html#stopanimation): stop playing an animation clip.
 
-In order to have the animation clip being played to take effect, call [`GLTFModel.updateAnimation`](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#updateanimation-undefined) from the `render` callback function.
+In order to have the animation clip being played to take effect, call [`GLTFModel.updateAnimation`](GLTFModel.html#updateanimation) from the `render` callback function.
 
 The following code loads the Parrot model and starts the animation that comes with the model:
 ```js
@@ -280,9 +280,9 @@ model.playAnimation("KeyAction");
 
 # Ray Casting
 
-Accelerated ray-casting is most handy for basic physical simulation such as collision detection. Three.V8 provides a [BoundingVolumeHierarchy](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#boundingvolumehierarchy) helper class to accelerate ray-geometry intersection calculation, which is powered by the [bvh](https://github.com/madmann91/bvh) library.
+Accelerated ray-casting is most handy for basic physical simulation such as collision detection. Three.V8 provides a [BoundingVolumeHierarchy](BoundingVolumeHierarchy.html) helper class to accelerate ray-geometry intersection calculation, which is powered by the [bvh](https://github.com/madmann91/bvh) library.
 
-The [constructor](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#constructor-16) creates a bvh acceleration structure from a list of 3d objects. 
+The [constructor](BoundingVolumeHierarchy.html#boundingvolumehierarchy) creates a bvh acceleration structure from a list of 3d objects. 
 
-The [.intersect](https://github.com/fynv/Three.V8/blob/main/docs/UserScriptAPIs.md#intersectray-object-object) method intersects the accleration structure with a given ray. Both input and output are expressed using ordinary JS objects.
+The [.intersect](BoundingVolumeHierarchy.html#intersect) method intersects the accleration structure with a given ray. Both input and output are expressed using ordinary JS objects.
 
