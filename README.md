@@ -58,6 +58,6 @@ The source code is licensed under ['"Anti 996" License'](https://github.com/996i
 
 ## Documentation
 
-[User Script APIs](https://fynv.github.io/Three.V8/Index.html)
+[User Script APIs](docs/Index.html)
 
-[Features and Code Snippets](https://fynv.github.io/Three.V8/Features.html)
+[Features and Code Snippets](docs/Features.html)
