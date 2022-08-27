@@ -105,6 +105,8 @@ The host program calls these functions at specific events according to their nam
 
 The following callback functions are called by the default "GamePlayer".
 
+Mouse callbacks are specific to desktop while touch callbacks are specific to mobile devices.
+
 | Callback name                     | Description                                                  |
 | --------------------------------  | ------------------------------------------------------------ |
 | [init()](#init)                   | Called immediately after loading the script.                 |
@@ -114,6 +116,9 @@ The following callback functions are called by the default "GamePlayer".
 | [OnMouseUp()](#onmouseup)         | Called when mouse button is up.                              |
 | [OnMouseMove()](#onmousemove)     | Called when mouse pointer is moved.                          |
 | [OnMouseWheel()](#onmousewheel)   | Called when mouse wheel is moved.                            |
+| [OnTouchDown()](#ontouchdown)     | Called when user touches screen.                             |
+| [OnTouchUp()](#ontouchup)         | Called when user stops touching screen.                      |
+| [OnTouchMove()](#ontouchmove)     | Called when user moves on touch screen.                      |
 
 ## init()
 
@@ -187,7 +192,7 @@ wheel delta
 
 Called when mouse button is up.
 
-The parameter `e` has the same structure as in `OnMouseDown`
+The parameter `e` has the same structure as in [`OnMouseDown`](#onmousedown)
 
 ## OnMouseMove()
 
@@ -195,7 +200,7 @@ The parameter `e` has the same structure as in `OnMouseDown`
 
 Called when mouse pointer is moved.
 
-The parameter `e` has the same structure as in `OnMouseDown`
+The parameter `e` has the same structure as in [`OnMouseDown`](#onmousedown)
 
 ## OnMouseWheel()
 
@@ -203,6 +208,42 @@ The parameter `e` has the same structure as in `OnMouseDown`
 
 Called when mouse wheel is moved.
 
-The parameter `e` has the same structure as in `OnMouseDown`
+The parameter `e` has the same structure as in [`OnMouseDown`](#onmousedown)
 
+## OnTouchDown()
 
+`OnTouchDown`(`e`: Object): undefined
+
+Called when user touches screen.
+
+### Parameters
+
+`e`: has the following properties:
+
+`pointerId`: Number
+
+Identifier for distinguishing multiple touch points.
+
+`x`: number 
+
+x coordinate of touch point.
+
+`y`: number 
+
+y coordinate of touch point.
+
+## OnTouchUp()
+
+`OnTouchUp`(`e`: Object): undefined
+
+Called when user stops touching screen.
+
+The parameter `e` has the same structure as in [`OnTouchDown`](#ontouchdown)
+
+## OnTouchMove()
+
+`OnTouchMove`(`e`: Object): undefined
+
+Called when user moves on touch screen.
+
+The parameter `e` has the same structure as in [`OnTouchDown`](#ontouchdown)
