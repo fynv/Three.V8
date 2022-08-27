@@ -45,13 +45,13 @@ Together these define the camera's viewing frustum.
 See the base [Camera](Camera.html#properties) class for common properties.
 Note that after making changes to most of these properties you will have to call [`.updateProjectionMatrix`](#updateprojectionmatrix) for the changes to take effect.
 
-## isPerspectiveCamera()
+## isPerspectiveCamera
 
 `.isPerspectiveCamera`: Boolean 
 
 Read-only flag to check if a given object is of type PerspectiveCamera.
 
-## fov()
+## fov
 
 `.fov`: Number
 
@@ -59,7 +59,7 @@ Camera frustum vertical field of view, from bottom to top of view, in degrees. D
 
 Readable and writable.
 
-## aspect()
+## aspect
 
 `.aspect`: Number
 
@@ -67,7 +67,7 @@ Camera frustum aspect ratio, usually the canvas width / canvas height. Default i
 
 Readable and writable.
 
-## near()
+## near
 
 `.near`: Number
 
@@ -77,7 +77,7 @@ The valid range is greater than 0 and less than the current value of the far pla
 
 Readable and writable.
 
-## far()
+## far
 
 `.far`: Numbers
 

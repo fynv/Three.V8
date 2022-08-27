@@ -30,7 +30,7 @@ Creates a new HemisphereBackground.
 
 # Properties
 
-## skyColor()
+## skyColor
 
 `.skyColor`: Object
 
@@ -38,7 +38,7 @@ The sky color of the background.
 
 Read-only. Use the method [`.setSkyColor`](#setskycolor) to modify this property.
 
-## groundColor()
+## groundColor
 
 `.groundColor`: Object
 

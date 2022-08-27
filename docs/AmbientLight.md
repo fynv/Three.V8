@@ -29,7 +29,7 @@ Creates a new AmbientLight.
 
 # Properties
 
-## color()
+## color
 
 `.color`: Object
 
@@ -37,7 +37,7 @@ The color of the ambient light.
 
 Read-only. Use the method [`.setColor`](#setcolor) to modify this property.
 
-## intensity()
+## intensity
 
 `.intensity`: Number
 
