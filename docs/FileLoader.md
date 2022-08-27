@@ -4,7 +4,7 @@
 
 Provides a few interfaces to loading local files into memory.
 
-No constructor, exposed as a global object [`fileLoader`](Index.html#global-objects).
+No constructor, exposed as a global object [`fileLoader`](index.html#global-objects).
 
 | Name                                                          | Description                                                    |
 | --------------------------------------------------------------| -------------------------------------------------------------- |

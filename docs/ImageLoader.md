@@ -4,7 +4,7 @@
 
 Provides a few interfaces to load images from local files or from memory.
 
-No constructor, exposed as a global object [`imageLoader`](Index.html#global-objects).
+No constructor, exposed as a global object [`imageLoader`](index.html#global-objects).
 
 `class ImageLoader`
 

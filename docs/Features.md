@@ -107,7 +107,7 @@ cube_img.dispose();
 scene.background = bg;
 ```
 
-For CubeBackground, the cubemap image is loaded using the global object [imageLoader](Index.html#global-objects).
+For CubeBackground, the cubemap image is loaded using the global object [imageLoader](index.html#global-objects).
 
 The effect when a HemisphereBackground is set-up:
 ![background.png](background.png)
@@ -159,7 +159,7 @@ ground.translateY(-1.7);
 ground.rotateX(-3.1416*0.5);
 scene.add(ground);
 ```
-For SimpleModel, first create by "[new](SimpleModel.html#simplemodel)". Then, call one of the "[.create](SimpleModel.html#createbox)" functions to create geometry. For material, you can set base color by calling [.setColor](SimpleModel.html#setcolor), or [.setColorTexture](SimpleModel.html#setcolortexture) to set a base color map. The image is loaded using the global object [imageLoader](Index.html#global-objects).
+For SimpleModel, first create by "[new](SimpleModel.html#simplemodel)". Then, call one of the "[.create](SimpleModel.html#createbox)" functions to create geometry. For material, you can set base color by calling [.setColor](SimpleModel.html#setcolor), or [.setColorTexture](SimpleModel.html#setcolortexture) to set a base color map. The image is loaded using the global object [imageLoader](index.html#global-objects).
 
 GLTFModel:
 ```js
@@ -167,7 +167,7 @@ model = gltfLoader.loadModelFromFile("../game/assets/models/RZYAS.glb");
 model.setPosition(0, -8, 0); 
 scene.add(model); 
 ```
-For GLTFModel, the global object [gltfLoader](Index.html#global-objects) should be used to create the model.
+For GLTFModel, the global object [gltfLoader](index.html#global-objects) should be used to create the model.
 
 The effect when a few simple models are added to the scene:
 ![models.png](models.png)

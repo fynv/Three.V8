@@ -4,7 +4,7 @@
 
 Provides a few interfaces to load GLTF models from local files or from memory.
 
-No constructor, exposed as a global object [`gltfLoader`](Index.html#global-objects).
+No constructor, exposed as a global object [`gltfLoader`](index.html#global-objects).
 
 `class GLTFLoader`
 

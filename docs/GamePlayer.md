@@ -4,7 +4,7 @@
 
 Provides a few interfaces to access the host GamePlayer object.
 
-No constructor, exposed as a global object [`gamePlayer`](Index.html#global-objects).
+No constructor, exposed as a global object [`gamePlayer`](index.html#global-objects).
 
 `class GamePlayer`
 
