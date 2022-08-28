@@ -178,6 +178,9 @@ void GeometryCreator::CreateBox(Primitive* primitive, float width, float height,
 	}
 
 	create(primitive, pos, norm, uv, faces);
+
+	primitive->min_pos = { -half_w, -half_h, -half_d };
+	primitive->max_pos = { half_w, half_h, half_d };
 }
 
 void GeometryCreator::CreateSphere(Primitive* primitive, float radius, int widthSegments, int heightSegments)
@@ -229,6 +232,9 @@ void GeometryCreator::CreateSphere(Primitive* primitive, float radius, int width
 	}
 
 	create(primitive, pos, norm, uv, faces);
+
+	primitive->min_pos = { -radius, -radius, -radius };
+	primitive->max_pos = { radius, radius, radius };
 }
 
 void GeometryCreator::CreatePlane(Primitive* primitive, float width, float height)
@@ -262,4 +268,7 @@ void GeometryCreator::CreatePlane(Primitive* primitive, float width, float heigh
 		faces.push_back({ v_start + 1, v_start + 2, v_start + 3 });
 	}
 	create(primitive, pos, norm, uv, faces);
+
+	primitive->min_pos = { -half_w, -half_h, 0.0f };
+	primitive->max_pos = { half_w, half_h, 0.0f };
 }
