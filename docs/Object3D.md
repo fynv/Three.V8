@@ -2,7 +2,7 @@
 
 # class Object3D
 
-Class that represents an image that resides in CPU memory. 
+Base class of all 3D objects visible to user script.
 
 `class Object3D`
 
@@ -80,7 +80,7 @@ Can be created to group 3D objects together.
 
 `.name`: String
 
-Readable and writtable. Default is an empty string.
+Readable and writable. Default is an empty string.
 
 ## parent
 
@@ -88,7 +88,7 @@ Readable and writtable. Default is an empty string.
 
 Object's parent in the scene graph.
 
-Readable and writtable. 
+Readable and writable. 
 
 ## children
 
@@ -188,7 +188,7 @@ Set the value of [`.up`](#up) according to the x, y, z coordinates.
 
 `.getPosition`(`vector`: Vector3): Vector3
 
-Copy the value of `.position` into `vector`.
+Copy the value of [`.position`](#position) into `vector`.
 
 ## setPosition()
 

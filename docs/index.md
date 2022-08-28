@@ -43,7 +43,26 @@ The user script APIs consist of
 
 # Engine Classes (Network)
 
+| Class Name                                                | Description                                                  |
+| --------------------------------------------------------  | ------------------------------------------------------------ |
+| [HttpClient](HttpClient.html)                             | Provides a few interfaces to make HTTP requests.             |
+
 # Engine Classes (GUI)
+
+| Class Name                                                | Description                                                  |
+| --------------------------------------------------------  | ------------------------------------------------------------ |
+| [UIManager](UIManager.html)                               | Manages UIArea objects.                                      |
+| [UIArea](UIArea.html)                                     | Manages UIElement objects and UI3DViewer objects.            |
+| [UIElement](UIElement.html)                               | Abstract base class of all ui-elements.                      |
+| [UIBlock](UIBlock.html)                                   | Base class for all ui-elements containing other ui-elements. |
+| [UIPanel](UIPanel.html)                                   | A visible ui-block.                                          |
+| [UIButton](UIButton.html)                                 | A clickable ui-block.                                        |
+| [UIScrollViewer](UIScrollViewer.html)                     | A scrollable ui-block.                                       |
+| [UIImage](UIImage.html)                                   | Image element in a UI.                                       |
+| [UIText](UIText.html)                                     | Non-editable text element in a UI.                           |
+| [UITextBlock](UITextBlock.html)                           | Non-editable multi-lined text element in a UI.               |
+| [UILineEdit](UILineEdit.html)                             | Editable text box in a UI.                                   |
+| [UI3DViewer](UI3DViewer.html)                             | Object for embedding a 3D view in a UI.                      |
 
 # Global Functions
 
@@ -96,6 +115,8 @@ These are engine class singletons that can be used directly in user script.
 | fileLoader                                                | Instance of [FileLoader](FileLoader.html).                   |
 | imageLoader                                               | Instance of [ImageLoader](ImageLoader.html).                 |
 | gltfLoader                                                | Instance of [GLTFLoader](GLTFLoader.html).                   |
+| http                                                      | Instance of [HttpClient](HttpClient.html).                   |
+| UIManager                                                 | Instance of [UIManager](UIManager.html).                     |
 
 # Callback Functions
 
@@ -192,7 +213,7 @@ wheel delta
 
 Called when mouse button is up.
 
-The parameter `e` has the same structure as in [`OnMouseDown`](#onmousedown)
+The parameter `e` has the same structure as in [`OnMouseDown()`](#onmousedown)
 
 ## OnMouseMove()
 
@@ -200,7 +221,7 @@ The parameter `e` has the same structure as in [`OnMouseDown`](#onmousedown)
 
 Called when mouse pointer is moved.
 
-The parameter `e` has the same structure as in [`OnMouseDown`](#onmousedown)
+The parameter `e` has the same structure as in [`OnMouseDown()`](#onmousedown)
 
 ## OnMouseWheel()
 
@@ -208,7 +229,7 @@ The parameter `e` has the same structure as in [`OnMouseDown`](#onmousedown)
 
 Called when mouse wheel is moved.
 
-The parameter `e` has the same structure as in [`OnMouseDown`](#onmousedown)
+The parameter `e` has the same structure as in [`OnMouseDown()`](#onmousedown)
 
 ## OnTouchDown()
 
@@ -238,7 +259,7 @@ y coordinate of touch point.
 
 Called when user stops touching screen.
 
-The parameter `e` has the same structure as in [`OnTouchDown`](#ontouchdown)
+The parameter `e` has the same structure as in [`OnTouchDown()`](#ontouchdown)
 
 ## OnTouchMove()
 
@@ -246,4 +267,4 @@ The parameter `e` has the same structure as in [`OnTouchDown`](#ontouchdown)
 
 Called when user moves on touch screen.
 
-The parameter `e` has the same structure as in [`OnTouchDown`](#ontouchdown)
+The parameter `e` has the same structure as in [`OnTouchDown()`](#ontouchdown)
