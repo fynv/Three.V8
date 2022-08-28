@@ -393,11 +393,12 @@ void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, GLTFModel* 
 			Node& node = model->m_nodes[mesh.node_id];
 			matrix *= node.g_trans;
 		}
+		glm::mat4 MV = view_matrix * matrix;
 
 		for (size_t j = 0; j < mesh.primitives.size(); j++)
 		{
 			Primitive& primitive = mesh.primitives[j];
-			if (!visible(view_matrix* matrix, shadow->m_light_proj_matrix, primitive.min_pos, primitive.max_pos)) continue;
+			if (!visible(MV, shadow->m_light_proj_matrix, primitive.min_pos, primitive.max_pos)) continue;
 
 			const MeshStandardMaterial* material = material_lst[primitive.material_idx];
 
