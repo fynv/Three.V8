@@ -23,4 +23,10 @@ export default [
             file: 'bundle_materials.js'
         }
     },
+    {
+        input: 'gui_demo.js',
+        output: {
+            file: 'bundle_gui.js'
+        }
+    },
 ]
