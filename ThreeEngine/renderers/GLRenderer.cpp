@@ -117,26 +117,58 @@ StandardRoutine* GLRenderer::get_routine(const StandardRoutine::Options& options
 	return routine_map[hash].get();
 }
 
-
-inline bool visible(const glm::mat4& MVP, const glm::vec3& pos)
+inline void toViewAABB(const glm::mat4& MV, const glm::vec3& min_pos, const glm::vec3& max_pos, glm::vec3& min_pos_out, glm::vec3& max_pos_out)
 {
-	glm::vec4 _pos = MVP * glm::vec4(pos, 1.0f);
-	_pos /= _pos.w;
-	return _pos.x >= -1.0f && _pos.x <= 1.0f && _pos.y >= -1.0f && _pos.y <= 1.0f && _pos.z >= -1.0f && _pos.z <= 1.0f;
+	glm::vec4 view_pos[8];
+	view_pos[0] = MV * glm::vec4(min_pos.x, min_pos.y, min_pos.z, 1.0f);
+	view_pos[1] = MV * glm::vec4(max_pos.x, min_pos.y, min_pos.z, 1.0f);
+	view_pos[2] = MV * glm::vec4(min_pos.x, max_pos.y, min_pos.z, 1.0f);
+	view_pos[3] = MV * glm::vec4(max_pos.x, max_pos.y, min_pos.z, 1.0f);
+	view_pos[4] = MV * glm::vec4(min_pos.x, min_pos.y, max_pos.z, 1.0f);
+	view_pos[5] = MV * glm::vec4(max_pos.x, min_pos.y, max_pos.z, 1.0f);
+	view_pos[6] = MV * glm::vec4(min_pos.x, max_pos.y, max_pos.z, 1.0f);
+	view_pos[7] = MV * glm::vec4(max_pos.x, max_pos.y, max_pos.z, 1.0f);
 
+	min_pos_out = { FLT_MAX, FLT_MAX, FLT_MAX };
+	max_pos_out = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+
+	for (int k = 0; k < 8; k++)
+	{
+		glm::vec4 pos = view_pos[k];
+		if (pos.x < min_pos_out.x) min_pos_out.x = pos.x;
+		if (pos.x > max_pos_out.x) max_pos_out.x = pos.x;
+		if (pos.y < min_pos_out.y) min_pos_out.y = pos.y;
+		if (pos.y > max_pos_out.y) max_pos_out.y = pos.y;
+		if (pos.z < min_pos_out.z) min_pos_out.z = pos.z;
+		if (pos.z > max_pos_out.z) max_pos_out.z = pos.z;
+	}
 }
 
-inline bool visible(const glm::mat4& MVP, const glm::vec3& min_pos, const glm::vec3& max_pos)
+inline bool visible(const glm::mat4& MV, const glm::mat4& P, const glm::vec3& min_pos, const glm::vec3& max_pos)
 {
-	if (visible(MVP, { min_pos.x, min_pos.y, min_pos.z })) return true;
-	if (visible(MVP, { max_pos.x, min_pos.y, min_pos.z })) return true;
-	if (visible(MVP, { min_pos.x, max_pos.y, min_pos.z })) return true;
-	if (visible(MVP, { max_pos.x, max_pos.y, min_pos.z })) return true;
-	if (visible(MVP, { min_pos.x, min_pos.y, max_pos.z })) return true;
-	if (visible(MVP, { max_pos.x, min_pos.y, max_pos.z })) return true;
-	if (visible(MVP, { min_pos.x, max_pos.y, max_pos.z })) return true;
-	if (visible(MVP, { max_pos.x, max_pos.y, max_pos.z })) return true;
-	return false;
+	glm::vec3 min_pos_view, max_pos_view;
+	toViewAABB(MV, min_pos, max_pos, min_pos_view, max_pos_view);
+
+	glm::mat4 invP = glm::inverse(P);
+	glm::vec4 view_far = invP * glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+	view_far /= view_far.w;
+	glm::vec4 view_near = invP * glm::vec4(0.0f, 0.0f, -1.0f, 1.0f);
+	view_near /= view_near.w;
+	
+	if (min_pos_view.z > view_near.z) return false;
+	if (max_pos_view.z < view_far.z) return false;
+	if (min_pos_view.z < view_far.z)
+	{
+		min_pos_view.z = view_far.z;
+	}	
+
+	glm::vec4 min_pos_proj = P * glm::vec4(min_pos_view.x, min_pos_view.y, min_pos_view.z, 1.0f);
+	min_pos_proj /= min_pos_proj.w;
+
+	glm::vec4 max_pos_proj = P * glm::vec4(max_pos_view.x, max_pos_view.y, min_pos_view.z, 1.0f);
+	max_pos_proj /= max_pos_proj.w;
+
+	return  max_pos_proj.x >= -1.0f && min_pos_proj.x <= 1.0f && max_pos_proj.y >= -1.0f && min_pos_proj.y <= 1.0f;
 }
 
 void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, Pass pass)
@@ -179,11 +211,11 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 
 
 void GLRenderer::render_model(Camera* p_camera, const Lights& lights, SimpleModel* model, Pass pass)
-{	
-	glm::mat4 view_matrix = p_camera->matrixWorldInverse;
-	glm::mat4 VP = p_camera->projectionMatrix * view_matrix;
-	glm::mat4 MVP = VP * model->matrixWorld;
-	if (!visible(MVP, model->geometry.min_pos, model->geometry.max_pos)) return;
+{		
+	if (!visible(p_camera->matrixWorldInverse * model->matrixWorld, p_camera->projectionMatrix, model->geometry.min_pos, model->geometry.max_pos))
+	{
+		return;
+	}
 
 	const GLTexture2D* tex = &model->texture;
 	const MeshStandardMaterial* material = &model->material;
@@ -214,9 +246,6 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, SimpleMode
 
 void GLRenderer::render_model(Camera* p_camera, const Lights& lights, GLTFModel* model, Pass pass)
 {
-	glm::mat4 view_matrix = p_camera->matrixWorldInverse;
-	glm::mat4 VP = p_camera->projectionMatrix * view_matrix;	
-
 	std::vector<const GLTexture2D*> tex_lst(model->m_textures.size());
 	for (size_t i = 0; i < tex_lst.size(); i++)
 		tex_lst[i] = model->m_textures[i].get();
@@ -234,12 +263,12 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, GLTFModel*
 			Node& node = model->m_nodes[mesh.node_id];
 			matrix *= node.g_trans;
 		}
-		glm::mat4 MVP = VP * matrix;
+		glm::mat4 MV = p_camera->matrixWorldInverse * matrix;
 
 		for (size_t j = 0; j < mesh.primitives.size(); j++)
 		{
 			Primitive& primitive = mesh.primitives[j];			
-			if (!visible(MVP, primitive.min_pos, primitive.max_pos)) continue;
+			if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos)) continue;
 
 			const MeshStandardMaterial* material = material_lst[primitive.material_idx];
 			if (pass == Pass::Opaque)
@@ -329,9 +358,7 @@ void GLRenderer::render_shadow_primitive(const DirectionalShadowCast::RenderPara
 void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, SimpleModel* model)
 {
 	glm::mat4 view_matrix = glm::inverse(shadow->m_light->matrixWorld);
-	glm::mat4 VP = shadow->m_light_proj_matrix * view_matrix;
-	glm::mat4 MVP = VP * model->matrixWorld;
-	if (!visible(MVP, model->geometry.min_pos, model->geometry.max_pos)) return;
+	if (!visible(view_matrix * model->matrixWorld, shadow->m_light_proj_matrix, model->geometry.min_pos, model->geometry.max_pos)) return;
 
 	const GLTexture2D* tex = &model->texture;
 	const MeshStandardMaterial* material = &model->material;
@@ -348,8 +375,7 @@ void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, SimpleModel
 void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, GLTFModel* model)
 {
 	glm::mat4 view_matrix = glm::inverse(shadow->m_light->matrixWorld);
-	glm::mat4 VP = shadow->m_light_proj_matrix * view_matrix;	
-
+	
 	std::vector<const GLTexture2D*> tex_lst(model->m_textures.size());
 	for (size_t i = 0; i < tex_lst.size(); i++)
 		tex_lst[i] = model->m_textures[i].get();
@@ -367,12 +393,11 @@ void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, GLTFModel* 
 			Node& node = model->m_nodes[mesh.node_id];
 			matrix *= node.g_trans;
 		}
-		glm::mat4 MVP = VP * matrix;
 
 		for (size_t j = 0; j < mesh.primitives.size(); j++)
 		{
 			Primitive& primitive = mesh.primitives[j];
-			if (!visible(MVP, primitive.min_pos, primitive.max_pos)) continue;
+			if (!visible(view_matrix* matrix, shadow->m_light_proj_matrix, primitive.min_pos, primitive.max_pos)) continue;
 
 			const MeshStandardMaterial* material = material_lst[primitive.material_idx];
 
