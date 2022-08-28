@@ -313,6 +313,8 @@ function httpGetAsync(url, is_text)
 }
 ```
 
+The returned `ArrayBuffer` can then be used with [`ImageLoader`](ImageLoader.html) or [`GLTFLoader`](GLTFLoader.html).
+
 # GUI Sub-system
 
 Again, to provide a usable app framework, GUI functionality is necessary.
