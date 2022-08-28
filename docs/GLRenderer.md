@@ -37,13 +37,13 @@ Dispose the unmanaged resource.
 
 Renders `scene` using `camera` to the main view of the game-player.
 
-Should be called from the [`render`](index.html#render) callback function.
+Should be called from the [`render()`](index.html#render) callback function.
 
 `.render`(`scene`: [Scene](Scene.html), `camera`: [Camera](Camera.html), `ui3dviewer`: [UI3DViewer](UI3DViewer.html)): undefined
 
 Renders `scene` using `camera` to `ui3dviewer`.
 
-Should be called from the [`render`](index.html#render) callback function of the `ui3dviewer`.
+Should be called from the [`onRender()`](UI3DViewer.html#onrender) callback function of the `ui3dviewer`.
 
 
 
