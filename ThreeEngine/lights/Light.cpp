@@ -20,7 +20,7 @@ void Light::lookAt(const glm::vec3& target)
 	if (this->parent != nullptr)
 	{
 		glm::quat q = parent->matrixWorld;
-		this->set_quaternion(q * this->quaternion);
+		this->set_quaternion(glm::inverse(q) * this->quaternion);
 	}
 }
 

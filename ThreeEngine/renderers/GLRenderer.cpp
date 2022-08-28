@@ -117,6 +117,28 @@ StandardRoutine* GLRenderer::get_routine(const StandardRoutine::Options& options
 	return routine_map[hash].get();
 }
 
+
+inline bool visible(const glm::mat4& MVP, const glm::vec3& pos)
+{
+	glm::vec4 _pos = MVP * glm::vec4(pos, 1.0f);
+	_pos /= _pos.w;
+	return _pos.x >= -1.0f && _pos.x <= 1.0f && _pos.y >= -1.0f && _pos.y <= 1.0f && _pos.z >= -1.0f && _pos.z <= 1.0f;
+
+}
+
+inline bool visible(const glm::mat4& MVP, const glm::vec3& min_pos, const glm::vec3& max_pos)
+{
+	if (visible(MVP, { min_pos.x, min_pos.y, min_pos.z })) return true;
+	if (visible(MVP, { max_pos.x, min_pos.y, min_pos.z })) return true;
+	if (visible(MVP, { min_pos.x, max_pos.y, min_pos.z })) return true;
+	if (visible(MVP, { max_pos.x, max_pos.y, min_pos.z })) return true;
+	if (visible(MVP, { min_pos.x, min_pos.y, max_pos.z })) return true;
+	if (visible(MVP, { max_pos.x, min_pos.y, max_pos.z })) return true;
+	if (visible(MVP, { min_pos.x, max_pos.y, max_pos.z })) return true;
+	if (visible(MVP, { max_pos.x, max_pos.y, max_pos.z })) return true;
+	return false;
+}
+
 void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, Pass pass)
 {
 	const MeshStandardMaterial* material = params.material_list[params.primitive->material_idx];
@@ -158,6 +180,11 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 
 void GLRenderer::render_model(Camera* p_camera, const Lights& lights, SimpleModel* model, Pass pass)
 {	
+	glm::mat4 view_matrix = p_camera->matrixWorldInverse;
+	glm::mat4 VP = p_camera->projectionMatrix * view_matrix;
+	glm::mat4 MVP = VP * model->matrixWorld;
+	if (!visible(MVP, model->geometry.min_pos, model->geometry.max_pos)) return;
+
 	const GLTexture2D* tex = &model->texture;
 	const MeshStandardMaterial* material = &model->material;
 
@@ -187,6 +214,9 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, SimpleMode
 
 void GLRenderer::render_model(Camera* p_camera, const Lights& lights, GLTFModel* model, Pass pass)
 {
+	glm::mat4 view_matrix = p_camera->matrixWorldInverse;
+	glm::mat4 VP = p_camera->projectionMatrix * view_matrix;	
+
 	std::vector<const GLTexture2D*> tex_lst(model->m_textures.size());
 	for (size_t i = 0; i < tex_lst.size(); i++)
 		tex_lst[i] = model->m_textures[i].get();
@@ -198,9 +228,19 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, GLTFModel*
 	for (size_t i = 0; i < model->m_meshs.size(); i++)
 	{
 		Mesh& mesh = model->m_meshs[i];
+		glm::mat4 matrix = model->matrixWorld;
+		if (mesh.node_id >= 0 && mesh.skin_id < 0)
+		{
+			Node& node = model->m_nodes[mesh.node_id];
+			matrix *= node.g_trans;
+		}
+		glm::mat4 MVP = VP * matrix;
+
 		for (size_t j = 0; j < mesh.primitives.size(); j++)
 		{
-			Primitive& primitive = mesh.primitives[j];
+			Primitive& primitive = mesh.primitives[j];			
+			if (!visible(MVP, primitive.min_pos, primitive.max_pos)) continue;
+
 			const MeshStandardMaterial* material = material_lst[primitive.material_idx];
 			if (pass == Pass::Opaque)
 			{
@@ -275,7 +315,7 @@ DirectionalShadowCast* GLRenderer::get_shadow_caster(const DirectionalShadowCast
 }
 
 void GLRenderer::render_shadow_primitive(const DirectionalShadowCast::RenderParams& params)
-{
+{		
 	const MeshStandardMaterial* material = params.material_list[params.primitive->material_idx];
 
 	DirectionalShadowCast::Options options;
@@ -288,6 +328,11 @@ void GLRenderer::render_shadow_primitive(const DirectionalShadowCast::RenderPara
 
 void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, SimpleModel* model)
 {
+	glm::mat4 view_matrix = glm::inverse(shadow->m_light->matrixWorld);
+	glm::mat4 VP = shadow->m_light_proj_matrix * view_matrix;
+	glm::mat4 MVP = VP * model->matrixWorld;
+	if (!visible(MVP, model->geometry.min_pos, model->geometry.max_pos)) return;
+
 	const GLTexture2D* tex = &model->texture;
 	const MeshStandardMaterial* material = &model->material;
 
@@ -302,6 +347,9 @@ void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, SimpleModel
 
 void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, GLTFModel* model)
 {
+	glm::mat4 view_matrix = glm::inverse(shadow->m_light->matrixWorld);
+	glm::mat4 VP = shadow->m_light_proj_matrix * view_matrix;	
+
 	std::vector<const GLTexture2D*> tex_lst(model->m_textures.size());
 	for (size_t i = 0; i < tex_lst.size(); i++)
 		tex_lst[i] = model->m_textures[i].get();
@@ -313,9 +361,19 @@ void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, GLTFModel* 
 	for (size_t i = 0; i < model->m_meshs.size(); i++)
 	{
 		Mesh& mesh = model->m_meshs[i];
+		glm::mat4 matrix = model->matrixWorld;
+		if (mesh.node_id >= 0 && mesh.skin_id < 0)
+		{
+			Node& node = model->m_nodes[mesh.node_id];
+			matrix *= node.g_trans;
+		}
+		glm::mat4 MVP = VP * matrix;
+
 		for (size_t j = 0; j < mesh.primitives.size(); j++)
 		{
 			Primitive& primitive = mesh.primitives[j];
+			if (!visible(MVP, primitive.min_pos, primitive.max_pos)) continue;
+
 			const MeshStandardMaterial* material = material_lst[primitive.material_idx];
 
 			DirectionalShadowCast::RenderParams params;
@@ -328,6 +386,7 @@ void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, GLTFModel* 
 		}
 	}
 }
+
 
 void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 {
@@ -345,32 +404,42 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 	Lists lists;
 	auto* p_lists = &lists;	
 
-	scene.traverse([p_lists](Object3D* obj) {
+	scene.traverse([p_lists](Object3D* obj) {		
+		do
+		{
+			{
+				SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
+				if (model)
+				{
+					p_lists->simple_models.push_back(model);
+					break;
+				}
+			}
+			{
+				GLTFModel* model = dynamic_cast<GLTFModel*>(obj);
+				if (model)
+				{
+					p_lists->gltf_models.push_back(model);
+					break;
+				}
+			}
+			{
+				DirectionalLight* light = dynamic_cast<DirectionalLight*>(obj);
+				if (light)
+				{
+					glm::vec3 pos_target = { 0.0f, 0.0f, 0.0f };
+					if (light->target != nullptr)
+					{
+						pos_target = light->target->matrixWorld[3];
+					}
+					light->lookAt(pos_target);
+					p_lists->directional_lights.push_back(light);
+					break;
+				}
+			}
+		} while (false);
+
 		obj->updateWorldMatrix(false, false);
-		{
-			SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
-			if (model)
-			{
-				p_lists->simple_models.push_back(model);
-				return;
-			}
-		}
-		{
-			GLTFModel* model = dynamic_cast<GLTFModel*>(obj);
-			if (model)
-			{
-				p_lists->gltf_models.push_back(model);
-				return;
-			}
-		}
-		{
-			DirectionalLight* light = dynamic_cast<DirectionalLight*>(obj);
-			if (light)
-			{
-				p_lists->directional_lights.push_back(light);
-				return;
-			}
-		}
 	});
 
 	// update models

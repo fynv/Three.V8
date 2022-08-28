@@ -47,13 +47,7 @@ void DirectionalLightShadow::setProjection(float left, float right, float bottom
 
 void DirectionalLightShadow::updateMatrices()
 {
-	glm::vec3 pos_target = { 0.0f, 0.0f, 0.0f };
-	if (m_light->target != nullptr)
-	{
-		pos_target = m_light->target->matrixWorld[3];
-	}
-	glm::vec3 position = m_light->matrixWorld[3];
-	glm::mat4 view_matrix = glm::lookAt(position, pos_target, glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::mat4 view_matrix = glm::inverse(m_light->matrixWorld);
 
 	glm::mat4 lightScale = glm::identity<glm::mat4>();
 	lightScale = glm::scale(lightScale, glm::vec3(0.5f, 0.5f, 0.5f));
