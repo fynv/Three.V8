@@ -286,3 +286,187 @@ The [constructor](BoundingVolumeHierarchy.html#boundingvolumehierarchy) creates 
 
 The [.intersect](BoundingVolumeHierarchy.html#intersect) method intersects the accleration structure with a given ray. Both input and output are expressed using ordinary JS objects.
 
+# Network Sub-system
+
+To provide a usable app framework, networking functionality is necessary.
+
+Currently, Three.V8 only support basic HTTP-Get requests.
+
+The global object [http](index.html#global-objects) provides 2 methods:
+
+* [`get()`](HttpClient.html#get): for synchronized HTTP-Get.
+* [`getAsync()`](HttpClient.html#getasync): for asynchronized HTTP-Get.
+
+Both `get` methods supports binary and text(utf-8 encoded) modes.
+
+`getAsync()` uses callback. To convert it into an actual async function, use the following code-snippet:
+
+```js
+function httpGetAsync(url, is_text)
+{
+    return new Promise((resolve, reject) => {
+        http.getAsync(url, is_text, (suc, data)=>
+        {
+            resolve(data);
+        });
+    });
+}
+```
+
+# GUI Sub-system
+
+Again, to provide a usable app framework, GUI functionality is necessary.
+
+Currently, Three.V8 provides a minimalism GUI sub-system which is embedded into the 3D rendering flow.
+
+The system is incomplete. It doesn't include any layout calculation. The position and size of each ui element need to be explicitly specified by user. The up-side of this is that the ui elements are very accurately positioned, and behaves consistently across different devices.
+
+## Structure
+
+![UIManager.png](UIManager.png)
+
+Each script context has a single `UIManager` object. The `UIManager` manages one or more `UIArea` objects, each contains multiple `UIElement` objects.
+
+Each `UIArea` maintains a framebuffer where the ui-elements are rendered. 
+
+The `UIManager` processes all the Mouse/Touch/Keyboard inputs by traversing each `UIArea` and `UIElement`.
+
+While all ui-elements are directly owned by an `UIArea`, they can be geometrically nested.
+
+The geometry relationship can be specified using `UIElement.block`. The `block` property specifies the geometry parent of an element.
+
+In the hierachy of `UIElement` classes:
+![UIElement.png](UIElement.png)
+
+only those derived from `UIBlock` can be used as `UIElement.block`, which means the other ui-elements can only be the leaf elements.
+
+## Example
+
+![GUI_Demo.png](GUI_Demo.png)
+
+```js
+function setupUI()
+{
+    if (!gamePlayer.hasFont("default"))
+    {
+        gamePlayer.createFontFromFile("default", "assets/fonts/NotoSansSC-Bold.otf");
+    }
+    
+    ui_area = new UIArea();
+    ui_area.setOrigin(15.0, 30.0);
+    ui_area.setSize(320.0, 480.0);
+    UIManager.add(ui_area);
+    
+    panel2 = new UIPanel();
+    panel2.setOrigin(0.0, 0.0);
+    panel2.setSize(300.0, 200.0);
+    ui_area.add(panel2);
+    
+    {
+        text_msg = new UIText();
+        text_msg.text = "Accurate GUI Layout";
+        text_msg.block = panel2;
+        text_msg.setStyle({ "alignmentVertical": 0});
+        text_msg.setOrigin(0.0, 30.0);    
+        ui_area.add(text_msg); 
+        
+        edit = new UILineEdit();
+        edit.setOrigin(50.0, 60.0);
+        edit.block = panel2;
+        edit.text = "你好ABC，Can you see me?";
+        ui_area.add(edit);
+        
+        btn = new UIButton();
+        btn.setOrigin(50.0, 120.0);
+        btn.setSize(90.0, 40.0);
+        btn.block = panel2;    
+        btn.onClick = ClearUI;
+        ui_area.add(btn);        
+        {
+        
+            img = imageLoader.loadFile("assets/textures/ok.png");
+            btn_img = new UIImage();
+            btn_img.setImage(img);
+            btn_img.block = btn;
+            btn_img.setSize(30,30);
+            ui_area.add(btn_img);
+            
+            btn_text = new UIText();
+            btn_text.text = "OK";
+            btn_text.block = btn;
+            btn_text.setStyle({ "alignmentHorizontal": 0 });
+            btn_text.setOrigin(40.0, 0.0); 
+            btn.onLongPress = () =>
+            {
+                print("Long Press");
+            }   
+            ui_area.add(btn_text); 
+        }
+        
+        btn2 = new UIButton();
+        btn2.setOrigin(150.0, 120.0);
+        btn2.setSize(110.0, 40.0);
+        btn2.block = panel2;
+        btn2.onClick = ClearUI;
+        ui_area.add(btn2);
+        {        
+            img2 = imageLoader.loadFile("assets/textures/cancel.png");
+            btn_img2 = new UIImage();
+            btn_img2.setImage(img2);
+            btn_img2.block = btn2;
+            btn_img2.setSize(30,30);
+            ui_area.add(btn_img2);
+            
+            btn_text2 = new UIText();
+            btn_text2.text = "Cancel";
+            btn_text2.block = btn2;
+            btn_text2.setStyle({ "alignmentHorizontal": 0 });
+            btn_text2.setOrigin(40.0, 0.0);
+            ui_area.add(btn_text2);   
+        }
+    }
+    
+    sview = new UIScrollViewer();    
+    sview.setOrigin(0.0, 220.0);
+    sview.setSize(280.0, 240.0);    
+    ui_area.add(sview); 
+    {
+        picture = new UIImage();
+        picture.block = sview;
+        {
+            img3 = imageLoader.loadFile("assets/textures/uv-test-col.png");            
+            picture.setImage(img3);
+            picture.setSize(180,180);
+        }        
+        ui_area.add(picture);
+        sview.setContentSize(200,400);
+        
+        btn3 = new UIButton();
+        btn3.block = sview;
+        btn3.setOrigin(20, 200);
+        btn3.setSize(100.0, 40.0);
+        ui_area.add(btn3);
+        {
+            btn_text3 = new UIText();
+            btn_text3.text = "Test1";
+            btn_text3.block = btn3;                       
+            ui_area.add(btn_text3);   
+        }
+        
+        btn4 = new UIButton();
+        btn4.block = sview;
+        btn4.setOrigin(20, 250);
+        btn4.setSize(100.0, 40.0);
+        ui_area.add(btn4);
+        {
+            btn_text4 = new UIText();
+            btn_text4.text = "Test2";
+            btn_text4.block = btn4;                       
+            ui_area.add(btn_text4);   
+        }
+    }
+}
+```
+
+
+
