@@ -126,8 +126,8 @@ SkinUpdate::SkinUpdate(bool has_tangent) : m_has_tangent(has_tangent)
 
 	replace(s_compute, "#DEFINES#", defines.c_str());
 
-	m_comp_shader = std::unique_ptr<GLShader>(new GLShader(GL_COMPUTE_SHADER, s_compute.c_str()));
-	m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(*m_comp_shader));
+	GLShader comp_shader(GL_COMPUTE_SHADER, s_compute.c_str());
+	m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(comp_shader));
 }
 
 

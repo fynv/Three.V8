@@ -53,6 +53,8 @@ GLProgram::GLProgram(const GLShader& vertexShader, const GLShader& fragmentShade
 
 		printf("Shader link failed: %s", std::string(infoLog.begin(), infoLog.end()).c_str());
 	}
+	glDetachShader(m_id, vertexShader.m_id);
+	glDetachShader(m_id, fragmentShader.m_id);
 }
 
 GLProgram::GLProgram(const GLShader& vertexShader, const GLShader& geometryShader, const GLShader& fragmentShader)
@@ -74,6 +76,9 @@ GLProgram::GLProgram(const GLShader& vertexShader, const GLShader& geometryShade
 
 		printf("Shader link failed: %s", std::string(infoLog.begin(), infoLog.end()).c_str());
 	}
+	glDetachShader(m_id, vertexShader.m_id);
+	glDetachShader(m_id, geometryShader.m_id);
+	glDetachShader(m_id, fragmentShader.m_id);
 }
 
 GLProgram::GLProgram(const GLShader& computeShader)
@@ -93,6 +98,7 @@ GLProgram::GLProgram(const GLShader& computeShader)
 
 		printf("Shader link failed: %s", std::string(infoLog.begin(), infoLog.end()).c_str());
 	}
+	glDetachShader(m_id, computeShader.m_id);
 }
 
 GLProgram::~GLProgram()

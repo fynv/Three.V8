@@ -18,7 +18,6 @@ public:
 
 private:	
 	bool m_has_tangent;
-	std::unique_ptr<GLShader> m_comp_shader;
 	std::unique_ptr<GLProgram> m_prog;
 };
 

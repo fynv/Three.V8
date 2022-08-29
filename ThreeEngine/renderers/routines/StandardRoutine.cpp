@@ -983,9 +983,9 @@ StandardRoutine::StandardRoutine(const Options& options) : m_options(options)
 	std::string s_vertex, s_frag;
 	s_generate_shaders(options, m_bindings, s_vertex, s_frag);
 	
-	m_vert_shader = std::unique_ptr<GLShader>(new GLShader(GL_VERTEX_SHADER, s_vertex.c_str()));
-	m_frag_shader = std::unique_ptr<GLShader>(new GLShader(GL_FRAGMENT_SHADER, s_frag.c_str()));
-	m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(*m_vert_shader, *m_frag_shader));
+	GLShader vert_shader(GL_VERTEX_SHADER, s_vertex.c_str());
+	GLShader frag_shader(GL_FRAGMENT_SHADER, s_frag.c_str());
+	m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(vert_shader, frag_shader));
 }
 
 void StandardRoutine::render(const RenderParams& params)

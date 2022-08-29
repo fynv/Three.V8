@@ -50,8 +50,6 @@ private:
 
 	static void s_generate_shaders(const Options& options, Bindings& bindings, std::string& s_vertex, std::string& s_frag);
 
-	std::unique_ptr<GLShader> m_vert_shader;
-	std::unique_ptr<GLShader> m_frag_shader;
 	std::unique_ptr<GLProgram> m_prog;
 
 };

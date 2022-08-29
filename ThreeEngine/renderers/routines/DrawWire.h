@@ -20,9 +20,6 @@ public:
 	void render(const RenderParams& params);
 
 private:
-	std::unique_ptr<GLShader> m_vert_shader;
-	std::unique_ptr<GLShader> m_geo_shader;
-	std::unique_ptr<GLShader> m_frag_shader;
 	std::unique_ptr<GLProgram> m_prog;
 
 };

@@ -22,11 +22,8 @@ public:
 	void Create(const CubeBackground* background, EnvironmentMap* envMap);
 
 
-private:
-	std::unique_ptr<GLShader> m_comp_downsample;
-	std::unique_ptr<GLProgram> m_prog_downsample;
-
-	std::unique_ptr<GLShader> m_comp_filter;
+private:	
+	std::unique_ptr<GLProgram> m_prog_downsample;	
 	std::unique_ptr<GLProgram> m_prog_filter;
 
 	unsigned m_tex_src; // downsampled mipmaps	

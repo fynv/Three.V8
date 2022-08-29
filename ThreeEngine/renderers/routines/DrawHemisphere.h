@@ -11,8 +11,6 @@ public:
 	void render(const GLDynBuffer* constant_camera, const GLDynBuffer* constant_hemisphere);
 
 private:
-	std::unique_ptr<GLShader> m_vert_shader;
-	std::unique_ptr<GLShader> m_frag_shader;
 	std::unique_ptr<GLProgram> m_prog;
 };
 

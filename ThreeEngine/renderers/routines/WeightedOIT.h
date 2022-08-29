@@ -29,8 +29,6 @@ public:
 
 private:
 	bool m_msaa;
-	std::unique_ptr<GLShader> m_vert_shader;
-	std::unique_ptr<GLShader> m_frag_shader;
 	std::unique_ptr<GLProgram> m_prog;
 };
 

@@ -17,8 +17,7 @@ public:
 
 private:
 	bool m_has_tangent;
-	bool m_sparse;
-	std::unique_ptr<GLShader> m_comp_shader;
+	bool m_sparse;	
 	std::unique_ptr<GLProgram> m_prog;
 };
 

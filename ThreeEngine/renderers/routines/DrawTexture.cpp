@@ -42,16 +42,17 @@ void main()
 
 DrawTexture::DrawTexture(bool premult)
 {
-	m_vert_shader = std::unique_ptr<GLShader>(new GLShader(GL_VERTEX_SHADER, g_vertex.c_str()));
+	GLShader vert_shader(GL_VERTEX_SHADER, g_vertex.c_str());
 	if (premult)
 	{
-		m_frag_shader = std::unique_ptr<GLShader>(new GLShader(GL_FRAGMENT_SHADER, g_frag_premult.c_str()));
+		GLShader frag_shader(GL_FRAGMENT_SHADER, g_frag_premult.c_str());
+		m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(vert_shader, frag_shader));
 	}
 	else
 	{
-		m_frag_shader = std::unique_ptr<GLShader>(new GLShader(GL_FRAGMENT_SHADER, g_frag.c_str()));
-	}
-	m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(*m_vert_shader, *m_frag_shader));
+		GLShader frag_shader(GL_FRAGMENT_SHADER, g_frag.c_str());
+		m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(vert_shader, frag_shader));
+	}	
 }
 
 void DrawTexture::render(unsigned tex_id, int x, int y, int width, int height, bool blending)

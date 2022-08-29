@@ -49,9 +49,9 @@ void main()
 
 DrawHemisphere::DrawHemisphere()
 {
-    m_vert_shader = std::unique_ptr<GLShader>(new GLShader(GL_VERTEX_SHADER, g_vertex.c_str()));
-    m_frag_shader = std::unique_ptr<GLShader>(new GLShader(GL_FRAGMENT_SHADER, g_frag.c_str()));
-    m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(*m_vert_shader, *m_frag_shader));
+    GLShader vert_shader(GL_VERTEX_SHADER, g_vertex.c_str());
+    GLShader frag_shader(GL_FRAGMENT_SHADER, g_frag.c_str());
+    m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(vert_shader, frag_shader));
 }
 
 void DrawHemisphere::render(const GLDynBuffer* constant_camera, const GLDynBuffer* constant_hemisphere)

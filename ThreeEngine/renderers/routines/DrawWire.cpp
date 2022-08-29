@@ -75,10 +75,10 @@ void main()
 
 DrawWire::DrawWire()
 {
-	m_vert_shader = std::unique_ptr<GLShader>(new GLShader(GL_VERTEX_SHADER, g_vertex.c_str()));
-	m_geo_shader = std::unique_ptr<GLShader>(new GLShader(GL_GEOMETRY_SHADER, g_geo.c_str()));
-	m_frag_shader = std::unique_ptr<GLShader>(new GLShader(GL_FRAGMENT_SHADER, g_frag.c_str()));
-	m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(*m_vert_shader, *m_geo_shader, *m_frag_shader));
+	GLShader vert_shader = GLShader(GL_VERTEX_SHADER, g_vertex.c_str());
+	GLShader geo_shader =  GLShader(GL_GEOMETRY_SHADER, g_geo.c_str());
+	GLShader frag_shader = GLShader(GL_FRAGMENT_SHADER, g_frag.c_str());
+	m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(vert_shader, geo_shader, frag_shader));
 }
 
 

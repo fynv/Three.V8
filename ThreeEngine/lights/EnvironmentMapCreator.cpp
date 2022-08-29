@@ -505,11 +505,11 @@ void main()
 
 EnvironmentMapCreator::EnvironmentMapCreator() : m_buf_coeffs(sizeof(s_coeffs), GL_UNIFORM_BUFFER)
 {
-	m_comp_downsample = std::unique_ptr<GLShader>(new GLShader(GL_COMPUTE_SHADER, g_compute_downsample.c_str()));
-	m_prog_downsample = (std::unique_ptr<GLProgram>)(new GLProgram(*m_comp_downsample));
+	GLShader comp_downsample(GL_COMPUTE_SHADER, g_compute_downsample.c_str());
+	m_prog_downsample = (std::unique_ptr<GLProgram>)(new GLProgram(comp_downsample));
 
-	m_comp_filter = std::unique_ptr<GLShader>(new GLShader(GL_COMPUTE_SHADER, g_compute_filter.c_str()));
-	m_prog_filter = (std::unique_ptr<GLProgram>)(new GLProgram(*m_comp_filter));
+	GLShader comp_filter(GL_COMPUTE_SHADER, g_compute_filter.c_str());
+	m_prog_filter = (std::unique_ptr<GLProgram>)(new GLProgram(comp_filter));
 	 
 	glGenTextures(1, &m_tex_src);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex_src);
