@@ -12,13 +12,51 @@ void GLTFModel::calculate_bounding_box()
 	for (size_t i = 0; i < num_meshes; i++)
 	{
 		Mesh& mesh = m_meshs[i];
+
+		glm::vec3 mesh_min_pos = { FLT_MAX, FLT_MAX, FLT_MAX };
+		glm::vec3 mesh_max_pos = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+
 		size_t num_prims = mesh.primitives.size();
 		for (size_t j = 0; j < num_prims; j++)
 		{
 			Primitive& prim = mesh.primitives[j];
-			m_min_pos = glm::min(m_min_pos, prim.min_pos);
-			m_max_pos = glm::max(m_max_pos, prim.max_pos);
+			mesh_min_pos = glm::min(mesh_min_pos, prim.min_pos);
+			mesh_max_pos = glm::max(mesh_max_pos, prim.max_pos);
 		}
+		
+		if (mesh.node_id >= 0 && mesh.skin_id < 0)
+		{
+			Node& node = m_nodes[mesh.node_id];
+			glm::mat4 mesh_mat = node.g_trans;
+
+			glm::vec4 model_pos[8];
+			model_pos[0] = mesh_mat * glm::vec4(mesh_min_pos.x, mesh_min_pos.y, mesh_min_pos.z, 1.0f);
+			model_pos[1] = mesh_mat * glm::vec4(mesh_max_pos.x, mesh_min_pos.y, mesh_min_pos.z, 1.0f);
+			model_pos[2] = mesh_mat * glm::vec4(mesh_min_pos.x, mesh_max_pos.y, mesh_min_pos.z, 1.0f);
+			model_pos[3] = mesh_mat * glm::vec4(mesh_max_pos.x, mesh_max_pos.y, mesh_min_pos.z, 1.0f);
+			model_pos[4] = mesh_mat * glm::vec4(mesh_min_pos.x, mesh_min_pos.y, mesh_max_pos.z, 1.0f);
+			model_pos[5] = mesh_mat * glm::vec4(mesh_max_pos.x, mesh_min_pos.y, mesh_max_pos.z, 1.0f);
+			model_pos[6] = mesh_mat * glm::vec4(mesh_min_pos.x, mesh_max_pos.y, mesh_max_pos.z, 1.0f);
+			model_pos[7] = mesh_mat * glm::vec4(mesh_max_pos.x, mesh_max_pos.y, mesh_max_pos.z, 1.0f);
+
+			for (int k = 0; k < 8; k++)
+			{
+				glm::vec4 pos = model_pos[k];
+				if (pos.x < m_min_pos.x) m_min_pos.x = pos.x;
+				if (pos.x > m_max_pos.x) m_max_pos.x = pos.x;
+				if (pos.y < m_min_pos.y) m_min_pos.y = pos.y;
+				if (pos.y > m_max_pos.y) m_max_pos.y = pos.y;
+				if (pos.z < m_min_pos.z) m_min_pos.z = pos.z;
+				if (pos.z > m_max_pos.z) m_max_pos.z = pos.z;
+			}
+		}
+		else
+		{
+			m_min_pos = glm::min(m_min_pos, mesh_min_pos);
+			m_max_pos = glm::max(m_max_pos, mesh_max_pos);
+		}
+
+		
 	}
 }
 

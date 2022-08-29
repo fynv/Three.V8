@@ -212,11 +212,6 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 
 void GLRenderer::render_model(Camera* p_camera, const Lights& lights, SimpleModel* model, Pass pass)
 {		
-	if (!visible(p_camera->matrixWorldInverse * model->matrixWorld, p_camera->projectionMatrix, model->geometry.min_pos, model->geometry.max_pos))
-	{
-		return;
-	}
-
 	const GLTexture2D* tex = &model->texture;
 	const MeshStandardMaterial* material = &model->material;
 
@@ -608,6 +603,27 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 			}
 		}
 		break;
+	}
+
+	// model culling
+	for (size_t i = 0; i < lists.simple_models.size(); i++)
+	{
+		SimpleModel* model = lists.simple_models[i];				
+		if (!visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->geometry.min_pos, model->geometry.max_pos))
+		{
+			lists.simple_models.erase(lists.simple_models.begin() + i);
+			i--;
+		}
+	}
+
+	for (size_t i = 0; i < lists.gltf_models.size(); i++)
+	{
+		GLTFModel* model = lists.gltf_models[i];
+		if (!visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->m_min_pos, model->m_max_pos))
+		{
+			lists.gltf_models.erase(lists.gltf_models.begin() + i);
+			i--;
+		}
 	}
 
 	// render scene
