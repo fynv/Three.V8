@@ -329,6 +329,7 @@ void GameContext::SetCallback(const v8::FunctionCallbackInfo<v8::Value>& args)
 {	
 	GameContext* self = get_context(args);
 	v8::Isolate* isolate = args.GetIsolate();
+	v8::HandleScope handle_scope(isolate);
 	v8::String::Utf8Value name(isolate, args[0]);
 	v8::Local<v8::Function> callback = args[1].As<v8::Function>();
 	self->m_callbacks[*name] = CallbackT(isolate, callback);
