@@ -106,9 +106,9 @@ static void UIButtonClickCallback(void* ptr)
 	GameContext* ctx = data->ctx;
 	v8::Isolate* isolate = ctx->m_vm->m_isolate;
 	v8::HandleScope handle_scope(isolate);
-	v8::Context::Scope context_scope(ctx->m_context.Get(isolate));
-	v8::Local<v8::Function> callback = data->callback.Get(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
+	v8::Local<v8::Context> context = ctx->m_context.Get(isolate);
+	v8::Context::Scope context_scope(context);
+	v8::Local<v8::Function> callback = data->callback.Get(isolate);	
 	v8::Local<v8::Object> global = context->Global();
 	callback->Call(context, global, 0, nullptr);
 }

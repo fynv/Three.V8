@@ -273,9 +273,9 @@ static void UI3DViewerRenderCallback(int width, int height, bool size_changed, v
 	GameContext* ctx = data->ctx;
 	v8::Isolate* isolate = ctx->m_vm->m_isolate;
 	v8::HandleScope handle_scope(isolate);
-	v8::Context::Scope context_scope(ctx->m_context.Get(isolate));
-	v8::Local<v8::Function> callback = data->callback.Get(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
+	v8::Local<v8::Context> context = ctx->m_context.Get(isolate);
+	v8::Context::Scope context_scope(context);
+	v8::Local<v8::Function> callback = data->callback.Get(isolate);	
 	v8::Local<v8::Object> global = context->Global();
 	std::vector<v8::Local<v8::Value>> args(3);
 	args[0] = v8::Number::New(isolate, (double)width);
@@ -343,13 +343,12 @@ static void UI3DViewerMouseCallback(int button, int clicks, int delta, int x, in
 	GameContext* ctx = data->ctx;
 	v8::Isolate* isolate = ctx->m_vm->m_isolate;
 	v8::HandleScope handle_scope(isolate);
-	v8::Context::Scope context_scope(ctx->m_context.Get(isolate));
-	v8::Local<v8::Function> callback = data->callback.Get(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
+	v8::Local<v8::Context> context = ctx->m_context.Get(isolate);
+	v8::Context::Scope context_scope(context);
+	v8::Local<v8::Function> callback = data->callback.Get(isolate);	
 	v8::Local<v8::Object> global = context->Global();
-
 	std::vector<v8::Local<v8::Value>> args(1);
-	args[0] = g_CreateMouseEvent(isolate, ctx->m_context.Get(isolate), button, clicks, delta, x, y);
+	args[0] = g_CreateMouseEvent(isolate, context, button, clicks, delta, x, y);
 	callback->Call(context, global, 1, args.data());
 }
 
@@ -532,13 +531,12 @@ static void UI3DViewerTouchCallback(int pointerId, float x, float y, void* ptr)
 	GameContext* ctx = data->ctx;
 	v8::Isolate* isolate = ctx->m_vm->m_isolate;
 	v8::HandleScope handle_scope(isolate);
-	v8::Context::Scope context_scope(ctx->m_context.Get(isolate));
-	v8::Local<v8::Function> callback = data->callback.Get(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
+	v8::Local<v8::Context> context = ctx->m_context.Get(isolate);
+	v8::Context::Scope context_scope(context);
+	v8::Local<v8::Function> callback = data->callback.Get(isolate);	
 	v8::Local<v8::Object> global = context->Global();
-
 	std::vector<v8::Local<v8::Value>> args(1);
-	args[0] = g_CreateTouchEvent(isolate, ctx->m_context.Get(isolate), pointerId, x, y);
+	args[0] = g_CreateTouchEvent(isolate, context, pointerId, x, y);
 	callback->Call(context, global, 1, args.data());
 }
 
