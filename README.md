@@ -61,3 +61,18 @@ The source code is licensed under ['"Anti 996" License'](https://github.com/996i
 [User Script APIs](https://fynv.github.io/Three.V8/docs/index.html)
 
 [Features and Code Snippets](https://fynv.github.io/Three.V8/docs/Features.html)
+
+All features are also available in a unreleased Android build.
+
+Please contact me if you are interested in the Android version of Three.V8:
+
+GMail: hyangfeih@gmail.com
+
+Twitter: @feiyangvr
+
+You can use the mobile engine in your own product by business cooperation with Vulcan Eon.
+
+Or, more preferable, try hiring me, if you can help me to get out of my god-damned homeland. 
+
+![Android.png](docs/Android.png)
+
