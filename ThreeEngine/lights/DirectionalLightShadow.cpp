@@ -3,17 +3,11 @@
 #include "DirectionalLight.h"
 #include "DirectionalLightShadow.h"
 
-struct ConstShadow
-{
-	glm::mat4 ProjMat;
-	glm::mat4 ViewMat;
-};
-
 DirectionalLightShadow::DirectionalLightShadow(DirectionalLight* light, int map_width, int map_height)
 	: m_light(light)
 	, m_map_width(map_width)
 	, m_map_height(map_height)
-	, constant_shadow(sizeof(ConstShadow), GL_UNIFORM_BUFFER)
+	, constant_shadow(sizeof(ConstDirectionalShadow), GL_UNIFORM_BUFFER)
 {
 
 	glGenFramebuffers(1, &m_lightFBO);
@@ -42,21 +36,36 @@ DirectionalLightShadow::~DirectionalLightShadow()
 
 void DirectionalLightShadow::setProjection(float left, float right, float bottom, float top, float zNear, float zFar)
 {
+	m_left = left;
+	m_right = right;
+	m_bottom = bottom;
+	m_top = top;
+	m_near = zNear;
+	m_far = zFar;
 	m_light_proj_matrix = glm::ortho(left, right, bottom, top, zNear, zFar);
+}
+
+void DirectionalLightShadow::makeConst(ConstDirectionalShadow& const_shadow)
+{
+	glm::mat4 view_matrix = glm::inverse(m_light->matrixWorld);
+	const_shadow.ProjMat = m_light_proj_matrix;
+	const_shadow.ViewMat = view_matrix;
+	const_shadow.LeftRight = { m_left, m_right };
+	const_shadow.BottomTop = { m_bottom, m_top };
+	const_shadow.NearFar = { m_near, m_far };
+	const_shadow.LightRadius = m_light_radius;
 }
 
 void DirectionalLightShadow::updateMatrices()
 {
 	glm::mat4 view_matrix = glm::inverse(m_light->matrixWorld);
-
 	glm::mat4 lightScale = glm::identity<glm::mat4>();
 	lightScale = glm::scale(lightScale, glm::vec3(0.5f, 0.5f, 0.5f));
 	glm::mat4 lightBias = glm::identity<glm::mat4>();
 	lightBias = glm::translate(lightBias, glm::vec3(0.5f, 0.5f, 0.5f));
 	m_lightVPSBMatrix = lightBias * lightScale * m_light_proj_matrix * view_matrix;
 
-	ConstShadow constShadow;
-	constShadow.ProjMat = m_light_proj_matrix;
-	constShadow.ViewMat = view_matrix;
+	ConstDirectionalShadow constShadow;
+	makeConst(constShadow);
 	constant_shadow.upload(&constShadow);
 }

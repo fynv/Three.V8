@@ -16,6 +16,7 @@ private:
 	static void SetTarget(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
 	static void SetShadow(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void SetShadowProjection(const v8::FunctionCallbackInfo<v8::Value>& info);
+	static void SetShadowRadius(const v8::FunctionCallbackInfo<v8::Value>& info);
 };
 
 
@@ -25,6 +26,7 @@ v8::Local<v8::FunctionTemplate> WrapperDirectionalLight::create_template(v8::Iso
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "target").ToLocalChecked(), GetTarget, SetTarget);
 	templ->InstanceTemplate()->Set(isolate, "setShadow", v8::FunctionTemplate::New(isolate, SetShadow));
 	templ->InstanceTemplate()->Set(isolate, "setShadowProjection", v8::FunctionTemplate::New(isolate, SetShadowProjection));
+	templ->InstanceTemplate()->Set(isolate, "setShadowRadius", v8::FunctionTemplate::New(isolate, SetShadowRadius));
 	return templ;
 }
 
@@ -96,3 +98,12 @@ void  WrapperDirectionalLight::SetShadowProjection(const v8::FunctionCallbackInf
 	self->setShadowProjection(left, right, bottom, top, zNear, zFar);
 }
 
+void  WrapperDirectionalLight::SetShadowRadius(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	v8::Isolate* isolate = info.GetIsolate();
+	v8::HandleScope handle_scope(isolate);
+	DirectionalLight* self = get_self<DirectionalLight>(info);
+
+	float radius = (float)info[0].As<v8::Number>()->Value();
+	self->SetShadowRadius(radius);
+}

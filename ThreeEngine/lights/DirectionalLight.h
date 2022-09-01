@@ -29,6 +29,7 @@ public:
 	std::unique_ptr<DirectionalLightShadow> shadow;
 	void setShadow(bool enable, int map_width, int map_height);
 	void setShadowProjection(float left, float right, float bottom, float top, float zNear, float zFar);
+	void SetShadowRadius(float radius);
 
 	glm::vec3 direction();
 	void makeConst(ConstDirectionalLight& const_light);

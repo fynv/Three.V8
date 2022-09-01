@@ -200,7 +200,7 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 	options.has_normal_map = material->tex_idx_normalMap >= 0;
 	options.has_emissive_map = material->tex_idx_emissiveMap >= 0;
 	options.num_directional_lights = lights->num_directional_lights;
-	options.num_directional_shadows = (int)lights->directional_shadow_texs.size();
+	options.num_directional_shadows = lights->num_directional_shadows;
 	options.has_environment_map = lights->environment_map != nullptr;
 	options.has_ambient_light = lights->ambient_light != nullptr;
 	options.has_hemisphere_light = lights->hemisphere_light != nullptr;
@@ -532,6 +532,7 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 	lights.directional_shadow_texs.clear();
 
 	std::vector<ConstDirectionalLight> const_directional_lights(lists.directional_lights.size());
+	std::vector<ConstDirectionalShadow> const_directional_shadows;
 	for (size_t i = 0; i < lists.directional_lights.size(); i++)
 	{
 		DirectionalLight* light = lists.directional_lights[i];
@@ -541,6 +542,9 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 		if (light->shadow != nullptr)
 		{
 			lights.directional_shadow_texs.push_back(light->shadow->m_lightTex);
+			ConstDirectionalShadow constShadow;
+			light->shadow->makeConst(constShadow);
+			const_directional_shadows.push_back(std::move(constShadow));
 		}
 	}
 
@@ -563,6 +567,28 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 			{
 				lights.hash_directional_lights = hash;
 				lights.constant_directional_lights->upload(const_directional_lights.data());
+			}
+		}
+	}
+
+	{
+		if (lights.num_directional_shadows != (int)const_directional_shadows.size())
+		{
+			lights.num_directional_shadows = (int)const_directional_shadows.size();
+			lights.constant_directional_shadows = nullptr;
+			if (lights.num_directional_shadows > 0)
+			{
+				lights.constant_directional_shadows = std::unique_ptr<GLDynBuffer>(new GLDynBuffer(const_directional_shadows.size() * sizeof(ConstDirectionalShadow), GL_UNIFORM_BUFFER));
+			}
+			lights.hash_directional_shadows = 0;
+		}
+		if (lights.num_directional_shadows > 0)
+		{
+			uint64_t hash = crc64(0, (unsigned char*)const_directional_shadows.data(), const_directional_shadows.size() * sizeof(ConstDirectionalShadow));
+			if (hash != lights.hash_directional_shadows)
+			{
+				lights.hash_directional_shadows = hash;
+				lights.constant_directional_shadows->upload(const_directional_shadows.data());
 			}
 		}
 	}

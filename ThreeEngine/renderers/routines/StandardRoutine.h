@@ -69,6 +69,7 @@ private:
 		int location_tex_emissive;
 		int location_varying_world_pos;
 		int binding_directional_lights;
+		int binding_directional_shadows;
 		int location_tex_directional_shadow;
 		int binding_environment_map;
 		int location_tex_reflection_map;

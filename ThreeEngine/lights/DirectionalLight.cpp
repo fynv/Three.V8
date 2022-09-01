@@ -31,6 +31,14 @@ void DirectionalLight::setShadowProjection(float left, float right, float bottom
 	}
 }
 
+void DirectionalLight::SetShadowRadius(float radius)
+{
+	if (shadow != nullptr)
+	{
+		shadow->m_light_radius = radius;
+	}
+}
+
 glm::vec3 DirectionalLight::direction()
 {
 	glm::vec3 pos_target = { 0.0f, 0.0f, 0.0f };

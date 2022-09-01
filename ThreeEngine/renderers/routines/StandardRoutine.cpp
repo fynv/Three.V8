@@ -75,7 +75,7 @@ void main()
 }
 )";
 
-static std::string g_frag =
+static std::string g_frag_part0 =
 R"(#version 430
 #DEFINES#
 
@@ -237,8 +237,27 @@ layout (std140, binding = BINDING_DIRECTIONAL_LIGHTS) uniform DirectionalLights
 	DirectionalLight uDirectionalLights[NUM_DIRECTIONAL_LIGHTS];
 };
 #endif
+)";
 
+static std::string g_frag_part1 =
+R"(
 #if NUM_DIRECTIONAL_SHADOWS>0
+struct DirectionalShadow
+{
+	mat4 projMat;
+	mat4 viewMat;
+    vec2 leftRight;
+	vec2 bottomTop;
+	vec2 nearFar;
+	float lightRadius;
+	float padding;
+};
+
+layout (std140, binding = BINDING_DIRECTIONAL_SHADOWS) uniform DirectionalShadows
+{
+	DirectionalShadow uDirectionalShadows[NUM_DIRECTIONAL_SHADOWS];
+};
+
 layout (location = LOCATION_TEX_DIRECTIONAL_SHADOW) uniform sampler2D uDirectionalShadowTex[NUM_DIRECTIONAL_SHADOWS];
 
 vec3 computeShadowCoords(in mat4 VPSB)
@@ -247,15 +266,186 @@ vec3 computeShadowCoords(in mat4 VPSB)
 	return shadowCoords.xyz;
 }
 
+float borderDepthTexture(sampler2D shadowTex, vec2 uv)
+{
+	return ((uv.x <= 1.0) && (uv.y <= 1.0) &&
+	 (uv.x >= 0.0) && (uv.y >= 0.0)) ? textureLod(shadowTex, uv, 0.0).x : 1.0;
+}
+
+float borderPCFTexture(sampler2D shadowTex, vec3 uvz)
+{
+    float d = borderDepthTexture(shadowTex, uvz.xy);
+    return clamp(1.0 - (uvz.z - d)*5000.0, 0.0, 1.0);
+}
+
+
 float computeShadowCoef(in mat4 VPSB, sampler2D shadowTex)
 {
 	vec3 shadowCoords;
 	shadowCoords = computeShadowCoords(VPSB);
-	float d = texture(shadowTex, shadowCoords.xy).x;
-	return clamp(1.0 - (shadowCoords.z - d)*5000.0, 0.0, 1.0);
+	return borderPCFTexture(shadowTex, shadowCoords);
 }
-#endif
 
+
+const vec2 Poisson25[25] = vec2[](
+    vec2(-0.978698, -0.0884121),
+    vec2(-0.841121, 0.521165),
+    vec2(-0.71746, -0.50322),
+    vec2(-0.702933, 0.903134),
+    vec2(-0.663198, 0.15482),
+    vec2(-0.495102, -0.232887),
+    vec2(-0.364238, -0.961791),
+    vec2(-0.345866, -0.564379),
+    vec2(-0.325663, 0.64037),
+    vec2(-0.182714, 0.321329),
+    vec2(-0.142613, -0.0227363),
+    vec2(-0.0564287, -0.36729),
+    vec2(-0.0185858, 0.918882),
+    vec2(0.0381787, -0.728996),
+    vec2(0.16599, 0.093112),
+    vec2(0.253639, 0.719535),
+    vec2(0.369549, -0.655019),
+    vec2(0.423627, 0.429975),
+    vec2(0.530747, -0.364971),
+    vec2(0.566027, -0.940489),
+    vec2(0.639332, 0.0284127),
+    vec2(0.652089, 0.669668),
+    vec2(0.773797, 0.345012),
+    vec2(0.968871, 0.840449),
+    vec2(0.991882, -0.657338)
+);
+
+
+vec2 depthGradient(vec2 uv, float z)
+{
+    vec2 dz_duv = vec2(0.0, 0.0);
+
+    vec3 duvdist_dx = dFdx(vec3(uv,z));
+    vec3 duvdist_dy = dFdy(vec3(uv,z));
+
+    dz_duv.x = duvdist_dy.y * duvdist_dx.z;
+    dz_duv.x -= duvdist_dx.y * duvdist_dy.z;
+
+    dz_duv.y = duvdist_dx.x * duvdist_dy.z;
+    dz_duv.y -= duvdist_dy.x * duvdist_dx.z;
+
+    float det = (duvdist_dx.x * duvdist_dy.y) - (duvdist_dx.y * duvdist_dy.x);
+    dz_duv /= det;
+
+    return dz_duv;
+}
+
+float biasedZ(float z0, vec2 dz_duv, vec2 offset)
+{
+    return z0 + dot(dz_duv, offset);
+}
+
+
+
+// Returns average blocker depth in the search region, as well as the number of found blockers.
+// Blockers are defined as shadow-map samples between the surface point and the light.
+void findBlocker(
+	sampler2D shadowTex,
+    out float accumBlockerDepth, 
+    out float numBlockers,
+    out float maxBlockers,
+    vec2 uv,
+    float z0,
+    vec2 dz_duv,
+    vec2 searchRegionRadiusUV)
+{
+    accumBlockerDepth = 0.0;
+    numBlockers = 0.0;
+	maxBlockers = 300.0;
+
+    // case POISSON_25_25:
+    {
+        maxBlockers = 25.0;
+        for (int i = 0; i < 25; ++i)
+        {
+            vec2 offset = Poisson25[i] * searchRegionRadiusUV;
+            float shadowMapDepth = borderDepthTexture(shadowTex, uv + offset);
+            float z = biasedZ(z0, dz_duv, offset);
+            if (shadowMapDepth < z)
+            {
+                accumBlockerDepth += shadowMapDepth;
+                numBlockers++;
+            }
+        }
+    }
+
+}
+
+float zClipToEye(in DirectionalShadow shadow, float z)
+{
+    return (shadow.nearFar.x + (shadow.nearFar.y - shadow.nearFar.x) * z);
+}
+
+// Using similar triangles between the area light, the blocking plane and the surface point
+vec2 penumbraRadiusUV(vec2 light_radius_uv, float zReceiver, float zBlocker)
+{
+    return light_radius_uv * (zReceiver - zBlocker);
+}
+
+
+// Performs PCF filtering on the shadow map using multiple taps in the filter region.
+float pcfFilter(sampler2D shadowTex, vec2 uv, float z0, vec2 dz_duv, vec2 filterRadiusUV)
+{
+    float sum = 0.0;
+
+    // case POISSON_25_25:
+    {
+        for (int i = 0; i < 25; ++i)
+        {
+            vec2 offset = Poisson25[i] * filterRadiusUV;
+            float z = biasedZ(z0, dz_duv, offset);
+            sum += borderPCFTexture(shadowTex, vec3(uv + offset, z));
+        }
+        return sum / 25.0;
+    }
+}
+
+float pcssShadow(sampler2D shadowTex, in DirectionalShadow shadow, vec2 uv, float z, vec2 dz_duv, float zEye)
+{
+    // ------------------------
+    // STEP 1: blocker search
+    // ------------------------
+    float accumBlockerDepth, numBlockers, maxBlockers;
+    
+    vec2 frustum_size = vec2(shadow.leftRight.y - shadow.leftRight.x, shadow.bottomTop.y - shadow.bottomTop.x);
+    vec2 light_radius_uv = vec2(shadow.lightRadius) / frustum_size;
+    vec2 searchRegionRadiusUV = light_radius_uv;
+	findBlocker(shadowTex, accumBlockerDepth, numBlockers, maxBlockers, uv, z, dz_duv, searchRegionRadiusUV);
+
+    // Early out if not in the penumbra
+    if (numBlockers == 0.0)
+        return 1.0;
+
+    // ------------------------
+    // STEP 2: penumbra size
+    // ------------------------
+    float avgBlockerDepth = accumBlockerDepth / numBlockers;
+    float avgBlockerDepthWorld = zClipToEye(shadow, avgBlockerDepth);
+    
+    vec2 penumbraRadius = penumbraRadiusUV(light_radius_uv, zEye, avgBlockerDepthWorld);
+    
+	return pcfFilter(shadowTex, uv, z, dz_duv, penumbraRadius);
+}
+
+
+float computePCSSShadowCoef(in mat4 VPSB, in DirectionalShadow shadow, sampler2D shadowTex)
+{	
+	vec3 uvz = computeShadowCoords(VPSB);
+	vec2 dz_duv = depthGradient(uvz.xy, uvz.z);
+	float zEye = -(shadow.viewMat * vec4(vWorldPos, 1.0)).z;
+	return pcssShadow(shadowTex, shadow, uvz.xy, uvz.z, dz_duv, zEye);
+}
+
+#endif
+)";
+
+static std::string g_frag_part2 =
+R"(
 #if HAS_ENVIRONMENT_MAP
 layout (std140, binding = BINDING_ENVIRONMEN_MAP) uniform EnvironmentMap
 {
@@ -435,7 +625,15 @@ void main()
 #if NUM_DIRECTIONAL_SHADOWS>0
 		if (light_source.has_shadow!=0)
 		{
-			l_shadow = computeShadowCoef(light_source.shadowVPSBMatrix, uDirectionalShadowTex[shadow_id]);
+			DirectionalShadow shadow = uDirectionalShadows[shadow_id];
+			if (shadow.lightRadius>0.0)
+			{
+				l_shadow = computePCSSShadowCoef(light_source.shadowVPSBMatrix, shadow, uDirectionalShadowTex[shadow_id]);
+			}
+			else
+			{
+				l_shadow = computeShadowCoef(light_source.shadowVPSBMatrix, uDirectionalShadowTex[shadow_id]);
+			}
 			shadow_id++;
 		}
 #endif
@@ -601,7 +799,7 @@ inline void replace(std::string& str, const char* target, const char* source)
 void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindings, std::string& s_vertex, std::string& s_frag)
 {
 	s_vertex = g_vertex;
-	s_frag = g_frag;
+	s_frag = g_frag_part0 + g_frag_part1 + g_frag_part2;
 
 	std::string defines = "";
 
@@ -897,10 +1095,22 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	bindings.location_tex_directional_shadow = bindings.location_tex_emissive + options.num_directional_shadows;
 
 	if (options.num_directional_shadows > 0)
-	{		
-		char line[64];
-		sprintf(line, "#define LOCATION_TEX_DIRECTIONAL_SHADOW %d\n", bindings.location_tex_directional_shadow - options.num_directional_shadows + 1);
-		defines += line;
+	{	
+		bindings.binding_directional_shadows = bindings.binding_directional_lights + 1;
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_DIRECTIONAL_SHADOWS %d\n", bindings.binding_directional_shadows);
+			defines += line;
+		}
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_TEX_DIRECTIONAL_SHADOW %d\n", bindings.location_tex_directional_shadow - options.num_directional_shadows + 1);
+			defines += line;
+		}
+	}
+	else
+	{
+		bindings.binding_directional_shadows = bindings.binding_directional_lights;
 	}
 
 	bool has_indirect_light = options.has_environment_map || options.has_ambient_light || options.has_hemisphere_light;
@@ -916,7 +1126,7 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	if (options.has_environment_map)
 	{
 		defines += "#define HAS_ENVIRONMENT_MAP 1\n";
-		bindings.binding_environment_map = bindings.binding_directional_lights + 1;
+		bindings.binding_environment_map = bindings.binding_directional_shadows + 1;
 		bindings.location_tex_reflection_map = bindings.location_tex_directional_shadow + 1;
 		{
 			char line[64];
@@ -932,7 +1142,7 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	else
 	{
 		defines += "#define HAS_ENVIRONMENT_MAP 0\n";
-		bindings.binding_environment_map = bindings.binding_directional_lights;
+		bindings.binding_environment_map = bindings.binding_directional_shadows;
 		bindings.location_tex_reflection_map = bindings.location_tex_directional_shadow;
 	}
 
@@ -1014,6 +1224,11 @@ void StandardRoutine::render(const RenderParams& params)
 	{		
 		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_directional_lights, params.lights->constant_directional_lights->m_id);
 	} 
+
+	if (m_options.num_directional_shadows > 0)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_directional_shadows, params.lights->constant_directional_shadows->m_id);
+	}
 
 	if (m_options.has_environment_map)
 	{

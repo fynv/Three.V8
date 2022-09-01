@@ -19,6 +19,7 @@ Inheritance [Light](Light.html) --> DirectionalLight
 | **Methods**                                                   |                                                                |
 | [setShadow](#setshadow)                                       | Set the basic shadow-map options.                              |
 | [setShadowProjection](#setshadowprojection)                   | Set the orthographic frustum parameters.                       |
+| [setShadowRadius](#setshadowradius)                           | Set the soft-shadow radius.                                    |
 
 
 # Constructors
@@ -75,3 +76,11 @@ Set the orthographic frustum parameters.
 
 `far`: Frustum far plane.
 
+
+## setShadowRadius
+
+`.setShadowRadius`(`radius`: Number): undefined
+
+Set the soft-shadow radius at distance 1.0.
+
+`radius`>0 would activate the PCSS rendering path.
