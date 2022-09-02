@@ -705,3 +705,8 @@ void EnvironmentMapCreator::Create(const CubeBackground* background, Environment
 {
 	Create(&background->cubemap, envMap);
 }
+
+void EnvironmentMapCreator::Create(const CubeRenderTarget* target, EnvironmentMap* envMap)
+{
+	Create(target->m_cube_map.get(), envMap);
+}

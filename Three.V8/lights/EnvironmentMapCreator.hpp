@@ -68,6 +68,11 @@ void WrapperEnvironmentMapCreator::Create(const v8::FunctionCallbackInfo<v8::Val
 		CubeBackground* background = (CubeBackground*)holder_image->GetAlignedPointerFromInternalField(0);
 		creator->Create(background, self);
 	}
+	else if (strcmp(*clsname, "CubeRenderTarget") == 0)
+	{
+		CubeRenderTarget* target = (CubeRenderTarget*)holder_image->GetAlignedPointerFromInternalField(0);
+		creator->Create(target, self);
+	}
 
 	info.GetReturnValue().Set(holder);
 }

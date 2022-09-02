@@ -11,6 +11,7 @@
 #include "utils/Image.h"
 #include "lights/EnvironmentMap.h"
 #include "backgrounds/Background.h"
+#include "renderers/CubeRenderTarget.h"
 
 class EnvironmentMapCreator
 {
@@ -20,7 +21,7 @@ public:
 	void Create(const GLCubemap* cubemap, EnvironmentMap* envMap);
 	void Create(const CubeImage* image, EnvironmentMap* envMap);
 	void Create(const CubeBackground* background, EnvironmentMap* envMap);
-
+	void Create(const CubeRenderTarget* target, EnvironmentMap* envMap);
 
 private:	
 	std::unique_ptr<GLProgram> m_prog_downsample;	
