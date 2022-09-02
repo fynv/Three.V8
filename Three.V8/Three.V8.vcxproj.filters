@@ -46,6 +46,9 @@
     <Filter Include="Header Files\gui">
       <UniqueIdentifier>{debe0751-5683-49a1-a6b0-bb98c72394c7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\savers">
+      <UniqueIdentifier>{c9dfb990-4516-487e-8425-013a8fc32b35}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="binding.h">
@@ -158,6 +161,9 @@
     </ClInclude>
     <ClInclude Include="gui\UITextBlock.hpp">
       <Filter>Header Files\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="savers\ImageSaver.hpp">
+      <Filter>Header Files\savers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -97,6 +97,12 @@
     <Filter Include="Header Files\nanovg">
       <UniqueIdentifier>{64fd1ddb-a989-4003-9cb0-74b8264feb91}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\savers">
+      <UniqueIdentifier>{ace7059f-df9f-4348-b608-86b9397ab8fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\savers">
+      <UniqueIdentifier>{1e92af15-718d-4e11-8fb0-572e951b9e16}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="scenes\Scene.cpp">
@@ -254,6 +260,9 @@
     </ClCompile>
     <ClCompile Include="gui\UITextBlock.cpp">
       <Filter>Source Files\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="savers\ImageSaver.cpp">
+      <Filter>Source Files\savers</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -433,6 +442,9 @@
     </ClInclude>
     <ClInclude Include="gui\UITextBlock.h">
       <Filter>Header Files\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="savers\ImageSaver.h">
+      <Filter>Header Files\savers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

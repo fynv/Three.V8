@@ -55,6 +55,7 @@ V8VM::~V8VM()
 #include "loaders/FileLoader.hpp"
 #include "loaders/ImageLoader.hpp"
 #include "loaders/GLTFLoader.hpp"
+#include "savers/ImageSaver.hpp"
 
 #include "gui/UIManager.hpp"
 #include "gui/UIArea.hpp"
@@ -111,7 +112,8 @@ GlobalDefinitions GameContext::s_globals =
 	{
 		{ "fileLoader", WrapperFileLoader::create_template },
 		{ "imageLoader", WrapperImageLoader::create_template},
-		{ "gltfLoader", WrapperGLTFLoader::create_template},		
+		{ "gltfLoader", WrapperGLTFLoader::create_template},	
+		{ "imageSaver", WrapperImageSaver::create_template},
 	}
 };
 

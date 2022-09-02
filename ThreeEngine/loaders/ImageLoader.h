@@ -1,14 +1,12 @@
 #pragma once
 
-#include <vector>
-
 class Image;
 class CubeImage;
 class ImageLoader
 {
 public:
-	static void LoadFile(Image* image, const char* fn, bool keep_alpha = false);
-	static void LoadMemory(Image* image, unsigned char* data, size_t size, bool keep_alpha = false);
+	static void LoadFile(Image* image, const char* fn);
+	static void LoadMemory(Image* image, unsigned char* data, size_t size);
 
 	static void LoadCubeFromFile(CubeImage* image, const char* fn_xp, const char* fn_xn, const char* fn_yp, const char* fn_yn, const char* fn_zp, const char* fn_zn);
 	static void LoadCubeFromMemory(CubeImage* image,

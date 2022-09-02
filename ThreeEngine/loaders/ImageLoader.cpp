@@ -4,7 +4,7 @@
 
 #include "stb_image.h"
 
-void ImageLoader::LoadFile(Image* image, const char* fn, bool keep_alpha)
+void ImageLoader::LoadFile(Image* image, const char* fn)
 {
 	if (!exists_test(fn))
 	{
@@ -23,7 +23,7 @@ void ImageLoader::LoadFile(Image* image, const char* fn, bool keep_alpha)
 
 }
 
-void ImageLoader::LoadMemory(Image* image, unsigned char* data, size_t size, bool keep_alpha)
+void ImageLoader::LoadMemory(Image* image, unsigned char* data, size_t size)
 {
 	free(image->m_buffer);
 	int chn;

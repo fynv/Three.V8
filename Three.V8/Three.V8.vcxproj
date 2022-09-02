@@ -162,6 +162,7 @@
     <ClInclude Include="models\SimpleModel.hpp" />
     <ClInclude Include="network\HttpClient.hpp" />
     <ClInclude Include="renderers\GLRenderer.hpp" />
+    <ClInclude Include="savers\ImageSaver.hpp" />
     <ClInclude Include="scenes\Scene.hpp" />
     <ClInclude Include="utils\Image.hpp" />
     <ClInclude Include="WrapperUtils.hpp" />
