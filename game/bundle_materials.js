@@ -4274,7 +4274,7 @@ function init(width, height) {
     background = new CubeBackground();
 
     {
-        let cube_img = new imageLoader.loadCubeFromFile(
+        let cube_img = imageLoader.loadCubeFromFile(
         "assets/textures/sky_cube_face0.jpg", "assets/textures/sky_cube_face1.jpg",
         "assets/textures/sky_cube_face2.jpg", "assets/textures/sky_cube_face3.jpg",
         "assets/textures/sky_cube_face4.jpg", "assets/textures/sky_cube_face5.jpg");        
