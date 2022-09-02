@@ -19,6 +19,7 @@ public:
 	const Image& operator=(const Image& in);
 
 	friend class ImageLoader;
+	friend class CubeRenderTarget;
 
 private:
 	int m_width = 0;

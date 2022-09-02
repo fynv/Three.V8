@@ -165,6 +165,7 @@
     <ClCompile Include="models\ModelComponents.cpp" />
     <ClCompile Include="models\SimpleModel.cpp" />
     <ClCompile Include="network\HttpClient.cpp" />
+    <ClCompile Include="renderers\CubeRenderTarget.cpp" />
     <ClCompile Include="renderers\GLRenderer.cpp" />
     <ClCompile Include="renderers\GLRenderTarget.cpp" />
     <ClCompile Include="renderers\GLUIRenderer.cpp" />
@@ -226,6 +227,7 @@
     <ClInclude Include="models\ModelComponents.h" />
     <ClInclude Include="models\SimpleModel.h" />
     <ClInclude Include="network\HttpClient.h" />
+    <ClInclude Include="renderers\CubeRenderTarget.h" />
     <ClInclude Include="renderers\GLRenderer.h" />
     <ClInclude Include="renderers\GLRenderTarget.h" />
     <ClInclude Include="renderers\GLUIRenderer.h" />

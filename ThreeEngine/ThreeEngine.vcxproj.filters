@@ -261,6 +261,9 @@
     <ClCompile Include="gui\UITextBlock.cpp">
       <Filter>Source Files\gui</Filter>
     </ClCompile>
+    <ClCompile Include="renderers\CubeRenderTarget.cpp">
+      <Filter>Source Files\renderers</Filter>
+    </ClCompile>
     <ClCompile Include="savers\ImageSaver.cpp">
       <Filter>Source Files\savers</Filter>
     </ClCompile>
@@ -442,6 +445,9 @@
     </ClInclude>
     <ClInclude Include="gui\UITextBlock.h">
       <Filter>Header Files\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\CubeRenderTarget.h">
+      <Filter>Header Files\renderers</Filter>
     </ClInclude>
     <ClInclude Include="savers\ImageSaver.h">
       <Filter>Header Files\savers</Filter>

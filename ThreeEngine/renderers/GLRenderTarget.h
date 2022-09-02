@@ -3,11 +3,16 @@
 #include <memory>
 #include "renderers/routines/WeightedOIT.h"
 
+class CubeRenderTarget;
 class GLRenderTarget
 {
 public:
 	GLRenderTarget(bool default_buffer, bool msaa);
+	GLRenderTarget(CubeRenderTarget* cube_target, int idx);
 	~GLRenderTarget();
+
+	CubeRenderTarget* m_cube_target = nullptr;
+	int m_cube_face_idx = -1;
 
 	bool msaa() const
 	{

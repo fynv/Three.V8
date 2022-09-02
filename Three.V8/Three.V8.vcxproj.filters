@@ -165,6 +165,9 @@
     <ClInclude Include="savers\ImageSaver.hpp">
       <Filter>Header Files\savers</Filter>
     </ClInclude>
+    <ClInclude Include="renderers\CubeRenderTarget.hpp">
+      <Filter>Header Files\renderers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="binding.cpp">

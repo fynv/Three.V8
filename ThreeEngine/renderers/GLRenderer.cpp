@@ -2,7 +2,10 @@
 #include "crc64/crc64.h"
 #include "GLUtils.h"
 #include "GLRenderer.h"
+#include "GLRenderTarget.h"
+#include "CubeRenderTarget.h"
 #include "cameras/Camera.h"
+#include "cameras/PerspectiveCamera.h"
 #include "scenes/Scene.h"
 #include "backgrounds/Background.h"
 #include "models/ModelComponents.h"
@@ -793,4 +796,55 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 		}
 	}
 #endif
+}
+
+void GLRenderer::renderCube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar)
+{
+	{
+		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
+		camera.position = position;
+		camera.up = { 0.0f, -1.0f, 0.0f };
+		camera.lookAt(position + glm::vec3(1.0f, 0.0f, 0.0f));
+		render(scene, camera, *target.m_faces[0]);
+	}
+
+	{
+		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
+		camera.position = position;
+		camera.up = { 0.0f, -1.0f, 0.0f };
+		camera.lookAt(position + glm::vec3(-1.0f, 0.0f, 0.0f));
+		render(scene, camera, *target.m_faces[1]);
+	}
+
+	{
+		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
+		camera.position = position;
+		camera.up = { 0.0f, 0.0f, 1.0f };
+		camera.lookAt(position + glm::vec3(0.0f, 1.0f, 0.0f));
+		render(scene, camera, *target.m_faces[2]);
+	}
+
+	{
+		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
+		camera.position = position;
+		camera.up = { 0.0f, 0.0f, -1.0f };
+		camera.lookAt(position + glm::vec3(0.0f, -1.0f, 0.0f));
+		render(scene, camera, *target.m_faces[3]);
+	}
+
+	{
+		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
+		camera.position = position;
+		camera.up = { 0.0f, -1.0f, 0.0f };
+		camera.lookAt(position + glm::vec3(0.0f, 0.0f, 1.0f));
+		render(scene, camera, *target.m_faces[4]);
+	}
+
+	{
+		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
+		camera.position = position;
+		camera.up = { 0.0f, -1.0f, 0.0f };
+		camera.lookAt(position + glm::vec3(0.0f, 0.0f, -1.0f));
+		render(scene, camera, *target.m_faces[5]);
+	}
 }

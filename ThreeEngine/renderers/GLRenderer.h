@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <unordered_map>
-#include "renderers/GLRenderTarget.h"
 #include "renderers/routines/StandardRoutine.h"
 #include "renderers/routines/DrawWire.h"
 #include "renderers/routines/MorphUpdate.h"
@@ -15,6 +14,8 @@
 
 class Scene;
 class Camera;
+class GLRenderTarget;
+class CubeRenderTarget;
 class SimpleModel;
 class GLTFModel;
 class DirectionalLightShadow;
@@ -23,7 +24,8 @@ class GLRenderer
 public:
 	GLRenderer();
 	~GLRenderer();
-	void render(Scene& scene, Camera& camera, GLRenderTarget& target);
+	void render(Scene& scene, Camera& camera, GLRenderTarget& target);	
+	void renderCube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar);
 
 private:
 	std::unique_ptr<WeightedOIT> oit_resolvers[2];

@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <GL/glew.h>
 #include "GLRenderTarget.h"
+#include "CubeRenderTarget.h"
 
 GLRenderTarget::GLRenderTarget(bool default_buffer, bool msaa)
 {
@@ -24,6 +25,16 @@ GLRenderTarget::GLRenderTarget(bool default_buffer, bool msaa)
 		glGenTextures(1, &m_tex_msaa);
 		glGenRenderbuffers(1, &m_rbo_msaa);
 	}
+}
+
+GLRenderTarget::GLRenderTarget(CubeRenderTarget* cube_target, int idx)
+{
+	m_cube_target = cube_target;
+	m_cube_face_idx = idx;
+
+	glGenFramebuffers(1, &m_fbo_video);
+	glGenRenderbuffers(1, &m_rbo_video);
+
 }
 
 GLRenderTarget::~GLRenderTarget()
@@ -54,14 +65,21 @@ bool GLRenderTarget::update_framebuffers(int width, int height)
 		{
 			glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_video);
 
-			glBindTexture(GL_TEXTURE_2D, m_tex_video);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, nullptr);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-			glBindTexture(GL_TEXTURE_2D, 0);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_tex_video, 0);
+			if (m_cube_target == nullptr)
+			{
+				glBindTexture(GL_TEXTURE_2D, m_tex_video);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, nullptr);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+				glBindTexture(GL_TEXTURE_2D, 0);
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_tex_video, 0);
+			}
+			else
+			{
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + m_cube_face_idx, m_cube_target->m_cube_map->tex_id,0);
+			}
 
 			if (m_rbo_video != (unsigned)(-1))
 			{
