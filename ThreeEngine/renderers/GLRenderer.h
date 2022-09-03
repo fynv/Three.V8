@@ -18,6 +18,7 @@ class GLRenderTarget;
 class CubeRenderTarget;
 class SimpleModel;
 class GLTFModel;
+class DirectionalLight;
 class DirectionalLightShadow;
 class GLRenderer
 {
@@ -63,6 +64,19 @@ private:
 	std::unique_ptr<DrawTexture> TextureVisualizer;
 	std::unique_ptr<DrawSkyBox> SkyBoxDraw;
 	std::unique_ptr<DrawHemisphere> HemisphereDraw;
+
+	struct PreRender
+	{
+		// lists
+		std::vector<SimpleModel*> simple_models;
+		std::vector<GLTFModel*> gltf_models;
+		std::vector<DirectionalLight*> directional_lights;
+
+	};
+
+	void _pre_render(Scene& scene, PreRender& pre);
+	void _render(Scene& scene, Camera& camera, GLRenderTarget& target, PreRender& pre);
+	void _render_cube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar, const PreRender& pre);
 	
 };
 
