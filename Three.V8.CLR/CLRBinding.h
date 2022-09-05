@@ -94,6 +94,7 @@ namespace CLRBinding
 
 		void Draw(int width, int height);
 		void LoadScript(String^ fullpath);
+		void UnloadScript();
 
 		void OnMouseDown(MouseEventArgs e);
 		void OnMouseUp(MouseEventArgs e);

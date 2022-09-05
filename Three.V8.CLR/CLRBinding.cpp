@@ -192,6 +192,11 @@ namespace CLRBinding
 		m_native->LoadScript(cpath, cname);
 	}
 
+	void CGamePlayer::UnloadScript()
+	{
+		m_native->UnloadScript();
+	}
+
 	void CGamePlayer::OnMouseDown(MouseEventArgs e)
 	{
 		m_native->OnMouseDown(e.button, e.clicks, e.delta, e.x, e.y);

@@ -24,13 +24,13 @@ GamePlayer::GamePlayer(const char* exec_path, int width, int height)
 
 GamePlayer::~GamePlayer()
 {
-	_unloadScript();
+	UnloadScript();
 	m_v8vm.m_isolate->Exit();
 }
 
 void GamePlayer::LoadScript(const char* dir, const char* filename)
 {
-	_unloadScript();
+	UnloadScript();
 	std::filesystem::current_path(dir);
 	m_context = std::unique_ptr<GameContext>(new GameContext(&m_v8vm, this, filename));
 
@@ -47,7 +47,7 @@ void GamePlayer::LoadScript(const char* dir, const char* filename)
 	}
 }
 
-void GamePlayer::_unloadScript()
+void GamePlayer::UnloadScript()
 {
 	if (m_context != nullptr)
 	{

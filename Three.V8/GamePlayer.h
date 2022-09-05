@@ -25,6 +25,7 @@ public:
 	void Idle();
 	void Draw(int width, int height);
 	void LoadScript(const char* dir, const char* filename);
+	void UnloadScript();
 
 	void OnMouseDown(int button, int clicks, int delta, int x, int y);	
 	void OnMouseUp(int button, int clicks, int delta, int x, int y);
@@ -55,8 +56,6 @@ private:
 	GLUIRenderer m_ui_renderer;
 	
 	std::unique_ptr<GameContext> m_context;
-
-	void _unloadScript();
 
 	WindowCalls m_windowCalls;
 	

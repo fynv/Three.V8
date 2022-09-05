@@ -74,7 +74,7 @@ private:
 int main(int argc, const char* argv[])
 {
 	AppMain app(argv[0]);
-	app.LoadScript("../game", "bundle.js");
+	app.LoadScript("../game", "bundle_game.js");
 	app.MainLoop();
 	return 0;
 }

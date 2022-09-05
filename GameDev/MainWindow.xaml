@@ -1,0 +1,78 @@
+﻿<Window x:Class="GameDev.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:GameDev"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        mc:Ignorable="d"
+        Title="GameDev" Height="800" Width="1024" WindowStartupLocation="CenterScreen">
+    
+    <Window.CommandBindings>
+        <CommandBinding Command="New" Executed="CommandNew"/>
+        <CommandBinding Command="Open" Executed="CommandOpen"/>
+        <CommandBinding Command="Save" Executed="CommandSave"/>
+        <CommandBinding Command="SaveAs" Executed="CommandSaveAs"/>
+        <CommandBinding Command="Close" Executed="CommandExit"/>
+
+        <CommandBinding Command="Undo" Executed="CommandUndo"/>
+        <CommandBinding Command="Redo" Executed="CommandRedo"/>
+
+        <CommandBinding Command="{x:Static local:MainWindow.RoutedCommandComment}" Executed="CommandComment"/>
+        <CommandBinding Command="{x:Static local:MainWindow.RoutedCommandUpper}" Executed="CommandUpper"/>
+        <CommandBinding Command="{x:Static local:MainWindow.RoutedCommandLower}" Executed="CommandLower"/>
+
+        <CommandBinding Command="{x:Static local:MainWindow.RoutedCommandFind}" Executed="CommandFind"/>
+        <CommandBinding Command="{x:Static local:MainWindow.RoutedCommandFindNext}" Executed="CommandFindNext"/>
+        <CommandBinding Command="{x:Static local:MainWindow.RoutedCommandFindPrev}" Executed="CommandFindPrev"/>
+        <CommandBinding Command="{x:Static local:MainWindow.RoutedCommandReplace}" Executed="CommandReplace"/>
+        <CommandBinding Command="{x:Static local:MainWindow.RoutedCommandGoto}" Executed="CommandGoto"/>        
+
+        <CommandBinding Command="{x:Static local:MainWindow.RoutedCommandRotate}" Executed="CommandRotate"/>
+        
+    </Window.CommandBindings>
+
+    <Window.InputBindings>
+        <KeyBinding Key="N" Modifiers="Control" Command="New"/>
+        <KeyBinding Key="O" Modifiers="Control" Command="Open"/>
+        <KeyBinding Key="S" Modifiers="Control" Command="Save"/>
+        <KeyBinding Key="F4" Modifiers="Alt" Command="Close"/>
+
+        <KeyBinding Key="R" Modifiers="Control" Command="{x:Static local:MainWindow.RoutedCommandRotate}"/>
+    </Window.InputBindings>
+
+    <DockPanel>
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_File">
+                <MenuItem Header="_New" InputGestureText="Ctrl+N" Command="New"/>
+                <MenuItem Header="_Open" InputGestureText="Ctrl+O" Command="Open"/>
+                <MenuItem Header="_Save" InputGestureText="Ctrl+S" Command="Save"/>
+                <MenuItem Header="Save _as" Command="SaveAs"/>
+                <Separator />
+                <MenuItem Header="_Exit" InputGestureText="Alt+F4" Command="Close"/>
+            </MenuItem>
+            <MenuItem Header="_Edit">
+                <MenuItem Header="_Undo" InputGestureText="Ctrl+Z" Command="Undo"/>
+                <MenuItem Header="_Redo" InputGestureText="Ctrl+Y" Command="Redo"/>
+                <Separator />
+                <MenuItem Header="Toggle Comment" InputGestureText="Ctrl+/" Command="{x:Static local:MainWindow.RoutedCommandComment}"/>
+                <MenuItem Header="Change to Upper Case" InputGestureText="Ctrl+U" Command="{x:Static local:MainWindow.RoutedCommandUpper}"/>
+                <MenuItem Header="Change to Lower Case" InputGestureText="Ctrl+Shift+U" Command="{x:Static local:MainWindow.RoutedCommandLower}"/>
+            </MenuItem>
+            <MenuItem Header="_Search">
+                <MenuItem Header="_Find" InputGestureText="Ctrl+F" Command="{x:Static local:MainWindow.RoutedCommandFind}"/>
+                <MenuItem Header="Find _Next" InputGestureText="Ctrl+K" Command="{x:Static local:MainWindow.RoutedCommandFindNext}"/>
+                <MenuItem Header="Find _Previous" InputGestureText="Ctrl+Shift+K" Command="{x:Static local:MainWindow.RoutedCommandFindPrev}"/>
+                <MenuItem Header="_Replace" InputGestureText="Ctrl+H" Command="{x:Static local:MainWindow.RoutedCommandReplace}"/>
+                <MenuItem Header="Go to _Line" InputGestureText="Ctrl+L" Command="{x:Static local:MainWindow.RoutedCommandGoto}"/>
+            </MenuItem>
+            <MenuItem Header="_View">
+                <MenuItem x:Name="menu_rotate" Header="To _Portrait" InputGestureText="Ctrl+R" Command="{x:Static local:MainWindow.RoutedCommandRotate}"/>
+            </MenuItem>
+        </Menu>
+        <DockPanel>
+            <WindowsFormsHost x:Name="wfh_three" Margin="10" Width="640" Height="360" DockPanel.Dock="Top"/>
+            <wv2:WebView2 Name="webView"/>
+        </DockPanel>
+    </DockPanel>
+</Window>
