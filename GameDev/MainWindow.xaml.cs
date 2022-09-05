@@ -54,6 +54,8 @@ namespace GameDev
             
             string local_path = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
             webView.Source = new Uri($"{local_path}/editor/index.html");
+
+            update_title();
             
         }        
 
@@ -345,6 +347,24 @@ namespace GameDev
             }
         }
 
+        private async void doc_fresh()
+        {
+            if (await doc_close())
+            {
+                if (current_filename!="")
+                {
+                    _doc_open(current_filename);
+                    load_script();
+                }
+                else
+                {
+                    string text = Properties.Resources.start;
+                    SetText(text);
+                    unload_script();
+                }
+            }
+            
+        }
 
         private void CommandNew(object sender, ExecutedRoutedEventArgs e)
         {
@@ -364,6 +384,11 @@ namespace GameDev
         private void CommandSaveAs(object sender, ExecutedRoutedEventArgs e)
         {
             doc_save_as();
+        }
+
+        private void CommandRefresh(object sender, ExecutedRoutedEventArgs e)
+        {
+            doc_fresh();
         }
 
         private void CommandExit(object sender, ExecutedRoutedEventArgs e)

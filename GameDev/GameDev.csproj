@@ -5,7 +5,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{84BDDBB4-EA44-4FDA-92A7-C2C56ABE5C49}</ProjectGuid>
-    <OutputType>WinExe</OutputType>
+    <OutputType>Exe</OutputType>
     <RootNamespace>GameDev</RootNamespace>
     <AssemblyName>GameDev</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
