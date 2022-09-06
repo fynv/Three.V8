@@ -66,8 +66,22 @@ void WrapperGLRenderer::Render(const v8::FunctionCallbackInfo<v8::Value>& info)
 	else
 	{
 		v8::Local<v8::Object> holder_viewer = info[2].As<v8::Object>();
-		UI3DViewer* viewer = (UI3DViewer*)holder_viewer->GetAlignedPointerFromInternalField(0);
-		self->render(*scene, *camera, viewer->render_target);
+
+		v8::String::Utf8Value clsname(isolate, holder_viewer->GetConstructorName());
+		if (strcmp(*clsname, "UI3DViewer") == 0)
+		{
+			UI3DViewer* viewer = (UI3DViewer*)holder_viewer->GetAlignedPointerFromInternalField(0);
+			self->render(*scene, *camera, viewer->render_target);
+		}
+		else if (strcmp(*clsname, "GLRenderTarget") == 0)
+		{
+			GLRenderTarget* target = (GLRenderTarget*)holder_viewer->GetAlignedPointerFromInternalField(0);
+			self->render(*scene, *camera, *target);
+			if (target->msaa())
+			{
+				target->resolve_msaa();
+			}
+		}
 	}
 }
 

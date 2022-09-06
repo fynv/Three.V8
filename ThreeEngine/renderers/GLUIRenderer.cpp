@@ -313,7 +313,7 @@ public:
 				glDisable(GL_SCISSOR_TEST);
 			}
 
-			blitter->render(view->render_target.m_tex_video, upper_left.x, h - lower_right.y, i_size.x, i_size.y, false);
+			blitter->render(view->render_target.m_tex_video->tex_id, upper_left.x, h - lower_right.y, i_size.x, i_size.y, false);
 
 		}
 		glDisable(GL_SCISSOR_TEST);
@@ -823,7 +823,7 @@ void GLUIRenderer::render(UIManager& UI, int width_wnd, int height_wnd)
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);		
 		glEnable(GL_FRAMEBUFFER_SRGB);
-		blitter.render(area->render_target.m_tex_video, arenderer.x0, height_wnd - (arenderer.y0 + arenderer.h), arenderer.w, arenderer.h, true);
+		blitter.render(area->render_target.m_tex_video->tex_id, arenderer.x0, height_wnd - (arenderer.y0 + arenderer.h), arenderer.w, arenderer.h, true);
 
 	}
 

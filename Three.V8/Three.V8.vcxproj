@@ -163,6 +163,7 @@
     <ClInclude Include="network\HttpClient.hpp" />
     <ClInclude Include="renderers\CubeRenderTarget.hpp" />
     <ClInclude Include="renderers\GLRenderer.hpp" />
+    <ClInclude Include="renderers\GLRenderTarget.hpp" />
     <ClInclude Include="savers\ImageSaver.hpp" />
     <ClInclude Include="scenes\Scene.hpp" />
     <ClInclude Include="utils\Image.hpp" />

@@ -168,6 +168,9 @@
     <ClInclude Include="renderers\CubeRenderTarget.hpp">
       <Filter>Header Files\renderers</Filter>
     </ClInclude>
+    <ClInclude Include="renderers\GLRenderTarget.hpp">
+      <Filter>Header Files\renderers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="binding.cpp">

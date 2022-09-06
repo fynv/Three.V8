@@ -3,6 +3,7 @@
 #include <memory>
 #include "renderers/routines/WeightedOIT.h"
 
+class GLTexture2D;
 class CubeRenderTarget;
 class GLRenderTarget
 {
@@ -22,7 +23,7 @@ public:
 	int m_width = -1;
 	int m_height = -1;
 	
-	unsigned m_tex_video = -1;
+	std::unique_ptr<GLTexture2D> m_tex_video;
 	unsigned m_rbo_video = -1;
 	unsigned m_fbo_video = 0;
 

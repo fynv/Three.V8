@@ -8,7 +8,7 @@ GLRenderTarget::GLRenderTarget(bool default_buffer, bool msaa)
 	if (!default_buffer)
 	{
 		glGenFramebuffers(1, &m_fbo_video);
-		glGenTextures(1, &m_tex_video);
+		m_tex_video = std::unique_ptr<GLTexture2D>(new GLTexture2D);
 		if (!msaa)
 		{
 			glGenRenderbuffers(1, &m_rbo_video);
@@ -42,8 +42,6 @@ GLRenderTarget::~GLRenderTarget()
 	if (m_fbo_video != 0)
 	{
 		glDeleteFramebuffers(1, &m_fbo_video);
-		if (m_tex_video != (unsigned)(-1))
-			glDeleteTextures(1, &m_tex_video);
 		if (m_rbo_video != (unsigned)(-1))
 			glDeleteRenderbuffers(1, &m_rbo_video);
 	}
@@ -67,14 +65,14 @@ bool GLRenderTarget::update_framebuffers(int width, int height)
 
 			if (m_cube_target == nullptr)
 			{
-				glBindTexture(GL_TEXTURE_2D, m_tex_video);
+				glBindTexture(GL_TEXTURE_2D, m_tex_video->tex_id);
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, nullptr);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 				glBindTexture(GL_TEXTURE_2D, 0);
-				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_tex_video, 0);
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_tex_video->tex_id, 0);
 			}
 			else
 			{

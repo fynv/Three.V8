@@ -2,6 +2,7 @@
 
 #include "WrapperUtils.hpp"
 #include "core/Object3D.hpp"
+#include <renderers/GLRenderTarget.h>
 #include <models/SimpleModel.h>
 #include <models/GeometryCreator.h>
 #include <utils/Image.h>
@@ -145,11 +146,23 @@ void WrapperSimpleModel::SetColorTexture(const v8::FunctionCallbackInfo<v8::Valu
 	v8::Isolate* isolate = info.GetIsolate();
 	v8::HandleScope handle_scope(isolate);
 	SimpleModel* self = get_self<SimpleModel>(info);
-	v8::Local<v8::Object> holder_image = info[0].As<v8::Object>();
-	Image* image = (Image*)holder_image->GetAlignedPointerFromInternalField(0);
-	if (image != nullptr)
+	v8::Local<v8::Object> holder_image = info[0].As<v8::Object>();	
+	v8::String::Utf8Value clsname(isolate, holder_image->GetConstructorName());
+	if (strcmp(*clsname, "Image") == 0)
 	{
-		self->texture.load_memory_rgba(image->width(), image->height(), image->data(), true);
+		Image* image = (Image*)holder_image->GetAlignedPointerFromInternalField(0);
+		if (image != nullptr)
+		{
+			self->texture.load_memory_rgba(image->width(), image->height(), image->data(), true);
+		}
+	}
+	else if (strcmp(*clsname, "GLRenderTarget") == 0)
+	{
+		GLRenderTarget* target = (GLRenderTarget*)holder_image->GetAlignedPointerFromInternalField(0);
+		if (target != nullptr)
+		{
+			self->repl_texture = target->m_tex_video.get();
+		}
 	}
 }
 

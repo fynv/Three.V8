@@ -216,6 +216,11 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 void GLRenderer::render_model(Camera* p_camera, const Lights& lights, SimpleModel* model, Pass pass)
 {		
 	const GLTexture2D* tex = &model->texture;
+	if (model->repl_texture != nullptr)
+	{
+		tex = model->repl_texture;
+	}
+
 	const MeshStandardMaterial* material = &model->material;
 
 	if (pass == Pass::Opaque)
@@ -246,7 +251,17 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, GLTFModel*
 {
 	std::vector<const GLTexture2D*> tex_lst(model->m_textures.size());
 	for (size_t i = 0; i < tex_lst.size(); i++)
-		tex_lst[i] = model->m_textures[i].get();
+	{
+		auto iter = model->m_repl_textures.find(i);
+		if (iter != model->m_repl_textures.end())
+		{
+			tex_lst[i] = iter->second;
+		}
+		else
+		{
+			tex_lst[i] = model->m_textures[i].get();
+		}
+	}
 
 	std::vector<const MeshStandardMaterial*> material_lst(model->m_materials.size());
 	for (size_t i = 0; i < material_lst.size(); i++)
@@ -359,6 +374,11 @@ void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, SimpleModel
 	if (!visible(view_matrix * model->matrixWorld, shadow->m_light_proj_matrix, model->geometry.min_pos, model->geometry.max_pos)) return;
 
 	const GLTexture2D* tex = &model->texture;
+	if (model->repl_texture != nullptr)
+	{
+		tex = model->repl_texture;
+	}
+
 	const MeshStandardMaterial* material = &model->material;
 
 	DirectionalShadowCast::RenderParams params;
@@ -376,7 +396,17 @@ void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, GLTFModel* 
 	
 	std::vector<const GLTexture2D*> tex_lst(model->m_textures.size());
 	for (size_t i = 0; i < tex_lst.size(); i++)
-		tex_lst[i] = model->m_textures[i].get();
+	{
+		auto iter = model->m_repl_textures.find(i);
+		if (iter != model->m_repl_textures.end())
+		{
+			tex_lst[i] = iter->second;
+		}
+		else
+		{
+			tex_lst[i] = model->m_textures[i].get();
+		}
+	}	
 
 	std::vector<const MeshStandardMaterial*> material_lst(model->m_materials.size());
 	for (size_t i = 0; i < material_lst.size(); i++)

@@ -14,7 +14,7 @@ namespace GamePlayer
     {
         private CGLControl glControl = null;
         private CGamePlayer game_player = null;
-        private string default_script = "../../../game/bundle.js";
+        private string default_script = "../../../game/bundle_game.js";
         private bool is_portrait = false;
 
 

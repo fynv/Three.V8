@@ -47,6 +47,7 @@ V8VM::~V8VM()
 #include "scenes/Scene.hpp"
 
 #include "renderers/GLRenderer.hpp"
+#include "renderers/GLRenderTarget.hpp"
 #include "renderers/CubeRenderTarget.hpp"
 
 #include "core/BoundingVolumeHierarchy.hpp"
@@ -88,6 +89,7 @@ GlobalDefinitions GameContext::s_globals =
 		{ "HemisphereBackground", WrapperHemisphereBackground::New,  WrapperHemisphereBackground::create_template },
 		{ "Scene", WrapperScene::New,  WrapperScene::create_template },
 		{ "GLRenderer", WrapperGLRenderer::New,  WrapperGLRenderer::create_template },
+		{ "GLRenderTarget", WrapperGLRenderTarget::New,  WrapperGLRenderTarget::create_template },
 		{ "CubeRenderTarget", WrapperCubeRenderTarget::New,  WrapperCubeRenderTarget::create_template },
 		{ "SimpleModel", WrapperSimpleModel::New,  WrapperSimpleModel::create_template },
 		{ "GLTFModel", WrapperGLTFModel::New,  WrapperGLTFModel::create_template },

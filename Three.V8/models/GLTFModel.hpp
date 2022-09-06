@@ -2,6 +2,7 @@
 
 #include "WrapperUtils.hpp"
 #include "core/Object3D.hpp"
+#include <renderers/GLRenderTarget.h>
 #include <models/GLTFModel.h>
 #include <models/GeometryCreator.h>
 #include <utils/Image.h>
@@ -17,6 +18,8 @@ private:
 	static void GetMaxPos(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 
 	static void GetMeshes(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
+
+	static void SetTexture(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 	static void SetAnimationFrame(const v8::FunctionCallbackInfo<v8::Value>& info);
 
@@ -42,6 +45,8 @@ v8::Local<v8::FunctionTemplate> WrapperGLTFModel::create_template(v8::Isolate* i
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "maxPos").ToLocalChecked(), GetMaxPos, 0);
 
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "meshes").ToLocalChecked(), GetMeshes, 0);
+
+	templ->InstanceTemplate()->Set(isolate, "setTexture", v8::FunctionTemplate::New(isolate, SetTexture));
 
 	templ->InstanceTemplate()->Set(isolate, "setAnimationFrame", v8::FunctionTemplate::New(isolate, SetAnimationFrame));
 
@@ -137,6 +142,42 @@ void WrapperGLTFModel::GetMeshes(v8::Local<v8::String> property, const v8::Prope
 	info.GetReturnValue().Set(jmeshes);
 
 }
+
+
+void WrapperGLTFModel::SetTexture(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	v8::Isolate* isolate = info.GetIsolate();
+	v8::HandleScope handle_scope(isolate);
+	GLTFModel* self = get_self<GLTFModel>(info);
+
+	v8::String::Utf8Value name(info.GetIsolate(), info[0]);
+	int idx = 0;
+	auto iter = self->m_tex_dict.find(*name);
+	if (iter != self->m_tex_dict.end())
+	{
+		idx = iter->second;
+	}
+
+	v8::Local<v8::Object> holder_image = info[1].As<v8::Object>();
+	v8::String::Utf8Value clsname(isolate, holder_image->GetConstructorName());
+	if (strcmp(*clsname, "Image") == 0)
+	{
+		Image* image = (Image*)holder_image->GetAlignedPointerFromInternalField(0);
+		if (image != nullptr)
+		{
+			self->m_textures[idx]->load_memory_rgba(image->width(), image->height(), image->data(), true);
+		}
+	}
+	else if (strcmp(*clsname, "GLRenderTarget") == 0)
+	{
+		GLRenderTarget* target = (GLRenderTarget*)holder_image->GetAlignedPointerFromInternalField(0);
+		if (target != nullptr)
+		{
+			self->m_repl_textures[idx] = target->m_tex_video.get();
+		}		
+	}
+}
+
 
 void WrapperGLTFModel::SetAnimationFrame(const v8::FunctionCallbackInfo<v8::Value>& info)
 {

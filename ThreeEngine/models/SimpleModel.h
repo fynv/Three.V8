@@ -15,6 +15,7 @@ public:
 	void updateConstant();
 
 	GLTexture2D texture;
+	GLTexture2D* repl_texture = nullptr;
 	MeshStandardMaterial material;
 	Primitive geometry;
 
