@@ -19,6 +19,7 @@ public:
 	void calculate_bounding_box();
 
 	std::vector<std::unique_ptr<GLTexture2D>> m_textures;
+	std::unordered_map<std::string, int> m_tex_dict;
 	std::vector<std::unique_ptr<MeshStandardMaterial>> m_materials;
 	
 	std::vector<Mesh> m_meshs;

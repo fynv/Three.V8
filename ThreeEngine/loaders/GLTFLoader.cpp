@@ -250,6 +250,7 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 		model_out->m_textures[i] = std::unique_ptr<GLTexture2D>(tex_out);
 
 		tinygltf::Image& img_in = model.images[tex_in.source];
+		model_out->m_tex_dict[img_in.name] = i;
 		const TexLoadOptions& opts = tex_opts[i];
 
 		bool has_alpha = img_in.component > 3;
