@@ -250,8 +250,6 @@ public:
 				view->render_callback(i_size.x, i_size.y, size_changed, view->render_data);
 			}
 
-			view->render_target.resolve_msaa();
-
 			bool scissor = false;
 			glm::ivec2 scissor_upper_Left = { 0, 0 };
 			glm::ivec2 scissor_lower_right = { w, h };

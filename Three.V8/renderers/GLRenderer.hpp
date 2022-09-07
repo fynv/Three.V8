@@ -77,10 +77,6 @@ void WrapperGLRenderer::Render(const v8::FunctionCallbackInfo<v8::Value>& info)
 		{
 			GLRenderTarget* target = (GLRenderTarget*)holder_viewer->GetAlignedPointerFromInternalField(0);
 			self->render(*scene, *camera, *target);
-			if (target->msaa())
-			{
-				target->resolve_msaa();
-			}
 		}
 	}
 }

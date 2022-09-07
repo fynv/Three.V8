@@ -803,6 +803,11 @@ void GLRenderer::_render(Scene& scene, Camera& camera, GLRenderTarget& target, P
 			oit_resolvers[1]->PostDraw(target.m_OITBuffers);
 		}
 	}
+
+	if (target.msaa())
+	{
+		target.resolve_msaa();
+	}
 }
 
 void GLRenderer::_render_cube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar, const PreRender& pre)

@@ -68,9 +68,7 @@ void Game::Draw(int width, int height)
 	
 	m_renderer.render(m_scene, m_camera, m_render_target);
 
-#if ENABLE_MSAA
-	m_render_target.resolve_msaa();
-#else
+#if !ENABLE_MSAA
 	m_render_target.blit_buffer(width, height, 0);
 #endif
 	

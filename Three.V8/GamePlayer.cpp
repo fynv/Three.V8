@@ -91,9 +91,7 @@ void GamePlayer::Draw(int width, int height)
 		}
 	}
 
-#if ENABLE_MSAA
-	m_render_target.resolve_msaa();
-#else
+#if !ENABLE_MSAA
 	m_render_target.blit_buffer(width, height, 0);
 #endif
 
