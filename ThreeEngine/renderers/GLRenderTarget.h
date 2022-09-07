@@ -24,11 +24,11 @@ public:
 	int m_height = -1;
 	
 	std::unique_ptr<GLTexture2D> m_tex_video;
-	unsigned m_rbo_video = -1;
-	unsigned m_fbo_video = 0;
+	std::unique_ptr<GLTexture2D> m_tex_msaa;
+	std::unique_ptr<GLTexture2D> m_tex_depth;
+	
 
-	unsigned m_tex_msaa = -1;
-	unsigned m_rbo_msaa = -1;
+	unsigned m_fbo_video = 0;
 	unsigned m_fbo_msaa = -1;
 	bool update_framebuffers(int width, int height);
 

@@ -88,7 +88,7 @@ WeightedOIT::Buffers::~Buffers()
 		glDeleteTextures(1, &m_tex0);
 }
 
-void WeightedOIT::Buffers::update(int width, int height, unsigned depth_rbo, bool msaa)
+void WeightedOIT::Buffers::update(int width, int height, unsigned depth_tex, bool msaa)
 {
 	if (m_width != width || m_height != height)
 	{
@@ -112,6 +112,8 @@ void WeightedOIT::Buffers::update(int width, int height, unsigned depth_rbo, boo
 			glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_R8, width, height, true);
 			glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D_MULTISAMPLE, m_tex1, 0);
+
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, depth_tex, 0);
 		}
 		else
 		{
@@ -132,9 +134,10 @@ void WeightedOIT::Buffers::update(int width, int height, unsigned depth_rbo, boo
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 			glBindTexture(GL_TEXTURE_2D, 0);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_tex1, 0);
+
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depth_tex, 0);
 		}
 
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_rbo);
 
 		m_width = width;
 		m_height = height;

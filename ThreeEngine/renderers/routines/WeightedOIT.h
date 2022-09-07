@@ -21,7 +21,7 @@ public:
 		unsigned m_tex1 = -1;
 		unsigned m_fbo = -1;
 
-		void update(int width, int height, unsigned depth_rbo, bool msaa);
+		void update(int width, int height, unsigned depth_tex, bool msaa);
 	};
 
 	void PreDraw(Buffers& bufs);

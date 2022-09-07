@@ -4,14 +4,14 @@
 #include "CubeRenderTarget.h"
 
 GLRenderTarget::GLRenderTarget(bool default_buffer, bool msaa)
-{
+{	
 	if (!default_buffer)
 	{
 		glGenFramebuffers(1, &m_fbo_video);
 		m_tex_video = std::unique_ptr<GLTexture2D>(new GLTexture2D);
 		if (!msaa)
 		{
-			glGenRenderbuffers(1, &m_rbo_video);
+			m_tex_depth = std::unique_ptr<GLTexture2D>(new GLTexture2D);
 		}
 	}
 	else if (!msaa)
@@ -22,8 +22,8 @@ GLRenderTarget::GLRenderTarget(bool default_buffer, bool msaa)
 	if (msaa)
 	{
 		glGenFramebuffers(1, &m_fbo_msaa);
-		glGenTextures(1, &m_tex_msaa);
-		glGenRenderbuffers(1, &m_rbo_msaa);
+		m_tex_msaa = std::unique_ptr<GLTexture2D>(new GLTexture2D);
+		m_tex_depth = std::unique_ptr<GLTexture2D>(new GLTexture2D);		
 	}
 }
 
@@ -33,25 +33,17 @@ GLRenderTarget::GLRenderTarget(CubeRenderTarget* cube_target, int idx)
 	m_cube_face_idx = idx;
 
 	glGenFramebuffers(1, &m_fbo_video);
-	glGenRenderbuffers(1, &m_rbo_video);
+	m_tex_depth = std::unique_ptr<GLTexture2D>(new GLTexture2D);
 
 }
 
 GLRenderTarget::~GLRenderTarget()
 {
 	if (m_fbo_video != 0)
-	{
-		glDeleteFramebuffers(1, &m_fbo_video);
-		if (m_rbo_video != (unsigned)(-1))
-			glDeleteRenderbuffers(1, &m_rbo_video);
-	}
+		glDeleteFramebuffers(1, &m_fbo_video);	
 
 	if (m_fbo_msaa != (unsigned)(-1))
 		glDeleteFramebuffers(1, &m_fbo_msaa);
-	if (m_tex_msaa != (unsigned)(-1))
-		glDeleteTextures(1, &m_tex_msaa);
-	if (m_rbo_msaa != (unsigned)(-1))
-		glDeleteRenderbuffers(1, &m_rbo_msaa);
 }
 
 
@@ -79,12 +71,16 @@ bool GLRenderTarget::update_framebuffers(int width, int height)
 				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + m_cube_face_idx, m_cube_target->m_cube_map->tex_id,0);
 			}
 
-			if (m_rbo_video != (unsigned)(-1))
+			if (m_fbo_msaa == (unsigned)(-1))			
 			{
-				glBindRenderbuffer(GL_RENDERBUFFER, m_rbo_video);
-				glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width, height);
-				glBindRenderbuffer(GL_RENDERBUFFER, 0);
-				glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_rbo_video);
+				glBindTexture(GL_TEXTURE_2D, m_tex_depth->tex_id);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+				glBindTexture(GL_TEXTURE_2D, 0);
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_tex_depth->tex_id, 0);
 			}
 		}
 
@@ -92,15 +88,15 @@ bool GLRenderTarget::update_framebuffers(int width, int height)
 		{
 			glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_msaa);
 
-			glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_tex_msaa);
+			glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_tex_msaa->tex_id);
 			glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_SRGB8_ALPHA8, width, height, true);
 			glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, m_tex_msaa, 0);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, m_tex_msaa->tex_id, 0);
 
-			glBindRenderbuffer(GL_RENDERBUFFER, m_rbo_msaa);
-			glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH_COMPONENT24, width, height);
-			glBindRenderbuffer(GL_RENDERBUFFER, 0);
-			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_rbo_msaa);
+			glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_tex_depth->tex_id);
+			glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_DEPTH_COMPONENT32F, width, height, true);
+			glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, m_tex_depth->tex_id, 0);
 		}
 
 		m_width = width;
@@ -113,14 +109,7 @@ bool GLRenderTarget::update_framebuffers(int width, int height)
 
 void GLRenderTarget::update_oit_buffers()
 {
-	if (m_fbo_msaa == (unsigned)(-1))
-	{
-		m_OITBuffers.update(m_width, m_height, m_rbo_video, false);	
-	}
-	else
-	{
-		m_OITBuffers.update(m_width, m_height, m_rbo_msaa, true);		
-	}
+	m_OITBuffers.update(m_width, m_height, m_tex_depth->tex_id, msaa());
 }
 
 
