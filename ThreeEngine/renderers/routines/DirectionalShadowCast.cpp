@@ -11,6 +11,7 @@ layout (location = LOCATION_ATTRIB_POS) in vec3 aPos;
 
 layout (std140, binding = BINDING_SHADOW) uniform Shadow
 {
+	mat4 uVPSBMat;
 	mat4 uProjMat;
 	mat4 uViewMat;	
 };

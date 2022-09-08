@@ -1,7 +1,9 @@
+#include <GL/glew.h>
 #include "DirectionalLight.h"
 #include "DirectionalLightShadow.h"
 
 DirectionalLight::DirectionalLight()
+	: m_constant(sizeof(ConstDirectionalLight), GL_UNIFORM_BUFFER)
 {
 
 }
@@ -53,20 +55,20 @@ glm::vec3 DirectionalLight::direction()
 void DirectionalLight::makeConst(ConstDirectionalLight& const_light)
 {
 	const_light.color = glm::vec4(color * intensity, 1.0f);
+	const_light.origin = glm::vec4(position, 1.0f);
 	const_light.direction = glm::vec4(direction(), 0.0f);
-	if (shadow != nullptr)
-	{
-		const_light.has_shadow = 1;
-		const_light.shadowVPSBMatrix = shadow->m_lightVPSBMatrix;
-	}
-	else
-	{
-		const_light.has_shadow = 0;
-	}
+	const_light.has_shadow = shadow != nullptr ? 1 : 0;
 	const_light.diffuseThresh = diffuse_thresh;
 	const_light.diffuseHigh = diffuse_high;
 	const_light.diffuseLow = diffuse_low;
 	const_light.specularThresh = specular_thresh;
 	const_light.specularHigh = specular_high;
 	const_light.specularLow = specular_low;
+}
+
+void DirectionalLight::updateConstant()
+{
+	ConstDirectionalLight c;
+	makeConst(c);
+	m_constant.upload(&c);
 }

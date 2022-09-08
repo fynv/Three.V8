@@ -165,6 +165,7 @@
     <ClInclude Include="renderers\GLRenderer.hpp" />
     <ClInclude Include="renderers\GLRenderTarget.hpp" />
     <ClInclude Include="savers\ImageSaver.hpp" />
+    <ClInclude Include="scenes\Fog.hpp" />
     <ClInclude Include="scenes\Scene.hpp" />
     <ClInclude Include="utils\Image.hpp" />
     <ClInclude Include="WrapperUtils.hpp" />

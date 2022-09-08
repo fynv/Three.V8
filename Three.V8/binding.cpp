@@ -45,6 +45,7 @@ V8VM::~V8VM()
 #include "models/GLTFModel.hpp"
 
 #include "scenes/Scene.hpp"
+#include "scenes/Fog.hpp"
 
 #include "renderers/GLRenderer.hpp"
 #include "renderers/GLRenderTarget.hpp"
@@ -88,6 +89,7 @@ GlobalDefinitions GameContext::s_globals =
 		{ "CubeBackground", WrapperCubeBackground::New,  WrapperCubeBackground::create_template },
 		{ "HemisphereBackground", WrapperHemisphereBackground::New,  WrapperHemisphereBackground::create_template },
 		{ "Scene", WrapperScene::New,  WrapperScene::create_template },
+		{ "Fog", WrapperFog::New,  WrapperFog::create_template },
 		{ "GLRenderer", WrapperGLRenderer::New,  WrapperGLRenderer::create_template },
 		{ "GLRenderTarget", WrapperGLRenderTarget::New,  WrapperGLRenderTarget::create_template },
 		{ "CubeRenderTarget", WrapperCubeRenderTarget::New,  WrapperCubeRenderTarget::create_template },

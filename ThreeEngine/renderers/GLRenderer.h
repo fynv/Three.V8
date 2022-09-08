@@ -11,8 +11,11 @@
 #include "renderers/routines/DrawTexture.h"
 #include "renderers/routines/DrawSkyBox.h"
 #include "renderers/routines/DrawHemisphere.h"
+#include "renderers/routines/DrawFog.h"
+#include "renderers/routines/FogRayMarching.h"
 
 class Scene;
+class Fog;
 class Camera;
 class GLRenderTarget;
 class CubeRenderTarget;
@@ -47,8 +50,8 @@ private:
 	std::unique_ptr<DrawWire> WireDraw;
 
 	void render_primitive(const StandardRoutine::RenderParams& params, Pass pass);
-	void render_model(Camera* p_camera, const Lights& lights, SimpleModel* model, Pass pass);
-	void render_model(Camera* p_camera, const Lights& lights, GLTFModel* model, Pass pass);
+	void render_model(Camera* p_camera, const Lights& lights, const Fog* fog, SimpleModel* model, Pass pass);
+	void render_model(Camera* p_camera, const Lights& lights, const Fog* fog, GLTFModel* model, Pass pass);
 
 	std::unique_ptr<MorphUpdate> morphers[4];
 	std::unique_ptr<SkinUpdate> skinners[2];
@@ -77,6 +80,13 @@ private:
 	void _pre_render(Scene& scene, PreRender& pre);
 	void _render(Scene& scene, Camera& camera, GLRenderTarget& target, PreRender& pre);
 	void _render_cube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar, const PreRender& pre);
+	
+	std::unordered_map<uint64_t, std::unique_ptr<DrawFog>> fog_draw_map;
+	std::unique_ptr<FogRayMarching> fog_ray_march[2];
+	
+	void _render_fog(const Camera& camera, const Lights& lights, const Fog& fog, GLRenderTarget& target);
+	void _render_fog_rm(const Camera& camera, DirectionalLight& light, const Fog& fog, GLRenderTarget& target);
+
 	
 };
 

@@ -1,12 +1,13 @@
 #pragma once
 
 #include <memory>
+#include "renderers/GLUtils.h"
 #include "lights/Light.h"
 
 struct ConstDirectionalLight
 {
-	glm::mat4 shadowVPSBMatrix;
 	glm::vec4 color;
+	glm::vec4 origin;
 	glm::vec4 direction;
 	int has_shadow;
 	float diffuseThresh;
@@ -33,5 +34,8 @@ public:
 
 	glm::vec3 direction();
 	void makeConst(ConstDirectionalLight& const_light);
+
+	GLDynBuffer m_constant;
+	void updateConstant();
 
 };

@@ -171,6 +171,9 @@
     <ClInclude Include="renderers\GLRenderTarget.hpp">
       <Filter>Header Files\renderers</Filter>
     </ClInclude>
+    <ClInclude Include="scenes\Fog.hpp">
+      <Filter>Header Files\scenes</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="binding.cpp">

@@ -26,6 +26,7 @@ public:
 		bool has_ambient_light = false;
 		bool has_hemisphere_light = false;
 		int tone_shading = 0;
+		bool has_fog = false;
 	};
 
 	StandardRoutine(const Options& options);
@@ -38,6 +39,7 @@ public:
 		const GLDynBuffer* constant_model;
 		const Primitive* primitive;
 		const Lights* lights;
+		const GLDynBuffer* constant_fog;
 	};
 
 	void render(const RenderParams& params);
@@ -75,6 +77,7 @@ private:
 		int location_tex_reflection_map;
 		int binding_ambient_light;
 		int binding_hemisphere_light;
+		int binding_fog;
 	};
 
 	Bindings m_bindings;

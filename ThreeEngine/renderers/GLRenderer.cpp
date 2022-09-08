@@ -14,6 +14,7 @@
 #include "materials/MeshStandardMaterial.h"
 #include "lights/DirectionalLight.h"
 #include "lights/DirectionalLightShadow.h"
+#include "scenes/Fog.h"
 
 //#include <gtx/string_cast.hpp>
 
@@ -207,13 +208,14 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 	options.has_environment_map = lights->environment_map != nullptr;
 	options.has_ambient_light = lights->ambient_light != nullptr;
 	options.has_hemisphere_light = lights->hemisphere_light != nullptr;
+	options.has_fog = params.constant_fog != nullptr;
 	options.tone_shading = material->tone_shading;
 	StandardRoutine* routine = get_routine(options);
 	routine->render(params);	
 }
 
 
-void GLRenderer::render_model(Camera* p_camera, const Lights& lights, SimpleModel* model, Pass pass)
+void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog* fog, SimpleModel* model, Pass pass)
 {		
 	const GLTexture2D* tex = &model->texture;
 	if (model->repl_texture != nullptr)
@@ -244,10 +246,20 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, SimpleMode
 	params.constant_model = &model->m_constant;
 	params.primitive = &model->geometry;
 	params.lights = &lights;
+
+	if (fog != nullptr)
+	{
+		params.constant_fog = &fog->m_constant;
+	}
+	else
+	{
+		params.constant_fog = nullptr;
+	}
+
 	render_primitive(params, pass);
 }
 
-void GLRenderer::render_model(Camera* p_camera, const Lights& lights, GLTFModel* model, Pass pass)
+void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog* fog, GLTFModel* model, Pass pass)
 {
 	std::vector<const GLTexture2D*> tex_lst(model->m_textures.size());
 	for (size_t i = 0; i < tex_lst.size(); i++)
@@ -303,6 +315,15 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, GLTFModel*
 			params.constant_model = mesh.model_constant.get();
 			params.primitive = &primitive;
 			params.lights = &lights;
+
+			if (fog != nullptr)
+			{
+				params.constant_fog = &fog->m_constant;
+			}
+			else
+			{
+				params.constant_fog = nullptr;
+			}
 			render_primitive(params, pass);
 		}
 	}
@@ -440,6 +461,61 @@ void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, GLTFModel* 
 		}
 	}
 }
+
+void GLRenderer::_render_fog(const Camera& camera, const Lights& lights, const Fog& fog, GLRenderTarget& target)
+{
+	DrawFog::Options options;
+	options.msaa = target.msaa();
+	options.has_ambient_light = lights.ambient_light != nullptr;
+	options.has_hemisphere_light = lights.hemisphere_light != nullptr;
+	options.has_environment_map = lights.environment_map != nullptr;
+
+	uint64_t hash = crc64(0, (const unsigned char*)&options, sizeof(DrawFog::Options));
+	auto iter = fog_draw_map.find(hash);
+	if (iter == fog_draw_map.end())
+	{
+		fog_draw_map[hash] = std::unique_ptr<DrawFog>(new DrawFog(options));
+	}
+	DrawFog* fog_draw = fog_draw_map[hash].get();
+
+	DrawFog::RenderParams params;
+	params.tex_depth = target.m_tex_depth.get();
+	params.constant_camera = &camera.m_constant;
+	params.constant_fog = &fog.m_constant;
+	params.lights = &lights;
+
+	fog_draw->render(params);
+}
+
+void GLRenderer::_render_fog_rm(const Camera& camera, DirectionalLight& light, const Fog& fog, GLRenderTarget& target)
+{
+	bool msaa = target.msaa();
+	int idx = msaa ? 1 : 0;
+	if (fog_ray_march[idx] == nullptr)
+	{
+		fog_ray_march[idx] = std::unique_ptr<FogRayMarching>(new FogRayMarching(msaa));
+	}
+	FogRayMarching* fog_rm = fog_ray_march[idx].get();
+
+	light.updateConstant();
+	FogRayMarching::RenderParams params;
+	params.tex_depth = target.m_tex_depth.get();
+	params.constant_camera = &camera.m_constant;
+	params.constant_fog = &fog.m_constant;
+	params.constant_diretional_light = &light.m_constant;
+	if (light.shadow != nullptr)
+	{
+		params.constant_diretional_shadow = &light.shadow->constant_shadow;
+		params.tex_shadow = light.shadow->m_lightTex;
+	}
+	else
+	{
+		params.constant_diretional_shadow = nullptr;
+		params.tex_shadow = -1;
+	}
+	fog_rm->render(params);
+}
+
 
 void GLRenderer::_pre_render(Scene& scene, PreRender& pre)
 {
@@ -722,6 +798,12 @@ void GLRenderer::_render(Scene& scene, Camera& camera, GLRenderTarget& target, P
 
 	Lights& lights = scene.lights;
 
+	Fog* fog = nullptr;
+	if (scene.fog != nullptr && scene.fog->density > 0)
+	{
+		fog = scene.fog;
+	}
+
 	glDepthMask(GL_TRUE);
 	glClearDepth(1.0f);
 	glClear(GL_DEPTH_BUFFER_BIT);
@@ -734,13 +816,13 @@ void GLRenderer::_render(Scene& scene, Camera& camera, GLRenderTarget& target, P
 		for (size_t i = 0; i < pre.simple_models.size(); i++)
 		{
 			SimpleModel* model = pre.simple_models[i];
-			render_model(&camera, lights, model, Pass::Opaque);
+			render_model(&camera, lights, fog, model, Pass::Opaque);
 		}
 
 		for (size_t i = 0; i < pre.gltf_models.size(); i++)
 		{
 			GLTFModel* model = pre.gltf_models[i];
-			render_model(&camera, lights, model, Pass::Opaque);
+			render_model(&camera, lights, fog, model, Pass::Opaque);
 		}
 	}
 
@@ -753,13 +835,13 @@ void GLRenderer::_render(Scene& scene, Camera& camera, GLRenderTarget& target, P
 		for (size_t i = 0; i < pre.simple_models.size(); i++)
 		{
 			SimpleModel* model = pre.simple_models[i];
-			render_model(&camera, lights, model, Pass::Highlight);
+			render_model(&camera, lights, fog, model, Pass::Highlight);
 		}
 
 		for (size_t i = 0; i < pre.gltf_models.size(); i++)
 		{
 			GLTFModel* model = pre.gltf_models[i];
-			render_model(&camera, lights, model, Pass::Highlight);
+			render_model(&camera, lights, fog, model, Pass::Highlight);
 		}
 
 		target.update_oit_buffers();
@@ -783,13 +865,13 @@ void GLRenderer::_render(Scene& scene, Camera& camera, GLRenderTarget& target, P
 		for (size_t i = 0; i < pre.simple_models.size(); i++)
 		{
 			SimpleModel* model = pre.simple_models[i];
-			render_model(&camera, lights, model, Pass::Alpha);
+			render_model(&camera, lights, fog, model, Pass::Alpha);
 		}
 
 		for (size_t i = 0; i < pre.gltf_models.size(); i++)
 		{
 			GLTFModel* model = pre.gltf_models[i];
-			render_model(&camera, lights, model, Pass::Alpha);
+			render_model(&camera, lights, fog, model, Pass::Alpha);
 		}
 
 		target.bind_buffer();
@@ -807,6 +889,23 @@ void GLRenderer::_render(Scene& scene, Camera& camera, GLRenderTarget& target, P
 	if (target.msaa())
 	{
 		target.resolve_msaa();
+	}
+
+	if (fog!=nullptr)
+	{
+		fog->updateConstant();
+
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+		glDisable(GL_DEPTH_TEST);
+
+		_render_fog(camera, lights, *fog, target);
+
+		for (size_t i = 0; i < pre.directional_lights.size(); i++)
+		{
+			DirectionalLight* light = pre.directional_lights[i];
+			_render_fog_rm(camera, *light, *fog, target);
+		}
 	}
 }
 

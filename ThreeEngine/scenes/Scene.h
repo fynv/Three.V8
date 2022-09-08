@@ -5,6 +5,7 @@
 
 class Background;
 class EnvironmentMap;
+class Fog;
 class Scene : public Object3D
 {
 public:
@@ -14,5 +15,7 @@ public:
 	bool has_opaque = false;
 	bool has_alpha = false;
 	Lights lights;
+
+	Fog* fog = nullptr;
 };
 

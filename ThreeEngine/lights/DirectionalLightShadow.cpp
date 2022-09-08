@@ -48,6 +48,7 @@ void DirectionalLightShadow::setProjection(float left, float right, float bottom
 void DirectionalLightShadow::makeConst(ConstDirectionalShadow& const_shadow)
 {
 	glm::mat4 view_matrix = glm::inverse(m_light->matrixWorld);
+	const_shadow.VPSBMat = m_lightVPSBMatrix;
 	const_shadow.ProjMat = m_light_proj_matrix;
 	const_shadow.ViewMat = view_matrix;
 	const_shadow.LeftRight = { m_left, m_right };

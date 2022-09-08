@@ -5,6 +5,7 @@
 
 struct ConstDirectionalShadow
 {
+	glm::mat4 VPSBMat;
 	glm::mat4 ProjMat;
 	glm::mat4 ViewMat;
 	glm::vec2 LeftRight;

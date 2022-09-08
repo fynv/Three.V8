@@ -5,6 +5,7 @@
 #include <scenes/Scene.h>
 #include <backgrounds/Background.h>
 #include <lights/IndirectLight.h>
+#include <scenes/Fog.h>
 
 class WrapperScene
 {
@@ -19,6 +20,9 @@ private:
 	static void GetIndirectLight(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void SetIndirectLight(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
 
+	static void GetFog(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void SetFog(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
+
 };
 
 v8::Local<v8::FunctionTemplate> WrapperScene::create_template(v8::Isolate* isolate, v8::FunctionCallback constructor)
@@ -26,6 +30,7 @@ v8::Local<v8::FunctionTemplate> WrapperScene::create_template(v8::Isolate* isola
 	v8::Local<v8::FunctionTemplate> templ = WrapperObject3D::create_template(isolate, constructor);
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "background").ToLocalChecked(), GetBackground, SetBackground);
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "indirectLight").ToLocalChecked(), GetIndirectLight, SetIndirectLight);
+	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "fog").ToLocalChecked(), GetFog, SetFog);
 	return templ;
 }
 
@@ -103,6 +108,41 @@ void WrapperScene::SetIndirectLight(v8::Local<v8::String> property, v8::Local<v8
 	else
 	{
 		self->indirectLight = nullptr;
+	}
+}
+
+
+void WrapperScene::GetFog(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+	v8::Isolate* isolate = info.GetIsolate();
+	v8::HandleScope handle_scope(isolate);
+	v8::Local<v8::Context> context = isolate->GetCurrentContext();
+	v8::Local<v8::Object> holder = info.Holder();
+	v8::Local<v8::Value> environmentMap = v8::Null(isolate);
+	if (holder->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "_fog").ToLocalChecked()).ToChecked())
+	{
+		environmentMap = holder->Get(context, v8::String::NewFromUtf8(isolate, "_fog").ToLocalChecked()).ToLocalChecked();
+	}
+	info.GetReturnValue().Set(environmentMap);
+}
+
+void WrapperScene::SetFog(v8::Local<v8::String> property, v8::Local<v8::Value> value,
+	const v8::PropertyCallbackInfo<void>& info)
+{
+	v8::Isolate* isolate = info.GetIsolate();
+	v8::HandleScope handle_scope(isolate);
+	v8::Local<v8::Context> context = isolate->GetCurrentContext();
+	v8::Local<v8::Object> holder = info.Holder();
+	Scene* self = (Scene*)holder->GetAlignedPointerFromInternalField(0);
+	holder->Set(context, v8::String::NewFromUtf8(isolate, "_fog").ToLocalChecked(), value);
+	if (!value->IsNull())
+	{
+		Fog* fog = (Fog*)value.As<v8::Object>()->GetAlignedPointerFromInternalField(0);
+		self->fog = fog;
+	}
+	else
+	{
+		self->fog = nullptr;
 	}
 }
 

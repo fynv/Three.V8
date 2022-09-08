@@ -219,9 +219,9 @@ float luminance(in vec3 color)
 }
 
 struct DirectionalLight
-{
-	mat4 shadowVPSBMatrix;
+{	
 	vec4 color;
+	vec4 origin;
 	vec4 direction;
 	int has_shadow;
 	float diffuse_thresh;
@@ -245,6 +245,7 @@ R"(
 #if NUM_DIRECTIONAL_SHADOWS>0
 struct DirectionalShadow
 {
+	mat4 VPSBMat;
 	mat4 projMat;
 	mat4 viewMat;
     vec2 leftRight;
@@ -434,9 +435,9 @@ float pcssShadow(sampler2D shadowTex, in DirectionalShadow shadow, vec2 uv, floa
 }
 
 
-float computePCSSShadowCoef(in mat4 VPSB, in DirectionalShadow shadow, sampler2D shadowTex)
+float computePCSSShadowCoef(in DirectionalShadow shadow, sampler2D shadowTex)
 {	
-	vec3 uvz = computeShadowCoords(VPSB);
+	vec3 uvz = computeShadowCoords(shadow.VPSBMat);
 	vec2 dz_duv = depthGradient(uvz.xy, uvz.z);
 	float zEye = -(shadow.viewMat * vec4(vWorldPos, 1.0)).z;
 	return pcssShadow(shadowTex, shadow, uvz.xy, uvz.z, dz_duv, zEye);
@@ -538,6 +539,13 @@ vec3 HemisphereColor(in vec3 dir)
 }
 #endif
 
+#if HAS_FOG
+layout (std140, binding = BINDING_FOG) uniform HemisphereLight
+{
+	vec4 fog_rgba;
+};
+#endif
+
 layout (location = 0) out vec4 out0;
 
 #if ALPHA_BLEND
@@ -629,14 +637,27 @@ void main()
 			DirectionalShadow shadow = uDirectionalShadows[shadow_id];
 			if (shadow.lightRadius>0.0)
 			{
-				l_shadow = computePCSSShadowCoef(light_source.shadowVPSBMatrix, shadow, uDirectionalShadowTex[shadow_id]);
+				l_shadow = computePCSSShadowCoef(shadow, uDirectionalShadowTex[shadow_id]);
 			}
 			else
 			{
-				l_shadow = computeShadowCoef(light_source.shadowVPSBMatrix, uDirectionalShadowTex[shadow_id]);
+				l_shadow = computeShadowCoef(shadow.VPSBMat, uDirectionalShadowTex[shadow_id]);
 			}
 			shadow_id++;
 		}
+#endif
+
+#if HAS_FOG
+		if (l_shadow>0.0)
+		{
+			float zEye = -dot(vWorldPos - light_source.origin.xyz, light_source.direction.xyz);
+			if (zEye>0.0)
+			{
+				float att = pow(1.0 - fog_rgba.w, zEye);
+				l_shadow *= att;
+			}
+		}
+		
 #endif
 		IncidentLight directLight = IncidentLight(light_source.color.xyz * l_shadow, light_source.direction.xyz, true);	
 
@@ -1185,6 +1206,22 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 		defines += line;
 	}
 
+	if (options.has_fog)
+	{
+		defines += "#define HAS_FOG 1\n";
+		bindings.binding_fog = bindings.binding_hemisphere_light + 1;
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_FOG %d\n", bindings.binding_fog);
+			defines += line;
+		}
+	}
+	else
+	{
+		defines += "#define HAS_FOG 0\n";
+		bindings.binding_fog = bindings.binding_hemisphere_light;
+	}
+
 	replace(s_vertex, "#DEFINES#", defines.c_str());
 	replace(s_frag, "#DEFINES#", defines.c_str());
 }
@@ -1244,6 +1281,11 @@ void StandardRoutine::render(const RenderParams& params)
 	if (m_options.has_hemisphere_light)
 	{
 		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_hemisphere_light, params.lights->hemisphere_light->m_constant.m_id);
+	}
+
+	if (m_options.has_fog)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_fog, params.constant_fog->m_id);
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, geo.pos_buf->m_id);

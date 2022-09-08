@@ -267,6 +267,15 @@
     <ClCompile Include="savers\ImageSaver.cpp">
       <Filter>Source Files\savers</Filter>
     </ClCompile>
+    <ClCompile Include="scenes\Fog.cpp">
+      <Filter>Source Files\scenes</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\routines\DrawFog.cpp">
+      <Filter>Source Files\renderers\routines</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\routines\FogRayMarching.cpp">
+      <Filter>Source Files\renderers\routines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -451,6 +460,15 @@
     </ClInclude>
     <ClInclude Include="savers\ImageSaver.h">
       <Filter>Header Files\savers</Filter>
+    </ClInclude>
+    <ClInclude Include="scenes\Fog.h">
+      <Filter>Header Files\scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\routines\DrawFog.h">
+      <Filter>Header Files\renderers\routines</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\routines\FogRayMarching.h">
+      <Filter>Header Files\renderers\routines</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
