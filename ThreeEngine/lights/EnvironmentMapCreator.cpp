@@ -73,6 +73,31 @@ inline void SHEval3(const float fX, const float fY, const float fZ, float* pSH)
 
 #endif
 
+
+/*glm::vec4 shGetIrradianceAt(const glm::vec3& normal, const glm::vec4 shCoefficients[9]) {
+
+	// normal is assumed to have unit length
+
+	float x = normal.x, y = normal.y, z = normal.z;
+
+	// band 0
+	glm::vec4 result = shCoefficients[0] * 0.886227f;
+
+	// band 1
+	result += shCoefficients[1] * 2.0f * 0.511664f * y;
+	result += shCoefficients[2] * 2.0f * 0.511664f * z;
+	result += shCoefficients[3] * 2.0f * 0.511664f * x;
+
+	// band 2
+	result += shCoefficients[4] * 2.0f * 0.429043f * x * y;
+	result += shCoefficients[5] * 2.0f * 0.429043f * y * z;
+	result += shCoefficients[6] * (0.743125f * z * z - 0.247708f);
+	result += shCoefficients[7] * 2.0f * 0.429043f * x * z;
+	result += shCoefficients[8] * 0.429043f * (x * x - y * y);
+
+	return result;
+}*/
+
 static std::string g_compute_downsample =
 R"(#version 430
 layout (location = 0) uniform samplerCube tex_hi_res;
@@ -605,7 +630,7 @@ void EnvironmentMapCreator::Create(const GLCubemap * cubemap, EnvironmentMap * e
 
 	float pixelSize = 2.0f / 128.0f;
 	float totalWeight = 0.0f;
-	memset(envMap->shCoefficients, 0, sizeof(glm::vec4) * 9);
+	memset(envMap->shCoefficients, 0, sizeof(glm::vec4) * 9);	
 
 	for (int i = 0; i < 6; i++)
 	{
@@ -681,8 +706,8 @@ void EnvironmentMapCreator::Create(const GLCubemap * cubemap, EnvironmentMap * e
 				}
 			}
 #endif
-			}
 		}
+	}
 
 	float norm = (4.0f * PI) / totalWeight;
 
@@ -690,6 +715,68 @@ void EnvironmentMapCreator::Create(const GLCubemap * cubemap, EnvironmentMap * e
 	{
 		envMap->shCoefficients[k] *= norm;
 	}
+	
+	// average check
+	/*totalWeight = 0.0f;
+	glm::vec4 ave1(0.0f);
+	glm::vec4 ave2(0.0f);
+	for (int i = 0; i < 6; i++)
+	{
+		std::vector<uint8_t>& face = faces[i];
+
+		for (int j = 0; j < 128 * 128; j ++)
+		{
+			int pixelIndex = j;
+
+			float col = -1.0f + ((float)(pixelIndex % 128) + 0.5f) * pixelSize;
+			float row = -1.0f + ((float)(pixelIndex / 128) + 0.5f) * pixelSize;
+			glm::vec3 coord;
+			switch (i)
+			{
+			case 0:
+				coord = { 1.0f, -row, -col };
+				break;
+			case 1:
+				coord = { -1.0f, -row, col };
+				break;
+			case 2:
+				coord = { col, 1, row };
+				break;
+			case 3:
+				coord = { col, -1, -row };
+				break;
+			case 4:
+				coord = { col, -row, 1 };
+				break;
+			case 5:
+				coord = { -col, -row, -1 };
+				break;
+			}
+			float lengthSq = glm::dot(coord, coord);
+			float weight = 4.0f / (sqrtf(lengthSq) * lengthSq);
+			totalWeight += weight;
+			glm::vec3 dir = glm::normalize(coord);
+
+			const uint8_t* pixel = &face[(size_t)pixelIndex * 4];
+			glm::vec4 color1 = { (float)pixel[0] / 255.0f, (float)pixel[1] / 255.0f, (float)pixel[2] / 255.0f, 0.0f };
+			ave1 += color1 * weight;
+
+			glm::vec4 color2 = shGetIrradianceAt(dir, envMap->shCoefficients);
+			ave2 += color2 * weight;
+
+		
+		}
+	}
+
+	ave1 /= totalWeight;
+	ave2 /= totalWeight;
+
+	printf("%f %f %f\n", ave1[0], ave1[1], ave1[2]);
+	printf("%f %f %f\n", ave2[0], ave2[1], ave2[2]);
+	printf("%f %f %f\n", ave2[0]/ave1[0], ave2[1]/ave1[1], ave2[2]/ave1[2]);
+
+	glm::vec4 ave3 = envMap->shCoefficients[0] / (0.2820947917738781f * (4.0f * (float)PI));
+	printf("%f %f %f\n", ave3[0], ave3[1], ave3[2]);*/
 
 }
 

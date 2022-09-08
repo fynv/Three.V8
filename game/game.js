@@ -25,13 +25,13 @@ function init(width, height) {
     scene.add(directional_light);
     
     bg = new HemisphereBackground();   
-    bg.setSkyColor(1.0, 1.0, 1.0);
-    bg.setGroundColor(0.02843, 0.07819, 0.07819);
+    bg.setSkyColor(0.318, 0.318, 0.318);
+    bg.setGroundColor(0.01, 0.025, 0.025);
     scene.background = bg;
     
     envLight = new HemisphereLight();
-    envLight.setSkyColor(1.0, 1.0, 1.0);
-    envLight.setGroundColor(0.02843, 0.07819, 0.07819);
+    envLight.setSkyColor(0.318, 0.318, 0.318);
+    envLight.setGroundColor(0.01, 0.025, 0.025);
         
     envLight.diffuseThresh = 0.2*0.5;
     envLight.diffuseHigh = 0.8 *0.5;

@@ -132,6 +132,7 @@ struct IncidentLight {
 };
 
 #define EPSILON 1e-6
+#define PI 3.14159265359
 #define RECIPROCAL_PI 0.3183098861837907
 
 #ifndef saturate
@@ -702,10 +703,10 @@ void main()
 		vec3 irradiance = shGetIrradianceAt(norm, uSHCoefficients);		
 		vec3 radiance = GetReflectionAt(reflectVec, uReflectionMap, material.roughness);
 #elif HAS_AMBIENT_LIGHT
-		vec3 irradiance = uAmbientColor.xyz;
-		vec3 radiance = irradiance;
+		vec3 irradiance = uAmbientColor.xyz * PI;
+		vec3 radiance = uAmbientColor.xyz;
 #elif HAS_HEMISPHERE_LIGHT
-		vec3 irradiance = HemisphereColor(norm);
+		vec3 irradiance = HemisphereColor(norm) * PI;
 		vec3 radiance = HemisphereColor(reflectVec);
 #endif
 

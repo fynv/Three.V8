@@ -84,7 +84,7 @@ ColorBackground:
 
 ```js
 bg = new ColorBackground();
-bg.setColor(0.0, 0.52, 1.0);
+bg.setColor(0.26225, 0.51492, 0.67244);
 scene.background = bg;
 ```
 
@@ -92,8 +92,8 @@ HemisphereBackground:
 
 ```js
 bg = new HemisphereBackground();   
-bg.setSkyColor(1.0, 1.0, 1.0);
-bg.setGroundColor(0.02843, 0.07819, 0.07819);
+bg.setSkyColor(0.318, 0.318, 0.318);
+bg.setGroundColor(0.01, 0.025, 0.025);
 scene.background = bg;
 ```
 
@@ -169,7 +169,7 @@ For SimpleModel, first create by "[new](SimpleModel.html#simplemodel)". Then, ca
 GLTFModel:
 
 ```js
-model = gltfLoader.loadModelFromFile("../game/assets/models/RZYAS.glb");
+model = gltfLoader.loadModelFromFile("assets/models/RZYAS.glb");
 model.setPosition(0, -8, 0); 
 scene.add(model); 
 ```
@@ -221,8 +221,8 @@ HemisphereLight:
 
 ```js
 envLight = new HemisphereLight();
-envLight.setSkyColor(1.0, 1.0, 1.0);
-envLight.setGroundColor(0.02843, 0.07819, 0.07819);
+envLight.setSkyColor(0.318, 0.318, 0.318);
+envLight.setGroundColor(0.01, 0.025, 0.025);
 scene.indirectLight = envLight;
 ```
 
@@ -285,7 +285,7 @@ In order to have the animation clip being played to take effect, call [`GLTFMode
 The following code loads the Parrot model and starts the animation that comes with the model:
 
 ```js
-model = gltfLoader.loadModelFromFile("../game/assets/models/Parrot.glb");
+model = gltfLoader.loadModelFromFile("assets/models/Parrot.glb");
 model.playAnimation("KeyAction");
 ```
 
