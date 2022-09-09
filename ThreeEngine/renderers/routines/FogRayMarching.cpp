@@ -130,7 +130,9 @@ void main()
 		}		
 		float att =  pow(1.0 - fog_rgba.w, sample_t);
 
-		vec3 irradiance = light_color.xyz * l_shadow;
+		// About 0.25
+		// consider partical shape as sphere, 0.25 is the average max(dot(N, L),0);
+		vec3 irradiance = light_color.xyz * l_shadow * 0.25;
 
 		col+=fog_rgba.xyz*irradiance*RECIPROCAL_PI * _step_alpha* att;
 	}
@@ -330,7 +332,7 @@ void main()
 				l_shadow *= att;
 			}
 			float att =  pow(1.0 - fog_rgba.w, sample_t);
-			vec3 irradiance = light_color.xyz * l_shadow;
+			vec3 irradiance = light_color.xyz * l_shadow * 0.25;
 
 			col+=fog_rgba.xyz*irradiance*RECIPROCAL_PI * _step_alpha* att;
 		}		
