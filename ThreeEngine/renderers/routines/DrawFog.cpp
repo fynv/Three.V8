@@ -96,7 +96,7 @@ void main()
 		float depth1 =  texelFetch(uDepthTex, coord, 1).x;
 		float depth2 =  texelFetch(uDepthTex, coord, 2).x;
 		float depth3 =  texelFetch(uDepthTex, coord, 3).x;
-		depth = 0.25 * (depth0 + depth1 + depth2 + depth3);
+		depth = 0.5 * (depth0 + depth1 + depth2 + depth3) - 1.0;
 	}
 #else
 	depth = texelFetch(uDepthTex, coord, 0).x*2.0-1.0;
