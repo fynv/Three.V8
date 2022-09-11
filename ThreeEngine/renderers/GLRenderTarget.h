@@ -5,6 +5,7 @@
 
 class GLTexture2D;
 class CubeRenderTarget;
+class Image;
 class GLRenderTarget
 {
 public:
@@ -38,5 +39,7 @@ public:
 	void bind_buffer();
 	void resolve_msaa();
 	void blit_buffer(int width_wnd, int height_wnd, int margin);
+
+	void GetImage(Image& image);
 
 };

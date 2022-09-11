@@ -2,6 +2,7 @@
 #include <GL/glew.h>
 #include "GLRenderTarget.h"
 #include "CubeRenderTarget.h"
+#include "utils/Image.h"
 
 GLRenderTarget::GLRenderTarget(bool default_buffer, bool msaa)
 {	
@@ -173,3 +174,28 @@ void GLRenderTarget::blit_buffer(int width_wnd, int height_wnd, int margin)
 	}
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 }
+
+void GLRenderTarget::GetImage(Image& image)
+{
+	size_t buf_size = (size_t)m_width * (size_t)m_height * 4;
+
+	glBindTexture(GL_TEXTURE_2D, m_tex_video->tex_id);
+	image.m_width = m_width;
+	image.m_height = m_height;
+	free(image.m_buffer);
+	image.m_buffer = (uint8_t*)malloc(buf_size);
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.m_buffer);	
+
+	uint8_t* line_buffer = (uint8_t*)malloc((size_t)m_width * 4);
+	for (int i = 0; i < m_height / 2; i++)
+	{
+		int j = m_height - 1 - i;
+		memcpy(line_buffer, image.m_buffer + (size_t)m_width * 4 * i, (size_t)m_width * 4);
+		memcpy(image.m_buffer + (size_t)m_width * 4 * i, image.m_buffer + (size_t)m_width * 4 * j, (size_t)m_width * 4);
+		memcpy(image.m_buffer + (size_t)m_width * 4 * j, line_buffer, (size_t)m_width * 4);
+	}
+	free(line_buffer);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+

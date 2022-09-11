@@ -17,6 +17,7 @@ private:
 	static void dtor(void* ptr, GameContext* ctx);
 	static void Render(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void RenderCube(const v8::FunctionCallbackInfo<v8::Value>& info);
+	static void RenderCelluloid(const v8::FunctionCallbackInfo<v8::Value>& info);
 };
 
 v8::Local<v8::FunctionTemplate> WrapperGLRenderer::create_template(v8::Isolate* isolate, v8::FunctionCallback constructor)
@@ -26,6 +27,7 @@ v8::Local<v8::FunctionTemplate> WrapperGLRenderer::create_template(v8::Isolate* 
 	templ->InstanceTemplate()->Set(isolate, "dispose", v8::FunctionTemplate::New(isolate, GeneralDispose));
 	templ->InstanceTemplate()->Set(isolate, "render", v8::FunctionTemplate::New(isolate, Render));
 	templ->InstanceTemplate()->Set(isolate, "renderCube", v8::FunctionTemplate::New(isolate, RenderCube));
+	templ->InstanceTemplate()->Set(isolate, "renderCelluloid", v8::FunctionTemplate::New(isolate, RenderCelluloid));
 	return templ;
 }
 
@@ -108,5 +110,36 @@ void WrapperGLRenderer::RenderCube(const v8::FunctionCallbackInfo<v8::Value>& in
 	}
 
 	self->renderCube(*scene, *target, position, zNear, zFar);
+
+}
+
+void WrapperGLRenderer::RenderCelluloid(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	v8::Isolate* isolate = info.GetIsolate();
+	v8::HandleScope handle_scope(isolate);
+	v8::Local<v8::Context> context = isolate->GetCurrentContext();
+
+	GLRenderer* self = get_self<GLRenderer>(info);
+
+	v8::Local<v8::Object> holder_scene = info[0].As<v8::Object>();
+	Scene* scene = (Scene*)holder_scene->GetAlignedPointerFromInternalField(0);
+
+	v8::Local<v8::Object> holder_camera = info[1].As<v8::Object>();
+	Camera* camera = (Camera*)holder_camera->GetAlignedPointerFromInternalField(0);
+
+	v8::Local<v8::Object> holder_bg = info[2].As<v8::Object>();
+	GLRenderTarget* target_bg = (GLRenderTarget*)holder_bg->GetAlignedPointerFromInternalField(0);
+
+	v8::Local<v8::Object> holder_base = info[3].As<v8::Object>();
+	GLRenderTarget* target_base = (GLRenderTarget*)holder_base->GetAlignedPointerFromInternalField(0);
+
+	v8::Local<v8::Object> holder_lighting = info[4].As<v8::Object>();
+	GLRenderTarget* target_lighting = (GLRenderTarget*)holder_lighting->GetAlignedPointerFromInternalField(0);
+
+	v8::Local<v8::Object> holder_alpha = info[5].As<v8::Object>();
+	GLRenderTarget* target_alpha = (GLRenderTarget*)holder_alpha->GetAlignedPointerFromInternalField(0);
+
+	self->renderCelluloid(*scene, *camera, target_bg, target_base, target_lighting, target_alpha);
+
 
 }

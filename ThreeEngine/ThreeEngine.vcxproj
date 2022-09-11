@@ -170,6 +170,8 @@
     <ClCompile Include="renderers\GLRenderTarget.cpp" />
     <ClCompile Include="renderers\GLUIRenderer.cpp" />
     <ClCompile Include="renderers\GLUtils.cpp" />
+    <ClCompile Include="renderers\routines\AlphaDem.cpp" />
+    <ClCompile Include="renderers\routines\BaseColorRoutine.cpp" />
     <ClCompile Include="renderers\routines\DirectionalShadowCast.cpp" />
     <ClCompile Include="renderers\routines\DrawFog.cpp" />
     <ClCompile Include="renderers\routines\DrawHemisphere.cpp" />
@@ -177,6 +179,7 @@
     <ClCompile Include="renderers\routines\DrawTexture.cpp" />
     <ClCompile Include="renderers\routines\DrawWire.cpp" />
     <ClCompile Include="renderers\routines\FogRayMarching.cpp" />
+    <ClCompile Include="renderers\routines\LightingRoutine.cpp" />
     <ClCompile Include="renderers\routines\MorphUpdate.cpp" />
     <ClCompile Include="renderers\routines\SkinUpdate.cpp" />
     <ClCompile Include="renderers\routines\StandardRoutine.cpp" />
@@ -235,6 +238,8 @@
     <ClInclude Include="renderers\GLRenderTarget.h" />
     <ClInclude Include="renderers\GLUIRenderer.h" />
     <ClInclude Include="renderers\GLUtils.h" />
+    <ClInclude Include="renderers\routines\AlphaDem.h" />
+    <ClInclude Include="renderers\routines\BaseColorRoutine.h" />
     <ClInclude Include="renderers\routines\DirectionalShadowCast.h" />
     <ClInclude Include="renderers\routines\DrawFog.h" />
     <ClInclude Include="renderers\routines\DrawHemisphere.h" />
@@ -242,6 +247,7 @@
     <ClInclude Include="renderers\routines\DrawTexture.h" />
     <ClInclude Include="renderers\routines\DrawWire.h" />
     <ClInclude Include="renderers\routines\FogRayMarching.h" />
+    <ClInclude Include="renderers\routines\LightingRoutine.h" />
     <ClInclude Include="renderers\routines\MorphUpdate.h" />
     <ClInclude Include="renderers\routines\SkinUpdate.h" />
     <ClInclude Include="renderers\routines\StandardRoutine.h" />

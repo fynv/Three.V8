@@ -19,6 +19,7 @@ public:
 	const Image& operator=(const Image& in);
 
 	friend class ImageLoader;
+	friend class GLRenderTarget;
 	friend class CubeRenderTarget;
 
 private:
