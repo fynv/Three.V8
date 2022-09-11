@@ -127,19 +127,16 @@ void WrapperGLRenderer::RenderCelluloid(const v8::FunctionCallbackInfo<v8::Value
 	v8::Local<v8::Object> holder_camera = info[1].As<v8::Object>();
 	Camera* camera = (Camera*)holder_camera->GetAlignedPointerFromInternalField(0);
 
-	v8::Local<v8::Object> holder_bg = info[2].As<v8::Object>();
-	GLRenderTarget* target_bg = (GLRenderTarget*)holder_bg->GetAlignedPointerFromInternalField(0);
-
-	v8::Local<v8::Object> holder_base = info[3].As<v8::Object>();
+	v8::Local<v8::Object> holder_base = info[2].As<v8::Object>();
 	GLRenderTarget* target_base = (GLRenderTarget*)holder_base->GetAlignedPointerFromInternalField(0);
 
-	v8::Local<v8::Object> holder_lighting = info[4].As<v8::Object>();
+	v8::Local<v8::Object> holder_lighting = info[3].As<v8::Object>();
 	GLRenderTarget* target_lighting = (GLRenderTarget*)holder_lighting->GetAlignedPointerFromInternalField(0);
 
-	v8::Local<v8::Object> holder_alpha = info[5].As<v8::Object>();
+	v8::Local<v8::Object> holder_alpha = info[4].As<v8::Object>();
 	GLRenderTarget* target_alpha = (GLRenderTarget*)holder_alpha->GetAlignedPointerFromInternalField(0);
 
-	self->renderCelluloid(*scene, *camera, target_bg, target_base, target_lighting, target_alpha);
+	self->renderCelluloid(*scene, *camera, target_base, target_lighting, target_alpha);
 
 
 }

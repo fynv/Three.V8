@@ -1240,7 +1240,7 @@ void GLRenderer::render_model_lighting(Camera* p_camera, const Lights& lights, c
 
 }
 
-void GLRenderer::renderCelluloid(Scene& scene, Camera& camera, GLRenderTarget* layer_bg, GLRenderTarget* layer_base, GLRenderTarget* layer_light, GLRenderTarget* layer_alpha)
+void GLRenderer::renderCelluloid(Scene& scene, Camera& camera, GLRenderTarget* layer_base, GLRenderTarget* layer_light, GLRenderTarget* layer_alpha)
 {
 	PreRender pre;
 	_pre_render(scene, pre);
@@ -1269,12 +1269,12 @@ void GLRenderer::renderCelluloid(Scene& scene, Camera& camera, GLRenderTarget* l
 		}
 	}
 
-	// render bg
-	if (layer_bg != nullptr)
+	// render base-color
+	if (layer_base != nullptr)
 	{
-		layer_bg->bind_buffer();
+		layer_base->bind_buffer();
 		glEnable(GL_FRAMEBUFFER_SRGB);
-		glViewport(0, 0, layer_bg->m_width, layer_bg->m_height);
+		glViewport(0, 0, layer_base->m_width, layer_base->m_height);
 
 		while (scene.background != nullptr)
 		{
@@ -1313,23 +1313,7 @@ void GLRenderer::renderCelluloid(Scene& scene, Camera& camera, GLRenderTarget* l
 			}
 			break;
 		}
-
-		if (layer_bg->msaa())
-		{
-			layer_bg->resolve_msaa();
-		}
-	}
-
-	// render base-color
-	if (layer_base != nullptr)
-	{
-		layer_base->bind_buffer();
-		glEnable(GL_FRAMEBUFFER_SRGB);
-		glViewport(0, 0, layer_base->m_width, layer_base->m_height);
-
-		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
-
+	
 		glDepthMask(GL_TRUE);
 		glClearDepth(1.0f);
 		glClear(GL_DEPTH_BUFFER_BIT);

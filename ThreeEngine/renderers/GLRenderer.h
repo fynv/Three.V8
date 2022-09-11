@@ -33,7 +33,7 @@ public:
 	~GLRenderer();
 	void render(Scene& scene, Camera& camera, GLRenderTarget& target);	
 	void renderCube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar);
-	void renderCelluloid(Scene& scene, Camera& camera, GLRenderTarget* layer_bg, GLRenderTarget* layer_base, GLRenderTarget* layer_light, GLRenderTarget* layer_alpha);
+	void renderCelluloid(Scene& scene, Camera& camera, GLRenderTarget* layer_base, GLRenderTarget* layer_light, GLRenderTarget* layer_alpha);
 
 private:
 	std::unique_ptr<WeightedOIT> oit_resolvers[2];
