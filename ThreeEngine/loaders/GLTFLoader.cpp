@@ -1,4 +1,6 @@
 #include <GL/glew.h>
+#include <gtx/matrix_decompose.hpp>
+
 #include "GLTFLoader.h"
 
 #include "models/ModelComponents.h"
@@ -625,38 +627,54 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 		tinygltf::Node& node_in = model.nodes[i];
 		Node& node_out = model_out->m_nodes[i];		
 		node_out.children = node_in.children;
-		if (node_in.translation.size() > 0)
-		{
-			node_out.translation.x = (float)node_in.translation[0];
-			node_out.translation.y = (float)node_in.translation[1];
-			node_out.translation.z = (float)node_in.translation[2];
-		}
-		else
-		{
-			node_out.translation = { 0.0f, 0.0f, 0.0f };
-		}
 
-		if (node_in.rotation.size() > 0)
+		if (node_in.matrix.size() > 0)
 		{
-			node_out.rotation.x = (float)node_in.rotation[0];
-			node_out.rotation.y = (float)node_in.rotation[1];
-			node_out.rotation.z = (float)node_in.rotation[2];
-			node_out.rotation.w = (float)node_in.rotation[3];
+			glm::mat4 matrix;
+			for (int c = 0; c < 16; c++)
+			{
+				matrix[c/4][c%4] = (float)node_in.matrix[c];
+			}
+			glm::quat rot;
+			glm::vec3 skew;
+			glm::vec4 persp;
+			glm::decompose(matrix, node_out.scale, node_out.rotation, node_out.translation, skew, persp);
 		}
 		else
 		{
-			node_out.rotation = glm::identity<glm::quat>();
-		}
+			if (node_in.translation.size() > 0)
+			{
+				node_out.translation.x = (float)node_in.translation[0];
+				node_out.translation.y = (float)node_in.translation[1];
+				node_out.translation.z = (float)node_in.translation[2];
+			}
+			else
+			{
+				node_out.translation = { 0.0f, 0.0f, 0.0f };
+			}
 
-		if (node_in.scale.size() > 0)
-		{
-			node_out.scale.x = (float)node_in.scale[0];
-			node_out.scale.y = (float)node_in.scale[1];
-			node_out.scale.z = (float)node_in.scale[2];
-		}
-		else
-		{
-			node_out.scale = { 1.0f, 1.0f, 1.0f };
+			if (node_in.rotation.size() > 0)
+			{
+				node_out.rotation.x = (float)node_in.rotation[0];
+				node_out.rotation.y = (float)node_in.rotation[1];
+				node_out.rotation.z = (float)node_in.rotation[2];
+				node_out.rotation.w = (float)node_in.rotation[3];
+			}
+			else
+			{
+				node_out.rotation = glm::identity<glm::quat>();
+			}
+
+			if (node_in.scale.size() > 0)
+			{
+				node_out.scale.x = (float)node_in.scale[0];
+				node_out.scale.y = (float)node_in.scale[1];
+				node_out.scale.z = (float)node_in.scale[2];
+			}
+			else
+			{
+				node_out.scale = { 1.0f, 1.0f, 1.0f };
+			}
 		}
 
 		std::string name = node_in.name;
