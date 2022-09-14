@@ -6,7 +6,7 @@ The ongoing development targets mobile devices, tries to provide another JavaScr
 
 The source code here builds & runs on Windows, which can be used for evaluation or script development/debugging.
 
-The Windows implementation requires Visual Studio 2019 or later to be built, becuase:
+The Windows implementation requires Visual Studio 2022 to be built, becuase:
 
 * V8 binary is acquired from [NuGet](https://www.nuget.org/packages/v8-v142-x64/)
 * A C# WPF GUI is provided as an example of how to embed the engine.
@@ -41,7 +41,7 @@ The Windows implementation requires Visual Studio 2019 or later to be built, bec
 
 ## Building
 
-Building is straightforward using Visual Studio 2019. Just make sure to resolve the git submodules first.
+Building is straightforward using Visual Studio 2022. Just make sure to resolve the git submodules first.
 
 ## Runing GamePlayer
 
