@@ -17,6 +17,8 @@ private:
 	static void dtor(void* ptr, GameContext* ctx);
 	static void Render(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void RenderCube(const v8::FunctionCallbackInfo<v8::Value>& info);
+	static void RenderLayers(const v8::FunctionCallbackInfo<v8::Value>& info);
+	static void RenderLayersToCube(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void RenderCelluloid(const v8::FunctionCallbackInfo<v8::Value>& info);
 };
 
@@ -27,6 +29,10 @@ v8::Local<v8::FunctionTemplate> WrapperGLRenderer::create_template(v8::Isolate* 
 	templ->InstanceTemplate()->Set(isolate, "dispose", v8::FunctionTemplate::New(isolate, GeneralDispose));
 	templ->InstanceTemplate()->Set(isolate, "render", v8::FunctionTemplate::New(isolate, Render));
 	templ->InstanceTemplate()->Set(isolate, "renderCube", v8::FunctionTemplate::New(isolate, RenderCube));
+
+	templ->InstanceTemplate()->Set(isolate, "renderLayers", v8::FunctionTemplate::New(isolate, RenderLayers));
+	templ->InstanceTemplate()->Set(isolate, "renderLayersToCube", v8::FunctionTemplate::New(isolate, RenderLayersToCube));
+
 	templ->InstanceTemplate()->Set(isolate, "renderCelluloid", v8::FunctionTemplate::New(isolate, RenderCelluloid));
 	return templ;
 }
@@ -111,6 +117,79 @@ void WrapperGLRenderer::RenderCube(const v8::FunctionCallbackInfo<v8::Value>& in
 
 	self->renderCube(*scene, *target, position, zNear, zFar);
 
+}
+
+void WrapperGLRenderer::RenderLayers(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	v8::Isolate* isolate = info.GetIsolate();
+	v8::HandleScope handle_scope(isolate);
+	v8::Local<v8::Context> context = isolate->GetCurrentContext();
+
+	GLRenderer* self = get_self<GLRenderer>(info);
+	GLRenderTarget* target = nullptr;
+
+	if (info.Length() < 2)
+	{
+		v8::Local<v8::Object> global = context->Global();
+		v8::Local<v8::Object> holder_player = global->Get(context, v8::String::NewFromUtf8(isolate, "gamePlayer").ToLocalChecked()).ToLocalChecked().As<v8::Object>();
+		GamePlayer* player = (GamePlayer*)holder_player->GetAlignedPointerFromInternalField(0);
+		target = &player->renderTarget();
+	}
+	else
+	{
+		v8::Local<v8::Object> holder_viewer = info[1].As<v8::Object>();
+
+		v8::String::Utf8Value clsname(isolate, holder_viewer->GetConstructorName());
+		if (strcmp(*clsname, "UI3DViewer") == 0)
+		{
+			UI3DViewer* viewer = (UI3DViewer*)holder_viewer->GetAlignedPointerFromInternalField(0);
+			target = &viewer->render_target;
+		}
+		else if (strcmp(*clsname, "GLRenderTarget") == 0)
+		{
+			target = (GLRenderTarget*)holder_viewer->GetAlignedPointerFromInternalField(0);
+		}
+	}
+
+	v8::Local<v8::Array> o_layers = info[0].As<v8::Array>();
+	std::vector<GLRenderer::Layer> layers(o_layers->Length());
+	for (int i = 0; i < o_layers->Length(); i++)
+	{
+		v8::Local<v8::Object> o_layer = o_layers->Get(context, i).ToLocalChecked().As<v8::Object>();
+		v8::Local<v8::Object> holder_scene = o_layer->Get(context, v8::String::NewFromUtf8(isolate, "scene").ToLocalChecked()).ToLocalChecked().As<v8::Object>();
+		v8::Local<v8::Object> holder_camera = o_layer->Get(context, v8::String::NewFromUtf8(isolate, "camera").ToLocalChecked()).ToLocalChecked().As<v8::Object>();
+		layers[i].scene = (Scene*)holder_scene->GetAlignedPointerFromInternalField(0);
+		layers[i].camera = (Camera*)holder_camera->GetAlignedPointerFromInternalField(0);		
+	}
+
+	self->renderLayers(layers.size(), layers.data(), *target);
+}
+
+void WrapperGLRenderer::RenderLayersToCube(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	v8::Isolate* isolate = info.GetIsolate();
+	v8::HandleScope handle_scope(isolate);
+	v8::Local<v8::Context> context = isolate->GetCurrentContext();
+
+	GLRenderer* self = get_self<GLRenderer>(info);
+
+	v8::Local<v8::Array> o_layers = info[0].As<v8::Array>();
+	std::vector<GLRenderer::CubeLayer> layers(o_layers->Length());
+	for (int i = 0; i < o_layers->Length(); i++)
+	{
+		v8::Local<v8::Object> o_layer = o_layers->Get(context, i).ToLocalChecked().As<v8::Object>();
+		v8::Local<v8::Object> holder_scene = o_layer->Get(context, v8::String::NewFromUtf8(isolate, "scene").ToLocalChecked()).ToLocalChecked().As<v8::Object>();
+		v8::Local<v8::Object> jpos = o_layer->Get(context, v8::String::NewFromUtf8(isolate, "position").ToLocalChecked()).ToLocalChecked().As<v8::Object>();
+
+		layers[i].scene = (Scene*)holder_scene->GetAlignedPointerFromInternalField(0);
+		jvec3_to_vec3(isolate, jpos, layers[i].position);
+		layers[i].zNear = (float)o_layer->Get(context, v8::String::NewFromUtf8(isolate, "near").ToLocalChecked()).ToLocalChecked().As<v8::Number>()->Value();
+		layers[i].zFar = (float)o_layer->Get(context, v8::String::NewFromUtf8(isolate, "far").ToLocalChecked()).ToLocalChecked().As<v8::Number>()->Value();
+	}
+
+	v8::Local<v8::Object> holder_target = info[1].As<v8::Object>();
+	CubeRenderTarget* target = (CubeRenderTarget*)holder_target->GetAlignedPointerFromInternalField(0);
+	self->renderLayersToCube(layers.size(), layers.data(), *target);
 }
 
 void WrapperGLRenderer::RenderCelluloid(const v8::FunctionCallbackInfo<v8::Value>& info)

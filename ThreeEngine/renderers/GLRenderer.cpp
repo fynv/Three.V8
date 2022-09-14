@@ -727,7 +727,7 @@ void GLRenderer::_pre_render(Scene& scene, PreRender& pre)
 	}
 }
 
-void GLRenderer::_render(Scene& scene, Camera& camera, GLRenderTarget& target, PreRender& pre)
+void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& target, PreRender& pre)
 {
 	camera.updateMatrixWorld(false);
 	camera.updateConstant();
@@ -886,6 +886,20 @@ void GLRenderer::_render(Scene& scene, Camera& camera, GLRenderTarget& target, P
 		}
 	}
 
+}
+
+void GLRenderer::_render(Scene& scene, Camera& camera, GLRenderTarget& target, PreRender& pre)
+{
+	_render_scene(scene, camera, target, pre);
+
+	Lights& lights = scene.lights;
+
+	Fog* fog = nullptr;
+	if (scene.fog != nullptr && scene.fog->density > 0)
+	{
+		fog = scene.fog;
+	}
+
 	if (target.msaa())
 	{
 		target.resolve_msaa();
@@ -906,6 +920,63 @@ void GLRenderer::_render(Scene& scene, Camera& camera, GLRenderTarget& target, P
 			DirectionalLight* light = pre.directional_lights[i];
 			_render_fog_rm(camera, *light, *fog, target);
 		}
+	}
+}
+
+void GLRenderer::_render_scene_to_cube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar, const PreRender& pre)
+{
+	{
+		PreRender _pre = pre;
+		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
+		camera.position = position;
+		camera.up = { 0.0f, -1.0f, 0.0f };
+		camera.lookAt(position + glm::vec3(1.0f, 0.0f, 0.0f));
+		_render_scene(scene, camera, *target.m_faces[0], _pre);
+	}
+
+	{
+		PreRender _pre = pre;
+		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
+		camera.position = position;
+		camera.up = { 0.0f, -1.0f, 0.0f };
+		camera.lookAt(position + glm::vec3(-1.0f, 0.0f, 0.0f));
+		_render_scene(scene, camera, *target.m_faces[1], _pre);
+	}
+
+	{
+		PreRender _pre = pre;
+		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
+		camera.position = position;
+		camera.up = { 0.0f, 0.0f, 1.0f };
+		camera.lookAt(position + glm::vec3(0.0f, 1.0f, 0.0f));
+		_render_scene(scene, camera, *target.m_faces[2], _pre);
+	}
+
+	{
+		PreRender _pre = pre;
+		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
+		camera.position = position;
+		camera.up = { 0.0f, 0.0f, -1.0f };
+		camera.lookAt(position + glm::vec3(0.0f, -1.0f, 0.0f));
+		_render_scene(scene, camera, *target.m_faces[3], _pre);
+	}
+
+	{
+		PreRender _pre = pre;
+		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
+		camera.position = position;
+		camera.up = { 0.0f, -1.0f, 0.0f };
+		camera.lookAt(position + glm::vec3(0.0f, 0.0f, 1.0f));
+		_render_scene(scene, camera, *target.m_faces[4], _pre);
+	}
+
+	{
+		PreRender _pre = pre;
+		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
+		camera.position = position;
+		camera.up = { 0.0f, -1.0f, 0.0f };
+		camera.lookAt(position + glm::vec3(0.0f, 0.0f, -1.0f));
+		_render_scene(scene, camera, *target.m_faces[5], _pre);
 	}
 }
 
@@ -966,7 +1037,6 @@ void GLRenderer::_render_cube(Scene& scene, CubeRenderTarget& target, glm::vec3&
 	}
 }
 
-
 void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 {
 	PreRender pre;
@@ -998,6 +1068,44 @@ void GLRenderer::renderCube(Scene& scene, CubeRenderTarget& target, glm::vec3& p
 	_pre_render(scene, pre);
 	_render_cube(scene, target, position, zNear, zFar, pre);
 }
+
+
+void GLRenderer::renderLayers(size_t num_layers, Layer* layers, GLRenderTarget& target)
+{
+	for (size_t i = 0; i < num_layers; i++)
+	{
+		Layer& layer = layers[i];
+		_pre_render(*layer.scene, layer.pre);
+		if (i < num_layers - 1)
+		{
+			_render_scene(*layer.scene, *layer.camera, target, layer.pre);
+		}
+		else
+		{
+			_render(*layer.scene, *layer.camera, target, layer.pre);
+		}
+	}
+}
+
+void GLRenderer::renderLayersToCube(size_t num_layers, CubeLayer* layers, CubeRenderTarget& target)
+{
+	for (size_t i = 0; i < num_layers; i++)
+	{
+		CubeLayer& layer = layers[i];
+		_pre_render(*layer.scene, layer.pre);
+		if (i < num_layers - 1)
+		{
+			_render_scene_to_cube(*layer.scene, target, layer.position, layer.zNear, layer.zFar, layer.pre);
+		}
+		else
+		{
+			_render_cube(*layer.scene, target, layer.position, layer.zNear, layer.zFar, layer.pre);
+		}
+	}
+
+}
+
+
 
 void GLRenderer::render_primitive_base(const BaseColorRoutine::RenderParams& params)
 {
