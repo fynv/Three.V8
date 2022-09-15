@@ -34,12 +34,17 @@ The user script APIs consist of
 | [SimpleModel](SimpleModel.html)                           | A Model containing a single simple geometry                  |
 | [GLTFModel](GLTFModel.html)                               | A Model that has a GLTF style internal structure.            |
 | [Scene](Scene.html)                                       | 3D Object collection for rendering                           |
+| [Fog](Fog.html)                                           | Represents the particle substance in the air                 |
 | [GLRenderer](GLRenderer.html)                             | Manages rendering routines, including shaders                |
+| [GLRenderTarget](GLRenderTarget.html)                     | An off-screen render target.                                 |
+| [CubeRenderTarget](CubeRenderTarget.html)                 | A cubemap render target.                                     |
 | [BoundingVolumeHierarchy](BoundingVolumeHierarchy.html)   | Acceleration structure for ray-casting.                      | 
 | [GamePlayer](GamePlayer.html)                             | Wrapper for the host GamePlayer object.                      |
 | [FileLoader](FileLoader.html)                             | Provides a few interfaces to loading local files.            |
 | [ImageLoader](ImageLoader.html)                           | Provides a few interfaces to load images.                    |
 | [GLTFLoader](GLTFLoader.html)                             | Provides a few interfaces to load GLTF models.               |
+| [ImageSaver](ImageSaver.html)                             | Provides a few interfaces to save images. (PC only)          |
+
 
 # Engine Classes (Network)
 
@@ -115,6 +120,7 @@ These are engine class singletons that can be used directly in user script.
 | fileLoader                                                | Instance of [FileLoader](FileLoader.html).                   |
 | imageLoader                                               | Instance of [ImageLoader](ImageLoader.html).                 |
 | gltfLoader                                                | Instance of [GLTFLoader](GLTFLoader.html).                   |
+| imageSaver                                                | Instance of [ImageSaver](ImageSaver.html).                   |
 | http                                                      | Instance of [HttpClient](HttpClient.html).                   |
 | UIManager                                                 | Instance of [UIManager](UIManager.html).                     |
 

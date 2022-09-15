@@ -38,9 +38,17 @@ Readable and writable.
 
 ## indirectLight
 
-`.indirectLight`: IndirectLight
+`.indirectLight`: [IndirectLight](IndirectLight.html)
 
 Object used as the indirect light-source.
+
+Readable and writable.
+
+## fog
+
+`.fog`: [Fog](Fog.html)
+
+Object representing the particle substance in the air.
 
 Readable and writable.
 

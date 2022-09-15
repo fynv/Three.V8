@@ -18,6 +18,7 @@ Inheritance [Object3D](Object3D.html) --> GLTFModel
 | [meshes](#meshes)                                             | Info of internal meshes.                                       |
 | [animations](#animations)                                     | Info of internal animation clips.                              |
 | **Methods**                                                   |                                                                |
+| [setTexture](#settexture)                                     | Replace a texture using texture name.                          |
 | [setAnimationFrame](#setanimationframe)                       | Assign the current stage of movable parts.                     |
 | [getAnimation](#getanimation)                                 | Get an loaded animation clip by name.                          |
 | [getAnimations](#getanimations)                               | Get all loaded animation clips.                                |
@@ -66,6 +67,16 @@ Read-only property for displaying the info of internal animation clips.
 # Methods
 
 See the base [Object3D](Object3D.html#methods) class for common methods.
+
+## setTexture()
+
+`.setTexture`(`name`: String, `image`: [Image](Image.html)): undefined
+
+Replace the texture of `name` with `image`.
+
+`.setTexture`(`name`: String, `target`: [GLRenderTarget](GLRenderTarget.html)): undefined
+
+Use the rendering result of `target` to replace the texture of `name`.
 
 ## setAnimationFrame()
 

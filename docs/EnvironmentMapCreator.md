@@ -38,5 +38,7 @@ Create an EnvironmentMap object using a cubemap image.
 
 Create an EnvironmentMap object using a cubemap background.
 
+`.create`(`background`: [CubeRenderTarget](CubeRenderTarget.html)): EnvironmentMap
 
+Create an EnvironmentMap object using a cubemap render target.
 

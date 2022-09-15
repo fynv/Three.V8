@@ -22,7 +22,7 @@ Inheritance [Object3D](Object3D.html) --> SimpleModel
 | [createPlane](#createplane)                                   | Create a Plane shaped geometry for the model.                  |
 | [getColor](#getcolor)                                         | Get the value of `.color`.                                     |
 | [setColor](#setcolor)                                         | Set the value of `.color`.                                     |
-| [setColorTexture](#setcolortexture)                           | Set a texture image as the based color map of the model.       |
+| [setColorTexture](#setcolortexture)                           | Set a texture image as the base color map of the model.        |
 
 
 # Constructors
@@ -123,5 +123,8 @@ set the value of [`.color`](#color) according to the `r`, `g`, `b` values.
 
 `.setColorTexture`(`image`: [Image](Image.html)): undefined
 
-Set a texture image as the based color map of the model.
+Set a texture image as the base color map of the model.
 
+`.setColorTexture`(`target`: [GLRenderTarget](GLRenderTarget.html)): undefined
+
+Use a rendering result as the base color map of the model.
