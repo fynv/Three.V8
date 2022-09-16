@@ -38,12 +38,11 @@ v8::Local<v8::FunctionTemplate> WrapperUILineEdit::create_template(v8::Isolate* 
 
 void WrapperUILineEdit::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
+	LocalContext lctx(info);
 	UILineEdit* self = new UILineEdit();
-	info.This()->SetAlignedPointerInInternalField(0, self);
-	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This(), dtor);
+	info.This()->SetAlignedPointerInInternalField(0, self);	
+	lctx.ctx()->regiter_object(info.This(), dtor);
 }
-
 
 void WrapperUILineEdit::dtor(void* ptr, GameContext* ctx)
 {
@@ -51,45 +50,38 @@ void WrapperUILineEdit::dtor(void* ptr, GameContext* ctx)
 	delete self;
 }
 
-
-
 void WrapperUILineEdit::GetSize(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	v8::Isolate* isolate = info.GetIsolate();
-	UILineEdit* self = get_self<UILineEdit>(info);
-	v8::Local<v8::Object> size = v8::Object::New(isolate);
-	vec2_to_jvec2(isolate, self->size, size);
+	LocalContext lctx(info);
+	UILineEdit* self = lctx.self<UILineEdit>();
+	v8::Local<v8::Object> size = v8::Object::New(lctx.isolate);
+	lctx.vec2_to_jvec2(self->size, size);
 	info.GetReturnValue().Set(size);
 }
 
 
 void WrapperUILineEdit::GetSize(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	UILineEdit* self = get_self<UILineEdit>(info);
-	v8::Local<v8::Object> out = info[0].As<v8::Object>();
-	vec2_to_jvec2(isolate, self->size, out);
-	info.GetReturnValue().Set(out);
+	LocalContext lctx(info);
+	UILineEdit* self = lctx.self<UILineEdit>();
+	lctx.vec2_to_jvec2(self->size, info[0]);
+	info.GetReturnValue().Set(info[0]);
 }
 
 
 void WrapperUILineEdit::SetSize(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	UILineEdit* self = get_self<UILineEdit>(info);
+	LocalContext lctx(info);
+	UILineEdit* self = lctx.self<UILineEdit>();
 	glm::vec2 size;
 	if (info[0]->IsNumber())
 	{
-		size.x = (float)info[0].As<v8::Number>()->Value();
-		size.y = (float)info[1].As<v8::Number>()->Value();
+		lctx.jnum_to_num(info[0], size.x);
+		lctx.jnum_to_num(info[1], size.y);
 	}
 	else
 	{
-		v8::Local<v8::Object> in = info[0].As<v8::Object>();
-		jvec2_to_vec2(isolate, in, size);
+		lctx.jvec2_to_vec2(info[0], size);
 	}
 	if (self->size != size)
 	{
@@ -101,55 +93,48 @@ void WrapperUILineEdit::SetSize(const v8::FunctionCallbackInfo<v8::Value>& info)
 
 void WrapperUILineEdit::GetText(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	UILineEdit* self = get_self<UILineEdit>(info);
-	v8::Local<v8::String> ret = v8::String::NewFromUtf8(info.GetIsolate(), self->text.c_str()).ToLocalChecked();
-	info.GetReturnValue().Set(ret);
+	LocalContext lctx(info);
+	UILineEdit* self = lctx.self<UILineEdit>();
+	info.GetReturnValue().Set(lctx.str_to_jstr(self->text.c_str()));
 }
 
 void WrapperUILineEdit::SetText(v8::Local<v8::String> property, v8::Local<v8::Value> value,
 	const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	UILineEdit* self = get_self<UILineEdit>(info);
-	v8::String::Utf8Value text(info.GetIsolate(), value);
-	self->text = *text;
+	LocalContext lctx(info);
+	UILineEdit* self = lctx.self<UILineEdit>();
+	std::string text = lctx.jstr_to_str(value);
+	self->text = text;
 	self->appearance_changed = true;
 }
 
 void WrapperUILineEdit::SetStyle(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	UILineEdit* self = get_self<UILineEdit>(info);
+	LocalContext lctx(info);
+	UILineEdit* self = lctx.self<UILineEdit>();
 
 	v8::Local<v8::Object> style = info[0].As<v8::Object>();
 
-	if (style->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "fontSize").ToLocalChecked()).ToChecked())
+	if (lctx.has_property(style, "fontSize"))
 	{
-		self->font_size = (float)style->Get(context, v8::String::NewFromUtf8(isolate, "fontSize").ToLocalChecked()).ToLocalChecked().As<v8::Number>()->Value();
+		lctx.jnum_to_num(lctx.get_property(style, "fontSize"), self->font_size);
 	}
 
-	if (style->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "fontFace").ToLocalChecked()).ToChecked())
+	if (lctx.has_property(style, "fontFace"))
 	{
-		v8::Local<v8::Value> value = style->Get(context, v8::String::NewFromUtf8(isolate, "fontFace").ToLocalChecked()).ToLocalChecked();
-		v8::String::Utf8Value fontFace(isolate, value);
-		self->font_face = *fontFace;
+		self->font_face = lctx.jstr_to_str(lctx.get_property(style, "fontFace"));
 	}
 
-	if (style->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "colorBg").ToLocalChecked()).ToChecked())
+	if (lctx.has_property(style, "colorBg"))
 	{
-		v8::Local<v8::Value> value = style->Get(context, v8::String::NewFromUtf8(isolate, "colorBg").ToLocalChecked()).ToLocalChecked();
-		v8::String::Utf8Value str(info.GetIsolate(), value);
-		string_to_color(isolate, *str, self->colorBg);
+		std::string str = lctx.jstr_to_str(lctx.get_property(style, "colorBg"));
+		string_to_color(str.c_str(), self->colorBg);
 	}
 
-	if (style->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "colorFg").ToLocalChecked()).ToChecked())
+	if (lctx.has_property(style, "colorFg"))
 	{
-		v8::Local<v8::Value> value = style->Get(context, v8::String::NewFromUtf8(isolate, "colorFg").ToLocalChecked()).ToLocalChecked();
-		v8::String::Utf8Value str(info.GetIsolate(), value);
-		string_to_color(isolate, *str, self->colorFg);
+		std::string str = lctx.jstr_to_str(lctx.get_property(style, "colorFg"));
+		string_to_color(str.c_str(), self->colorFg);
 	}
 
 	self->appearance_changed = true;

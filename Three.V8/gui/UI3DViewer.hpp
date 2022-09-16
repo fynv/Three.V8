@@ -145,125 +145,106 @@ void WrapperUI3DViewer::dtor(void* ptr, GameContext* ctx)
 
 void WrapperUI3DViewer::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
+	LocalContext lctx(info);
 	UI3DViewer* self = new UI3DViewer();
-	info.This()->SetAlignedPointerInInternalField(0, self);
-	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This(), dtor);
+	info.This()->SetAlignedPointerInInternalField(0, self);	
+	lctx.ctx()->regiter_object(info.This(), dtor);
 }
 
 
 void WrapperUI3DViewer::GetBlock(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	v8::Local<v8::Value> block = v8::Null(isolate);
-	if (holder->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "_block").ToLocalChecked()).ToChecked())
-	{
-		block = holder->Get(context, v8::String::NewFromUtf8(isolate, "_block").ToLocalChecked()).ToLocalChecked();
-	}
+	LocalContext lctx(info);
+	v8::Local<v8::Value> block = lctx.get_property(lctx.holder, "_block");
 	info.GetReturnValue().Set(block);
 }
 
 void WrapperUI3DViewer::SetBlock(v8::Local<v8::String> property, v8::Local<v8::Value> value,
 	const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	UI3DViewer* self = (UI3DViewer*)holder->GetAlignedPointerFromInternalField(0);
-	holder->Set(context, v8::String::NewFromUtf8(isolate, "_block").ToLocalChecked(), value);
-	UIBlock* block = (UIBlock*)value.As<v8::Object>()->GetAlignedPointerFromInternalField(0);
+	LocalContext lctx(info);
+	UI3DViewer* self = lctx.self<UI3DViewer>();
+	UIBlock* block = lctx.jobj_to_obj<UIBlock>(value);
 	self->block = block;
+	lctx.set_property(lctx.holder, "_block", value);
 }
 
 void WrapperUI3DViewer::GetOrigin(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	v8::Isolate* isolate = info.GetIsolate();
-	UI3DViewer* self = get_self<UI3DViewer>(info);
-	v8::Local<v8::Object> origin = v8::Object::New(isolate);
-	vec2_to_jvec2(isolate, self->origin, origin);
+	LocalContext lctx(info);
+	UI3DViewer* self = lctx.self<UI3DViewer>();
+	v8::Local<v8::Object> origin = v8::Object::New(lctx.isolate);
+	lctx.vec2_to_jvec2(self->origin, origin);
 	info.GetReturnValue().Set(origin);
 }
 
 
 void WrapperUI3DViewer::GetOrigin(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	UI3DViewer* self = get_self<UI3DViewer>(info);
-	v8::Local<v8::Object> out = info[0].As<v8::Object>();
-	vec2_to_jvec2(isolate, self->origin, out);
-	info.GetReturnValue().Set(out);
+	LocalContext lctx(info);
+	UI3DViewer* self = lctx.self<UI3DViewer>();
+	lctx.vec2_to_jvec2(self->origin, info[0]);
+	info.GetReturnValue().Set(info[0]);
 }
 
 
 void WrapperUI3DViewer::SetOrigin(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	UI3DViewer* self = get_self<UI3DViewer>(info);
+	LocalContext lctx(info);
+	UI3DViewer* self = lctx.self<UI3DViewer>();
 	glm::vec2 origin;
 	if (info[0]->IsNumber())
 	{
-		origin.x = (float)info[0].As<v8::Number>()->Value();
-		origin.y = (float)info[1].As<v8::Number>()->Value();
+		lctx.jnum_to_num(info[0], origin.x);
+		lctx.jnum_to_num(info[1], origin.y);
 	}
 	else
 	{
-		v8::Local<v8::Object> in = info[0].As<v8::Object>();
-		jvec2_to_vec2(isolate, in, origin);
+		lctx.jvec2_to_vec2(info[0], origin);
 	}
+
 	if (self->origin != origin)
 	{
-		self->origin = origin;
+		self->origin = origin;		
 	}
 }
 
 void WrapperUI3DViewer::GetSize(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	v8::Isolate* isolate = info.GetIsolate();
-	UI3DViewer* self = get_self<UI3DViewer>(info);
-	v8::Local<v8::Object> size = v8::Object::New(isolate);
-	vec2_to_jvec2(isolate, self->size, size);
+	LocalContext lctx(info);
+	UI3DViewer* self = lctx.self<UI3DViewer>();
+	v8::Local<v8::Object> size = v8::Object::New(lctx.isolate);
+	lctx.vec2_to_jvec2(self->size, size);
 	info.GetReturnValue().Set(size);
 }
 
 
 void WrapperUI3DViewer::GetSize(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	UI3DViewer* self = get_self<UI3DViewer>(info);
-	v8::Local<v8::Object> out = info[0].As<v8::Object>();
-	vec2_to_jvec2(isolate, self->size, out);
-	info.GetReturnValue().Set(out);
+	LocalContext lctx(info);
+	UI3DViewer* self = lctx.self<UI3DViewer>();
+	lctx.vec2_to_jvec2(self->size, info[0]);
+	info.GetReturnValue().Set(info[0]);
 }
 
 
 void WrapperUI3DViewer::SetSize(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	UI3DViewer* self = get_self<UI3DViewer>(info);
+	LocalContext lctx(info);
+	UI3DViewer* self = lctx.self<UI3DViewer>();
 	glm::vec2 size;
 	if (info[0]->IsNumber())
 	{
-		size.x = (float)info[0].As<v8::Number>()->Value();
-		size.y = (float)info[1].As<v8::Number>()->Value();
+		lctx.jnum_to_num(info[0], size.x);
+		lctx.jnum_to_num(info[1], size.y);
 	}
 	else
 	{
-		v8::Local<v8::Object> in = info[0].As<v8::Object>();
-		jvec2_to_vec2(isolate, in, size);
+		lctx.jvec2_to_vec2(info[0], size);
 	}
 	if (self->size != size)
 	{
-		self->size = size;
+		self->size = size;	
 	}
 }
 
@@ -286,27 +267,17 @@ static void UI3DViewerRenderCallback(int width, int height, bool size_changed, v
 
 void WrapperUI3DViewer::GetOnRender(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	v8::Local<v8::Value> onRender = v8::Null(isolate);
-	if (holder->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "_onRender").ToLocalChecked()).ToChecked())
-	{
-		onRender = holder->Get(context, v8::String::NewFromUtf8(isolate, "_onRender").ToLocalChecked()).ToLocalChecked();
-	}
+	LocalContext lctx(info);
+	v8::Local<v8::Value> onRender = lctx.get_property(lctx.holder, "_onRender");
 	info.GetReturnValue().Set(onRender);
 }
 
 void WrapperUI3DViewer::SetOnRender(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	holder->Set(context, v8::String::NewFromUtf8(isolate, "_onRender").ToLocalChecked(), value);
+	LocalContext lctx(info);
+	lctx.set_property(lctx.holder, "_onRender", value);
 
-	UI3DViewer* self = (UI3DViewer*)holder->GetAlignedPointerFromInternalField(0);
+	UI3DViewer* self = lctx.self<UI3DViewer>();
 	self->render_callback = UI3DViewerRenderCallback;
 
 	if (self->render_data != nullptr)
@@ -316,10 +287,10 @@ void WrapperUI3DViewer::SetOnRender(v8::Local<v8::String> property, v8::Local<v8
 	}
 
 	UI3DViewerCallbackData* data = new UI3DViewerCallbackData;
-	data->ctx = get_context(info);
+	data->ctx = lctx.ctx();
 
 	v8::Local<v8::Function> callback = value.As<v8::Function>();
-	data->callback = CallbackT(isolate, callback);
+	data->callback = CallbackT(lctx.isolate, callback);
 
 	self->render_data = data;
 }
@@ -354,27 +325,17 @@ static void UI3DViewerMouseCallback(int button, int clicks, int delta, int x, in
 
 void WrapperUI3DViewer::GetOnMouseDown(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	v8::Local<v8::Value> onMouseDown = v8::Null(isolate);
-	if (holder->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "_onMouseDown").ToLocalChecked()).ToChecked())
-	{
-		onMouseDown = holder->Get(context, v8::String::NewFromUtf8(isolate, "_onMouseDown").ToLocalChecked()).ToLocalChecked();
-	}
+	LocalContext lctx(info);
+	v8::Local<v8::Value> onMouseDown = lctx.get_property(lctx.holder, "_onMouseDown");
 	info.GetReturnValue().Set(onMouseDown);
 }
 
 void WrapperUI3DViewer::SetOnMouseDown(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	holder->Set(context, v8::String::NewFromUtf8(isolate, "_onMouseDown").ToLocalChecked(), value);
+	LocalContext lctx(info);
+	lctx.set_property(lctx.holder, "_onMouseDown", value);
 
-	UI3DViewer* self = (UI3DViewer*)holder->GetAlignedPointerFromInternalField(0);
+	UI3DViewer* self = lctx.self<UI3DViewer>();
 	self->mouse_down_callback = UI3DViewerMouseCallback;
 
 	if (self->mouse_down_data != nullptr)
@@ -384,37 +345,27 @@ void WrapperUI3DViewer::SetOnMouseDown(v8::Local<v8::String> property, v8::Local
 	}
 
 	UI3DViewerCallbackData* data = new UI3DViewerCallbackData;
-	data->ctx = get_context(info);
+	data->ctx = lctx.ctx();
 
 	v8::Local<v8::Function> callback = value.As<v8::Function>();
-	data->callback = CallbackT(isolate, callback);
+	data->callback = CallbackT(lctx.isolate, callback);
 
 	self->mouse_down_data = data;
 }
 
 void WrapperUI3DViewer::GetOnMouseUp(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	v8::Local<v8::Value> onMouseUp = v8::Null(isolate);
-	if (holder->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "_onMouseUp").ToLocalChecked()).ToChecked())
-	{
-		onMouseUp = holder->Get(context, v8::String::NewFromUtf8(isolate, "_onMouseUp").ToLocalChecked()).ToLocalChecked();
-	}
+	LocalContext lctx(info);
+	v8::Local<v8::Value> onMouseUp = lctx.get_property(lctx.holder, "_onMouseUp");
 	info.GetReturnValue().Set(onMouseUp);
 }
 
 void WrapperUI3DViewer::SetOnMouseUp(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	holder->Set(context, v8::String::NewFromUtf8(isolate, "_onMouseUp").ToLocalChecked(), value);
+	LocalContext lctx(info);
+	lctx.set_property(lctx.holder, "_onMouseUp", value);
 
-	UI3DViewer* self = (UI3DViewer*)holder->GetAlignedPointerFromInternalField(0);
+	UI3DViewer* self = lctx.self<UI3DViewer>();
 	self->mouse_up_callback = UI3DViewerMouseCallback;
 
 	if (self->mouse_up_data != nullptr)
@@ -424,10 +375,10 @@ void WrapperUI3DViewer::SetOnMouseUp(v8::Local<v8::String> property, v8::Local<v
 	}
 
 	UI3DViewerCallbackData* data = new UI3DViewerCallbackData;
-	data->ctx = get_context(info);
+	data->ctx = lctx.ctx();
 
 	v8::Local<v8::Function> callback = value.As<v8::Function>();
-	data->callback = CallbackT(isolate, callback);
+	data->callback = CallbackT(lctx.isolate, callback);
 
 	self->mouse_up_data = data;
 
@@ -435,27 +386,17 @@ void WrapperUI3DViewer::SetOnMouseUp(v8::Local<v8::String> property, v8::Local<v
 
 void WrapperUI3DViewer::GetOnMouseMove(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	v8::Local<v8::Value> onMouseMove = v8::Null(isolate);
-	if (holder->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "_onMouseMove").ToLocalChecked()).ToChecked())
-	{
-		onMouseMove = holder->Get(context, v8::String::NewFromUtf8(isolate, "_onMouseMove").ToLocalChecked()).ToLocalChecked();
-	}
+	LocalContext lctx(info);
+	v8::Local<v8::Value> onMouseMove = lctx.get_property(lctx.holder, "_onMouseMove");
 	info.GetReturnValue().Set(onMouseMove);
 }
 
 void WrapperUI3DViewer::SetOnMouseMove(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	holder->Set(context, v8::String::NewFromUtf8(isolate, "_onMouseMove").ToLocalChecked(), value);
+	LocalContext lctx(info);
+	lctx.set_property(lctx.holder, "_onMouseMove", value);
 
-	UI3DViewer* self = (UI3DViewer*)holder->GetAlignedPointerFromInternalField(0);
+	UI3DViewer* self = lctx.self<UI3DViewer>();
 	self->mouse_move_callback = UI3DViewerMouseCallback;
 
 	if (self->mouse_move_data != nullptr)
@@ -465,10 +406,10 @@ void WrapperUI3DViewer::SetOnMouseMove(v8::Local<v8::String> property, v8::Local
 	}
 
 	UI3DViewerCallbackData* data = new UI3DViewerCallbackData;
-	data->ctx = get_context(info);
+	data->ctx = lctx.ctx();
 
 	v8::Local<v8::Function> callback = value.As<v8::Function>();
-	data->callback = CallbackT(isolate, callback);
+	data->callback = CallbackT(lctx.isolate, callback);
 
 	self->mouse_move_data = data;
 
@@ -476,27 +417,17 @@ void WrapperUI3DViewer::SetOnMouseMove(v8::Local<v8::String> property, v8::Local
 
 void WrapperUI3DViewer::GetOnMouseWheel(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	v8::Local<v8::Value> onMouseWheel = v8::Null(isolate);
-	if (holder->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "_onMouseWheel").ToLocalChecked()).ToChecked())
-	{
-		onMouseWheel = holder->Get(context, v8::String::NewFromUtf8(isolate, "_onMouseWheel").ToLocalChecked()).ToLocalChecked();
-	}
+	LocalContext lctx(info);
+	v8::Local<v8::Value> onMouseWheel = lctx.get_property(lctx.holder, "_onMouseWheel");
 	info.GetReturnValue().Set(onMouseWheel);
 }
 
 void WrapperUI3DViewer::SetOnMouseWheel(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	holder->Set(context, v8::String::NewFromUtf8(isolate, "_onMouseWheel").ToLocalChecked(), value);
+	LocalContext lctx(info);
+	lctx.set_property(lctx.holder, "_onMouseWheel", value);
 
-	UI3DViewer* self = (UI3DViewer*)holder->GetAlignedPointerFromInternalField(0);
+	UI3DViewer* self = lctx.self<UI3DViewer>();
 	self->mouse_wheel_callback = UI3DViewerMouseCallback;
 
 	if (self->mouse_wheel_data != nullptr)
@@ -506,10 +437,10 @@ void WrapperUI3DViewer::SetOnMouseWheel(v8::Local<v8::String> property, v8::Loca
 	}
 
 	UI3DViewerCallbackData* data = new UI3DViewerCallbackData;
-	data->ctx = get_context(info);
+	data->ctx = lctx.ctx();
 
 	v8::Local<v8::Function> callback = value.As<v8::Function>();
-	data->callback = CallbackT(isolate, callback);
+	data->callback = CallbackT(lctx.isolate, callback);
 
 	self->mouse_wheel_data = data;
 
@@ -542,27 +473,17 @@ static void UI3DViewerTouchCallback(int pointerId, float x, float y, void* ptr)
 
 void WrapperUI3DViewer::GetOnTouchDown(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	v8::Local<v8::Value> onTouchDown = v8::Null(isolate);
-	if (holder->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "_onTouchDown").ToLocalChecked()).ToChecked())
-	{
-		onTouchDown = holder->Get(context, v8::String::NewFromUtf8(isolate, "_onTouchDown").ToLocalChecked()).ToLocalChecked();
-	}
+	LocalContext lctx(info);
+	v8::Local<v8::Value> onTouchDown = lctx.get_property(lctx.holder, "_onTouchDown");
 	info.GetReturnValue().Set(onTouchDown);
 }
 
 void WrapperUI3DViewer::SetOnTouchDown(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	holder->Set(context, v8::String::NewFromUtf8(isolate, "_onTouchDown").ToLocalChecked(), value);
+	LocalContext lctx(info);
+	lctx.set_property(lctx.holder, "_onTouchDown", value);
 
-	UI3DViewer* self = (UI3DViewer*)holder->GetAlignedPointerFromInternalField(0);
+	UI3DViewer* self = lctx.self<UI3DViewer>();
 	self->touch_down_callback = UI3DViewerTouchCallback;
 
 	if (self->touch_down_data != nullptr)
@@ -572,10 +493,10 @@ void WrapperUI3DViewer::SetOnTouchDown(v8::Local<v8::String> property, v8::Local
 	}
 
 	UI3DViewerCallbackData* data = new UI3DViewerCallbackData;
-	data->ctx = get_context(info);
+	data->ctx = lctx.ctx();
 
 	v8::Local<v8::Function> callback = value.As<v8::Function>();
-	data->callback = CallbackT(isolate, callback);
+	data->callback = CallbackT(lctx.isolate, callback);
 
 	self->touch_down_data = data;
 
@@ -583,27 +504,17 @@ void WrapperUI3DViewer::SetOnTouchDown(v8::Local<v8::String> property, v8::Local
 
 void WrapperUI3DViewer::GetOnTouchUp(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	v8::Local<v8::Value> onTouchUp = v8::Null(isolate);
-	if (holder->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "_onTouchUp").ToLocalChecked()).ToChecked())
-	{
-		onTouchUp = holder->Get(context, v8::String::NewFromUtf8(isolate, "_onTouchUp").ToLocalChecked()).ToLocalChecked();
-	}
+	LocalContext lctx(info);
+	v8::Local<v8::Value> onTouchUp = lctx.get_property(lctx.holder, "_onTouchUp");
 	info.GetReturnValue().Set(onTouchUp);
 }
 
 void WrapperUI3DViewer::SetOnTouchUp(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	holder->Set(context, v8::String::NewFromUtf8(isolate, "_onTouchUp").ToLocalChecked(), value);
+	LocalContext lctx(info);
+	lctx.set_property(lctx.holder, "_onTouchUp", value);
 
-	UI3DViewer* self = (UI3DViewer*)holder->GetAlignedPointerFromInternalField(0);
+	UI3DViewer* self = lctx.self<UI3DViewer>();
 	self->touch_up_callback = UI3DViewerTouchCallback;
 
 	if (self->touch_up_data != nullptr)
@@ -613,10 +524,10 @@ void WrapperUI3DViewer::SetOnTouchUp(v8::Local<v8::String> property, v8::Local<v
 	}
 
 	UI3DViewerCallbackData* data = new UI3DViewerCallbackData;
-	data->ctx = get_context(info);
+	data->ctx = lctx.ctx();
 
 	v8::Local<v8::Function> callback = value.As<v8::Function>();
-	data->callback = CallbackT(isolate, callback);
+	data->callback = CallbackT(lctx.isolate, callback);
 
 	self->touch_up_data = data;
 
@@ -624,27 +535,17 @@ void WrapperUI3DViewer::SetOnTouchUp(v8::Local<v8::String> property, v8::Local<v
 
 void WrapperUI3DViewer::GetOnTouchMove(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	v8::Local<v8::Value> onTouchMove = v8::Null(isolate);
-	if (holder->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "_onTouchMove").ToLocalChecked()).ToChecked())
-	{
-		onTouchMove = holder->Get(context, v8::String::NewFromUtf8(isolate, "_onTouchMove").ToLocalChecked()).ToLocalChecked();
-	}
+	LocalContext lctx(info);
+	v8::Local<v8::Value> onTouchMove = lctx.get_property(lctx.holder, "_onTouchMove");	
 	info.GetReturnValue().Set(onTouchMove);
 }
 
 void WrapperUI3DViewer::SetOnTouchMove(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	holder->Set(context, v8::String::NewFromUtf8(isolate, "_onTouchMove").ToLocalChecked(), value);
+	LocalContext lctx(info);
+	lctx.set_property(lctx.holder, "_onTouchMove", value);
 
-	UI3DViewer* self = (UI3DViewer*)holder->GetAlignedPointerFromInternalField(0);
+	UI3DViewer* self = lctx.self<UI3DViewer>();
 	self->touch_move_callback = UI3DViewerTouchCallback;
 
 	if (self->touch_move_data != nullptr)
@@ -654,10 +555,10 @@ void WrapperUI3DViewer::SetOnTouchMove(v8::Local<v8::String> property, v8::Local
 	}
 
 	UI3DViewerCallbackData* data = new UI3DViewerCallbackData;
-	data->ctx = get_context(info);
+	data->ctx = lctx.ctx();
 
 	v8::Local<v8::Function> callback = value.As<v8::Function>();
-	data->callback = CallbackT(isolate, callback);
+	data->callback = CallbackT(lctx.isolate, callback);
 
 	self->touch_move_data = data;
 

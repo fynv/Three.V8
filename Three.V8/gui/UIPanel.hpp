@@ -25,43 +25,39 @@ v8::Local<v8::FunctionTemplate> WrapperUIPanel::create_template(v8::Isolate* iso
 
 void WrapperUIPanel::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
+	LocalContext lctx(info);
 	UIPanel* self = new UIPanel();
-	info.This()->SetAlignedPointerInInternalField(0, self);
-	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This(), WrapperUIElement::dtor);
+	info.This()->SetAlignedPointerInInternalField(0, self);	
+	lctx.ctx()->regiter_object(info.This(), WrapperUIElement::dtor);
 }
 
 void WrapperUIPanel::SetStyle(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	UIPanel* self = get_self<UIPanel>(info);
+	LocalContext lctx(info);
+	UIPanel* self = lctx.self<UIPanel>();
 
 	v8::Local<v8::Object> style = info[0].As<v8::Object>();
 	
-	if (style->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "cornerRadius").ToLocalChecked()).ToChecked())
+	if (lctx.has_property(style, "cornerRadius"))
 	{		
-		self->cornerRadius = (float)style->Get(context, v8::String::NewFromUtf8(isolate, "cornerRadius").ToLocalChecked()).ToLocalChecked().As<v8::Number>()->Value();
+		lctx.jnum_to_num(lctx.get_property(style, "cornerRadius"), self->cornerRadius);
 	}
 
-	if (style->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "strokeWidth").ToLocalChecked()).ToChecked())
+	if (lctx.has_property(style, "strokeWidth"))	
 	{
-		self->strokeWidth = (float)style->Get(context, v8::String::NewFromUtf8(isolate, "strokeWidth").ToLocalChecked()).ToLocalChecked().As<v8::Number>()->Value();
+		lctx.jnum_to_num(lctx.get_property(style, "strokeWidth"), self->strokeWidth);
 	}
 
-	if (style->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "colorBg").ToLocalChecked()).ToChecked())
+	if (lctx.has_property(style, "colorBg"))	
 	{
-		v8::Local<v8::Value> value = style->Get(context, v8::String::NewFromUtf8(isolate, "colorBg").ToLocalChecked()).ToLocalChecked();
-		v8::String::Utf8Value str(info.GetIsolate(), value);
-		string_to_color(isolate, *str, self->colorBg);
+		std::string str = lctx.jstr_to_str(lctx.get_property(style, "colorBg"));
+		string_to_color(str.c_str(), self->colorBg);
 	}
 
-	if (style->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "colorStroke").ToLocalChecked()).ToChecked())
+	if (lctx.has_property(style, "colorStroke"))	
 	{
-		v8::Local<v8::Value> value = style->Get(context, v8::String::NewFromUtf8(isolate, "colorStroke").ToLocalChecked()).ToLocalChecked();
-		v8::String::Utf8Value str(info.GetIsolate(), value);
-		string_to_color(isolate, *str, self->colorStroke);
+		std::string str = lctx.jstr_to_str(lctx.get_property(style, "colorStroke"));	
+		string_to_color(str.c_str(), self->colorStroke);
 	}
 	self->appearance_changed = true;
 }

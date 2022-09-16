@@ -68,39 +68,35 @@ v8::Local<v8::FunctionTemplate> WrapperGLTFModel::create_template(v8::Isolate* i
 
 void WrapperGLTFModel::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
+	LocalContext lctx(info);
 	GLTFModel* self = new GLTFModel();
 	info.This()->SetAlignedPointerInInternalField(0, self);
-	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This(), WrapperObject3D::dtor);
+	lctx.ctx()->regiter_object(info.This(), WrapperObject3D::dtor);
 }
 
 void WrapperGLTFModel::GetMinPos(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	v8::Isolate* isolate = info.GetIsolate();
-	GLTFModel* self = get_self<GLTFModel>(info);
-	v8::Local<v8::Object> minPos = v8::Object::New(isolate);
-	vec3_to_jvec3(isolate, self->m_min_pos, minPos);
+	LocalContext lctx(info);
+	GLTFModel* self = lctx.self<GLTFModel>();
+	v8::Local<v8::Object> minPos = v8::Object::New(lctx.isolate);
+	lctx.vec3_to_jvec3(self->m_min_pos, minPos);
 	info.GetReturnValue().Set(minPos);
 }
 
 void WrapperGLTFModel::GetMaxPos(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	v8::Isolate* isolate = info.GetIsolate();
-	GLTFModel* self = get_self<GLTFModel>(info);
-	v8::Local<v8::Object> maxPos = v8::Object::New(isolate);
-	vec3_to_jvec3(isolate, self->m_max_pos, maxPos);
+	LocalContext lctx(info);
+	GLTFModel* self = lctx.self<GLTFModel>();
+	v8::Local<v8::Object> maxPos = v8::Object::New(lctx.isolate);
+	lctx.vec3_to_jvec3(self->m_max_pos, maxPos);
 	info.GetReturnValue().Set(maxPos);
 }
 
 void WrapperGLTFModel::GetMeshes(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	GLTFModel* self = get_self<GLTFModel>(info);
-	v8::Local<v8::Array> jmeshes = v8::Array::New(isolate, (int)self->m_mesh_dict.size());
+	LocalContext lctx(info);
+	GLTFModel* self = lctx.self<GLTFModel>();
+	v8::Local<v8::Array> jmeshes = v8::Array::New(lctx.isolate, (int)self->m_mesh_dict.size());
 
 	int i = 0;
 	auto iter = self->m_mesh_dict.begin();
@@ -109,32 +105,31 @@ void WrapperGLTFModel::GetMeshes(v8::Local<v8::String> property, const v8::Prope
 		std::string name = iter->first;
 		Mesh& mesh = self->m_meshs[iter->second];
 
-		v8::Local<v8::Object> jmesh = v8::Object::New(isolate);
-		jmesh->Set(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked(), v8::String::NewFromUtf8(isolate, name.c_str()).ToLocalChecked());
+		v8::Local<v8::Object> jmesh = v8::Object::New(lctx.isolate);
+		lctx.set_property(jmesh, "name", lctx.str_to_jstr(name.c_str()));
 
-		v8::Local<v8::Array> jprimitives = v8::Array::New(isolate, (int)mesh.primitives.size());
+		v8::Local<v8::Array> jprimitives = v8::Array::New(lctx.isolate, (int)mesh.primitives.size());
 		for (size_t j = 0; j < mesh.primitives.size(); j++)
 		{
 			Primitive& primitive = mesh.primitives[j];
 
-			v8::Local<v8::Object> jprimitive = v8::Object::New(isolate);
-			jprimitive->Set(context, v8::String::NewFromUtf8(isolate, "vertices").ToLocalChecked(), v8::Number::New(isolate, (double)primitive.num_pos));
-			jprimitive->Set(context, v8::String::NewFromUtf8(isolate, "triangles").ToLocalChecked(), v8::Number::New(isolate, (double)primitive.num_face));
-			jprimitive->Set(context, v8::String::NewFromUtf8(isolate, "targets").ToLocalChecked(), v8::Number::New(isolate, (double)primitive.num_targets));
-			jprimitives->Set(context, (unsigned)j, jprimitive);
+			v8::Local<v8::Object> jprimitive = v8::Object::New(lctx.isolate);
+			lctx.set_property(jprimitive, "vertices", lctx.num_to_jnum(primitive.num_pos));
+			lctx.set_property(jprimitive, "triangles", lctx.num_to_jnum(primitive.num_face));
+			lctx.set_property(jprimitive, "targets", lctx.num_to_jnum(primitive.num_targets));			
+			jprimitives->Set(lctx.context, (unsigned)j, jprimitive);
 		}
-		jmesh->Set(context, v8::String::NewFromUtf8(isolate, "primitives").ToLocalChecked(), jprimitives);
+		lctx.set_property(jmesh, "primitives", jprimitives);
 
-		v8::Local<v8::Array> jweights = v8::Array::New(isolate, (int)mesh.primitives.size());
+		v8::Local<v8::Array> jweights = v8::Array::New(lctx.isolate, (int)mesh.primitives.size());
 
 		for (size_t j = 0; j < mesh.weights.size(); j++)
 		{
-			jweights->Set(context, (unsigned)j, v8::Number::New(isolate, (double)mesh.weights[j]));
+			jweights->Set(lctx.context, (unsigned)j, lctx.num_to_jnum(mesh.weights[j]));
 		}
+		lctx.set_property(jmesh, "morphWeights", jweights);
 
-		jmesh->Set(context, v8::String::NewFromUtf8(isolate, "morphWeights").ToLocalChecked(), jweights);
-
-		jmeshes->Set(context, i, jmesh);
+		jmeshes->Set(lctx.context, i, jmesh);
 
 		i++;
 		iter++;
@@ -146,31 +141,32 @@ void WrapperGLTFModel::GetMeshes(v8::Local<v8::String> property, const v8::Prope
 
 void WrapperGLTFModel::SetTexture(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	GLTFModel* self = get_self<GLTFModel>(info);
+	LocalContext lctx(info);
+	GLTFModel* self = lctx.self<GLTFModel>();
 
-	v8::String::Utf8Value name(info.GetIsolate(), info[0]);
+	std::string name = lctx.jstr_to_str(info[0]);
+
 	int idx = 0;
-	auto iter = self->m_tex_dict.find(*name);
+	auto iter = self->m_tex_dict.find(name);
 	if (iter != self->m_tex_dict.end())
 	{
 		idx = iter->second;
 	}
 
 	v8::Local<v8::Object> holder_image = info[1].As<v8::Object>();
-	v8::String::Utf8Value clsname(isolate, holder_image->GetConstructorName());
-	if (strcmp(*clsname, "Image") == 0)
+	std::string clsname = lctx.jstr_to_str(holder_image->GetConstructorName());
+
+	if (clsname == "Image")
 	{
-		Image* image = (Image*)holder_image->GetAlignedPointerFromInternalField(0);
+		Image* image = lctx.jobj_to_obj<Image>(holder_image);
 		if (image != nullptr)
 		{
 			self->m_textures[idx]->load_memory_rgba(image->width(), image->height(), image->data(), true);
 		}
 	}
-	else if (strcmp(*clsname, "GLRenderTarget") == 0)
+	else if (clsname == "GLRenderTarget")
 	{
-		GLRenderTarget* target = (GLRenderTarget*)holder_image->GetAlignedPointerFromInternalField(0);
+		GLRenderTarget* target = lctx.jobj_to_obj<GLRenderTarget>(holder_image);		
 		if (target != nullptr)
 		{
 			self->m_repl_textures[idx] = target->m_tex_video.get();
@@ -180,49 +176,43 @@ void WrapperGLTFModel::SetTexture(const v8::FunctionCallbackInfo<v8::Value>& inf
 
 
 void WrapperGLTFModel::SetAnimationFrame(const v8::FunctionCallbackInfo<v8::Value>& info)
-{
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);	
-	GLTFModel* self = get_self<GLTFModel>(info);
+{	
+	LocalContext lctx(info);
+	GLTFModel* self = lctx.self<GLTFModel>();
 
-	v8::Local<v8::Object> jFrame = info[0].As<v8::Object>();	
 	AnimationFrame frame;
-	jframe_to_frame(isolate, jFrame, frame);
+	lctx.jframe_to_frame(info[0], frame);
 	self->setAnimationFrame(frame);
 }
 
 void WrapperGLTFModel::GetAnimations(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	GLTFModel* self = get_self<GLTFModel>(info);
-
-	v8::Local<v8::Array> janims = v8::Array::New(isolate, (int)self->m_animations.size());
+	LocalContext lctx(info);
+	GLTFModel* self = lctx.self<GLTFModel>();
+	
+	v8::Local<v8::Array> janims = v8::Array::New(lctx.isolate, (int)self->m_animations.size());
 
 	for (size_t i = 0; i < self->m_animations.size(); i++)
 	{
 		AnimationClip& anim = self->m_animations[i];
 
-		v8::Local<v8::Object> janim = v8::Object::New(isolate);
-		janim->Set(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked(), v8::String::NewFromUtf8(isolate, anim.name.c_str()).ToLocalChecked());
-		janim->Set(context, v8::String::NewFromUtf8(isolate, "duration").ToLocalChecked(), v8::Number::New(isolate, anim.duration));		
+		v8::Local<v8::Object> janim = v8::Object::New(lctx.isolate);
+		lctx.set_property(janim, "name", lctx.str_to_jstr(anim.name.c_str()));
+		lctx.set_property(janim, "duration", lctx.num_to_jnum(anim.duration));
 
-		v8::Local<v8::Array> jmorphs = v8::Array::New(isolate, (int)anim.morphs.size());
+		v8::Local<v8::Array> jmorphs = v8::Array::New(lctx.isolate, (int)anim.morphs.size());
 		for (size_t j = 0; j < anim.morphs.size(); j++)
 		{
 			const MorphTrack& morph = anim.morphs[j];
 
-			v8::Local<v8::Object> jmorph = v8::Object::New(isolate);
-			jmorph->Set(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked(), v8::String::NewFromUtf8(isolate, morph.name.c_str()).ToLocalChecked());
-			jmorph->Set(context, v8::String::NewFromUtf8(isolate, "targets").ToLocalChecked(), v8::Number::New(isolate, (double)morph.num_targets));
-			jmorph->Set(context, v8::String::NewFromUtf8(isolate, "frames").ToLocalChecked(), v8::Number::New(isolate, (double)morph.times.size()));
-			jmorphs->Set(context, (unsigned)j, jmorph);
+			v8::Local<v8::Object> jmorph = v8::Object::New(lctx.isolate);
+			lctx.set_property(jmorph, "name", lctx.str_to_jstr(morph.name.c_str()));
+			lctx.set_property(jmorph, "targets", lctx.num_to_jnum(morph.num_targets));
+			lctx.set_property(jmorph, "frames", lctx.num_to_jnum(morph.times.size()));			
+			jmorphs->Set(lctx.context, (unsigned)j, jmorph);
 		}
-
-		janim->Set(context, v8::String::NewFromUtf8(isolate, "morphs").ToLocalChecked(), jmorphs);
-
-		janims->Set(context, (unsigned)i, janim);
+		lctx.set_property(janim, "morphs", jmorphs);
+		janims->Set(lctx.context, (unsigned)i, janim);
 	}
 
 	info.GetReturnValue().Set(janims);
@@ -230,37 +220,33 @@ void WrapperGLTFModel::GetAnimations(v8::Local<v8::String> property, const v8::P
 
 void WrapperGLTFModel::GetAnimation(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	GLTFModel* self = get_self<GLTFModel>(info);
+	LocalContext lctx(info);
+	GLTFModel* self = lctx.self<GLTFModel>();
 
-	v8::String::Utf8Value name(isolate, info[0]);
-	auto iter = self->m_animation_dict.find(*name);
+	std::string name = lctx.jstr_to_str(info[0]);
+	auto iter = self->m_animation_dict.find(name);
 	if (iter != self->m_animation_dict.end())
 	{
 		AnimationClip& anim = self->m_animations[iter->second];
-		v8::Local<v8::Object> janim = v8::Object::New(isolate);
-		anim_to_janim(isolate, anim, janim);
+		v8::Local<v8::Object> janim = v8::Object::New(lctx.isolate);
+		lctx.anim_to_janim(anim, janim);
 		info.GetReturnValue().Set(janim);
 	}
 }
 
 void WrapperGLTFModel::GetAnimations(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	GLTFModel* self = get_self<GLTFModel>(info);
+	LocalContext lctx(info);
+	GLTFModel* self = lctx.self<GLTFModel>();
 	
-	v8::Local<v8::Array> janims = v8::Array::New(isolate, (int)self->m_animations.size());
+	v8::Local<v8::Array> janims = v8::Array::New(lctx.isolate, (int)self->m_animations.size());
 
 	for (size_t i = 0; i < self->m_animations.size(); i++)
 	{
 		AnimationClip& anim = self->m_animations[i];
-		v8::Local<v8::Object> janim = v8::Object::New(isolate);
-		anim_to_janim(isolate, anim, janim);
-		janims->Set(context, (unsigned)i, janim);
+		v8::Local<v8::Object> janim = v8::Object::New(lctx.isolate);
+		lctx.anim_to_janim(anim, janim);
+		janims->Set(lctx.context, (unsigned)i, janim);
 	}
 	
 	info.GetReturnValue().Set(janims);
@@ -268,69 +254,60 @@ void WrapperGLTFModel::GetAnimations(const v8::FunctionCallbackInfo<v8::Value>& 
 
 void WrapperGLTFModel::AddAnimation(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	GLTFModel* self = get_self<GLTFModel>(info);
+	LocalContext lctx(info);
+	GLTFModel* self = lctx.self<GLTFModel>();
 
-	v8::Local<v8::Object> jAnim = info[0].As<v8::Object>();
 	AnimationClip anim;
-	janim_to_anim(isolate, jAnim, anim);
+	lctx.janim_to_anim(info[0], anim);
 	self->addAnimation(anim);
 }
 
 void WrapperGLTFModel::AddAnimations(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	GLTFModel* self = get_self<GLTFModel>(info);
+	LocalContext lctx(info);
+	GLTFModel* self = lctx.self<GLTFModel>();
 
 	v8::Local<v8::Array> jAnims = info[0].As<v8::Array>();
 	for (unsigned i = 0; i < jAnims->Length(); i++)
 	{
-		v8::Local<v8::Object> jAnim = jAnims->Get(context, i).ToLocalChecked().As<v8::Object>();
+		v8::Local<v8::Value> jAnim = jAnims->Get(lctx.context, i).ToLocalChecked();
 		AnimationClip anim;
-		janim_to_anim(isolate, jAnim, anim);
+		lctx.janim_to_anim(jAnim, anim);
 		self->addAnimation(anim);
 	}
 }
 
 void WrapperGLTFModel::PlayAnimation(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	GLTFModel* self = get_self<GLTFModel>(info);
-	v8::String::Utf8Value name(isolate, info[0]);
-	self->playAnimation(*name);
+	LocalContext lctx(info);
+	GLTFModel* self = lctx.self<GLTFModel>();	
+	self->playAnimation(lctx.jstr_to_str(info[0]).c_str());
 }
 
 void WrapperGLTFModel::StopAnimation(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	GLTFModel* self = get_self<GLTFModel>(info);
-	v8::String::Utf8Value name(isolate, info[0]);
-	self->stopAnimation(*name);
+	LocalContext lctx(info);
+	GLTFModel* self = lctx.self<GLTFModel>();	
+	self->stopAnimation(lctx.jstr_to_str(info[0]).c_str());
 }
 
 void WrapperGLTFModel::UpdateAnimation(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	GLTFModel* self = get_self<GLTFModel>(info);
+	LocalContext lctx(info);
+	GLTFModel* self = lctx.self<GLTFModel>();
 	self->updateAnimation();
 }
 
 void WrapperGLTFModel::SetToonShading(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	GLTFModel* self = get_self<GLTFModel>(info);
-	int mode = (int)info[0].As<v8::Number>()->Value();
+	LocalContext lctx(info);
+	GLTFModel* self = lctx.self<GLTFModel>();
+	int mode;
+	lctx.jnum_to_num(info[0], mode);
 	float width = 1.5f;
 	if (info.Length() > 1)
 	{
-		width = (float)info[1].As<v8::Number>()->Value();
+		lctx.jnum_to_num(info[1], width);
 	}
 	self->set_toon_shading(mode, width);
 }

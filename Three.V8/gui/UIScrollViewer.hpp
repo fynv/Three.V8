@@ -51,119 +51,107 @@ v8::Local<v8::FunctionTemplate> WrapperUIScrollViewer::create_template(v8::Isola
 
 void WrapperUIScrollViewer::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
+	LocalContext lctx(info);
 	UIScrollViewer* self = new UIScrollViewer();
-	info.This()->SetAlignedPointerInInternalField(0, self);
-	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This(), WrapperUIElement::dtor);
+	info.This()->SetAlignedPointerInInternalField(0, self);	
+	lctx.ctx()->regiter_object(info.This(), WrapperUIElement::dtor);
 }
 
 void WrapperUIScrollViewer::SetStyle(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	UIScrollViewer* self = get_self<UIScrollViewer>(info);
+	LocalContext lctx(info);
+	UIScrollViewer* self = lctx.self<UIScrollViewer>();
 
 	v8::Local<v8::Object> style = info[0].As<v8::Object>();
 
-	if (style->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "cornerRadius").ToLocalChecked()).ToChecked())
+	if (lctx.has_property(style, "cornerRadius"))
 	{
-		self->cornerRadius = (float)style->Get(context, v8::String::NewFromUtf8(isolate, "cornerRadius").ToLocalChecked()).ToLocalChecked().As<v8::Number>()->Value();
+		lctx.jnum_to_num(lctx.get_property(style, "cornerRadius"), self->cornerRadius);		
 	}
 
-	if (style->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "strokeWidth").ToLocalChecked()).ToChecked())
+	if (lctx.has_property(style, "strokeWidth"))
 	{
-		self->strokeWidth = (float)style->Get(context, v8::String::NewFromUtf8(isolate, "strokeWidth").ToLocalChecked()).ToLocalChecked().As<v8::Number>()->Value();
+		lctx.jnum_to_num(lctx.get_property(style, "strokeWidth"), self->strokeWidth);
 	}
 
-	if (style->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "colorBg").ToLocalChecked()).ToChecked())
+	if (lctx.has_property(style, "colorBg"))
 	{
-		v8::Local<v8::Value> value = style->Get(context, v8::String::NewFromUtf8(isolate, "colorBg").ToLocalChecked()).ToLocalChecked();
-		v8::String::Utf8Value str(info.GetIsolate(), value);
-		string_to_color(isolate, *str, self->colorBg);
+		std::string str = lctx.jstr_to_str(lctx.get_property(style, "colorBg"));
+		string_to_color(str.c_str(), self->colorBg);
 	}
 
-	if (style->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "colorStroke").ToLocalChecked()).ToChecked())
+	if (lctx.has_property(style, "colorStroke"))
 	{
-		v8::Local<v8::Value> value = style->Get(context, v8::String::NewFromUtf8(isolate, "colorStroke").ToLocalChecked()).ToLocalChecked();
-		v8::String::Utf8Value str(info.GetIsolate(), value);
-		string_to_color(isolate, *str, self->colorStroke);
+		std::string str = lctx.jstr_to_str(lctx.get_property(style, "colorStroke"));
+		string_to_color(str.c_str(), self->colorStroke);
 	}
+
 	self->appearance_changed = true;
 }
 
 void WrapperUIScrollViewer::GetScrollableVertical(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	v8::Isolate* isolate = info.GetIsolate();
-	UIScrollViewer* self = get_self<UIScrollViewer>(info);
-	v8::Local<v8::Boolean> ret = v8::Boolean::New(isolate, self->scrollable_vertical);
+	LocalContext lctx(info);
+	UIScrollViewer* self = lctx.self<UIScrollViewer>();
+	v8::Local<v8::Boolean> ret = v8::Boolean::New(lctx.isolate, self->scrollable_vertical);
 	info.GetReturnValue().Set(ret);
 }
 
 void WrapperUIScrollViewer::SetScrollableVertical(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	UIScrollViewer* self = get_self<UIScrollViewer>(info);
+	LocalContext lctx(info);
+	UIScrollViewer* self = lctx.self<UIScrollViewer>();
 	self->scrollable_vertical = value.As<v8::Boolean>()->Value();
 }
 
 void WrapperUIScrollViewer::GetScrollableHorizontal(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	v8::Isolate* isolate = info.GetIsolate();
-	UIScrollViewer* self = get_self<UIScrollViewer>(info);
-	v8::Local<v8::Boolean> ret = v8::Boolean::New(isolate, self->scrollable_horizontal);
+	LocalContext lctx(info);
+	UIScrollViewer* self = lctx.self<UIScrollViewer>();
+	v8::Local<v8::Boolean> ret = v8::Boolean::New(lctx.isolate, self->scrollable_horizontal);
 	info.GetReturnValue().Set(ret);
 }
 
 void WrapperUIScrollViewer::SetScrollableHorizontal(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	UIScrollViewer* self = get_self<UIScrollViewer>(info);
+	LocalContext lctx(info);
+	UIScrollViewer* self = lctx.self<UIScrollViewer>();
 	self->scrollable_horizontal = value.As<v8::Boolean>()->Value();
 }
 
 
 void WrapperUIScrollViewer::GetScrollPosition(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	v8::Isolate* isolate = info.GetIsolate();
-	UIScrollViewer* self = get_self<UIScrollViewer>(info);
-	v8::Local<v8::Object> scrollPosition = v8::Object::New(isolate);
-	vec2_to_jvec2(isolate, self->scroll_position, scrollPosition);
+	LocalContext lctx(info);
+	UIScrollViewer* self = lctx.self<UIScrollViewer>();
+	v8::Local<v8::Object> scrollPosition = v8::Object::New(lctx.isolate);
+	lctx.vec2_to_jvec2(self->scroll_position, scrollPosition);
 	info.GetReturnValue().Set(scrollPosition);
 }
 
 
 void WrapperUIScrollViewer::GetScrollPosition(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	UIScrollViewer* self = get_self<UIScrollViewer>(info);
-	v8::Local<v8::Object> out = info[0].As<v8::Object>();
-	vec2_to_jvec2(isolate, self->scroll_position, out);
-	info.GetReturnValue().Set(out);
+	LocalContext lctx(info);
+	UIScrollViewer* self = lctx.self<UIScrollViewer>();
+	lctx.vec2_to_jvec2(self->scroll_position, info[0]);
+	info.GetReturnValue().Set(info[0]);
 }
 
 
 void WrapperUIScrollViewer::SetScrollPosition(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	UIScrollViewer* self = get_self<UIScrollViewer>(info);
+	LocalContext lctx(info);
+	UIScrollViewer* self = lctx.self<UIScrollViewer>();
 	glm::vec2 scroll_position;
 	if (info[0]->IsNumber())
 	{
-		scroll_position.x = (float)info[0].As<v8::Number>()->Value();
-		scroll_position.y = (float)info[1].As<v8::Number>()->Value();
+		lctx.jnum_to_num(info[0], scroll_position.x);
+		lctx.jnum_to_num(info[1], scroll_position.y);
 	}
 	else
 	{
-		v8::Local<v8::Object> in = info[0].As<v8::Object>();
-		jvec2_to_vec2(isolate, in, scroll_position);
+		lctx.jvec2_to_vec2(info[0], scroll_position);
 	}
 	if (self->scroll_position != scroll_position)
 	{
@@ -174,42 +162,37 @@ void WrapperUIScrollViewer::SetScrollPosition(const v8::FunctionCallbackInfo<v8:
 
 void WrapperUIScrollViewer::GetContentSize(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	v8::Isolate* isolate = info.GetIsolate();
-	UIScrollViewer* self = get_self<UIScrollViewer>(info);
-	v8::Local<v8::Object> contentSize = v8::Object::New(isolate);
-	vec2_to_jvec2(isolate, self->content_size, contentSize);
+	LocalContext lctx(info);
+	UIScrollViewer* self = lctx.self<UIScrollViewer>();
+	v8::Local<v8::Object> contentSize = v8::Object::New(lctx.isolate);
+	lctx.vec2_to_jvec2(self->content_size, contentSize);
 	info.GetReturnValue().Set(contentSize);
 }
 
 
 void WrapperUIScrollViewer::GetContentSize(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	UIScrollViewer* self = get_self<UIScrollViewer>(info);
-	v8::Local<v8::Object> out = info[0].As<v8::Object>();
-	vec2_to_jvec2(isolate, self->content_size, out);
-	info.GetReturnValue().Set(out);
+	LocalContext lctx(info);
+	UIScrollViewer* self = lctx.self<UIScrollViewer>();
+	lctx.vec2_to_jvec2(self->content_size, info[0]);
+	info.GetReturnValue().Set(info[0]);
 }
 
 
 void WrapperUIScrollViewer::SetContentSize(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	UIScrollViewer* self = get_self<UIScrollViewer>(info);
+	LocalContext lctx(info);
+	UIScrollViewer* self = lctx.self<UIScrollViewer>();
 	glm::vec2 content_size;
 	if (info[0]->IsNumber())
 	{
-		content_size.x = (float)info[0].As<v8::Number>()->Value();
-		content_size.y = (float)info[1].As<v8::Number>()->Value();
+		lctx.jnum_to_num(info[0], content_size.x);
+		lctx.jnum_to_num(info[1], content_size.y);
 	}
 	else
 	{
-		v8::Local<v8::Object> in = info[0].As<v8::Object>();
-		jvec2_to_vec2(isolate, in, content_size);
-	}
+		lctx.jvec2_to_vec2(info[0], content_size);
+	}	
 	if (self->content_size != content_size)
 	{
 		self->content_size = content_size;

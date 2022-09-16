@@ -44,69 +44,55 @@ void WrapperUIElement::dtor(void* ptr, GameContext* ctx)
 
 void WrapperUIElement::GetBlock(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	v8::Local<v8::Value> block = v8::Null(isolate);
-	if (holder->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "_block").ToLocalChecked()).ToChecked())
-	{
-		block = holder->Get(context, v8::String::NewFromUtf8(isolate, "_block").ToLocalChecked()).ToLocalChecked();
-	}
+	LocalContext lctx(info);
+	v8::Local<v8::Value> block = lctx.get_property(lctx.holder, "_block");
 	info.GetReturnValue().Set(block);
 }
 
 void WrapperUIElement::SetBlock(v8::Local<v8::String> property, v8::Local<v8::Value> value,
 	const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	UIElement* self = (UIElement*)holder->GetAlignedPointerFromInternalField(0);
-	holder->Set(context, v8::String::NewFromUtf8(isolate, "_block").ToLocalChecked(), value);
-	UIBlock* block = (UIBlock*)value.As<v8::Object>()->GetAlignedPointerFromInternalField(0);
+	LocalContext lctx(info);
+	UIElement* self = lctx.self<UIElement>();
+	UIBlock* block = lctx.jobj_to_obj<UIBlock>(value);
 	self->block = block;
+	lctx.set_property(lctx.holder, "_block", value);	
 }
 
 void WrapperUIElement::GetOrigin(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	v8::Isolate* isolate = info.GetIsolate();
-	UIElement* self = get_self<UIElement>(info);
-	v8::Local<v8::Object> origin = v8::Object::New(isolate);
-	vec2_to_jvec2(isolate, self->origin, origin);
+	LocalContext lctx(info);
+	UIElement* self = lctx.self<UIElement>();
+	v8::Local<v8::Object> origin = v8::Object::New(lctx.isolate);
+	lctx.vec2_to_jvec2(self->origin, origin);
 	info.GetReturnValue().Set(origin);
 }
 
 
 void WrapperUIElement::GetOrigin(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	UIElement* self = get_self<UIElement>(info);
-	v8::Local<v8::Object> out = info[0].As<v8::Object>();
-	vec2_to_jvec2(isolate, self->origin, out);
-	info.GetReturnValue().Set(out);
+	LocalContext lctx(info);
+	UIElement* self = lctx.self<UIElement>();
+	lctx.vec2_to_jvec2(self->origin, info[0]);
+	info.GetReturnValue().Set(info[0]);
 }
 
 
 void WrapperUIElement::SetOrigin(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	UIElement* self = get_self<UIElement>(info);
+	LocalContext lctx(info);
+	UIElement* self = lctx.self<UIElement>();
 	glm::vec2 origin;
 	if (info[0]->IsNumber())
 	{
-		origin.x = (float)info[0].As<v8::Number>()->Value();
-		origin.y = (float)info[1].As<v8::Number>()->Value();
+		lctx.jnum_to_num(info[0], origin.x);
+		lctx.jnum_to_num(info[1], origin.y);
 	}
 	else
 	{
-		v8::Local<v8::Object> in = info[0].As<v8::Object>();
-		jvec2_to_vec2(isolate, in, origin);
+		lctx.jvec2_to_vec2(info[0], origin);
 	}
+
 	if (self->origin != origin)
 	{
 		self->origin = origin;

@@ -28,38 +28,29 @@ v8::Local<v8::ObjectTemplate> WrapperGLTFLoader::create_template(v8::Isolate* is
 
 void WrapperGLTFLoader::LoadModelFromFile(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> global = context->Global();
-	v8::Local<v8::Function> ctor_model = global->Get(context, v8::String::NewFromUtf8(isolate, "GLTFModel").ToLocalChecked()).ToLocalChecked().As<v8::Function>();
-
-	v8::Local<v8::Object> holder = ctor_model->CallAsConstructor(context, 0, nullptr).ToLocalChecked().As<v8::Object>();
-	GLTFModel* self = (GLTFModel*)holder->GetAlignedPointerFromInternalField(0);
-
-	v8::String::Utf8Value filename(isolate, info[0]);
-	GLTFLoader::LoadModelFromFile(self, *filename);
+	LocalContext lctx(info);
+	v8::Local<v8::Object> holder = lctx.instantiate("GLTFModel");
+	GLTFModel* self = lctx.jobj_to_obj<GLTFModel>(holder);	
+	std::string filename = lctx.jstr_to_str(info[0]);
+	GLTFLoader::LoadModelFromFile(self, filename.c_str());
 	info.GetReturnValue().Set(holder);
 }
 
 void WrapperGLTFLoader::LoadAnimationsFromFile(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-
-	v8::String::Utf8Value filename(isolate, info[0]);
+	LocalContext lctx(info);
+	std::string filename = lctx.jstr_to_str(info[0]);
 	std::vector<AnimationClip> animations;
-	GLTFLoader::LoadAnimationsFromFile(animations, *filename);
+	GLTFLoader::LoadAnimationsFromFile(animations, filename.c_str());
 
-	v8::Local<v8::Array> janims = v8::Array::New(isolate, (int)animations.size());
+	v8::Local<v8::Array> janims = v8::Array::New(lctx.isolate, (int)animations.size());
 
 	for (size_t i = 0; i < animations.size(); i++)
 	{
 		AnimationClip& anim = animations[i];
-		v8::Local<v8::Object> janim = v8::Object::New(isolate);
-		anim_to_janim(isolate, anim, janim);
-		janims->Set(context, (unsigned)i, janim);
+		v8::Local<v8::Object> janim = v8::Object::New(lctx.isolate);
+		lctx.anim_to_janim(anim, janim);
+		janims->Set(lctx.context, (unsigned)i, janim);
 	}
 
 	info.GetReturnValue().Set(janims);
@@ -68,14 +59,9 @@ void WrapperGLTFLoader::LoadAnimationsFromFile(const v8::FunctionCallbackInfo<v8
 
 void WrapperGLTFLoader::LoadModelFromMemory(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> global = context->Global();
-	v8::Local<v8::Function> ctor_model = global->Get(context, v8::String::NewFromUtf8(isolate, "GLTFModel").ToLocalChecked()).ToLocalChecked().As<v8::Function>();
-
-	v8::Local<v8::Object> holder = ctor_model->CallAsConstructor(context, 0, nullptr).ToLocalChecked().As<v8::Object>();
-	GLTFModel* self = (GLTFModel*)holder->GetAlignedPointerFromInternalField(0);
+	LocalContext lctx(info);
+	v8::Local<v8::Object> holder = lctx.instantiate("GLTFModel");
+	GLTFModel* self = lctx.jobj_to_obj<GLTFModel>(holder);
 
 	v8::Local<v8::ArrayBuffer> data = info[0].As<v8::ArrayBuffer>();
 	GLTFLoader::LoadModelFromMemory(self, (unsigned char*)data->GetBackingStore()->Data(), data->ByteLength());
@@ -83,25 +69,23 @@ void WrapperGLTFLoader::LoadModelFromMemory(const v8::FunctionCallbackInfo<v8::V
 }
 
 
-
 void WrapperGLTFLoader::LoadAnimationsFromMemory(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();	
+	LocalContext lctx(info);
+	
 	std::vector<AnimationClip> animations;
 	
 	v8::Local<v8::ArrayBuffer> data = info[0].As<v8::ArrayBuffer>();
 	GLTFLoader::LoadAnimationsFromMemory(animations, (unsigned char*)data->GetBackingStore()->Data(), data->ByteLength());
 
-	v8::Local<v8::Array> janims = v8::Array::New(isolate, (int)animations.size());
+	v8::Local<v8::Array> janims = v8::Array::New(lctx.isolate, (int)animations.size());
 
 	for (size_t i = 0; i < animations.size(); i++)
 	{
 		AnimationClip& anim = animations[i];
-		v8::Local<v8::Object> janim = v8::Object::New(isolate);
-		anim_to_janim(isolate, anim, janim);
-		janims->Set(context, (unsigned)i, janim);
+		v8::Local<v8::Object> janim = v8::Object::New(lctx.isolate);
+		lctx.anim_to_janim(anim, janim);
+		janims->Set(lctx.context, (unsigned)i, janim);
 	}
 
 	info.GetReturnValue().Set(janims);

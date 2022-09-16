@@ -25,16 +25,13 @@ v8::Local<v8::ObjectTemplate> WrapperFileLoader::create_template(v8::Isolate* is
 
 void WrapperFileLoader::LoadBinaryFile(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-
-	v8::String::Utf8Value filename(isolate, info[0]);
+	LocalContext lctx(info);
+	std::string filename = lctx.jstr_to_str(info[0]);
 
 	std::vector<unsigned char> data;
-	::LoadBinaryFile(*filename, data);
+	::LoadBinaryFile(filename.c_str(), data);
 
-	v8::Local<v8::ArrayBuffer> ret = v8::ArrayBuffer::New(isolate, data.size());
+	v8::Local<v8::ArrayBuffer> ret = v8::ArrayBuffer::New(lctx.isolate, data.size());
 	void* p_data = ret->GetBackingStore()->Data();
 	memcpy(p_data, data.data(), data.size());
 	
@@ -43,15 +40,12 @@ void WrapperFileLoader::LoadBinaryFile(const v8::FunctionCallbackInfo<v8::Value>
 
 void WrapperFileLoader::LoadTextFile(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-
-	v8::String::Utf8Value filename(isolate, info[0]);
+	LocalContext lctx(info);
+	std::string filename = lctx.jstr_to_str(info[0]);
 
 	std::vector<char> data;
-	::LoadTextFile(*filename, data);
+	::LoadTextFile(filename.c_str(), data);
 
-	v8::Local<v8::String> ret = v8::String::NewFromUtf8(isolate, data.data()).ToLocalChecked();
+	v8::Local<v8::String> ret = lctx.str_to_jstr(data.data());
 	info.GetReturnValue().Set(ret);
 }

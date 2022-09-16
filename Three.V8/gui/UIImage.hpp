@@ -33,10 +33,10 @@ v8::Local<v8::FunctionTemplate> WrapperUIImage::create_template(v8::Isolate* iso
 
 void WrapperUIImage::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
+	LocalContext lctx(info);
 	UIImage* self = new UIImage();
-	info.This()->SetAlignedPointerInInternalField(0, self);
-	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This(), dtor);
+	info.This()->SetAlignedPointerInInternalField(0, self);	
+	lctx.ctx()->regiter_object(info.This(), dtor);
 }
 
 void WrapperUIImage::dtor(void* ptr, GameContext* ctx)
@@ -53,41 +53,36 @@ void WrapperUIImage::dtor(void* ptr, GameContext* ctx)
 
 void WrapperUIImage::GetSize(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	v8::Isolate* isolate = info.GetIsolate();
-	UIImage* self = get_self<UIImage>(info);
-	v8::Local<v8::Object> size = v8::Object::New(isolate);
-	vec2_to_jvec2(isolate, self->size, size);
+	LocalContext lctx(info);
+	UIImage* self = lctx.self<UIImage>();
+	v8::Local<v8::Object> size = v8::Object::New(lctx.isolate);
+	lctx.vec2_to_jvec2(self->size, size);
 	info.GetReturnValue().Set(size);
 }
 
 
 void WrapperUIImage::GetSize(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	UIImage* self = get_self<UIImage>(info);
-	v8::Local<v8::Object> out = info[0].As<v8::Object>();
-	vec2_to_jvec2(isolate, self->size, out);
-	info.GetReturnValue().Set(out);
+	LocalContext lctx(info);
+	UIImage* self = lctx.self<UIImage>();
+	lctx.vec2_to_jvec2(self->size, info[0]);
+	info.GetReturnValue().Set(info[0]);
 }
 
 
 void WrapperUIImage::SetSize(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	UIImage* self = get_self<UIImage>(info);
+	LocalContext lctx(info);
+	UIImage* self = lctx.self<UIImage>();
 	glm::vec2 size;
 	if (info[0]->IsNumber())
 	{
-		size.x = (float)info[0].As<v8::Number>()->Value();
-		size.y = (float)info[1].As<v8::Number>()->Value();
+		lctx.jnum_to_num(info[0], size.x);
+		lctx.jnum_to_num(info[1], size.y);
 	}
 	else
 	{
-		v8::Local<v8::Object> in = info[0].As<v8::Object>();
-		jvec2_to_vec2(isolate, in, size);
+		lctx.jvec2_to_vec2(info[0], size);
 	}
 	if (self->size != size)
 	{
@@ -98,16 +93,10 @@ void WrapperUIImage::SetSize(const v8::FunctionCallbackInfo<v8::Value>& info)
 
 void WrapperUIImage::SetImage(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	UIImage* self = get_self<UIImage>(info);
-
-	v8::Local<v8::Object> holder_image = info[0].As<v8::Object>();
-	Image* image = (Image*)holder_image->GetAlignedPointerFromInternalField(0);
-	
-	GameContext* ctx = get_context(info);
-	GamePlayer* player = ctx->GetGamePlayer();
-	GLUIRenderer& renderer = player->UIRenderer();
+	LocalContext lctx(info);
+	UIImage* self = lctx.self<UIImage>();
+	Image* image = lctx.jobj_to_obj<Image>(info[0]);
+	GLUIRenderer& renderer = lctx.player()->UIRenderer();
 
 	if (self->id_image != -1)
 	{

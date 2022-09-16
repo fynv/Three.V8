@@ -73,29 +73,26 @@ void WrapperUIArea::dtor(void* ptr, GameContext* ctx)
 
 void WrapperUIArea::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
+	LocalContext lctx(info);
 	UIArea* self = new UIArea();
-	info.This()->SetAlignedPointerInInternalField(0, self);
-	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This(), dtor);
+	info.This()->SetAlignedPointerInInternalField(0, self);	
+	lctx.ctx()->regiter_object(info.This(), dtor);
 }
 
 
 
 void WrapperUIArea::GetElements(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
+	LocalContext lctx(info);	
 	v8::Local<v8::Value> elements;
-	if (holder->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "_elements").ToLocalChecked()).ToChecked())
+	if (lctx.has_property(lctx.holder, "_elements"))	
 	{
-		elements = holder->Get(context, v8::String::NewFromUtf8(isolate, "_elements").ToLocalChecked()).ToLocalChecked();
+		elements = lctx.get_property(lctx.holder, "_elements");
 	}
 	else
 	{
-		elements = v8::Array::New(isolate);
-		holder->Set(context, v8::String::NewFromUtf8(isolate, "_elements").ToLocalChecked(), elements);
+		elements = v8::Array::New(lctx.isolate);
+		lctx.set_property(lctx.holder, "_elements", elements);
 	}
 	info.GetReturnValue().Set(elements);
 }
@@ -103,205 +100,169 @@ void WrapperUIArea::GetElements(v8::Local<v8::String> property, const v8::Proper
 
 void WrapperUIArea::Add(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	UIArea* self = (UIArea*)holder->GetAlignedPointerFromInternalField(0);
-
-	v8::Local<v8::Object> holder_element = info[0].As<v8::Object>();
-	UIElement* element = (UIElement*)holder_element->GetAlignedPointerFromInternalField(0);
-
+	LocalContext lctx(info);
+	UIArea* self = lctx.self<UIArea>();
+	UIElement* element = lctx.jobj_to_obj<UIElement>(info[0]);
 	self->add(element);
 
-	v8::Local<v8::Array> elements = holder->Get(context, v8::String::NewFromUtf8(isolate, "elements").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
-	elements->Set(context, elements->Length(), holder_element);
+	v8::Local<v8::Array> elements = lctx.get_property(lctx.holder, "elements").As<v8::Array>();
+	elements->Set(lctx.context, elements->Length(), info[0]);
 
-	info.GetReturnValue().Set(holder);
+	info.GetReturnValue().Set(lctx.holder);
 }
 
 void WrapperUIArea::Remove(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	UIArea* self = (UIArea*)holder->GetAlignedPointerFromInternalField(0);
-
-	v8::Local<v8::Object> holder_element = info[0].As<v8::Object>();
-	UIElement* element = (UIElement*)holder_element->GetAlignedPointerFromInternalField(0);
-
+	LocalContext lctx(info);
+	UIArea* self = lctx.self<UIArea>();
+	UIElement* element = lctx.jobj_to_obj<UIElement>(info[0]);
 	self->remove(element);
 
-	v8::Local<v8::Array> elements = holder->Get(context, v8::String::NewFromUtf8(isolate, "elements").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
+	v8::Local<v8::Array> elements = lctx.get_property(lctx.holder, "elements").As<v8::Array>();
 
 	for (unsigned i = 0; i < elements->Length(); i++)
 	{
-		v8::Local<v8::Object> element_i = elements->Get(context, i).ToLocalChecked().As<v8::Object>();
-		if (element_i == holder_element)
+		v8::Local<v8::Value> element_i = elements->Get(lctx.context, i).ToLocalChecked();
+		if (element_i == info[0])
 		{
 			for (unsigned j = i; j < elements->Length() - 1; j++)
 			{
-				elements->Set(context, j, elements->Get(context, j + 1).ToLocalChecked());
+				elements->Set(lctx.context, j, elements->Get(lctx.context, j + 1).ToLocalChecked());
 			}
-			elements->Delete(context, elements->Length() - 1);
-			elements->Set(context, v8::String::NewFromUtf8(isolate, "length").ToLocalChecked(), v8::Number::New(isolate, (double)(elements->Length() - 1)));
+			elements->Delete(lctx.context, elements->Length() - 1);
+			lctx.set_property(elements, "length", lctx.num_to_jnum(elements->Length() - 1));
 			break;
 		}
 	}
 
-	info.GetReturnValue().Set(holder);
+	info.GetReturnValue().Set(lctx.holder);
 }
 
 void WrapperUIArea::Clear(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	UIArea* self = (UIArea*)holder->GetAlignedPointerFromInternalField(0);
+	LocalContext lctx(info);
+	UIArea* self = lctx.self<UIArea>();
 	self->clear();
 
-	v8::Local<v8::Array> elements = holder->Get(context, v8::String::NewFromUtf8(isolate, "elements").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
+	v8::Local<v8::Array> elements = lctx.get_property(lctx.holder, "elements").As<v8::Array>();
 	for (unsigned i = 0; i < elements->Length(); i++)
 	{
-		elements->Delete(context, i);
+		elements->Delete(lctx.context, i);
 	}
-	elements->Set(context, v8::String::NewFromUtf8(isolate, "length").ToLocalChecked(), v8::Number::New(isolate, 0.0));
+	lctx.set_property(elements, "length", lctx.num_to_jnum(0));
 
-	info.GetReturnValue().Set(holder);
+	info.GetReturnValue().Set(lctx.holder);
 
 }
 
 void WrapperUIArea::GetViewers(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
+	LocalContext lctx(info);
 	v8::Local<v8::Value> viewers;
-	if (holder->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "_viewers").ToLocalChecked()).ToChecked())
+	if (lctx.has_property(lctx.holder, "_viewers"))
 	{
-		viewers = holder->Get(context, v8::String::NewFromUtf8(isolate, "_viewers").ToLocalChecked()).ToLocalChecked();
+		viewers = lctx.get_property(lctx.holder, "_viewers");
 	}
 	else
 	{
-		viewers = v8::Array::New(isolate);
-		holder->Set(context, v8::String::NewFromUtf8(isolate, "_viewers").ToLocalChecked(), viewers);
+		viewers = v8::Array::New(lctx.isolate);
+		lctx.set_property(lctx.holder, "_viewers", viewers);
 	}
 	info.GetReturnValue().Set(viewers);
 }
 
 void WrapperUIArea::AddViewer(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	UIArea* self = (UIArea*)holder->GetAlignedPointerFromInternalField(0);
-
-	v8::Local<v8::Object> holder_viewer = info[0].As<v8::Object>();
-	UI3DViewer* viewer = (UI3DViewer*)holder_viewer->GetAlignedPointerFromInternalField(0);
-
+	LocalContext lctx(info);
+	UIArea* self = lctx.self<UIArea>();
+	UI3DViewer* viewer = lctx.jobj_to_obj<UI3DViewer>(info[0]);
 	self->viewers.push_back(viewer);
 
-	v8::Local<v8::Array> viewers = holder->Get(context, v8::String::NewFromUtf8(isolate, "viewers").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
-	viewers->Set(context, viewers->Length(), holder_viewer);
+	v8::Local<v8::Array> viewers = lctx.get_property(lctx.holder, "viewers").As<v8::Array>();
+	viewers->Set(lctx.context, viewers->Length(), info[0]);
 
-	info.GetReturnValue().Set(holder);
+	info.GetReturnValue().Set(lctx.holder);
 }
 
 void WrapperUIArea::RemoveViewer(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	UIArea* self = (UIArea*)holder->GetAlignedPointerFromInternalField(0);
-
-	v8::Local<v8::Object> holder_viewer = info[0].As<v8::Object>();
-	UI3DViewer* viewer = (UI3DViewer*)holder_viewer->GetAlignedPointerFromInternalField(0);
+	LocalContext lctx(info);
+	UIArea* self = lctx.self<UIArea>();
+	UI3DViewer* viewer = lctx.jobj_to_obj<UI3DViewer>(info[0]);
 
 	auto iter = std::find(self->viewers.begin(), self->viewers.end(), viewer);
 	if (iter != self->viewers.end()) self->viewers.erase(iter);
 
-	v8::Local<v8::Array> viewers = holder->Get(context, v8::String::NewFromUtf8(isolate, "viewers").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
+	v8::Local<v8::Array> viewers = lctx.get_property(lctx.holder, "viewers").As<v8::Array>();
 
 	for (unsigned i = 0; i < viewers->Length(); i++)
 	{
-		v8::Local<v8::Object> viewer_i = viewers->Get(context, i).ToLocalChecked().As<v8::Object>();
-		if (viewer_i == holder_viewer)
+		v8::Local<v8::Value> viewer_i = viewers->Get(lctx.context, i).ToLocalChecked();
+		if (viewer_i == info[0])
 		{
 			for (unsigned j = i; j < viewers->Length() - 1; j++)
 			{
-				viewers->Set(context, j, viewers->Get(context, j + 1).ToLocalChecked());
+				viewers->Set(lctx.context, j, viewers->Get(lctx.context, j + 1).ToLocalChecked());
 			}
-			viewers->Delete(context, viewers->Length() - 1);
-			viewers->Set(context, v8::String::NewFromUtf8(isolate, "length").ToLocalChecked(), v8::Number::New(isolate, (double)(viewers->Length() - 1)));
+			viewers->Delete(lctx.context, viewers->Length() - 1);
+			lctx.set_property(viewers, "length", lctx.num_to_jnum(viewers->Length() - 1));
 			break;
 		}
 	}
 
-	info.GetReturnValue().Set(holder);
+	info.GetReturnValue().Set(lctx.holder);
 }
 
 void WrapperUIArea::ClearViewers(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	UIArea* self = (UIArea*)holder->GetAlignedPointerFromInternalField(0);
+	LocalContext lctx(info);
+	UIArea* self = lctx.self<UIArea>();
 	self->viewers.clear();
 
-	v8::Local<v8::Array> viewers = holder->Get(context, v8::String::NewFromUtf8(isolate, "viewers").ToLocalChecked()).ToLocalChecked().As<v8::Array>();
+	v8::Local<v8::Array> viewers = lctx.get_property(lctx.holder, "viewers").As<v8::Array>();
 	for (unsigned i = 0; i < viewers->Length(); i++)
 	{
-		viewers->Delete(context, i);
+		viewers->Delete(lctx.context, i);
 	}
-	viewers->Set(context, v8::String::NewFromUtf8(isolate, "length").ToLocalChecked(), v8::Number::New(isolate, 0.0));
+	lctx.set_property(viewers, "length", lctx.num_to_jnum(0));
 
-	info.GetReturnValue().Set(holder);
+	info.GetReturnValue().Set(lctx.holder);
 }
 
 void WrapperUIArea::GetOrigin(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	v8::Isolate* isolate = info.GetIsolate();
-	UIArea* self = get_self<UIArea>(info);
-	v8::Local<v8::Object> origin = v8::Object::New(isolate);
-	vec2_to_jvec2(isolate, self->origin, origin);
+	LocalContext lctx(info);
+	UIArea* self = lctx.self<UIArea>();
+	v8::Local<v8::Object> origin = v8::Object::New(lctx.isolate);
+	lctx.vec2_to_jvec2(self->origin, origin);
 	info.GetReturnValue().Set(origin);
 }
 
 
 void WrapperUIArea::GetOrigin(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	UIArea* self = get_self<UIArea>(info);
-	v8::Local<v8::Object> out = info[0].As<v8::Object>();
-	vec2_to_jvec2(isolate, self->origin, out);
-	info.GetReturnValue().Set(out);
+	LocalContext lctx(info);
+	UIArea* self = lctx.self<UIArea>();	
+	lctx.vec2_to_jvec2(self->origin, info[0]);
+	info.GetReturnValue().Set(info[0]);
 }
 
 
 void WrapperUIArea::SetOrigin(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	UIArea* self = get_self<UIArea>(info);
+	LocalContext lctx(info);
+	UIArea* self = lctx.self<UIArea>();
 	glm::vec2 origin;
 	if (info[0]->IsNumber())
 	{
-		origin.x = (float)info[0].As<v8::Number>()->Value();
-		origin.y = (float)info[1].As<v8::Number>()->Value();	
+		lctx.jnum_to_num(info[0], origin.x);
+		lctx.jnum_to_num(info[1], origin.y);
 	}
 	else
 	{
-		v8::Local<v8::Object> in = info[0].As<v8::Object>();
-		jvec2_to_vec2(isolate, in, origin);
+		lctx.jvec2_to_vec2(info[0], origin);
 	}
+
 	if (self->origin != origin)
 	{
 		self->origin = origin;
@@ -311,39 +272,34 @@ void WrapperUIArea::SetOrigin(const v8::FunctionCallbackInfo<v8::Value>& info)
 
 void WrapperUIArea::GetSize(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	v8::Isolate* isolate = info.GetIsolate();
-	UIArea* self = get_self<UIArea>(info);
-	v8::Local<v8::Object> size = v8::Object::New(isolate);
-	vec2_to_jvec2(isolate, self->size, size);
+	LocalContext lctx(info);
+	UIArea* self = lctx.self<UIArea>();
+	v8::Local<v8::Object> size = v8::Object::New(lctx.isolate);
+	lctx.vec2_to_jvec2(self->size, size);
 	info.GetReturnValue().Set(size);
 }
 
 void WrapperUIArea::GetSize(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	UIArea* self = get_self<UIArea>(info);
-	v8::Local<v8::Object> out = info[0].As<v8::Object>();
-	vec2_to_jvec2(isolate, self->size, out);
-	info.GetReturnValue().Set(out);
+	LocalContext lctx(info);
+	UIArea* self = lctx.self<UIArea>();
+	lctx.vec2_to_jvec2(self->size, info[0]);
+	info.GetReturnValue().Set(info[0]);
 }
 
 void WrapperUIArea::SetSize(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	UIArea* self = get_self<UIArea>(info);
+	LocalContext lctx(info);
+	UIArea* self = lctx.self<UIArea>();
 	glm::vec2 size;
 	if (info[0]->IsNumber())
 	{
-		size.x = (float)info[0].As<v8::Number>()->Value();
-		size.y = (float)info[1].As<v8::Number>()->Value();
+		lctx.jnum_to_num(info[0], size.x);
+		lctx.jnum_to_num(info[1], size.y);
 	}
 	else
 	{
-		v8::Local<v8::Object> in = info[0].As<v8::Object>();
-		jvec2_to_vec2(isolate, in, size);
+		lctx.jvec2_to_vec2(info[0], size);
 	}
 	if (self->size != size)
 	{
@@ -354,19 +310,17 @@ void WrapperUIArea::SetSize(const v8::FunctionCallbackInfo<v8::Value>& info)
 
 void WrapperUIArea::GetScale(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	v8::Isolate* isolate = info.GetIsolate();
-	UIArea* self = get_self<UIArea>(info);
-	v8::Local<v8::Number> scale = v8::Number::New(isolate, (double)self->scale);
-	info.GetReturnValue().Set(scale);
+	LocalContext lctx(info);
+	UIArea* self = lctx.self<UIArea>();
+	info.GetReturnValue().Set(lctx.num_to_jnum(self->scale));
 }
 
 void WrapperUIArea::SetScale(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	UIArea* self = get_self<UIArea>(info);
-	float scale = (float)value.As<v8::Number>()->Value();
+	LocalContext lctx(info);
+	UIArea* self = lctx.self<UIArea>();
+	float scale;
+	lctx.jnum_to_num(value, scale);
 	if (self->scale != scale)
 	{
 		self->scale = scale;

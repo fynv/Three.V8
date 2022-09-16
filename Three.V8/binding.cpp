@@ -335,12 +335,11 @@ void GameContext::Print(const v8::FunctionCallbackInfo<v8::Value>& args)
 
 void GameContext::SetCallback(const v8::FunctionCallbackInfo<v8::Value>& args)
 {	
-	GameContext* self = get_context(args);
-	v8::Isolate* isolate = args.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::String::Utf8Value name(isolate, args[0]);
-	v8::Local<v8::Function> callback = args[1].As<v8::Function>();
-	self->m_callbacks[*name] = CallbackT(isolate, callback);
+	LocalContext lctx(args);
+	GameContext* self = lctx.ctx();
+	std::string name = lctx.jstr_to_str(args[0]);
+	v8::Local<v8::Function> callback = args[1].As<v8::Function>();	
+	self->m_callbacks[name] = CallbackT(lctx.isolate, callback);
 }
 
 
@@ -361,20 +360,18 @@ v8::MaybeLocal<v8::Value> GameContext::InvokeCallback(v8::Function* callback, co
 
 void GameContext::Now(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-	v8::Isolate* isolate = args.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
+	LocalContext lctx(args);
 	double now = time_sec() * 1000.0;
-	args.GetReturnValue().Set(v8::Number::New(isolate, now));
+	args.GetReturnValue().Set(lctx.num_to_jnum(now));
 }
 
 #include <GL/glew.h>
 
 void GameContext::GetGLError(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-	v8::Isolate* isolate = args.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
+	LocalContext lctx(args);
 	unsigned err = glGetError();
-	args.GetReturnValue().Set(v8::Number::New(isolate, (double)err));
+	args.GetReturnValue().Set(lctx.num_to_jnum(err));	
 }
 
 void GameContext::WeakCallback(v8::WeakCallbackInfo<GameContext> const& data)

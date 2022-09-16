@@ -57,35 +57,37 @@ v8::Local<v8::FunctionTemplate> WrapperSimpleModel::create_template(v8::Isolate*
 
 void WrapperSimpleModel::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
+	LocalContext lctx(info);
 	SimpleModel* self = new SimpleModel();
-	info.This()->SetAlignedPointerInInternalField(0, self);
-	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This(), WrapperObject3D::dtor);
+	info.This()->SetAlignedPointerInInternalField(0, self);	
+	lctx.ctx()->regiter_object(info.This(), WrapperObject3D::dtor);
 }
 
 void WrapperSimpleModel::CreateBox(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	SimpleModel* self = get_self<SimpleModel>(info);
-	float width = (float)info[0].As<v8::Number>()->Value();
-	float height = (float)info[1].As<v8::Number>()->Value();
-	float depth = (float)info[2].As<v8::Number>()->Value();
+	LocalContext lctx(info);
+	SimpleModel* self = lctx.self<SimpleModel>();
+	float width, height, depth;
+	lctx.jnum_to_num(info[0], width);
+	lctx.jnum_to_num(info[1], height);
+	lctx.jnum_to_num(info[2], depth);
 	GeometryCreator::CreateBox(&self->geometry, width, height, depth);
 }
 
 void WrapperSimpleModel::CreateSphere(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	SimpleModel* self = get_self<SimpleModel>(info);
-	float radius = (float)info[0].As<v8::Number>()->Value();
+	LocalContext lctx(info);
+	SimpleModel* self = lctx.self<SimpleModel>();
+	float radius;
+	lctx.jnum_to_num(info[0], radius);
 	int widthSegments = 32;
 	int heightSegments = 16;
 	if (info.Length() > 1)
 	{
-		widthSegments = (int)info[1].As<v8::Number>()->Value();
+		lctx.jnum_to_num(info[1], widthSegments);
 		if (info.Length() > 2)
 		{
-			heightSegments = (int)info[2].As<v8::Number>()->Value();
+			lctx.jnum_to_num(info[2], heightSegments);
 		}
 	}
 	GeometryCreator::CreateSphere(&self->geometry, radius, widthSegments, heightSegments);
@@ -94,71 +96,66 @@ void WrapperSimpleModel::CreateSphere(const v8::FunctionCallbackInfo<v8::Value>&
 
 void WrapperSimpleModel::CreatePlane(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	SimpleModel* self = get_self<SimpleModel>(info);
-	float width = (float)info[0].As<v8::Number>()->Value();
-	float height = (float)info[1].As<v8::Number>()->Value();	
+	LocalContext lctx(info);
+	SimpleModel* self = lctx.self<SimpleModel>();
+	float width, height;
+	lctx.jnum_to_num(info[0], width);
+	lctx.jnum_to_num(info[1], height);	
 	GeometryCreator::CreatePlane(&self->geometry, width, height);
 }
 
 void WrapperSimpleModel::GetColor(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	SimpleModel* self = get_self<SimpleModel>(info);
-	v8::Local<v8::Object> color = v8::Object::New(isolate);
-	vec3_to_jvec3(isolate, self->material.color, color);
+	LocalContext lctx(info);
+	SimpleModel* self = lctx.self<SimpleModel>();
+	v8::Local<v8::Object> color = v8::Object::New(lctx.isolate);
+	lctx.vec3_to_jvec3(self->material.color, color);
 	info.GetReturnValue().Set(color);
 }
 
 void WrapperSimpleModel::GetColor(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	SimpleModel* self = get_self<SimpleModel>(info);
-	v8::Local<v8::Object> out = info[0].As<v8::Object>();
-	vec3_to_jvec3(isolate, self->material.color, out);
-	info.GetReturnValue().Set(out);
+	LocalContext lctx(info);
+	SimpleModel* self = lctx.self<SimpleModel>();
+	lctx.vec3_to_jvec3(self->material.color, info[0]);
+	info.GetReturnValue().Set(info[0]);
 }
 
 void WrapperSimpleModel::SetColor(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	SimpleModel* self = get_self<SimpleModel>(info);
+	LocalContext lctx(info);
+	SimpleModel* self = lctx.self<SimpleModel>();
 	glm::vec3 color;
 	if (info[0]->IsNumber())
 	{
-		color.x = (float)info[0].As<v8::Number>()->Value();
-		color.y = (float)info[1].As<v8::Number>()->Value();
-		color.z = (float)info[2].As<v8::Number>()->Value();
+		lctx.jnum_to_num(info[0], color.x);
+		lctx.jnum_to_num(info[1], color.y);
+		lctx.jnum_to_num(info[2], color.z);
 	}
 	else
 	{
-		v8::Local<v8::Object> in = info[0].As<v8::Object>();
-		jvec3_to_vec3(isolate, in, color);
+		lctx.jvec3_to_vec3(info[0], color);
 	}
 	self->set_color(color);
 }
 
 void WrapperSimpleModel::SetColorTexture(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	SimpleModel* self = get_self<SimpleModel>(info);
+	LocalContext lctx(info);
+	SimpleModel* self = lctx.self<SimpleModel>();
 	v8::Local<v8::Object> holder_image = info[0].As<v8::Object>();	
-	v8::String::Utf8Value clsname(isolate, holder_image->GetConstructorName());
-	if (strcmp(*clsname, "Image") == 0)
+	std::string clsname = lctx.jstr_to_str(holder_image->GetConstructorName());
+	if (clsname== "Image")
 	{
-		Image* image = (Image*)holder_image->GetAlignedPointerFromInternalField(0);
+		Image* image = lctx.jobj_to_obj<Image>(holder_image);
 		if (image != nullptr)
 		{
 			self->texture.load_memory_rgba(image->width(), image->height(), image->data(), true);
 		}
 	}
-	else if (strcmp(*clsname, "GLRenderTarget") == 0)
+	else if (clsname == "GLRenderTarget")
 	{
-		GLRenderTarget* target = (GLRenderTarget*)holder_image->GetAlignedPointerFromInternalField(0);
+		GLRenderTarget* target = lctx.jobj_to_obj<GLRenderTarget>(holder_image);	
 		if (target != nullptr)
 		{
 			self->repl_texture = target->m_tex_video.get();
@@ -169,48 +166,50 @@ void WrapperSimpleModel::SetColorTexture(const v8::FunctionCallbackInfo<v8::Valu
 
 void WrapperSimpleModel::GetMetalness(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	SimpleModel* self = get_self<SimpleModel>(info);
-	v8::Local<v8::Number> ret = v8::Number::New(info.GetIsolate(), (double)self->material.metallicFactor);
-	info.GetReturnValue().Set(ret);
+	LocalContext lctx(info);
+	SimpleModel* self = lctx.self<SimpleModel>();	
+	info.GetReturnValue().Set(lctx.num_to_jnum(self->material.metallicFactor));
 }
 
 void WrapperSimpleModel::SetMetalness(v8::Local<v8::String> property, v8::Local<v8::Value> value,
 	const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	SimpleModel* self = get_self<SimpleModel>(info);
-	self->set_metalness((float)value.As<v8::Number>()->Value());
+	LocalContext lctx(info);
+	SimpleModel* self = lctx.self<SimpleModel>();
+	float metalness;
+	lctx.jnum_to_num(value, metalness);
+	self->set_metalness(metalness);
 }
 
 
 void WrapperSimpleModel::GetRoughness(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	SimpleModel* self = get_self<SimpleModel>(info);
-	v8::Local<v8::Number> ret = v8::Number::New(info.GetIsolate(), (double)self->material.roughnessFactor);
-	info.GetReturnValue().Set(ret);
+	LocalContext lctx(info);
+	SimpleModel* self = lctx.self<SimpleModel>();
+	info.GetReturnValue().Set(lctx.num_to_jnum(self->material.roughnessFactor));
 }
 
 void WrapperSimpleModel::SetRoughness(v8::Local<v8::String> property, v8::Local<v8::Value> value,
 	const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	SimpleModel* self = get_self<SimpleModel>(info);
-	self->set_roughness((float)value.As<v8::Number>()->Value());
+	LocalContext lctx(info);
+	SimpleModel* self = lctx.self<SimpleModel>();
+	float roughness;
+	lctx.jnum_to_num(value, roughness);
+	self->set_roughness(roughness);
 }
 
 
 void WrapperSimpleModel::SetToonShading(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	SimpleModel* self = get_self<SimpleModel>(info);
-	int mode = (int)info[0].As<v8::Number>()->Value();
+	LocalContext lctx(info);
+	SimpleModel* self = lctx.self<SimpleModel>();
+	int mode;
+	lctx.jnum_to_num(info[0], mode);
 	float width = 1.5f;
 	if (info.Length() > 1)
 	{
-		width = (float)info[1].As<v8::Number>()->Value();
+		lctx.jnum_to_num(info[1], width);
 	}
 	self->set_toon_shading(mode, width);
 }

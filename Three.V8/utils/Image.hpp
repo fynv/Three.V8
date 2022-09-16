@@ -33,38 +33,35 @@ void WrapperImage::dtor(void* ptr, GameContext* ctx)
 
 void WrapperImage::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
+	LocalContext lctx(info);
 	Image* self = nullptr;
 	if (info.Length() > 1)
 	{
-		int width = (int)info[0].As<v8::Number>()->Value();
-		int height = (int)info[1].As<v8::Number>()->Value();	
+		int width, height;
+		lctx.jnum_to_num(info[0], width);			
+		lctx.jnum_to_num(info[1], height);
 		self = new Image(width, height);
 	}
 	else
 	{
 		self = new Image();
 	}	
-	info.This()->SetAlignedPointerInInternalField(0, self);
-	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This(), dtor);
+	info.This()->SetAlignedPointerInInternalField(0, self);	
+	lctx.ctx()->regiter_object(info.This(), dtor);
 }
 
 void WrapperImage::GetWidth(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	Image* self = get_self<Image>(info);
-	int width = self == nullptr ? 0 : self->width();
-	v8::Local<v8::Number> ret = v8::Number::New(info.GetIsolate(), (double)width);
-	info.GetReturnValue().Set(ret);
+	LocalContext lctx(info);
+	Image* self = lctx.self<Image>();	
+	info.GetReturnValue().Set(lctx.num_to_jnum(self->width()));
 }
 
 void WrapperImage::GetHeight(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	Image* self = get_self<Image>(info);
-	int height = self == nullptr ? 0 : self->height();
-	v8::Local<v8::Number> ret = v8::Number::New(info.GetIsolate(), (double)height);
-	info.GetReturnValue().Set(ret);
+	LocalContext lctx(info);
+	Image* self = lctx.self<Image>();
+	info.GetReturnValue().Set(lctx.num_to_jnum(self->height()));
 }
 
 class WrapperCubeImage
@@ -98,26 +95,22 @@ void WrapperCubeImage::dtor(void* ptr, GameContext* ctx)
 
 void WrapperCubeImage::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
+	LocalContext lctx(info);
 	CubeImage* self = new CubeImage();
 	info.This()->SetAlignedPointerInInternalField(0, self);
-	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This(), dtor);
+	lctx.ctx()->regiter_object(info.This(), dtor);
 }
 
 void WrapperCubeImage::GetWidth(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	CubeImage* self = get_self<CubeImage>(info);
-	int width = self == nullptr ? 0 : self->images[0].width();
-	v8::Local<v8::Number> ret = v8::Number::New(info.GetIsolate(), (double)width);
-	info.GetReturnValue().Set(ret);
+	LocalContext lctx(info);
+	CubeImage* self = lctx.self<CubeImage>();
+	info.GetReturnValue().Set(lctx.num_to_jnum(self->images[0].width()));
 }
 
 void WrapperCubeImage::GetHeight(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	CubeImage* self = get_self<CubeImage>(info);
-	int height = self == nullptr ? 0 : self->images[0].height();
-	v8::Local<v8::Number> ret = v8::Number::New(info.GetIsolate(), (double)height);
-	info.GetReturnValue().Set(ret);
+	LocalContext lctx(info);
+	CubeImage* self = lctx.self<CubeImage>();
+	info.GetReturnValue().Set(lctx.num_to_jnum(self->images[0].height()));
 }

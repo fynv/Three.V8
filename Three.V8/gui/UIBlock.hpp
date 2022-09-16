@@ -33,49 +33,44 @@ v8::Local<v8::FunctionTemplate> WrapperUIBlock::create_template(v8::Isolate* iso
 
 void WrapperUIBlock::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
+	LocalContext lctx(info);
 	UIBlock* self = new UIBlock();
-	info.This()->SetAlignedPointerInInternalField(0, self);
-	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This(), WrapperUIElement::dtor);
+	info.This()->SetAlignedPointerInInternalField(0, self);	
+	lctx.ctx()->regiter_object(info.This(), WrapperUIElement::dtor);
 }
 
 void WrapperUIBlock::GetSize(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	v8::Isolate* isolate = info.GetIsolate();
-	UIBlock* self = get_self<UIBlock>(info);
-	v8::Local<v8::Object> size = v8::Object::New(isolate);
-	vec2_to_jvec2(isolate, self->size, size);
+	LocalContext lctx(info);
+	UIBlock* self = lctx.self<UIBlock>();
+	v8::Local<v8::Object> size = v8::Object::New(lctx.isolate);
+	lctx.vec2_to_jvec2(self->size, size);
 	info.GetReturnValue().Set(size);
 }
 
 
 void WrapperUIBlock::GetSize(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	UIBlock* self = get_self<UIBlock>(info);
-	v8::Local<v8::Object> out = info[0].As<v8::Object>();
-	vec2_to_jvec2(isolate, self->size, out);
-	info.GetReturnValue().Set(out);
+	LocalContext lctx(info);
+	UIBlock* self = lctx.self<UIBlock>();
+	lctx.vec2_to_jvec2(self->size, info[0]);
+	info.GetReturnValue().Set(info[0]);
 }
 
 
 void WrapperUIBlock::SetSize(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	UIBlock* self = get_self<UIBlock>(info);
+	LocalContext lctx(info);
+	UIBlock* self = lctx.self<UIBlock>();
 	glm::vec2 size;
 	if (info[0]->IsNumber())
 	{
-		size.x = (float)info[0].As<v8::Number>()->Value();
-		size.y = (float)info[1].As<v8::Number>()->Value();
+		lctx.jnum_to_num(info[0], size.x);
+		lctx.jnum_to_num(info[1], size.y);
 	}
 	else
 	{
-		v8::Local<v8::Object> in = info[0].As<v8::Object>();
-		jvec2_to_vec2(isolate, in, size);
+		lctx.jvec2_to_vec2(info[0], size);
 	}
 	if (self->size != size)
 	{
@@ -87,17 +82,15 @@ void WrapperUIBlock::SetSize(const v8::FunctionCallbackInfo<v8::Value>& info)
 
 void WrapperUIBlock::GetScissorEnabled(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	UIBlock* self = get_self<UIBlock>(info);
-	v8::Local<v8::Boolean> ret = v8::Boolean::New(isolate, self->scissor_enabled);
+	LocalContext lctx(info);
+	UIBlock* self = lctx.self<UIBlock>();
+	v8::Local<v8::Boolean> ret = v8::Boolean::New(lctx.isolate, self->scissor_enabled);
 	info.GetReturnValue().Set(ret);
 }
 
 void WrapperUIBlock::SetScissorEnabled(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	UIBlock* self = get_self<UIBlock>(info);
+	LocalContext lctx(info);
+	UIBlock* self = lctx.self<UIBlock>();
 	self->scissor_enabled = value.As<v8::Boolean>()->Value();
 }

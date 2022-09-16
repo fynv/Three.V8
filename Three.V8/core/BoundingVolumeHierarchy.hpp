@@ -44,10 +44,7 @@ void WrappeBoundingVolumeHierarchy::dtor(void* ptr, GameContext* ctx)
 
 void WrappeBoundingVolumeHierarchy::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-
+	LocalContext lctx(info);
 	v8::Local<v8::Array> objects = info[0].As<v8::Array>();
 	unsigned num_objects = objects->Length();
 
@@ -55,41 +52,38 @@ void WrappeBoundingVolumeHierarchy::New(const v8::FunctionCallbackInfo<v8::Value
 
 	for (unsigned i = 0; i < num_objects; i++)
 	{
-		v8::Local<v8::Object> holder = objects->Get(context, i).ToLocalChecked().As<v8::Object>();	
-		p_objs[i] = (Object3D*)holder->GetAlignedPointerFromInternalField(0);
+		v8::Local<v8::Value> holder = objects->Get(lctx.context, i).ToLocalChecked();
+		p_objs[i] = lctx.jobj_to_obj<Object3D>(holder);
 	}
 
 	BoundingVolumeHierarchy* self = new BoundingVolumeHierarchy(p_objs);
-	info.This()->SetAlignedPointerInInternalField(0, self);
-	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This(), dtor);
+	info.This()->SetAlignedPointerInInternalField(0, self);	
+	lctx.ctx()->regiter_object(info.This(), dtor);
 }
 
 
 void WrappeBoundingVolumeHierarchy::Intersect(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-
+	LocalContext lctx(info);
+	BoundingVolumeHierarchy* self = lctx.self<BoundingVolumeHierarchy>();
+	
 	v8::Local<v8::Object> ray = info[0].As<v8::Object>();
-	v8::Local<v8::Object> jorigin = ray->Get(context, v8::String::NewFromUtf8(isolate, "origin").ToLocalChecked()).ToLocalChecked().As<v8::Object>();
-	v8::Local<v8::Object> jdirection = ray->Get(context, v8::String::NewFromUtf8(isolate, "direction").ToLocalChecked()).ToLocalChecked().As<v8::Object>();
+	v8::Local<v8::Value> jorigin = lctx.get_property(ray, "origin");
+	v8::Local<v8::Value> jdirection = lctx.get_property(ray, "direction");		
 	glm::vec3 origin, direction;
-	jvec3_to_vec3(isolate, jorigin, origin);
-	jvec3_to_vec3(isolate, jdirection, direction);
+	lctx.jvec3_to_vec3(jorigin, origin);
+	lctx.jvec3_to_vec3(jdirection, direction);
 	float near = 0.0f;
-	if (ray->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "near").ToLocalChecked()).ToChecked())
+	if (lctx.has_property(ray, "near"))
 	{
-		near = (float)ray->Get(context, v8::String::NewFromUtf8(isolate, "near").ToLocalChecked()).ToLocalChecked().As<v8::Number>()->Value();
+		lctx.jnum_to_num(lctx.get_property(ray, "near"), near);
 	}
 	float far = std::numeric_limits<float>::max();
-	if (ray->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "far").ToLocalChecked()).ToChecked())
+	if (lctx.has_property(ray, "far"))
 	{
-		far = (float)ray->Get(context, v8::String::NewFromUtf8(isolate, "far").ToLocalChecked()).ToLocalChecked().As<v8::Number>()->Value();
+		lctx.jnum_to_num(lctx.get_property(ray, "far"), far);
 	}
 
-	BoundingVolumeHierarchy* self = get_self<BoundingVolumeHierarchy>(info);
 	bvh::Ray<float> bvh_ray = {
 		bvh::Vector3<float>(origin.x, origin.y, origin.z),
 		bvh::Vector3<float>(direction.x, direction.y, direction.z),
@@ -99,12 +93,12 @@ void WrappeBoundingVolumeHierarchy::Intersect(const v8::FunctionCallbackInfo<v8:
 
 	auto intersection = self->intersect(bvh_ray);
 
-	v8::Local<v8::Object> ret = v8::Object::New(isolate);
+	v8::Local<v8::Object> ret = v8::Object::New(lctx.isolate);
 	if (intersection.has_value())
 	{	
-		v8::Local<v8::String> name = v8::String::NewFromUtf8(isolate, intersection->object->name.c_str()).ToLocalChecked();
-		ret->Set(context, v8::String::NewFromUtf8(isolate, "name").ToLocalChecked(), name);
-		ret->Set(context, v8::String::NewFromUtf8(isolate, "distance").ToLocalChecked(), v8::Number::New(isolate, (double)intersection->distance()));
+		v8::Local<v8::String> name = lctx.str_to_jstr(intersection->object->name.c_str());
+		lctx.set_property(ret, "name", name);
+		lctx.set_property(ret, "distance", lctx.num_to_jnum(intersection->distance()));
 		info.GetReturnValue().Set(ret);		
 	}
 	else
@@ -117,11 +111,9 @@ void WrappeBoundingVolumeHierarchy::Intersect(const v8::FunctionCallbackInfo<v8:
 #if ENABLE_TEST
 void WrappeBoundingVolumeHierarchy::Test(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-
-	v8::Local<v8::Object> holder_camera = info[0].As<v8::Object>();	
-	PerspectiveCamera* camera = holder_camera->GetAlignedPointerFromInternalField(0);
+	LocalContext lctx(info);
+	BoundingVolumeHierarchy* self = lctx.self<BoundingVolumeHierarchy>();
+	PerspectiveCamera* camera = lctx.jobj_to_obj<PerspectiveCamera>(info[0]);
 
 	int width = 800;
 	int height = (int)(800.0f / camera->aspect);
@@ -129,7 +121,6 @@ void WrappeBoundingVolumeHierarchy::Test(const v8::FunctionCallbackInfo<v8::Valu
 	printf("%d %d\n", width, height);
 
 	glm::vec3 origin = camera->getWorldPosition();
-	BoundingVolumeHierarchy* self = get_self<BoundingVolumeHierarchy>(info);
 
 	std::vector<uint8_t> depth(width * height);
 	for (int y = 0; y < height; y++)

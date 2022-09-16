@@ -37,53 +37,56 @@ v8::Local<v8::ObjectTemplate> WrapperGamePlayer::create_template(v8::Isolate* is
 
 void WrapperGamePlayer::GetWidth(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	GamePlayer* self = get_self<GamePlayer>(info);
-	int width = self->width();
-	info.GetReturnValue().Set(v8::Number::New(info.GetIsolate(), (double)width));
+	LocalContext lctx(info);
+	GamePlayer* self = lctx.self<GamePlayer>();	
+	info.GetReturnValue().Set(lctx.num_to_jnum(self->width()));
 }
 
 void WrapperGamePlayer::GetHeight(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	GamePlayer* self = get_self<GamePlayer>(info);
-	int height = self->height();
-	info.GetReturnValue().Set(v8::Number::New(info.GetIsolate(), (double)height));
+	LocalContext lctx(info);
+	GamePlayer* self = lctx.self<GamePlayer>();
+	info.GetReturnValue().Set(lctx.num_to_jnum(self->height()));
 }
 
 void WrapperGamePlayer::SetMouseCapture(const v8::FunctionCallbackInfo<v8::Value>& info)
 {	
-	GamePlayer* self = get_self<GamePlayer>(info);
+	LocalContext lctx(info);
+	GamePlayer* self = lctx.self<GamePlayer>();
 	self->SetMouseCapture();
 }
 
 void WrapperGamePlayer::ReleaseMouseCapture(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	GamePlayer* self = get_self<GamePlayer>(info);
+	LocalContext lctx(info);
+	GamePlayer* self = lctx.self<GamePlayer>();
 	self->ReleaseMouseCapture();
 }
 
 void WrapperGamePlayer::HasFont(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	GamePlayer* self = get_self<GamePlayer>(info);
-	v8::String::Utf8Value name(info.GetIsolate(), info[0]);
-	bool has_font = self->UIRenderer().HasFont(*name);
-	info.GetReturnValue().Set(v8::Boolean::New(info.GetIsolate(), has_font));
+	LocalContext lctx(info);
+	GamePlayer* self = lctx.self<GamePlayer>();
+	std::string name = lctx.jstr_to_str(info[0]);
+	bool has_font = self->UIRenderer().HasFont(name.c_str());
+	info.GetReturnValue().Set(v8::Boolean::New(lctx.isolate, has_font));
 }
 
 void WrapperGamePlayer::CreateFontFromFile(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	GamePlayer* self = get_self<GamePlayer>(info);
-	v8::String::Utf8Value name(info.GetIsolate(), info[0]);
-	v8::String::Utf8Value filename(info.GetIsolate(), info[1]);
-	self->UIRenderer().CreateFont(*name, *filename);
+	LocalContext lctx(info);
+	GamePlayer* self = lctx.self<GamePlayer>();
+	std::string name = lctx.jstr_to_str(info[0]);
+	std::string filename = lctx.jstr_to_str(info[1]);
+	self->UIRenderer().CreateFont(name.c_str(), filename.c_str());
 }
 
 void WrapperGamePlayer::CreateFontFromMemory(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	GamePlayer* self = get_self<GamePlayer>(info);
-	v8::String::Utf8Value name(info.GetIsolate(), info[0]);
+	LocalContext lctx(info);
+	GamePlayer* self = lctx.self<GamePlayer>();
+	std::string name = lctx.jstr_to_str(info[0]);	
 	v8::Local<v8::ArrayBuffer> data = info[1].As<v8::ArrayBuffer>();
-	self->UIRenderer().CreateFont(*name, (unsigned char*)data->GetBackingStore()->Data(), data->ByteLength());
+	self->UIRenderer().CreateFont(name.c_str(), (unsigned char*)data->GetBackingStore()->Data(), data->ByteLength());
 }
 

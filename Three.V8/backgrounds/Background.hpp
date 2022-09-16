@@ -40,48 +40,43 @@ void WrapperColorBackground::dtor(void* ptr, GameContext* ctx)
 
 void WrapperColorBackground::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
+	LocalContext lctx(info);
 	ColorBackground* self = new ColorBackground();
-	info.This()->SetAlignedPointerInInternalField(0, self);	
-	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This(), dtor);
+	info.This()->SetAlignedPointerInInternalField(0, self);		
+	lctx.ctx()->regiter_object(info.This(), dtor);
 }
 
 
 void WrapperColorBackground::GetColor(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	v8::Isolate* isolate = info.GetIsolate();
-	ColorBackground* self = get_self<ColorBackground>(info);
-	v8::Local<v8::Object> position = v8::Object::New(isolate);
-	vec3_to_jvec3(isolate, self->color, position);
+	LocalContext lctx(info);
+	ColorBackground* self = lctx.self<ColorBackground>();
+	v8::Local<v8::Object> position = v8::Object::New(lctx.isolate);
+	lctx.vec3_to_jvec3(self->color, position);
 	info.GetReturnValue().Set(position);
 }
 
 void WrapperColorBackground::GetColor(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	v8::Isolate* isolate = info.GetIsolate();
-	ColorBackground* self = get_self<ColorBackground>(info);
-	v8::Local<v8::Object> out = info[0].As<v8::Object>();
-	vec3_to_jvec3(isolate, self->color, out);
-	info.GetReturnValue().Set(out);
+	LocalContext lctx(info);
+	ColorBackground* self = lctx.self<ColorBackground>();
+	lctx.vec3_to_jvec3(self->color, info[0]);
+	info.GetReturnValue().Set(info[0]);
 }
 
 void WrapperColorBackground::SetColor(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	v8::Isolate* isolate = info.GetIsolate();
-	ColorBackground* self = get_self<ColorBackground>(info);
+	LocalContext lctx(info);
+	ColorBackground* self = lctx.self<ColorBackground>();
 	if (info[0]->IsNumber())
 	{
-		self->color.x = (float)info[0].As<v8::Number>()->Value();
-		self->color.y = (float)info[1].As<v8::Number>()->Value();
-		self->color.z = (float)info[2].As<v8::Number>()->Value();
+		lctx.jnum_to_num(info[0], self->color.x);
+		lctx.jnum_to_num(info[1], self->color.y);
+		lctx.jnum_to_num(info[2], self->color.z);
 	}
 	else
 	{
-		v8::Local<v8::Object> in = info[0].As<v8::Object>();
-		jvec3_to_vec3(isolate, in, self->color);
+		lctx.jvec3_to_vec3(info[0], self->color);
 	}
 }
 
@@ -118,20 +113,18 @@ void WrapperCubeBackground::dtor(void* ptr, GameContext* ctx)
 
 void WrapperCubeBackground::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
+	LocalContext lctx(info);
 	CubeBackground* self = new CubeBackground();
-	info.This()->SetAlignedPointerInInternalField(0, self);
-	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This(), dtor);
+	info.This()->SetAlignedPointerInInternalField(0, self);	
+	lctx.ctx()->regiter_object(info.This(), dtor);
 }
 
 
 void WrapperCubeBackground::SetCubemap(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	CubeBackground* self = get_self<CubeBackground>(info);
-	v8::Local<v8::Object> holder_image = info[0].As<v8::Object>();
-	CubeImage* image = (CubeImage*)holder_image->GetAlignedPointerFromInternalField(0);
+	LocalContext lctx(info);
+	CubeBackground* self = lctx.self<CubeBackground>();
+	CubeImage* image = lctx.jobj_to_obj<CubeImage>(info[0]);
 	self->cubemap.load_memory_rgba(image->images[0].width(), image->images[0].height(),
 		image->images[0].data(), image->images[1].data(), image->images[2].data(), image->images[3].data(), image->images[4].data(), image->images[5].data());
 }
@@ -180,85 +173,75 @@ void WrapperHemisphereBackground::dtor(void* ptr, GameContext* ctx)
 
 void WrapperHemisphereBackground::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
+	LocalContext lctx(info);
 	HemisphereBackground* self = new HemisphereBackground();
-	info.This()->SetAlignedPointerInInternalField(0, self);
-	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This(), dtor);
+	info.This()->SetAlignedPointerInInternalField(0, self);	
+	lctx.ctx()->regiter_object(info.This(), dtor);
 }
 
 void WrapperHemisphereBackground::GetSkyColor(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	v8::Isolate* isolate = info.GetIsolate();
-	HemisphereBackground* self = get_self<HemisphereBackground>(info);
-	v8::Local<v8::Object> position = v8::Object::New(isolate);
-	vec3_to_jvec3(isolate, self->skyColor, position);
+	LocalContext lctx(info);
+	HemisphereBackground* self = new HemisphereBackground();
+	v8::Local<v8::Object> position = v8::Object::New(lctx.isolate);
+	lctx.vec3_to_jvec3(self->skyColor, position);
 	info.GetReturnValue().Set(position);
 }
 
 void WrapperHemisphereBackground::GetSkyColor(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	v8::Isolate* isolate = info.GetIsolate();
-	HemisphereBackground* self = get_self<HemisphereBackground>(info);
-	v8::Local<v8::Object> out = info[0].As<v8::Object>();
-	vec3_to_jvec3(isolate, self->skyColor, out);
-	info.GetReturnValue().Set(out);
+	LocalContext lctx(info);
+	HemisphereBackground* self = new HemisphereBackground();	
+	lctx.vec3_to_jvec3(self->skyColor, info[0]);
+	info.GetReturnValue().Set(info[0]);
 }
 
 void WrapperHemisphereBackground::SetSkyColor(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	v8::Isolate* isolate = info.GetIsolate();
-	HemisphereBackground* self = get_self<HemisphereBackground>(info);
+	LocalContext lctx(info);
+	HemisphereBackground* self = lctx.self<HemisphereBackground>();
 	if (info[0]->IsNumber())
 	{
-		self->skyColor.x = (float)info[0].As<v8::Number>()->Value();
-		self->skyColor.y = (float)info[1].As<v8::Number>()->Value();
-		self->skyColor.z = (float)info[2].As<v8::Number>()->Value();
+		lctx.jnum_to_num(info[0], self->skyColor.x);
+		lctx.jnum_to_num(info[1], self->skyColor.y);
+		lctx.jnum_to_num(info[2], self->skyColor.z);
 	}
 	else
 	{
-		v8::Local<v8::Object> in = info[0].As<v8::Object>();
-		jvec3_to_vec3(isolate, in, self->skyColor);
+		lctx.jvec3_to_vec3(info[0], self->skyColor);
 	}
 }
 
 
 void WrapperHemisphereBackground::GetGroundColor(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	v8::Isolate* isolate = info.GetIsolate();
-	HemisphereBackground* self = get_self<HemisphereBackground>(info);
-	v8::Local<v8::Object> position = v8::Object::New(isolate);
-	vec3_to_jvec3(isolate, self->groundColor, position);
+	LocalContext lctx(info);
+	HemisphereBackground* self = new HemisphereBackground();	
+	v8::Local<v8::Object> position = v8::Object::New(lctx.isolate);
+	lctx.vec3_to_jvec3(self->groundColor, position);
 	info.GetReturnValue().Set(position);
 }
 
 void WrapperHemisphereBackground::GetGroundColor(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	v8::Isolate* isolate = info.GetIsolate();
-	HemisphereBackground* self = get_self<HemisphereBackground>(info);
-	v8::Local<v8::Object> out = info[0].As<v8::Object>();
-	vec3_to_jvec3(isolate, self->groundColor, out);
-	info.GetReturnValue().Set(out);
+	LocalContext lctx(info);
+	HemisphereBackground* self = new HemisphereBackground();	
+	lctx.vec3_to_jvec3(self->groundColor, info[0]);
+	info.GetReturnValue().Set(info[0]);
 }
 
 void WrapperHemisphereBackground::SetGroundColor(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	v8::Isolate* isolate = info.GetIsolate();
-	HemisphereBackground* self = get_self<HemisphereBackground>(info);
+	LocalContext lctx(info);
+	HemisphereBackground* self = lctx.self<HemisphereBackground>();
 	if (info[0]->IsNumber())
 	{
-		self->groundColor.x = (float)info[0].As<v8::Number>()->Value();
-		self->groundColor.y = (float)info[1].As<v8::Number>()->Value();
-		self->groundColor.z = (float)info[2].As<v8::Number>()->Value();
+		lctx.jnum_to_num(info[0], self->groundColor.x);
+		lctx.jnum_to_num(info[1], self->groundColor.y);
+		lctx.jnum_to_num(info[2], self->groundColor.z);
 	}
 	else
 	{
-		v8::Local<v8::Object> in = info[0].As<v8::Object>();
-		jvec3_to_vec3(isolate, in, self->groundColor);
+		lctx.jvec3_to_vec3(info[0], self->groundColor);
 	}
 }

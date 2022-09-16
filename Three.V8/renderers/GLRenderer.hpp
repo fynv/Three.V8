@@ -5,7 +5,6 @@
 #include <scenes/Scene.h>
 #include <cameras/Camera.h>
 #include <gui/UI3DViewer.h>
-#include "GamePlayer.h"
 
 class WrapperGLRenderer
 {
@@ -44,46 +43,36 @@ void WrapperGLRenderer::dtor(void* ptr, GameContext* ctx)
 
 void WrapperGLRenderer::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
+	LocalContext lctx(info);
 	GLRenderer* self = new GLRenderer();
-	info.This()->SetAlignedPointerInInternalField(0, self);
-	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This(), dtor);
+	info.This()->SetAlignedPointerInInternalField(0, self);	
+	lctx.ctx()->regiter_object(info.This(), dtor);
 }
 
 void WrapperGLRenderer::Render(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	
-	GLRenderer* self = get_self<GLRenderer>(info);	
-
-	v8::Local<v8::Object> holder_scene = info[0].As<v8::Object>();
-	Scene* scene = (Scene*)holder_scene->GetAlignedPointerFromInternalField(0);
-
-	v8::Local<v8::Object> holder_camera = info[1].As<v8::Object>();
-	Camera* camera = (Camera*)holder_camera->GetAlignedPointerFromInternalField(0);
+	LocalContext lctx(info);
+	GLRenderer* self = lctx.self<GLRenderer>();
+	Scene* scene = lctx.jobj_to_obj<Scene>(info[0]);
+	Camera* camera = lctx.jobj_to_obj<Camera>(info[1]);
 
 	if (info.Length() < 3)
-	{
-		v8::Local<v8::Object> global = context->Global();
-		v8::Local<v8::Object> holder_player = global->Get(context, v8::String::NewFromUtf8(isolate, "gamePlayer").ToLocalChecked()).ToLocalChecked().As<v8::Object>();
-		GamePlayer* player = (GamePlayer*)holder_player->GetAlignedPointerFromInternalField(0);
+	{		
+		GamePlayer* player = lctx.player();	
 		self->render(*scene, *camera, player->renderTarget());
 	}
 	else
 	{
 		v8::Local<v8::Object> holder_viewer = info[2].As<v8::Object>();
-
-		v8::String::Utf8Value clsname(isolate, holder_viewer->GetConstructorName());
-		if (strcmp(*clsname, "UI3DViewer") == 0)
+		std::string clsname = lctx.jstr_to_str(holder_viewer->GetConstructorName());
+		if (clsname == "UI3DViewer")
 		{
-			UI3DViewer* viewer = (UI3DViewer*)holder_viewer->GetAlignedPointerFromInternalField(0);
+			UI3DViewer* viewer = lctx.jobj_to_obj<UI3DViewer>(holder_viewer);
 			self->render(*scene, *camera, viewer->render_target);
 		}
-		else if (strcmp(*clsname, "GLRenderTarget") == 0)
+		else if (clsname == "GLRenderTarget")
 		{
-			GLRenderTarget* target = (GLRenderTarget*)holder_viewer->GetAlignedPointerFromInternalField(0);
+			GLRenderTarget* target = lctx.jobj_to_obj<GLRenderTarget>(holder_viewer);			
 			self->render(*scene, *camera, *target);
 		}
 	}
@@ -91,28 +80,20 @@ void WrapperGLRenderer::Render(const v8::FunctionCallbackInfo<v8::Value>& info)
 
 void WrapperGLRenderer::RenderCube(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
+	LocalContext lctx(info);
+	GLRenderer* self = lctx.self<GLRenderer>();
+	Scene* scene = lctx.jobj_to_obj<Scene>(info[0]);
+	CubeRenderTarget* target = lctx.jobj_to_obj<CubeRenderTarget>(info[1]);
 
-	GLRenderer* self = get_self<GLRenderer>(info);
-
-	v8::Local<v8::Object> holder_scene = info[0].As<v8::Object>();
-	Scene* scene = (Scene*)holder_scene->GetAlignedPointerFromInternalField(0);
-
-	v8::Local<v8::Object> holder_target = info[1].As<v8::Object>();
-	CubeRenderTarget* target = (CubeRenderTarget*)holder_target->GetAlignedPointerFromInternalField(0);
-	
-	v8::Local<v8::Object> in = info[2].As<v8::Object>();
 	glm::vec3 position;
-	jvec3_to_vec3(isolate, in, position);
+	lctx.jvec3_to_vec3(info[2], position);
 
 	float zNear = 0.1f;
 	float zFar = 100.0f;
 	if (info.Length() > 4)
 	{
-		zNear = (float)info[3].As<v8::Number>()->Value();
-		zFar = (float)info[4].As<v8::Number>()->Value();
+		lctx.jnum_to_num(info[3], zNear);
+		lctx.jnum_to_num(info[4], zFar);
 	}
 
 	self->renderCube(*scene, *target, position, zNear, zFar);
@@ -121,33 +102,27 @@ void WrapperGLRenderer::RenderCube(const v8::FunctionCallbackInfo<v8::Value>& in
 
 void WrapperGLRenderer::RenderLayers(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-
-	GLRenderer* self = get_self<GLRenderer>(info);
+	LocalContext lctx(info);
+	GLRenderer* self = lctx.self<GLRenderer>();
 	GLRenderTarget* target = nullptr;
 
 	if (info.Length() < 2)
-	{
-		v8::Local<v8::Object> global = context->Global();
-		v8::Local<v8::Object> holder_player = global->Get(context, v8::String::NewFromUtf8(isolate, "gamePlayer").ToLocalChecked()).ToLocalChecked().As<v8::Object>();
-		GamePlayer* player = (GamePlayer*)holder_player->GetAlignedPointerFromInternalField(0);
+	{		
+		GamePlayer* player = lctx.player();
 		target = &player->renderTarget();
 	}
 	else
 	{
 		v8::Local<v8::Object> holder_viewer = info[1].As<v8::Object>();
-
-		v8::String::Utf8Value clsname(isolate, holder_viewer->GetConstructorName());
-		if (strcmp(*clsname, "UI3DViewer") == 0)
+		std::string clsname = lctx.jstr_to_str(holder_viewer->GetConstructorName());
+		if (clsname == "UI3DViewer")
 		{
-			UI3DViewer* viewer = (UI3DViewer*)holder_viewer->GetAlignedPointerFromInternalField(0);
+			UI3DViewer* viewer = lctx.jobj_to_obj<UI3DViewer>(holder_viewer);
 			target = &viewer->render_target;
 		}
-		else if (strcmp(*clsname, "GLRenderTarget") == 0)
+		else if (clsname == "GLRenderTarget")
 		{
-			target = (GLRenderTarget*)holder_viewer->GetAlignedPointerFromInternalField(0);
+			target = lctx.jobj_to_obj<GLRenderTarget>(holder_viewer);			
 		}
 	}
 
@@ -155,11 +130,11 @@ void WrapperGLRenderer::RenderLayers(const v8::FunctionCallbackInfo<v8::Value>& 
 	std::vector<GLRenderer::Layer> layers(o_layers->Length());
 	for (int i = 0; i < o_layers->Length(); i++)
 	{
-		v8::Local<v8::Object> o_layer = o_layers->Get(context, i).ToLocalChecked().As<v8::Object>();
-		v8::Local<v8::Object> holder_scene = o_layer->Get(context, v8::String::NewFromUtf8(isolate, "scene").ToLocalChecked()).ToLocalChecked().As<v8::Object>();
-		v8::Local<v8::Object> holder_camera = o_layer->Get(context, v8::String::NewFromUtf8(isolate, "camera").ToLocalChecked()).ToLocalChecked().As<v8::Object>();
-		layers[i].scene = (Scene*)holder_scene->GetAlignedPointerFromInternalField(0);
-		layers[i].camera = (Camera*)holder_camera->GetAlignedPointerFromInternalField(0);		
+		v8::Local<v8::Object> o_layer = o_layers->Get(lctx.context, i).ToLocalChecked().As<v8::Object>();
+		v8::Local<v8::Value> holder_scene = lctx.get_property(o_layer, "scene");
+		v8::Local<v8::Value> holder_camera = lctx.get_property(o_layer, "camera");
+		layers[i].scene = lctx.jobj_to_obj<Scene>(holder_scene);
+		layers[i].camera = lctx.jobj_to_obj<Camera>(holder_camera);
 	}
 
 	self->renderLayers(layers.size(), layers.data(), *target);
@@ -167,55 +142,35 @@ void WrapperGLRenderer::RenderLayers(const v8::FunctionCallbackInfo<v8::Value>& 
 
 void WrapperGLRenderer::RenderLayersToCube(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-
-	GLRenderer* self = get_self<GLRenderer>(info);
+	LocalContext lctx(info);
+	GLRenderer* self = lctx.self<GLRenderer>();
 
 	v8::Local<v8::Array> o_layers = info[0].As<v8::Array>();
 	std::vector<GLRenderer::CubeLayer> layers(o_layers->Length());
 	for (int i = 0; i < o_layers->Length(); i++)
 	{
-		v8::Local<v8::Object> o_layer = o_layers->Get(context, i).ToLocalChecked().As<v8::Object>();
-		v8::Local<v8::Object> holder_scene = o_layer->Get(context, v8::String::NewFromUtf8(isolate, "scene").ToLocalChecked()).ToLocalChecked().As<v8::Object>();
-		v8::Local<v8::Object> jpos = o_layer->Get(context, v8::String::NewFromUtf8(isolate, "position").ToLocalChecked()).ToLocalChecked().As<v8::Object>();
+		v8::Local<v8::Object> o_layer = o_layers->Get(lctx.context, i).ToLocalChecked().As<v8::Object>();
+		v8::Local<v8::Value> holder_scene = lctx.get_property(o_layer, "scene");
+		v8::Local<v8::Value> jpos = lctx.get_property(o_layer, "position");
 
-		layers[i].scene = (Scene*)holder_scene->GetAlignedPointerFromInternalField(0);
-		jvec3_to_vec3(isolate, jpos, layers[i].position);
-		layers[i].zNear = (float)o_layer->Get(context, v8::String::NewFromUtf8(isolate, "near").ToLocalChecked()).ToLocalChecked().As<v8::Number>()->Value();
-		layers[i].zFar = (float)o_layer->Get(context, v8::String::NewFromUtf8(isolate, "far").ToLocalChecked()).ToLocalChecked().As<v8::Number>()->Value();
+		layers[i].scene = lctx.jobj_to_obj<Scene>(holder_scene);
+		lctx.jvec3_to_vec3(jpos, layers[i].position);
+		lctx.jnum_to_num(lctx.get_property(o_layer, "near"), layers[i].zNear);
+		lctx.jnum_to_num(lctx.get_property(o_layer, "far"), layers[i].zFar);
 	}
 
-	v8::Local<v8::Object> holder_target = info[1].As<v8::Object>();
-	CubeRenderTarget* target = (CubeRenderTarget*)holder_target->GetAlignedPointerFromInternalField(0);
+	CubeRenderTarget* target = lctx.jobj_to_obj<CubeRenderTarget>(info[1]);
 	self->renderLayersToCube(layers.size(), layers.data(), *target);
 }
 
 void WrapperGLRenderer::RenderCelluloid(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-
-	GLRenderer* self = get_self<GLRenderer>(info);
-
-	v8::Local<v8::Object> holder_scene = info[0].As<v8::Object>();
-	Scene* scene = (Scene*)holder_scene->GetAlignedPointerFromInternalField(0);
-
-	v8::Local<v8::Object> holder_camera = info[1].As<v8::Object>();
-	Camera* camera = (Camera*)holder_camera->GetAlignedPointerFromInternalField(0);
-
-	v8::Local<v8::Object> holder_base = info[2].As<v8::Object>();
-	GLRenderTarget* target_base = (GLRenderTarget*)holder_base->GetAlignedPointerFromInternalField(0);
-
-	v8::Local<v8::Object> holder_lighting = info[3].As<v8::Object>();
-	GLRenderTarget* target_lighting = (GLRenderTarget*)holder_lighting->GetAlignedPointerFromInternalField(0);
-
-	v8::Local<v8::Object> holder_alpha = info[4].As<v8::Object>();
-	GLRenderTarget* target_alpha = (GLRenderTarget*)holder_alpha->GetAlignedPointerFromInternalField(0);
-
+	LocalContext lctx(info);
+	GLRenderer* self = lctx.self<GLRenderer>();
+	Scene* scene = lctx.jobj_to_obj<Scene>(info[0]);
+	Camera* camera = lctx.jobj_to_obj<Camera>(info[1]);
+	GLRenderTarget* target_base = lctx.jobj_to_obj<GLRenderTarget>(info[2]);
+	GLRenderTarget* target_lighting = lctx.jobj_to_obj<GLRenderTarget>(info[3]);
+	GLRenderTarget* target_alpha = lctx.jobj_to_obj<GLRenderTarget>(info[4]);
 	self->renderCelluloid(*scene, *camera, target_base, target_lighting, target_alpha);
-
-
 }

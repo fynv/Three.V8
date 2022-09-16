@@ -32,23 +32,21 @@ v8::Local<v8::FunctionTemplate> WrapperDirectionalLight::create_template(v8::Iso
 
 void WrapperDirectionalLight::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
+	LocalContext lctx(info);
 	DirectionalLight* self = new DirectionalLight();
-	info.This()->SetAlignedPointerInInternalField(0, self);
-	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This(), WrapperObject3D::dtor);
+	info.This()->SetAlignedPointerInInternalField(0, self);	
+	lctx.ctx()->regiter_object(info.This(), WrapperObject3D::dtor);
 }
 
 
 void WrapperDirectionalLight::GetTarget(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
+	LocalContext lctx(info);
 	v8::Local<v8::Object> holder = info.Holder();
-	v8::Local<v8::Value> target = v8::Null(isolate);
-	if (holder->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "_target").ToLocalChecked()).ToChecked())
+	v8::Local<v8::Value> target = v8::Null(lctx.isolate);
+	if (lctx.has_property(holder, "_target"))
 	{
-		target = holder->Get(context, v8::String::NewFromUtf8(isolate, "_target").ToLocalChecked()).ToLocalChecked();
+		target = lctx.get_property(holder, "_target");
 	}
 	info.GetReturnValue().Set(target);
 }
@@ -56,54 +54,53 @@ void WrapperDirectionalLight::GetTarget(v8::Local<v8::String> property, const v8
 void WrapperDirectionalLight::SetTarget(v8::Local<v8::String> property, v8::Local<v8::Value> value,
 	const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	DirectionalLight* self = (DirectionalLight*)holder->GetAlignedPointerFromInternalField(0);
-	holder->Set(context, v8::String::NewFromUtf8(isolate, "_target").ToLocalChecked(), value);
-	Object3D* target = (Object3D*)value.As<v8::Object>()->GetAlignedPointerFromInternalField(0);
+	LocalContext lctx(info);
+	DirectionalLight* self = lctx.self<DirectionalLight>();
+	Object3D* target = lctx.jobj_to_obj<Object3D>(value);
 	self->target = target;
+	
+	v8::Local<v8::Object> holder = info.Holder();
+	lctx.set_property(holder, "_target", value);	
 }
 
 void WrapperDirectionalLight::SetShadow(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	DirectionalLight* self = get_self<DirectionalLight>(info);
+	LocalContext lctx(info);
+	DirectionalLight* self = lctx.self<DirectionalLight>();
 
 	bool enable = info[0].As<v8::Boolean>()->Value();
 	int width = -1;
 	int height = -1;
 	if (info.Length() > 2)
 	{
-		width = (int)info[1].As<v8::Number>()->Value();
-		height = (int)info[2].As<v8::Number>()->Value();
+		lctx.jnum_to_num(info[1], width);
+		lctx.jnum_to_num(info[2], height);
 	}
 	self->setShadow(enable, width, height);
 }
 
 void  WrapperDirectionalLight::SetShadowProjection(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	DirectionalLight* self = get_self<DirectionalLight>(info);
+	LocalContext lctx(info);
+	DirectionalLight* self = lctx.self<DirectionalLight>();
 
-	float left = (float)info[0].As<v8::Number>()->Value();
-	float right = (float)info[1].As<v8::Number>()->Value();
-	float bottom = (float)info[2].As<v8::Number>()->Value();
-	float top = (float)info[3].As<v8::Number>()->Value();
-	float zNear = (float)info[4].As<v8::Number>()->Value();
-	float zFar = (float)info[5].As<v8::Number>()->Value();
+	float left, right, bottom, top, zNear, zFar;
+	lctx.jnum_to_num(info[0], left);
+	lctx.jnum_to_num(info[1], right);
+	lctx.jnum_to_num(info[2], bottom);
+	lctx.jnum_to_num(info[3], top);
+	lctx.jnum_to_num(info[4], zNear);
+	lctx.jnum_to_num(info[5], zFar);
 	self->setShadowProjection(left, right, bottom, top, zNear, zFar);
 }
 
 void  WrapperDirectionalLight::SetShadowRadius(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	DirectionalLight* self = get_self<DirectionalLight>(info);
+	LocalContext lctx(info);
+	DirectionalLight* self = lctx.self<DirectionalLight>();
 
-	float radius = (float)info[0].As<v8::Number>()->Value();
+	float radius;
+	lctx.jnum_to_num(info[0], radius);	
 	self->SetShadowRadius(radius);
 }
+

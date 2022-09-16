@@ -36,113 +36,84 @@ v8::Local<v8::FunctionTemplate> WrapperScene::create_template(v8::Isolate* isola
 
 void WrapperScene::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
+	LocalContext lctx(info);
 	Scene* self = new Scene();
-	info.This()->SetAlignedPointerInInternalField(0, self);
-	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This(), WrapperObject3D::dtor);
+	info.This()->SetAlignedPointerInInternalField(0, self);	
+	lctx.ctx()->regiter_object(info.This(), WrapperObject3D::dtor);
 }
 
 void WrapperScene::GetBackground(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	v8::Local<v8::Value> background = v8::Null(isolate);
-	if (holder->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "_background").ToLocalChecked()).ToChecked())
-	{
-		background = holder->Get(context, v8::String::NewFromUtf8(isolate, "_background").ToLocalChecked()).ToLocalChecked();
-	}
+	LocalContext lctx(info);
+	v8::Local<v8::Value> background = lctx.get_property(info.Holder(), "_background");
 	info.GetReturnValue().Set(background);
 }
 
 void WrapperScene::SetBackground(v8::Local<v8::String> property, v8::Local<v8::Value> value,
 	const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	Scene* self = (Scene*)holder->GetAlignedPointerFromInternalField(0);
-	holder->Set(context, v8::String::NewFromUtf8(isolate, "_background").ToLocalChecked(), value);
+	LocalContext lctx(info);
+	Scene* self = lctx.self<Scene>();
 	if (!value->IsNull())
 	{
-		Background* background = (Background*)value.As<v8::Object>()->GetAlignedPointerFromInternalField(0);
+		Background* background = lctx.jobj_to_obj<Background>(value);
 		self->background = background;
 	}
 	else
 	{
 		self->background = nullptr;
 	}
+	lctx.set_property(info.Holder(), "_background", value);
+	
 }
 
 
 void WrapperScene::GetIndirectLight(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	v8::Local<v8::Value> environmentMap = v8::Null(isolate);
-	if (holder->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "_indirectLight").ToLocalChecked()).ToChecked())
-	{
-		environmentMap = holder->Get(context, v8::String::NewFromUtf8(isolate, "_indirectLight").ToLocalChecked()).ToLocalChecked();
-	}
-	info.GetReturnValue().Set(environmentMap);
+	LocalContext lctx(info);
+	v8::Local<v8::Value> indirectLight = lctx.get_property(info.Holder(), "_indirectLight");
+	info.GetReturnValue().Set(indirectLight);
 }
 
 void WrapperScene::SetIndirectLight(v8::Local<v8::String> property, v8::Local<v8::Value> value,
 	const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	Scene* self = (Scene*)holder->GetAlignedPointerFromInternalField(0);
-	holder->Set(context, v8::String::NewFromUtf8(isolate, "_indirectLight").ToLocalChecked(), value);
+	LocalContext lctx(info);
+	Scene* self = lctx.self<Scene>();
 	if (!value->IsNull())
 	{
-		IndirectLight* indirectLight = (IndirectLight*)value.As<v8::Object>()->GetAlignedPointerFromInternalField(0);
+		IndirectLight* indirectLight = lctx.jobj_to_obj<IndirectLight>(value);
 		self->indirectLight = indirectLight;
 	}
 	else
 	{
 		self->indirectLight = nullptr;
 	}
+	lctx.set_property(info.Holder(), "_indirectLight", value);
 }
 
 
 void WrapperScene::GetFog(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	v8::Local<v8::Value> environmentMap = v8::Null(isolate);
-	if (holder->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "_fog").ToLocalChecked()).ToChecked())
-	{
-		environmentMap = holder->Get(context, v8::String::NewFromUtf8(isolate, "_fog").ToLocalChecked()).ToLocalChecked();
-	}
-	info.GetReturnValue().Set(environmentMap);
+	LocalContext lctx(info);
+	v8::Local<v8::Value> fog = lctx.get_property(info.Holder(), "_fog");
+	info.GetReturnValue().Set(fog);
 }
 
 void WrapperScene::SetFog(v8::Local<v8::String> property, v8::Local<v8::Value> value,
 	const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	Scene* self = (Scene*)holder->GetAlignedPointerFromInternalField(0);
-	holder->Set(context, v8::String::NewFromUtf8(isolate, "_fog").ToLocalChecked(), value);
+	LocalContext lctx(info);
+	Scene* self = lctx.self<Scene>();	
 	if (!value->IsNull())
 	{
-		Fog* fog = (Fog*)value.As<v8::Object>()->GetAlignedPointerFromInternalField(0);
+		Fog* fog = lctx.jobj_to_obj<Fog>(value);	
 		self->fog = fog;
 	}
 	else
 	{
 		self->fog = nullptr;
 	}
+	lctx.set_property(info.Holder(), "_fog", value);
 }
 

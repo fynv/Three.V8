@@ -34,43 +34,37 @@ void WrapperEnvironmentMapCreator::dtor(void* ptr, GameContext* ctx)
 
 void WrapperEnvironmentMapCreator::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
+	LocalContext lctx(info);
 	EnvironmentMapCreator* self = new EnvironmentMapCreator();
-	info.This()->SetAlignedPointerInInternalField(0, self);
-	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This(), dtor);
+	info.This()->SetAlignedPointerInInternalField(0, self);	
+	lctx.ctx()->regiter_object(info.This(), dtor);
 }
 
 
 void WrapperEnvironmentMapCreator::Create(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
+	LocalContext lctx(info);
+	EnvironmentMapCreator* creator = lctx.self<EnvironmentMapCreator>();
 
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> global = context->Global();
-	v8::Local<v8::Function> ctor_envmap = global->Get(context, v8::String::NewFromUtf8(isolate, "EnvironmentMap").ToLocalChecked()).ToLocalChecked().As<v8::Function>();
-
-	v8::Local<v8::Object> holder = ctor_envmap->CallAsConstructor(context, 0, nullptr).ToLocalChecked().As<v8::Object>();	
-	EnvironmentMap* self = (EnvironmentMap*)holder->GetAlignedPointerFromInternalField(0);
-	EnvironmentMapCreator* creator = get_self<EnvironmentMapCreator>(info);
-
+	v8::Local<v8::Object> holder = lctx.instantiate("EnvironmentMap");
+	EnvironmentMap* self = lctx.jobj_to_obj<EnvironmentMap>(holder);
 
 	v8::Local<v8::Object> holder_image = info[0].As<v8::Object>();
 	
-	v8::String::Utf8Value clsname(isolate, holder_image->GetConstructorName());
-	if (strcmp(*clsname, "CubeImage") == 0)
+	std::string clsname = lctx.jstr_to_str(holder_image->GetConstructorName());
+	if (clsname == "CubeImage")
 	{
-		CubeImage* image = (CubeImage*)holder_image->GetAlignedPointerFromInternalField(0);
+		CubeImage* image = lctx.jobj_to_obj<CubeImage>(holder_image);
 		creator->Create(image, self);
 	}
-	else if (strcmp(*clsname, "CubeBackground") == 0)
+	else if (clsname == "CubeBackground")
 	{
-		CubeBackground* background = (CubeBackground*)holder_image->GetAlignedPointerFromInternalField(0);
+		CubeBackground* background = lctx.jobj_to_obj<CubeBackground>(holder_image);
 		creator->Create(background, self);
 	}
-	else if (strcmp(*clsname, "CubeRenderTarget") == 0)
+	else  if (clsname == "CubeRenderTarget")
 	{
-		CubeRenderTarget* target = (CubeRenderTarget*)holder_image->GetAlignedPointerFromInternalField(0);
+		CubeRenderTarget* target = lctx.jobj_to_obj<CubeRenderTarget>(holder_image);		
 		creator->Create(target, self);
 	}
 

@@ -34,10 +34,10 @@ v8::Local<v8::FunctionTemplate> WrapperUIButton::create_template(v8::Isolate* is
 
 void WrapperUIButton::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
+	LocalContext lctx(info);
 	UIButton* self = new UIButton();
-	info.This()->SetAlignedPointerInInternalField(0, self);
-	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This(), dtor);
+	info.This()->SetAlignedPointerInInternalField(0, self);	
+	lctx.ctx()->regiter_object(info.This(), dtor);
 }
 
 typedef v8::Persistent<v8::Function, v8::CopyablePersistentTraits<v8::Function>> CallbackT;
@@ -66,35 +66,31 @@ void WrapperUIButton::dtor(void* ptr, GameContext* ctx)
 
 void WrapperUIButton::SetStyle(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	UIButton* self = get_self<UIButton>(info);
+	LocalContext lctx(info);
+	UIButton* self = lctx.self<UIButton>();
 
 	v8::Local<v8::Object> style = info[0].As<v8::Object>();
 
-	if (style->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "cornerRadius").ToLocalChecked()).ToChecked())
+	if (lctx.has_property(style, "cornerRadius"))
 	{
-		self->cornerRadius = (float)style->Get(context, v8::String::NewFromUtf8(isolate, "cornerRadius").ToLocalChecked()).ToLocalChecked().As<v8::Number>()->Value();
+		lctx.jnum_to_num(lctx.get_property(style, "cornerRadius"), self->cornerRadius);
 	}
 
-	if (style->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "strokeWidth").ToLocalChecked()).ToChecked())
+	if (lctx.has_property(style, "strokeWidth"))
 	{
-		self->strokeWidth = (float)style->Get(context, v8::String::NewFromUtf8(isolate, "strokeWidth").ToLocalChecked()).ToLocalChecked().As<v8::Number>()->Value();
+		lctx.jnum_to_num(lctx.get_property(style, "strokeWidth"), self->strokeWidth);
 	}
 
-	if (style->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "colorBg").ToLocalChecked()).ToChecked())
+	if (lctx.has_property(style, "colorBg"))
 	{
-		v8::Local<v8::Value> value = style->Get(context, v8::String::NewFromUtf8(isolate, "colorBg").ToLocalChecked()).ToLocalChecked();
-		v8::String::Utf8Value str(info.GetIsolate(), value);
-		string_to_color(isolate, *str, self->colorBg);
+		std::string str = lctx.jstr_to_str(lctx.get_property(style, "colorBg"));
+		string_to_color(str.c_str(), self->colorBg);
 	}
 
-	if (style->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "colorStroke").ToLocalChecked()).ToChecked())
+	if (lctx.has_property(style, "colorStroke"))
 	{
-		v8::Local<v8::Value> value = style->Get(context, v8::String::NewFromUtf8(isolate, "colorStroke").ToLocalChecked()).ToLocalChecked();
-		v8::String::Utf8Value str(info.GetIsolate(), value);
-		string_to_color(isolate, *str, self->colorStroke);
+		std::string str = lctx.jstr_to_str(lctx.get_property(style, "colorStroke"));
+		string_to_color(str.c_str(), self->colorStroke);
 	}
 	self->appearance_changed = true;
 }
@@ -115,28 +111,17 @@ static void UIButtonClickCallback(void* ptr)
 
 void WrapperUIButton::GetOnClick(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	v8::Local<v8::Value> onClick = v8::Null(isolate);
-	if (holder->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "_onClick").ToLocalChecked()).ToChecked())
-	{
-		onClick = holder->Get(context, v8::String::NewFromUtf8(isolate, "_onClick").ToLocalChecked()).ToLocalChecked();
-	}
+	LocalContext lctx(info);
+	v8::Local<v8::Value> onClick = lctx.get_property(lctx.holder, "_onClick");
 	info.GetReturnValue().Set(onClick);
 }
 
 void WrapperUIButton::SetOnClick(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();	
-	holder->Set(context, v8::String::NewFromUtf8(isolate, "_onClick").ToLocalChecked(), value);
+	LocalContext lctx(info);
+	lctx.set_property(lctx.holder, "_onClick", value);
 
-
-	UIButton* self = (UIButton*)holder->GetAlignedPointerFromInternalField(0);
+	UIButton* self = lctx.self<UIButton>();
 	self->click_callback = UIButtonClickCallback;
 
 	if (self->click_callback_data != nullptr)
@@ -146,10 +131,10 @@ void WrapperUIButton::SetOnClick(v8::Local<v8::String> property, v8::Local<v8::V
 	}
 
 	UIButtonClickData* data = new UIButtonClickData;
-	data->ctx = get_context(info);
+	data->ctx = lctx.ctx();
 
 	v8::Local<v8::Function> callback = value.As<v8::Function>();
-	data->callback = CallbackT(isolate, callback);
+	data->callback = CallbackT(lctx.isolate, callback);
 
 	self->click_callback_data = data;
 
@@ -158,28 +143,17 @@ void WrapperUIButton::SetOnClick(v8::Local<v8::String> property, v8::Local<v8::V
 
 void WrapperUIButton::GetOnLongPress(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	v8::Local<v8::Value> onLongPress = v8::Null(isolate);
-	if (holder->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "_onLongPress").ToLocalChecked()).ToChecked())
-	{
-		onLongPress = holder->Get(context, v8::String::NewFromUtf8(isolate, "_onLongPress").ToLocalChecked()).ToLocalChecked();
-	}
+	LocalContext lctx(info);	
+	v8::Local<v8::Value> onLongPress = lctx.get_property(lctx.holder, "_onLongPress");
 	info.GetReturnValue().Set(onLongPress);
 }
 
 void WrapperUIButton::SetOnLongPress(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> holder = info.Holder();
-	holder->Set(context, v8::String::NewFromUtf8(isolate, "_onLongPress").ToLocalChecked(), value);
+	LocalContext lctx(info);
+	lctx.set_property(lctx.holder, "_onLongPress", value);
 
-
-	UIButton* self = (UIButton*)holder->GetAlignedPointerFromInternalField(0);
+	UIButton* self = lctx.self<UIButton>();
 	self->long_press_callback = UIButtonClickCallback;
 
 	if (self->long_press_callback_data != nullptr)
@@ -189,10 +163,10 @@ void WrapperUIButton::SetOnLongPress(v8::Local<v8::String> property, v8::Local<v
 	}
 
 	UIButtonClickData* data = new UIButtonClickData;
-	data->ctx = get_context(info);
+	data->ctx = lctx.ctx();
 
 	v8::Local<v8::Function> callback = value.As<v8::Function>();
-	data->callback = CallbackT(isolate, callback);
+	data->callback = CallbackT(lctx.isolate, callback);
 
 	self->long_press_callback_data = data;
 

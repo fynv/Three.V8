@@ -27,77 +27,71 @@ v8::Local<v8::FunctionTemplate> WrapperUITextBlock::create_template(v8::Isolate*
 
 void WrapperUITextBlock::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
+	LocalContext lctx(info);
 	UITextBlock* self = new UITextBlock();
-	info.This()->SetAlignedPointerInInternalField(0, self);
-	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This(), WrapperUIElement::dtor);
+	info.This()->SetAlignedPointerInInternalField(0, self);	
+	lctx.ctx()->regiter_object(info.This(), WrapperUIElement::dtor);
 }
 
 
 void WrapperUITextBlock::GetText(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	UITextBlock* self = get_self<UITextBlock>(info);
-	v8::Local<v8::String> ret = v8::String::NewFromUtf8(info.GetIsolate(), self->text.c_str()).ToLocalChecked();
-	info.GetReturnValue().Set(ret);
+	LocalContext lctx(info);
+	UITextBlock* self = lctx.self<UITextBlock>();
+	info.GetReturnValue().Set(lctx.str_to_jstr(self->text.c_str()));
 }
 
 void WrapperUITextBlock::SetText(v8::Local<v8::String> property, v8::Local<v8::Value> value,
 	const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	UITextBlock* self = get_self<UITextBlock>(info);
-	v8::String::Utf8Value text(info.GetIsolate(), value);
-	self->text = *text;
+	LocalContext lctx(info);
+	UITextBlock* self = lctx.self<UITextBlock>();
+	std::string text = lctx.jstr_to_str(value);
+	self->text = text;
 	self->appearance_changed = true;
 }
 
 void WrapperUITextBlock::SetStyle(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	UITextBlock* self = get_self<UITextBlock>(info);
+	LocalContext lctx(info);
+	UITextBlock* self = lctx.self<UITextBlock>();
 
 	v8::Local<v8::Object> style = info[0].As<v8::Object>();
 
-	if (style->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "lineWidth").ToLocalChecked()).ToChecked())
+	if (lctx.has_property(style, "lineWidth"))
 	{
-		self->line_width = (float)style->Get(context, v8::String::NewFromUtf8(isolate, "lineWidth").ToLocalChecked()).ToLocalChecked().As<v8::Number>()->Value();
+		lctx.jnum_to_num(lctx.get_property(style, "lineWidth"), self->line_width);
 	}
 
-	if (style->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "lineHeight").ToLocalChecked()).ToChecked())
+	if (lctx.has_property(style, "lineHeight"))
 	{
-		self->line_height = (float)style->Get(context, v8::String::NewFromUtf8(isolate, "lineHeight").ToLocalChecked()).ToLocalChecked().As<v8::Number>()->Value();
+		lctx.jnum_to_num(lctx.get_property(style, "lineHeight"), self->line_height);
 	}
 
-	if (style->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "fontSize").ToLocalChecked()).ToChecked())
+	if (lctx.has_property(style, "fontSize"))
 	{
-		self->font_size = (float)style->Get(context, v8::String::NewFromUtf8(isolate, "fontSize").ToLocalChecked()).ToLocalChecked().As<v8::Number>()->Value();
+		lctx.jnum_to_num(lctx.get_property(style, "fontSize"), self->font_size);
 	}
 
-	if (style->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "fontFace").ToLocalChecked()).ToChecked())
+	if (lctx.has_property(style, "fontFace"))
 	{
-		v8::Local<v8::Value> value = style->Get(context, v8::String::NewFromUtf8(isolate, "fontFace").ToLocalChecked()).ToLocalChecked();
-		v8::String::Utf8Value fontFace(isolate, value);
-		self->font_face = *fontFace;
+		self->font_face = lctx.jstr_to_str(lctx.get_property(style, "fontFace"));
 	}
 
-	if (style->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "alignmentHorizontal").ToLocalChecked()).ToChecked())
+	if (lctx.has_property(style, "alignmentHorizontal"))
 	{
-		self->alignment_horizontal = (int)style->Get(context, v8::String::NewFromUtf8(isolate, "alignmentHorizontal").ToLocalChecked()).ToLocalChecked().As<v8::Number>()->Value();
+		lctx.jnum_to_num(lctx.get_property(style, "alignmentHorizontal"), self->alignment_horizontal);
 	}
 
-	if (style->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "alignmentVertical").ToLocalChecked()).ToChecked())
+	if (lctx.has_property(style, "alignmentVertical"))
 	{
-		self->alignment_vertical = (int)style->Get(context, v8::String::NewFromUtf8(isolate, "alignmentVertical").ToLocalChecked()).ToLocalChecked().As<v8::Number>()->Value();
+		lctx.jnum_to_num(lctx.get_property(style, "alignmentVertical"), self->alignment_vertical);
 	}
 
-	if (style->HasOwnProperty(context, v8::String::NewFromUtf8(isolate, "colorFg").ToLocalChecked()).ToChecked())
+	if (lctx.has_property(style, "colorFg"))
 	{
-		v8::Local<v8::Value> value = style->Get(context, v8::String::NewFromUtf8(isolate, "colorFg").ToLocalChecked()).ToLocalChecked();
-		v8::String::Utf8Value str(info.GetIsolate(), value);
-		string_to_color(isolate, *str, self->colorFg);
+		std::string str = lctx.jstr_to_str(lctx.get_property(style, "colorFg"));
+		string_to_color(str.c_str(), self->colorFg);
 	}
 
 	self->appearance_changed = true;

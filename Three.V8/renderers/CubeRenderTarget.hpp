@@ -31,31 +31,24 @@ void WrapperCubeRenderTarget::dtor(void* ptr, GameContext* ctx)
 
 void WrapperCubeRenderTarget::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	int width = (int)info[0].As<v8::Number>()->Value();
-	int height = (int)info[1].As<v8::Number>()->Value();
+	LocalContext lctx(info);
+	int width, height;
+	lctx.jnum_to_num(info[0], width);
+	lctx.jnum_to_num(info[1], height);
 
 	CubeRenderTarget* self = new CubeRenderTarget();
 	self->update_framebuffers(width, height);
 
-	info.This()->SetAlignedPointerInInternalField(0, self);
-	GameContext* ctx = get_context(info);
-	ctx->regiter_object(info.This(), dtor);
+	info.This()->SetAlignedPointerInInternalField(0, self);	
+	lctx.ctx()->regiter_object(info.This(), dtor);
 }
 
 void WrapperCubeRenderTarget::GetCubeImage(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Context> context = isolate->GetCurrentContext();
-	v8::Local<v8::Object> global = context->Global();
-	v8::Local<v8::Function> ctor_image = global->Get(context, v8::String::NewFromUtf8(isolate, "CubeImage").ToLocalChecked()).ToLocalChecked().As<v8::Function>();
-
-	v8::Local<v8::Object> holder_image = ctor_image->CallAsConstructor(context, 0, nullptr).ToLocalChecked().As<v8::Object>();
-	CubeImage* image = (CubeImage*)holder_image->GetAlignedPointerFromInternalField(0);
-
-	CubeRenderTarget* self = get_self<CubeRenderTarget>(info);
-
+	LocalContext lctx(info);
+	CubeRenderTarget* self = lctx.self<CubeRenderTarget>();
+	v8::Local<v8::Object> holder_image = lctx.instantiate("CubeImage");
+	CubeImage* image = lctx.jobj_to_obj<CubeImage>(holder_image);	
 	self->GetCubeImage(*image);
 	info.GetReturnValue().Set(holder_image);
-
 }

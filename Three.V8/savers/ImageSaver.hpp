@@ -22,33 +22,28 @@ v8::Local<v8::ObjectTemplate> WrapperImageSaver::create_template(v8::Isolate* is
 	return templ;
 }
 
-
-
 void WrapperImageSaver::SaveFile(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Object> holder = info[0].As<v8::Object>();
-	Image* self = (Image*)holder->GetAlignedPointerFromInternalField(0);
-	v8::String::Utf8Value filename(isolate, info[1]);
-	ImageSaver::SaveFile(self, *filename);
+	LocalContext lctx(info);
+	Image* self = lctx.jobj_to_obj<Image>(info[0]);
+	std::string filename = lctx.jstr_to_str(info[1]);
+	ImageSaver::SaveFile(self, filename.c_str());
 }
 
 void WrapperImageSaver::SaveCubeToFile(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	v8::Isolate* isolate = info.GetIsolate();
-	v8::HandleScope handle_scope(isolate);
-	v8::Local<v8::Object> holder = info[0].As<v8::Object>();
-	CubeImage* self = (CubeImage*)holder->GetAlignedPointerFromInternalField(0);
+	LocalContext lctx(info);
+	CubeImage* self = lctx.jobj_to_obj<CubeImage>(info[0]);	
 
-	v8::String::Utf8Value filenames[6] = {
-		v8::String::Utf8Value(isolate, info[1]),
-		v8::String::Utf8Value(isolate, info[2]),
-		v8::String::Utf8Value(isolate, info[3]),
-		v8::String::Utf8Value(isolate, info[4]),
-		v8::String::Utf8Value(isolate, info[5]),
-		v8::String::Utf8Value(isolate, info[6])
+	std::string filenames[6] = {
+		lctx.jstr_to_str(info[1]),
+		lctx.jstr_to_str(info[2]),
+		lctx.jstr_to_str(info[3]),
+		lctx.jstr_to_str(info[4]),
+		lctx.jstr_to_str(info[5]),
+		lctx.jstr_to_str(info[6])
 	};
-	ImageSaver::SaveCubeToFile(self, *filenames[0], *filenames[1], *filenames[2], *filenames[3], *filenames[4], *filenames[5]);
+	ImageSaver::SaveCubeToFile(self, filenames[0].c_str(), filenames[1].c_str(), 
+		filenames[2].c_str(), filenames[3].c_str(), filenames[4].c_str(), filenames[5].c_str());
 }
 

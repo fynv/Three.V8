@@ -52,84 +52,84 @@ void WrapperIndirectLight::dtor(void* ptr, GameContext* ctx)
 
 void WrapperIndirectLight::GetDiffuseThresh(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	IndirectLight* self = get_self<IndirectLight>(info);	
-	info.GetReturnValue().Set(v8::Number::New(info.GetIsolate(), (double)self->diffuse_thresh));
+	LocalContext lctx(info);
+	IndirectLight* self = lctx.self<IndirectLight>();
+	info.GetReturnValue().Set(lctx.num_to_jnum(self->diffuse_thresh));
 }
 
 void WrapperIndirectLight::SetDiffuseThresh(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	IndirectLight* self = get_self<IndirectLight>(info);
-	self->diffuse_thresh = (float)value.As<v8::Number>()->Value();
+	LocalContext lctx(info);
+	IndirectLight* self = lctx.self<IndirectLight>();
+	lctx.jnum_to_num(value, self->diffuse_thresh);
 }
 
 void WrapperIndirectLight::GetDiffuseHigh(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	IndirectLight* self = get_self<IndirectLight>(info);
-	info.GetReturnValue().Set(v8::Number::New(info.GetIsolate(), (double)self->diffuse_high));
+	LocalContext lctx(info);
+	IndirectLight* self = lctx.self<IndirectLight>();
+	info.GetReturnValue().Set(lctx.num_to_jnum(self->diffuse_high));
 }
 
 void WrapperIndirectLight::SetDiffuseHigh(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	IndirectLight* self = get_self<IndirectLight>(info);
-	self->diffuse_high = (float)value.As<v8::Number>()->Value();
+	LocalContext lctx(info);
+	IndirectLight* self = lctx.self<IndirectLight>();
+	lctx.jnum_to_num(value, self->diffuse_high);
 }
 
 void WrapperIndirectLight::GetDiffuseLow(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	IndirectLight* self = get_self<IndirectLight>(info);
-	info.GetReturnValue().Set(v8::Number::New(info.GetIsolate(), (double)self->diffuse_low));
+	LocalContext lctx(info);
+	IndirectLight* self = lctx.self<IndirectLight>();
+	info.GetReturnValue().Set(lctx.num_to_jnum(self->diffuse_low));
 }
 
 void WrapperIndirectLight::SetDiffuseLow(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	IndirectLight* self = get_self<IndirectLight>(info);
-	self->diffuse_low = (float)value.As<v8::Number>()->Value();
+	LocalContext lctx(info);
+	IndirectLight* self = lctx.self<IndirectLight>();
+	lctx.jnum_to_num(value, self->diffuse_low);
 }
 
 void WrapperIndirectLight::GetSpecularThresh(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	IndirectLight* self = get_self<IndirectLight>(info);
-	info.GetReturnValue().Set(v8::Number::New(info.GetIsolate(), (double)self->specular_thresh));
+	LocalContext lctx(info);
+	IndirectLight* self = lctx.self<IndirectLight>();
+	info.GetReturnValue().Set(lctx.num_to_jnum(self->specular_thresh));
 }
 
 void WrapperIndirectLight::SetSpecularThresh(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	IndirectLight* self = get_self<IndirectLight>(info);
-	self->specular_thresh = (float)value.As<v8::Number>()->Value();
+	LocalContext lctx(info);
+	IndirectLight* self = lctx.self<IndirectLight>();
+	info.GetReturnValue().Set(lctx.num_to_jnum(self->specular_thresh));
 }
 
 void WrapperIndirectLight::GetSpecularHigh(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	IndirectLight* self = get_self<IndirectLight>(info);
-	info.GetReturnValue().Set(v8::Number::New(info.GetIsolate(), (double)self->specular_high));
+	LocalContext lctx(info);
+	IndirectLight* self = lctx.self<IndirectLight>();
+	info.GetReturnValue().Set(lctx.num_to_jnum(self->specular_high));
 }
 
 void WrapperIndirectLight::SetSpecularHigh(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	IndirectLight* self = get_self<IndirectLight>(info);
-	self->specular_high = (float)value.As<v8::Number>()->Value();
+	LocalContext lctx(info);
+	IndirectLight* self = lctx.self<IndirectLight>();
+	info.GetReturnValue().Set(lctx.num_to_jnum(self->specular_high));
 }
 
 void WrapperIndirectLight::GetSpecularLow(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	IndirectLight* self = get_self<IndirectLight>(info);
-	info.GetReturnValue().Set(v8::Number::New(info.GetIsolate(), (double)self->specular_low));
+	LocalContext lctx(info);
+	IndirectLight* self = lctx.self<IndirectLight>();
+	info.GetReturnValue().Set(lctx.num_to_jnum(self->specular_low));
 }
 
 void WrapperIndirectLight::SetSpecularLow(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
 {
-	v8::HandleScope handle_scope(info.GetIsolate());
-	IndirectLight* self = get_self<IndirectLight>(info);
-	self->specular_low = (float)value.As<v8::Number>()->Value();
+	LocalContext lctx(info);
+	IndirectLight* self = lctx.self<IndirectLight>();
+	info.GetReturnValue().Set(lctx.num_to_jnum(self->specular_low));
 }
