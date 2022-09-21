@@ -172,6 +172,16 @@ void WrapperGLTFModel::SetTexture(const v8::FunctionCallbackInfo<v8::Value>& inf
 			self->m_repl_textures[idx] = target->m_tex_video.get();
 		}		
 	}
+#if THREE_MM
+	else if (clsname == "MMCamera")
+	{
+		MMCamera* cam = lctx.jobj_to_obj<MMCamera>(holder_image);
+		if (cam != nullptr)
+		{
+			self->m_repl_textures[idx] = cam->get_texture();
+		}
+	}
+#endif
 }
 
 

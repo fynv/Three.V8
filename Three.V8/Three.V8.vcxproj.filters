@@ -49,6 +49,9 @@
     <Filter Include="Header Files\savers">
       <UniqueIdentifier>{c9dfb990-4516-487e-8425-013a8fc32b35}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\multimedia">
+      <UniqueIdentifier>{59402ca3-1e45-4b01-a06b-b5d17912aad3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="binding.h">
@@ -173,6 +176,9 @@
     </ClInclude>
     <ClInclude Include="scenes\Fog.hpp">
       <Filter>Header Files\scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="multimedia\MMCamera.hpp">
+      <Filter>Header Files\multimedia</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

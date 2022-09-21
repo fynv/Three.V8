@@ -95,5 +95,9 @@ private:
 	static void Now(const v8::FunctionCallbackInfo<v8::Value>& args);
 	static void GetGLError(const v8::FunctionCallbackInfo<v8::Value>& args);
 
+#if THREE_MM
+	static void GetListOfCameras(const v8::FunctionCallbackInfo<v8::Value>& args);
+#endif
+
 	static void WeakCallback(v8::WeakCallbackInfo<GameContext> const& data);
 };

@@ -3,6 +3,7 @@
 #include "WrapperUtils.hpp"
 #include "core/Object3D.hpp"
 #include <renderers/GLRenderTarget.h>
+#include <MMCamera.h>
 #include <models/SimpleModel.h>
 #include <models/GeometryCreator.h>
 #include <utils/Image.h>
@@ -161,6 +162,16 @@ void WrapperSimpleModel::SetColorTexture(const v8::FunctionCallbackInfo<v8::Valu
 			self->repl_texture = target->m_tex_video.get();
 		}
 	}
+#if THREE_MM
+	else if (clsname == "MMCamera")
+	{
+		MMCamera* cam = lctx.jobj_to_obj<MMCamera>(holder_image);
+		if (cam != nullptr)
+		{
+			self->repl_texture = cam->get_texture();
+		}
+	}
+#endif
 }
 
 

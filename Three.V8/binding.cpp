@@ -72,6 +72,9 @@ V8VM::~V8VM()
 #include "gui/UIImage.hpp"
 #include "gui/UI3DViewer.hpp"
 
+#if THREE_MM
+#include "multimedia/MMCamera.hpp"
+#endif
 
 GlobalDefinitions GameContext::s_globals =
 {
@@ -79,7 +82,10 @@ GlobalDefinitions GameContext::s_globals =
 		{"print", GameContext::Print},
 		{"setCallback", GameContext::SetCallback},
 		{"now", GameContext::Now},
-		{"getGLError", GameContext::GetGLError}
+		{"getGLError", GameContext::GetGLError},
+#if THREE_MM
+		{"getListOfCameras", GameContext::GetListOfCameras},
+#endif
 	},
 	{
 		{ "Object3D", WrapperObject3D::New,  WrapperObject3D::create_template },
@@ -114,6 +120,10 @@ GlobalDefinitions GameContext::s_globals =
 		{ "UITextBlock", WrapperUITextBlock::New, WrapperUITextBlock::create_template},
 		{ "UIImage", WrapperUIImage::New, WrapperUIImage::create_template},
 		{ "UI3DViewer", WrapperUI3DViewer::New, WrapperUI3DViewer::create_template},
+
+#if THREE_MM
+		{ "MMCamera", WrapperMMCamera::New, WrapperMMCamera::create_template},
+#endif
 	},
 	{
 		{ "fileLoader", WrapperFileLoader::create_template },
@@ -373,6 +383,22 @@ void GameContext::GetGLError(const v8::FunctionCallbackInfo<v8::Value>& args)
 	unsigned err = glGetError();
 	args.GetReturnValue().Set(lctx.num_to_jnum(err));	
 }
+
+#if THREE_MM
+void GameContext::GetListOfCameras(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	LocalContext lctx(args);
+	const std::vector<std::string>& lst = MMCamera::s_get_list_devices();
+
+	v8::Local<v8::Array> ret = v8::Array::New(lctx.isolate);
+	for (size_t i = 0; i < lst.size(); i++)
+	{
+		v8::Local<v8::String> name = lctx.str_to_jstr(lst[i].c_str());
+		ret->Set(lctx.context, (unsigned)i, name);
+	}
+	args.GetReturnValue().Set(ret);
+}
+#endif
 
 void GameContext::WeakCallback(v8::WeakCallbackInfo<GameContext> const& data)
 {
