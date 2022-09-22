@@ -4,6 +4,7 @@
 #include "core/Object3D.hpp"
 #include <renderers/GLRenderTarget.h>
 #include <MMCamera.h>
+#include <MMLazyVideo.h>
 #include <models/SimpleModel.h>
 #include <models/GeometryCreator.h>
 #include <utils/Image.h>
@@ -169,6 +170,14 @@ void WrapperSimpleModel::SetColorTexture(const v8::FunctionCallbackInfo<v8::Valu
 		if (cam != nullptr)
 		{
 			self->repl_texture = cam->get_texture();
+		}
+	}
+	else if (clsname == "MMLazyVideo")
+	{
+		MMLazyVideo* video = lctx.jobj_to_obj<MMLazyVideo>(holder_image);
+		if (video != nullptr)
+		{
+			self->repl_texture = video->get_texture();
 		}
 	}
 #endif

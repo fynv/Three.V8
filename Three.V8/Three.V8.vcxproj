@@ -161,6 +161,7 @@
     <ClInclude Include="models\GLTFModel.hpp" />
     <ClInclude Include="models\SimpleModel.hpp" />
     <ClInclude Include="multimedia\MMCamera.hpp" />
+    <ClInclude Include="multimedia\MMLazyVideo.hpp" />
     <ClInclude Include="network\HttpClient.hpp" />
     <ClInclude Include="renderers\CubeRenderTarget.hpp" />
     <ClInclude Include="renderers\GLRenderer.hpp" />

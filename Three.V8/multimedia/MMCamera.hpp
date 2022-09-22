@@ -12,6 +12,8 @@ public:
 private:
 	static void dtor(void* ptr, GameContext* ctx);
 	static void UpdateTexture(const v8::FunctionCallbackInfo<v8::Value>& info);
+	static void GetWidth(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void GetHeight(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 };
 
 
@@ -21,6 +23,8 @@ v8::Local<v8::FunctionTemplate> WrapperMMCamera::create_template(v8::Isolate* is
 	templ->InstanceTemplate()->SetInternalFieldCount(2);
 	templ->InstanceTemplate()->Set(isolate, "dispose", v8::FunctionTemplate::New(isolate, GeneralDispose));	
 	templ->InstanceTemplate()->Set(isolate, "updateTexture", v8::FunctionTemplate::New(isolate, UpdateTexture));
+	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "width").ToLocalChecked(), GetWidth, 0);
+	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "height").ToLocalChecked(), GetHeight, 0);
 	return templ;
 }
 
@@ -48,5 +52,20 @@ void WrapperMMCamera::UpdateTexture(const v8::FunctionCallbackInfo<v8::Value>& i
 	LocalContext lctx(info);
 	MMCamera* self = lctx.self<MMCamera>();
 	self->update_texture();
+}
+
+
+void WrapperMMCamera::GetWidth(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	MMCamera* self = lctx.self<MMCamera>();
+	info.GetReturnValue().Set(lctx.num_to_jnum(self->width()));
+}
+
+void WrapperMMCamera::GetHeight(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	MMCamera* self = lctx.self<MMCamera>();
+	info.GetReturnValue().Set(lctx.num_to_jnum(self->height()));
 }
 

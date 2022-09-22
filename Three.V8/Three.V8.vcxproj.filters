@@ -180,6 +180,9 @@
     <ClInclude Include="multimedia\MMCamera.hpp">
       <Filter>Header Files\multimedia</Filter>
     </ClInclude>
+    <ClInclude Include="multimedia\MMLazyVideo.hpp">
+      <Filter>Header Files\multimedia</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="binding.cpp">

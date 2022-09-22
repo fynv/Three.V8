@@ -74,6 +74,7 @@ V8VM::~V8VM()
 
 #if THREE_MM
 #include "multimedia/MMCamera.hpp"
+#include "multimedia/MMLazyVideo.hpp"
 #endif
 
 GlobalDefinitions GameContext::s_globals =
@@ -123,6 +124,7 @@ GlobalDefinitions GameContext::s_globals =
 
 #if THREE_MM
 		{ "MMCamera", WrapperMMCamera::New, WrapperMMCamera::create_template},
+		{ "MMLazyVideo", WrapperMMLazyVideo::New, WrapperMMLazyVideo::create_template},
 #endif
 	},
 	{

@@ -132,9 +132,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MMCamera.h" />
+    <ClInclude Include="MMLazyVideo.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MMCamera.cpp" />
+    <ClCompile Include="MMLazyVideo.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ThreeEngine\ThreeEngine.vcxproj">
