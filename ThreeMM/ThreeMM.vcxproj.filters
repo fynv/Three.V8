@@ -24,12 +24,18 @@
     <ClInclude Include="MMLazyVideo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MMIOContext.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MMCamera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MMLazyVideo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MMIOContext.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

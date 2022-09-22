@@ -1,3 +1,4 @@
+#include "MMIOContext.h"
 #include "MMLazyVideo.h"
 #include "utils/Image.h"
 #include "utils/Utils.h"
@@ -32,6 +33,10 @@ public:
 
 		if (!exists_test(fn))
 			printf("Failed loading %s\n", fn);
+
+		m_io_ctx = std::unique_ptr<MMIOContext>(new MMFILEContext(fn));
+		m_p_fmt_ctx = ::avformat_alloc_context();
+		m_p_fmt_ctx->pb = m_io_ctx->get_avio();
 
 		avformat_open_input(&m_p_fmt_ctx, fn, nullptr, nullptr);
 		avformat_find_stream_info(m_p_fmt_ctx, nullptr);
@@ -125,6 +130,8 @@ public:
 	}
 
 private:
+	std::unique_ptr<MMIOContext> m_io_ctx;
+
 	AVFormatContext* m_p_fmt_ctx = nullptr;
 	int m_v_idx = -1;
 	int m_video_time_base_num, m_video_time_base_den;
