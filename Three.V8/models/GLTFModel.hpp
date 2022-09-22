@@ -3,6 +3,7 @@
 #include "WrapperUtils.hpp"
 #include "core/Object3D.hpp"
 #include <renderers/GLRenderTarget.h>
+#include <MMCamera.h>
 #include <models/GLTFModel.h>
 #include <models/GeometryCreator.h>
 #include <utils/Image.h>
