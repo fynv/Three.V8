@@ -42,8 +42,15 @@ int AudioOut::stream_callback(const void* inputBuffer, void* outputBuffer,
 {
 	AudioOut* self = (AudioOut*)userData;
 	short* out = (short*)outputBuffer;
-	self->m_callback(out, framesPerBuffer, self->m_user_ptr);
-	return paContinue;
+	bool ret = self->m_callback(out, framesPerBuffer, self->m_user_ptr);
+	if (ret)
+	{
+		return paContinue;
+	}
+	else
+	{
+		return paComplete;
+	}
 }
 
 void AudioOut::stream_finished_callback(void* userData)

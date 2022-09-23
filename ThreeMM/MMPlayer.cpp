@@ -1,3 +1,4 @@
+#include "MMIOContext.h"
 #include "MMPlayer.h"
 #include "AudioBuffer.h"
 #include "AudioIO.h"
@@ -81,6 +82,8 @@ public:
 
 private:
 	void _start(uint64_t pos);
+
+	std::unique_ptr<MMIOContext> m_io_ctx;
 
 	std::unique_ptr<PacketQueue> m_queue_audio;
 	std::unique_ptr<PacketQueue> m_queue_video;
@@ -465,6 +468,10 @@ MMPlayer::MMPlayer(const char* fn, bool play_audio, bool play_video, int id_audi
 
 	if (!exists_test(fn))
 		printf("Failed loading %s\n", fn);
+
+	m_io_ctx = std::unique_ptr<MMIOContext>(new MMFILEContext(fn));
+	m_p_fmt_ctx = ::avformat_alloc_context();
+	m_p_fmt_ctx->pb = m_io_ctx->get_avio();
 
 	avformat_open_input(&m_p_fmt_ctx, fn, nullptr, nullptr);
 	avformat_find_stream_info(m_p_fmt_ctx, nullptr);
