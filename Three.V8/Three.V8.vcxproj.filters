@@ -183,6 +183,12 @@
     <ClInclude Include="multimedia\MMLazyVideo.hpp">
       <Filter>Header Files\multimedia</Filter>
     </ClInclude>
+    <ClInclude Include="multimedia\MMAudio.hpp">
+      <Filter>Header Files\multimedia</Filter>
+    </ClInclude>
+    <ClInclude Include="multimedia\MMVideo.hpp">
+      <Filter>Header Files\multimedia</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="binding.cpp">

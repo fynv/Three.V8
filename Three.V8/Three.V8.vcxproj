@@ -162,6 +162,8 @@
     <ClInclude Include="models\SimpleModel.hpp" />
     <ClInclude Include="multimedia\MMCamera.hpp" />
     <ClInclude Include="multimedia\MMLazyVideo.hpp" />
+    <ClInclude Include="multimedia\MMAudio.hpp" />
+    <ClInclude Include="multimedia\MMVideo.hpp" />
     <ClInclude Include="network\HttpClient.hpp" />
     <ClInclude Include="renderers\CubeRenderTarget.hpp" />
     <ClInclude Include="renderers\GLRenderer.hpp" />

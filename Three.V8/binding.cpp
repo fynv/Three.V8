@@ -75,6 +75,8 @@ V8VM::~V8VM()
 #if THREE_MM
 #include "multimedia/MMCamera.hpp"
 #include "multimedia/MMLazyVideo.hpp"
+#include "multimedia/MMAudio.hpp"
+#include "multimedia/MMVideo.hpp"
 #endif
 
 GlobalDefinitions GameContext::s_globals =
@@ -86,6 +88,7 @@ GlobalDefinitions GameContext::s_globals =
 		{"getGLError", GameContext::GetGLError},
 #if THREE_MM
 		{"getListOfCameras", GameContext::GetListOfCameras},
+		{"getListOfAudioPlaybackDevices", GameContext::GetListOfAudioPlaybackDevices},
 #endif
 	},
 	{
@@ -125,6 +128,8 @@ GlobalDefinitions GameContext::s_globals =
 #if THREE_MM
 		{ "MMCamera", WrapperMMCamera::New, WrapperMMCamera::create_template},
 		{ "MMLazyVideo", WrapperMMLazyVideo::New, WrapperMMLazyVideo::create_template},
+		{ "MMAudio", WrapperMMAudio::New, WrapperMMAudio::create_template},
+		{ "MMVideo", WrapperMMVideo::New, WrapperMMVideo::create_template},
 #endif
 	},
 	{
@@ -391,6 +396,20 @@ void GameContext::GetListOfCameras(const v8::FunctionCallbackInfo<v8::Value>& ar
 {
 	LocalContext lctx(args);
 	const std::vector<std::string>& lst = MMCamera::s_get_list_devices();
+
+	v8::Local<v8::Array> ret = v8::Array::New(lctx.isolate);
+	for (size_t i = 0; i < lst.size(); i++)
+	{
+		v8::Local<v8::String> name = lctx.str_to_jstr(lst[i].c_str());
+		ret->Set(lctx.context, (unsigned)i, name);
+	}
+	args.GetReturnValue().Set(ret);
+}
+
+void GameContext::GetListOfAudioPlaybackDevices(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	LocalContext lctx(args);
+	const std::vector<std::string>& lst = GetNamesAudioPlaybackDevices(false);
 
 	v8::Local<v8::Array> ret = v8::Array::New(lctx.isolate);
 	for (size_t i = 0; i < lst.size(); i++)
