@@ -387,6 +387,7 @@ private:
 			{
 				if (!player->m_demuxing)
 					player->m_video_eof = true;
+				std::this_thread::sleep_for(std::chrono::microseconds(10));
 			}
 			if (!player->m_video_playing || player->m_video_eof) break;
 
