@@ -92,6 +92,5 @@ AudioOut::AudioOut(int audio_device_id, int samplerate, AudioWriteCallback callb
 
 AudioOut::~AudioOut()
 {
-	Pa_StopStream(m_stream);
 	Pa_CloseStream(m_stream);
 }
