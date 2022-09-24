@@ -256,6 +256,7 @@
     <ClInclude Include="scenes\Fog.h" />
     <ClInclude Include="scenes\Scene.h" />
     <ClInclude Include="utils\Image.h" />
+    <ClInclude Include="utils\Semaphore.h" />
     <ClInclude Include="utils\Utils.h" />
   </ItemGroup>
   <ItemGroup>

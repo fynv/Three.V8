@@ -34,7 +34,7 @@ public:
 		if (!exists_test(fn))
 			printf("Failed loading %s\n", fn);
 
-		m_io_ctx = std::unique_ptr<MMIOContext>(new MMFILEContext(fn));
+		m_io_ctx = std::unique_ptr<MMIOContext>(new MMFileContext(fn));
 		m_p_fmt_ctx = ::avformat_alloc_context();
 		m_p_fmt_ctx->pb = m_io_ctx->get_avio();
 

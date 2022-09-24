@@ -4,6 +4,7 @@
 #include "AudioIO.h"
 #include "utils/Image.h"
 #include "utils/Utils.h"
+#include "utils/Semaphore.h"
 #include "renderers/GLUtils.h"
 
 extern "C" {
@@ -23,37 +24,6 @@ extern "C" {
 
 #include <queue>
 #include <thread>
-#include <mutex>
-#include <condition_variable>
-
-class Semaphore {
-public:
-	Semaphore(int count_ = 0)
-		: count(count_) {}
-
-	inline void notify()
-	{
-		std::unique_lock<std::mutex> lock(mtx);
-		count++;
-		cv.notify_one();
-	}
-
-	inline void wait()
-	{
-		std::unique_lock<std::mutex> lock(mtx);
-
-		while (count == 0) {
-			cv.wait(lock);
-		}
-		count--;
-	}
-
-private:
-	std::mutex mtx;
-	std::condition_variable cv;
-	int count;
-};
-
 
 class MMPlayer
 {
@@ -469,7 +439,7 @@ MMPlayer::MMPlayer(const char* fn, bool play_audio, bool play_video, int id_audi
 	if (!exists_test(fn))
 		printf("Failed loading %s\n", fn);
 
-	m_io_ctx = std::unique_ptr<MMIOContext>(new MMFILEContext(fn));
+	m_io_ctx = std::unique_ptr<MMIOContext>(new MMFileStreamContext(fn));
 	m_p_fmt_ctx = ::avformat_alloc_context();
 	m_p_fmt_ctx->pb = m_io_ctx->get_avio();
 
