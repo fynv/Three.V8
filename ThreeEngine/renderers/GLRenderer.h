@@ -63,6 +63,8 @@ public:
 
 	void renderCelluloid(Scene& scene, Camera& camera, GLRenderTarget* layer_base, GLRenderTarget* layer_light, GLRenderTarget* layer_alpha);
 
+	void renderTexture(GLTexture2D* tex, int x, int y, int width, int height, GLRenderTarget& target);
+
 private:
 	std::unique_ptr<WeightedOIT> oit_resolvers[2];
 
@@ -96,7 +98,6 @@ private:
 	void render_shadow_model(DirectionalLightShadow* shadow, SimpleModel* model);
 	void render_shadow_model(DirectionalLightShadow* shadow, GLTFModel* model);
 
-	std::unique_ptr<DrawTexture> TextureVisualizer;
 	std::unique_ptr<DrawSkyBox> SkyBoxDraw;
 	std::unique_ptr<DrawHemisphere> HemisphereDraw;
 
@@ -124,6 +125,8 @@ private:
 	void render_model_lighting(Camera* p_camera, const Lights& lights, const Fog* fog, GLTFModel* model);
 
 	std::unique_ptr<AlphaDem> alpha_demodulate;
+
+	std::unique_ptr<DrawTexture> TextureDraw;
 
 };
 

@@ -6,7 +6,7 @@
 class DrawTexture
 {
 public:
-	DrawTexture(bool premult=false);
+	DrawTexture(bool premult=false, bool flipY = false);
 
 	void render(unsigned tex_id, int x, int y, int width, int height, bool blending = false);
 

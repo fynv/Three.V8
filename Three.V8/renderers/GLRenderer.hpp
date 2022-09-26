@@ -19,6 +19,7 @@ private:
 	static void RenderLayers(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void RenderLayersToCube(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void RenderCelluloid(const v8::FunctionCallbackInfo<v8::Value>& info);
+	static void RenderTexture(const v8::FunctionCallbackInfo<v8::Value>& info);
 };
 
 v8::Local<v8::FunctionTemplate> WrapperGLRenderer::create_template(v8::Isolate* isolate, v8::FunctionCallback constructor)
@@ -33,6 +34,8 @@ v8::Local<v8::FunctionTemplate> WrapperGLRenderer::create_template(v8::Isolate* 
 	templ->InstanceTemplate()->Set(isolate, "renderLayersToCube", v8::FunctionTemplate::New(isolate, RenderLayersToCube));
 
 	templ->InstanceTemplate()->Set(isolate, "renderCelluloid", v8::FunctionTemplate::New(isolate, RenderCelluloid));
+
+	templ->InstanceTemplate()->Set(isolate, "renderTexture", v8::FunctionTemplate::New(isolate, RenderTexture));
 	return templ;
 }
 
@@ -173,4 +176,70 @@ void WrapperGLRenderer::RenderCelluloid(const v8::FunctionCallbackInfo<v8::Value
 	GLRenderTarget* target_lighting = lctx.jobj_to_obj<GLRenderTarget>(info[3]);
 	GLRenderTarget* target_alpha = lctx.jobj_to_obj<GLRenderTarget>(info[4]);
 	self->renderCelluloid(*scene, *camera, target_base, target_lighting, target_alpha);
+}
+
+void WrapperGLRenderer::RenderTexture(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	GLRenderer* self = lctx.self<GLRenderer>();
+
+	GLTexture2D* tex = nullptr;
+
+	v8::Local<v8::Object> holder_image = info[0].As<v8::Object>();
+	std::string clsname = lctx.jstr_to_str(holder_image->GetConstructorName());
+
+	if (clsname == "MMCamera")
+	{
+		MMCamera* cam = lctx.jobj_to_obj<MMCamera>(holder_image);
+		if (cam != nullptr)
+		{
+			tex = cam->get_texture();
+		}
+	}
+	else if (clsname == "MMLazyVideo")
+	{
+		MMLazyVideo* video = lctx.jobj_to_obj<MMLazyVideo>(holder_image);
+		if (video != nullptr)
+		{
+			tex = video->get_texture();
+		}
+	}
+	else if (clsname == "MMVideo")
+	{
+		MMVideo* video = lctx.jobj_to_obj<MMVideo>(holder_image);
+		if (video != nullptr)
+		{
+			tex = video->get_texture();
+		}
+	}
+
+	int x, y, width, height;
+	lctx.jnum_to_num(info[1], x);
+	lctx.jnum_to_num(info[2], y);
+	lctx.jnum_to_num(info[3], width);
+	lctx.jnum_to_num(info[4], height);
+
+	GLRenderTarget* target = nullptr;
+
+	if (info.Length() < 6)
+	{
+		GamePlayer* player = lctx.player();
+		target = &player->renderTarget();
+	}
+	else
+	{
+		v8::Local<v8::Object> holder_viewer = info[5].As<v8::Object>();
+		std::string clsname = lctx.jstr_to_str(holder_viewer->GetConstructorName());
+		if (clsname == "UI3DViewer")
+		{
+			UI3DViewer* viewer = lctx.jobj_to_obj<UI3DViewer>(holder_viewer);
+			target = &viewer->render_target;
+		}
+		else if (clsname == "GLRenderTarget")
+		{
+			target = lctx.jobj_to_obj<GLRenderTarget>(holder_viewer);
+		}
+	}
+	
+	self->renderTexture(tex, x, y, width, height, *target);
 }

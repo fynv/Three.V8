@@ -1042,24 +1042,6 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 	PreRender pre;
 	_pre_render(scene, pre);
 	_render(scene, camera, target, pre);	
-
-
-#if 0
-	// visualize shadow map
-	for (size_t i = 0; i < pre.directional_lights.size(); i++)
-	{
-		DirectionalLight* light = pre.directional_lights[i];
-		if (light->shadow != nullptr)
-		{
-			if (TextureVisualizer == nullptr)
-			{
-				TextureVisualizer = std::unique_ptr<DrawTexture>(new DrawTexture);
-			}
-			TextureVisualizer->render(light->shadow->m_lightTex, 10, 10, 128, 128);
-			break;
-		}
-	}
-#endif
 }
 
 void GLRenderer::renderCube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar)
@@ -1575,3 +1557,14 @@ void GLRenderer::renderCelluloid(Scene& scene, Camera& camera, GLRenderTarget* l
 		alpha_demodulate->render(t_alpha.m_tex_video->tex_id, 0, 0, layer_alpha->m_width, layer_alpha->m_height);
 	}
 }
+
+void GLRenderer::renderTexture(GLTexture2D* tex, int x, int y, int width, int height, GLRenderTarget& target)
+{
+	if (TextureDraw == nullptr)
+	{
+		TextureDraw = std::unique_ptr<DrawTexture>(new DrawTexture(false, true));
+	}	
+	glBindFramebuffer(GL_FRAMEBUFFER, target.m_fbo_video);
+	TextureDraw->render(tex->tex_id, x, target.m_height - (y + height), width, height);
+}
+
