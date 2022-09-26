@@ -3,9 +3,11 @@
 #include "WrapperUtils.hpp"
 #include "core/Object3D.hpp"
 #include <renderers/GLRenderTarget.h>
+#if THREE_MM
 #include <MMCamera.h>
 #include <MMLazyVideo.h>
 #include <MMPlayer.h>
+#endif
 #include <models/GLTFModel.h>
 #include <models/GeometryCreator.h>
 #include <utils/Image.h>

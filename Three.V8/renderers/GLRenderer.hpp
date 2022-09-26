@@ -5,6 +5,11 @@
 #include <scenes/Scene.h>
 #include <cameras/Camera.h>
 #include <gui/UI3DViewer.h>
+#if THREE_MM
+#include <MMCamera.h>
+#include <MMLazyVideo.h>
+#include <MMPlayer.h>
+#endif
 
 class WrapperGLRenderer
 {
@@ -19,7 +24,9 @@ private:
 	static void RenderLayers(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void RenderLayersToCube(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void RenderCelluloid(const v8::FunctionCallbackInfo<v8::Value>& info);
+#if THREE_MM
 	static void RenderTexture(const v8::FunctionCallbackInfo<v8::Value>& info);
+#endif
 };
 
 v8::Local<v8::FunctionTemplate> WrapperGLRenderer::create_template(v8::Isolate* isolate, v8::FunctionCallback constructor)
@@ -34,8 +41,9 @@ v8::Local<v8::FunctionTemplate> WrapperGLRenderer::create_template(v8::Isolate* 
 	templ->InstanceTemplate()->Set(isolate, "renderLayersToCube", v8::FunctionTemplate::New(isolate, RenderLayersToCube));
 
 	templ->InstanceTemplate()->Set(isolate, "renderCelluloid", v8::FunctionTemplate::New(isolate, RenderCelluloid));
-
+#if THREE_MM
 	templ->InstanceTemplate()->Set(isolate, "renderTexture", v8::FunctionTemplate::New(isolate, RenderTexture));
+#endif
 	return templ;
 }
 
@@ -178,6 +186,7 @@ void WrapperGLRenderer::RenderCelluloid(const v8::FunctionCallbackInfo<v8::Value
 	self->renderCelluloid(*scene, *camera, target_base, target_lighting, target_alpha);
 }
 
+#if THREE_MM
 void WrapperGLRenderer::RenderTexture(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	LocalContext lctx(info);
@@ -243,3 +252,4 @@ void WrapperGLRenderer::RenderTexture(const v8::FunctionCallbackInfo<v8::Value>&
 	
 	self->renderTexture(tex, x, y, width, height, *target);
 }
+#endif
