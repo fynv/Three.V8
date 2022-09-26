@@ -128,3 +128,16 @@ Set a texture image as the base color map of the model.
 `.setColorTexture`(`target`: [GLRenderTarget](GLRenderTarget.html)): undefined
 
 Use a rendering result as the base color map of the model.
+
+`.setColorTexture`(`mmcamera`: [MMCamera](MMCamera.html)): undefined
+
+Usa a web-camera image source as the base color map of the model.
+
+`.setColorTexture`(`mmlazyvideo`: [MMLazyVideo](MMLazyVideo.html)): undefined
+
+Usa a video-file image source as the base color map of the model.
+
+`.setColorTexture`(`mmvideo`: [MMVideo](MMVideo.html)): undefined
+
+Usa a video-file player as the base color map of the model.
+

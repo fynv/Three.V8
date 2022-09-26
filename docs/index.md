@@ -69,16 +69,28 @@ The user script APIs consist of
 | [UILineEdit](UILineEdit.html)                             | Editable text box in a UI.                                   |
 | [UI3DViewer](UI3DViewer.html)                             | Object for embedding a 3D view in a UI.                      |
 
+# Engine Classes (Multimedia)
+
+| Class Name                                                | Description                                                  |
+| --------------------------------------------------------  | ------------------------------------------------------------ |
+| [MMCamera](MMCamera.html)                                 | Represents an image source from a web-camera.                |
+| [MMLazyVideo](MMLazyVideo.html)                           | Represents an image source from a video-file.                |
+| [MMVideo](MMVideo.html)                                   | Represents a background video-file player.                   |
+| [MMAudio](MMAudio.html)                                   | Represents a background audio-file player.                   |
+
+
 # Global Functions
 
 These are functions that can be called directly in user script.
 
-| Function Name                                             | Description                                                  |
-| --------------------------------------------------------  | ------------------------------------------------------------ |
-| [print()](#print)                                         | Print strings to `stdout`                                    |
-| [setCallback()](#setcallback)                             | Register a callback function.                                |
-| [now()](#now)                                             | Current time in milliseconds.                                |
-| [getGLError()](#getglerror)                               | Get the last OpenGL error code for debugging.                |
+| Function Name                                                             | Description                                                  |
+| ------------------------------------------------------------------------  | ------------------------------------------------------------ |
+| [print()](#print)                                                         | Print strings to `stdout`                                    |
+| [setCallback()](#setcallback)                                             | Register a callback function.                                |
+| [now()](#now)                                                             | Current time in milliseconds.                                |
+| [getGLError()](#getglerror)                                               | Get the last OpenGL error code for debugging.                |
+| [getListOfCameras()](#getlistofcameras)                                   | Get a list of camera device names.                           |
+| [getListOfAudioPlaybackDevices()](#getlistofaudioplaybackdevices)         | Get a list of audio playback device names.                   |
 
 ## print()
 
@@ -109,6 +121,18 @@ Current time in milliseconds.
 `getGLError`(): Number
 
 Get the last OpenGL error code for debugging.
+
+## getListOfCameras()
+
+`getListOfCameras`(): Array
+
+Get a list of camera device names.
+
+## getListOfAudioPlaybackDevices()
+
+`getListOfAudioPlaybackDevices`(): Array
+
+Get a list of audio playback device names.
 
 # Global Objects
 

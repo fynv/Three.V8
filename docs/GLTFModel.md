@@ -78,6 +78,18 @@ Replace the texture of `name` with `image`.
 
 Use the rendering result of `target` to replace the texture of `name`.
 
+`.setTexture`(`name`: String, `mmcamera`: [MMCamera](MMCamera.html)): undefined
+
+Usa a web-camera image source `mmcamera` to replace the texture of `name`.
+
+`.setTexture`(`name`: String, `mmlazyvideo`: [MMLazyVideo](MMLazyVideo.html)): undefined
+
+Usa a video-file image source `mmlazyvideo` to replace the texture of `name`.
+
+`.setTexture`(`name`: String, `mmvideo`: [MMVideo](MMVideo.html)): undefined
+
+Usa a video-file player `mmvideo` to replace the texture of `name`.
+
 ## setAnimationFrame()
 
 `.setAnimationFrame`(`frame`: Object): undefined

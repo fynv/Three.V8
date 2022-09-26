@@ -38,6 +38,8 @@ The Windows implementation requires Visual Studio 2022 to be built, becuase:
 * [glew](https://github.com/nigels-com/glew): For OpenGL Wrangling.
 * [bvh](https://github.com/madmann91/bvh): For acceleration of ray-casting.
 * [crc64](https://github.com/srned/baselib): For state hashing.
+* [ffmpeg](https://ffmpeg.org): For multimedia codecs.
+* [PortAudio](http://www.portaudio.com/): For audio I/O.
 
 ## Building
 
