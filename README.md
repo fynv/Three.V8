@@ -50,10 +50,24 @@ Building is straightforward using Visual Studio 2022. Just make sure to resolve 
 Run the executable "GamePlayer\bin\Release\GamePlayer.exe":
 
 ![screenshot.png](docs/screenshot.png)
-
+tolerance
 The script "../../../game/bundle.js" is loaded by default. You can load your own script by clicking the button "Load Script".
 
 The engine doesn't support ES6 modules eg. "import". User scripts need to be pre-bundled using bundlers like [rollup.js](https://rollupjs.org/)
+
+## Security Model
+
+Three.V8 is NOT a web-browser, therefore it does not always follow the web-security protocols.
+
+Instead, Three.V8 works like other script-based game-engines, i.e., the script is a part of the application package.
+
+Part of the scripting APIs does have direct access to native file-systems and devices. There is not a web-browser style sandbox.
+
+"eval()" should be banned in production code. The engine ensures that only the scripts pass from the host application can be executed. As a result, we consider the host application to have full responsibility that the executed scripts come from reliable sources.
+
+Note that the network scripting APIs are capable of obtaining all kinds of data from the internet, including scripts. We just make sure that the scripts obtained this way doesn't have a chance to get executed.
+
+Updating the scripts from a remote source can possibly be conducted by the host application, which would provide some extra convinience. However, this type of behavior might be forbidden by some mobile platforms, even if the sources are reliable. We therefore call for some reasonable tolerance from these platforms. 
 
 ## License
 The source code is licensed under ['"Anti 996" License'](https://github.com/996icu/996.ICU/blob/master/LICENSE) by Fei Yang and Vulcan Eon (北京鲜衣怒马文化传媒有限公司).
