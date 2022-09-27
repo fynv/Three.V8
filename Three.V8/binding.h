@@ -14,10 +14,10 @@ public:
 	V8VM(const char* exec_path);
 	~V8VM();
 
-	v8::Isolate* m_isolate;	
-   
-private:
 	std::unique_ptr<v8::Platform> m_platform;
+	v8::Isolate* m_isolate;	
+
+private:	
 	v8::ArrayBuffer::Allocator* m_array_buffer_allocator;
 };
 

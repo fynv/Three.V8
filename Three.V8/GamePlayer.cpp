@@ -67,7 +67,8 @@ void GamePlayer::Idle()
 {
 	if (m_context != nullptr)
 	{
-		m_context->CheckPendings();
+		m_context->CheckPendings();		
+		v8::platform::PumpMessageLoop(m_v8vm.m_platform.get(), m_v8vm.m_isolate);		
 	}
 }
 
