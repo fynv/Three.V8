@@ -71,6 +71,7 @@ V8VM::~V8VM()
 #include "gui/UITextBlock.hpp"
 #include "gui/UIImage.hpp"
 #include "gui/UI3DViewer.hpp"
+#include "gui/UIDraggable.hpp"
 
 #if THREE_MM
 #include "multimedia/MMCamera.hpp"
@@ -124,6 +125,7 @@ GlobalDefinitions GameContext::s_globals =
 		{ "UITextBlock", WrapperUITextBlock::New, WrapperUITextBlock::create_template},
 		{ "UIImage", WrapperUIImage::New, WrapperUIImage::create_template},
 		{ "UI3DViewer", WrapperUI3DViewer::New, WrapperUI3DViewer::create_template},
+		{ "UIDraggable", WrapperUIDraggable::New, WrapperUIDraggable::create_template},
 
 #if THREE_MM
 		{ "MMCamera", WrapperMMCamera::New, WrapperMMCamera::create_template},

@@ -285,6 +285,9 @@
     <ClCompile Include="renderers\routines\AlphaDem.cpp">
       <Filter>Source Files\renderers\routines</Filter>
     </ClCompile>
+    <ClCompile Include="gui\UIDraggable.cpp">
+      <Filter>Source Files\gui</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -490,6 +493,9 @@
     </ClInclude>
     <ClInclude Include="utils\Semaphore.h">
       <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="gui\UIDraggable.h">
+      <Filter>Header Files\gui</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -189,6 +189,9 @@
     <ClInclude Include="multimedia\MMVideo.hpp">
       <Filter>Header Files\multimedia</Filter>
     </ClInclude>
+    <ClInclude Include="gui\UIDraggable.hpp">
+      <Filter>Header Files\gui</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="binding.cpp">

@@ -7,6 +7,7 @@
 #include "UIScrollViewer.h"
 #include "UI3DViewer.h"
 #include "UILineEdit.h"
+#include "UIDraggable.h"
 #include "utils/Utils.h"
 
 void UIManager::add(UIArea* object)
@@ -193,11 +194,23 @@ public:
 			{
 				if (ret.press_elem == nullptr)
 				{
-					UIButton* btn = dynamic_cast<UIButton*>(elem);
-					if (btn != nullptr)
+					do
 					{
-						ret.press_elem = btn;
-					}
+						UIButton* btn = dynamic_cast<UIButton*>(elem);
+						if (btn != nullptr)
+						{
+							ret.press_elem = btn;
+							break;
+						}
+
+						UIDraggable* draggable = dynamic_cast<UIDraggable*>(elem);
+						if (draggable != nullptr)
+						{
+							ret.press_elem = draggable;
+							break;
+						}
+
+					} while (false);
 				}
 				if (ret.scroll_elem == nullptr)
 				{
@@ -476,12 +489,24 @@ bool UIManager::PointerDown(float x, float y)
 {
 	if (hit[0].press_elem != nullptr)
 	{
-		UIButton* btn = dynamic_cast<UIButton*>(hit[0].press_elem);
-		if (btn != nullptr)
+		do
 		{
-			btn->pressed = true;
-			btn->appearance_changed = true;			
-		}
+			UIButton* btn = dynamic_cast<UIButton*>(hit[0].press_elem);
+			if (btn != nullptr)
+			{
+				btn->pressed = true;
+				btn->appearance_changed = true;
+				break;
+			}
+
+			UIDraggable* draggable = dynamic_cast<UIDraggable*>(hit[0].press_elem);
+			if (draggable != nullptr)
+			{
+				draggable->dragging = true;			
+				pos_record = draggable->origin;
+				break;
+			}
+		} while (false);
 		pressed_state = 1;
 	}
 
@@ -531,19 +556,31 @@ bool UIManager::PointerUp(float x, float y)
 	{
 		if (pressed_state == 1)
 		{
-			UIButton* btn = dynamic_cast<UIButton*>(hit[0].press_elem);
-			if (btn != nullptr)
+			do
 			{
-				if (btn->pressed)
+				UIButton* btn = dynamic_cast<UIButton*>(hit[0].press_elem);
+				if (btn != nullptr)
 				{
-					if (btn->click_callback != nullptr)
+					if (btn->pressed)
 					{
-						btn->click_callback(btn->click_callback_data);
+						if (btn->click_callback != nullptr)
+						{
+							btn->click_callback(btn->click_callback_data);
+						}
+						btn->pressed = false;
+						btn->appearance_changed = true;
 					}
-					btn->pressed = false;
-					btn->appearance_changed = true;
-				}			
-			}			
+					break;
+				}
+
+				UIDraggable* draggable = dynamic_cast<UIDraggable*>(hit[0].press_elem);
+				if (draggable != nullptr)
+				{
+					draggable->dragging = false;
+					break;
+				}
+
+			} while (false);
 		}
 		pressed_state = 0;
 	}	
@@ -566,21 +603,36 @@ bool UIManager::PointerUp(float x, float y)
 
 bool UIManager::PointerMove(float x, float y)
 {
+	glm::vec2 delta;
+	if (hit[0].area != nullptr)
+	{
+		delta = (glm::vec2(x, y) - pos_down) / hit[0].area->scale;
+	} 
+
 	if (hit[0].scroll_elem != nullptr)
 	{
-		glm::vec2 delta = (glm::vec2(x, y) - pos_down) / hit[0].area->scale;
-
 		if (hit[0].press_elem != nullptr && pressed_state == 1)
 		{			
 			float dis = glm::length(delta);
 			if (dis > 3.0f)
 			{
-				UIButton* btn = dynamic_cast<UIButton*>(hit[0].press_elem);
-				if (btn != nullptr && btn->pressed)
-				{					
-					btn->pressed = false;
-					btn->appearance_changed = true;
-				}
+				do
+				{
+					UIButton* btn = dynamic_cast<UIButton*>(hit[0].press_elem);
+					if (btn != nullptr && btn->pressed)
+					{
+						btn->pressed = false;
+						btn->appearance_changed = true;
+						break;
+					}
+
+					UIDraggable* draggable = dynamic_cast<UIDraggable*>(hit[0].press_elem);
+					if (draggable != nullptr)
+					{
+						draggable->dragging = false;
+						break;
+					}
+				} while (false);
 				hit[0].press_elem = nullptr;
 				pressed_state = 0;
 			}
@@ -594,7 +646,7 @@ bool UIManager::PointerMove(float x, float y)
 			if (scroll_bound.y < 0.0f) scroll_bound.y = 0.0f;
 
 			if (view->scrollable_horizontal)
-			{
+			{				
 				view->scroll_position.x = pos_scroll.x - delta.x;
 				if (view->scroll_position.x < 0.0f) view->scroll_position.x = 0.0f;
 				if (view->scroll_position.x > scroll_bound.x) view->scroll_position.x = scroll_bound.x;
@@ -613,42 +665,75 @@ bool UIManager::PointerMove(float x, float y)
 
 	if (hit[0].press_elem != nullptr && pressed_state == 1)
 	{		
-		UIButton* btn = dynamic_cast<UIButton*>(hit[0].press_elem);
-		if (btn != nullptr)
+		do
 		{
-			AreaIntersector inter(hit[0].area);
-			HitResult res = inter.hit(x, y);
-			if (res.press_elem == hit[0].press_elem)
+			UIButton* btn = dynamic_cast<UIButton*>(hit[0].press_elem);
+			if (btn != nullptr)
 			{
-				if (!btn->pressed)
+				AreaIntersector inter(hit[0].area);
+				HitResult res = inter.hit(x, y);
+				if (res.press_elem == hit[0].press_elem)
 				{
-					btn->pressed = true;
-					btn->appearance_changed = true;
+					if (!btn->pressed)
+					{
+						btn->pressed = true;
+						btn->appearance_changed = true;
+					}
 				}
+				else
+				{
+					if (btn->pressed)
+					{
+						btn->pressed = false;
+						btn->appearance_changed = true;
+					}
+				}
+				break;
 			}
-			else
+
+			UIDraggable* draggable = dynamic_cast<UIDraggable*>(hit[0].press_elem);
+			if (draggable != nullptr)
 			{
-				if (btn->pressed)
+				if (draggable->draggable_horizontal)
 				{
-					btn->pressed = false;
-					btn->appearance_changed = true;
+					draggable->origin.x = pos_record.x + delta.x;
+					if (draggable->origin.x < draggable->origin_min.x) draggable->origin.x = draggable->origin_min.x;
+					if (draggable->origin.x > draggable->origin_max.x) draggable->origin.x = draggable->origin_max.x;
+					draggable->appearance_changed = true;
 				}
+
+				if (draggable->draggable_vertical)
+				{
+					draggable->origin.y += pos_record.y + delta.y;
+					if (draggable->origin.y < draggable->origin_min.y) draggable->origin.y = draggable->origin_min.y;
+					if (draggable->origin.y > draggable->origin_max.y) draggable->origin.y = draggable->origin_max.y;
+					draggable->appearance_changed = true;
+				}
+				
+				glm::vec2 value;
+				draggable->get_value(value);
+
+				if (draggable->drag_callback != nullptr)
+				{
+					draggable->drag_callback(draggable->drag_callback_data, value);
+				}
+				break;
 			}
-		}	
+		} while (false);
 	}
 
 
 	return hit[0].first_elem != nullptr;
 }
 
-bool UIManager::LongPress(float x, float y)
+bool UIManager::LongPress(float x, float y)	
 {
 	if (hit[0].press_elem != nullptr && pressed_state == 1)
-	{
-		pressed_state = 2;
+	{		
 		UIButton* btn = dynamic_cast<UIButton*>(hit[0].press_elem);
 		if (btn != nullptr)
 		{
+			pressed_state = 2;
 			if (btn->pressed)
 			{
 				if (btn->long_press_callback != nullptr)
@@ -659,7 +744,7 @@ bool UIManager::LongPress(float x, float y)
 				btn->appearance_changed = true;
 			}
 
-			hit[0].scroll_elem = nullptr;
+			hit[0].press_elem = nullptr;
 		}
 	}
 	return hit[0].first_elem != nullptr;

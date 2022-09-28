@@ -140,6 +140,7 @@
     <ClInclude Include="gui\UIArea.hpp" />
     <ClInclude Include="gui\UIBlock.hpp" />
     <ClInclude Include="gui\UIButton.hpp" />
+    <ClInclude Include="gui\UIDraggable.hpp" />
     <ClInclude Include="gui\UIElement.hpp" />
     <ClInclude Include="gui\UIImage.hpp" />
     <ClInclude Include="gui\UILineEdit.hpp" />

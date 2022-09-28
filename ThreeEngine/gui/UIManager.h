@@ -28,6 +28,7 @@ public:
 	int pressed_state = 0;
 	HitResult hit[3];
 	glm::vec2 pos_down;
+	glm::vec2 pos_record;
 	glm::vec2 pos_scroll;
 
 	UIElement* focus_elem = nullptr;

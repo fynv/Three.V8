@@ -139,6 +139,7 @@
     <ClCompile Include="gui\UIArea.cpp" />
     <ClCompile Include="gui\UIBlock.cpp" />
     <ClCompile Include="gui\UIButton.cpp" />
+    <ClCompile Include="gui\UIDraggable.cpp" />
     <ClCompile Include="gui\UIElement.cpp" />
     <ClCompile Include="gui\UIImage.cpp" />
     <ClCompile Include="gui\UILineEdit.cpp" />
@@ -204,6 +205,7 @@
     <ClInclude Include="gui\UIArea.h" />
     <ClInclude Include="gui\UIBlock.h" />
     <ClInclude Include="gui\UIButton.h" />
+    <ClInclude Include="gui\UIDraggable.h" />
     <ClInclude Include="gui\UIElement.h" />
     <ClInclude Include="gui\UIImage.h" />
     <ClInclude Include="gui\UILineEdit.h" />
