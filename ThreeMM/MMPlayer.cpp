@@ -647,7 +647,7 @@ void MMPlayer::set_position(uint64_t pos)
 	}
 	else
 	{
-		if (m_v_idx >= 0)
+		/*if (m_v_idx >= 0)
 		{
 			avformat_seek_file(m_p_fmt_ctx, -1, INT64_MIN, pos, INT64_MAX, 0);
 
@@ -682,7 +682,7 @@ void MMPlayer::set_position(uint64_t pos)
 				m_last_video_buf = this_buf;
 				m_updated = true;
 			}
-		}
+		}*/
 		m_sync_progress = pos;
 	}
 }

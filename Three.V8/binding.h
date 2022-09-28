@@ -100,5 +100,7 @@ private:
 	static void GetListOfAudioPlaybackDevices(const v8::FunctionCallbackInfo<v8::Value>& args);
 #endif
 
+	static void GeneralCall(const v8::FunctionCallbackInfo<v8::Value>& args);
+
 	static void WeakCallback(v8::WeakCallbackInfo<GameContext> const& data);
 };

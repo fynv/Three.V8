@@ -105,5 +105,6 @@ void WrapperUIImage::SetImage(const v8::FunctionCallbackInfo<v8::Value>& info)
 	self->id_image = renderer.CreateImage(image);
 	self->size.x = (float)image->width();
 	self->size.y = (float)image->height();
+	self->appearance_changed = true;
 
 }

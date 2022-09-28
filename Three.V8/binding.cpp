@@ -91,6 +91,7 @@ GlobalDefinitions GameContext::s_globals =
 		{"getListOfCameras", GameContext::GetListOfCameras},
 		{"getListOfAudioPlaybackDevices", GameContext::GetListOfAudioPlaybackDevices},
 #endif
+		{"generalCall", GameContext::GeneralCall},
 	},
 	{
 		{ "Object3D", WrapperObject3D::New,  WrapperObject3D::create_template },
@@ -422,6 +423,54 @@ void GameContext::GetListOfAudioPlaybackDevices(const v8::FunctionCallbackInfo<v
 	args.GetReturnValue().Set(ret);
 }
 #endif
+
+#ifdef _WIN32
+#include <commdlg.h>
+#endif
+
+void GameContext::GeneralCall(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+	LocalContext lctx(args);
+	v8::Local<v8::String> ret;
+	std::string cmd = lctx.jstr_to_str(args[0]);
+
+#ifdef _WIN32
+	if (cmd == "OpenFile")
+	{
+		v8::String::Value filter_name(lctx.isolate, args[1]);
+		v8::String::Value filter_ext(lctx.isolate, args[2]);
+
+		wchar_t filter[1024];
+		wsprintf(filter, L"%s", (wchar_t*)(*filter_name));
+
+		int pos = lstrlenW(filter);
+		wsprintf(filter+pos+1, L"%s", (wchar_t*)(*filter_ext));
+
+		int pos2 = lstrlenW(filter + pos + 1);
+		filter[pos + 1 + pos2 + 1] = 0;
+
+
+		wchar_t buffer[1024];
+		OPENFILENAMEW ofn{0};
+		ofn.lStructSize = sizeof(ofn);
+		ofn.hwndOwner = NULL;
+		ofn.lpstrFile = buffer;
+		ofn.lpstrFile[0] = 0;
+		ofn.nMaxFile = 1024;
+		ofn.lpstrFilter = filter;
+		ofn.nFilterIndex = 1;
+		ofn.lpstrFileTitle = NULL;
+		ofn.nMaxFileTitle = 0;
+		ofn.lpstrInitialDir = NULL;
+		ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+		::GetOpenFileName(&ofn);
+
+		ret = v8::String::NewFromTwoByte(lctx.isolate, (uint16_t*)buffer).ToLocalChecked();
+	}
+#endif
+
+	args.GetReturnValue().Set(ret);
+}
 
 void GameContext::WeakCallback(v8::WeakCallbackInfo<GameContext> const& data)
 {
