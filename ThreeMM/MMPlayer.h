@@ -6,6 +6,7 @@
 
 const std::vector<std::string>& GetNamesAudioPlaybackDevices(bool refresh, int* id_default = nullptr);
 
+class HttpClient;
 class MMPlayer;
 class MMAudio
 {
@@ -32,7 +33,6 @@ private:
 
 };
 
-class HttpClient;
 class GLTexture2D;
 class MMVideo
 {
