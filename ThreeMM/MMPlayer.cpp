@@ -288,6 +288,7 @@ private:
 					while (player->m_audio_playing && !eof && queue.Size() == 0)
 					{
 						if (!player->m_demuxing) eof = true;
+						std::this_thread::sleep_for(std::chrono::microseconds(10));
 					}
 					if (!player->m_audio_playing || eof) break;
 
@@ -309,6 +310,7 @@ private:
 							while (player->m_audio_playing && !eof && queue.Size() == 0)
 							{
 								if (!player->m_demuxing) eof = true;
+								std::this_thread::sleep_for(std::chrono::microseconds(10));
 							}
 							if (!player->m_audio_playing || eof) break;
 							*self->m_p_packet = queue.Pop();
