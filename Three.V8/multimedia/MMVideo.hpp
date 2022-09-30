@@ -79,7 +79,6 @@ void WrapperMMVideo::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 	MMVideo* self;
 	if (http)
 	{
-		GamePlayer* player = lctx.player();
 		HttpClient* http = lctx.ctx()->GetHttpClient();
 		self = new MMVideo(http, filename.c_str(), play_audio, device, speed);
 	}

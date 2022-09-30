@@ -70,8 +70,7 @@ void WrapperMMAudio::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 
 	MMAudio* self;
 	if (http)
-	{
-		GamePlayer* player = lctx.player();
+	{		
 		HttpClient* http = lctx.ctx()->GetHttpClient();
 		self = new MMAudio(http, filename.c_str(), device, speed);
 	}
