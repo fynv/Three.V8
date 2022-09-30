@@ -13,6 +13,7 @@ public:
 	bool m_is_loop = false;
 
 	MMAudio(const char* filename, int id_audio_device=-1, int speed = 1);
+	MMAudio(HttpClient* http, const char* url, int id_audio_device = -1, int speed = 1);
 	~MMAudio();
 
 	bool is_playing() const;	
@@ -31,6 +32,7 @@ private:
 
 };
 
+class HttpClient;
 class GLTexture2D;
 class MMVideo
 {
@@ -38,6 +40,7 @@ public:
 	bool m_is_loop = false;
 
 	MMVideo(const char* filename, bool play_audio, int id_audio_device = -1, int speed = 1);
+	MMVideo(HttpClient* http, const char* url, bool play_audio, int id_audio_device = -1, int speed = 1);
 	~MMVideo();
 
 	int width() const;

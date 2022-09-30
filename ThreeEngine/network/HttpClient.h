@@ -18,6 +18,7 @@ using tcp = net::ip::tcp;           // from <boost/asio/ip/tcp.hpp>
 #include <string>
 #include <vector>
 #include <unordered_set>
+#include <unordered_map>
 
 namespace std
 {
@@ -44,6 +45,9 @@ public:
 
 	bool Get(const char* url, std::vector<unsigned char>& data);
 	void GetAsync(const char* url, GetCallback callback, void* userData);
+
+	bool GetHeaders(const char* url, std::unordered_map<std::string, std::string>& headers);
+	bool GetRange(const char* url, size_t offset, size_t size, std::vector<unsigned char>& data);
 
 private:
 	net::io_context m_ioc;

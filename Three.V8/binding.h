@@ -62,6 +62,7 @@ public:
 	ContextT m_context;
 
 	GamePlayer* GetGamePlayer() const { return m_gamePlayer; }
+	HttpClient* GetHttpClient() const { return m_http.get(); }
 	UIManager* GetUIManager() const { return m_ui_manager.get(); }
 
 	v8::Function* GetCallback(const char* name);

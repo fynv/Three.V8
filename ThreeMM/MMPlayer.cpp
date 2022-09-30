@@ -33,6 +33,7 @@ public:
 	class VideoPlayback;
 
 	MMPlayer(const char* fn, bool play_audio = true, bool play_video = true, int id_audio_device = 0, int speed = 1);
+	MMPlayer(HttpClient* http, const char* url, bool play_audio = true, bool play_video = true, int id_audio_device = 0, int speed = 1);
 	~MMPlayer();
 
 	uint64_t get_duration() const { return m_duration; }
@@ -522,6 +523,97 @@ MMPlayer::MMPlayer(const char* fn, bool play_audio, bool play_video, int id_audi
 	m_sync_progress = 0;
 }
 
+MMPlayer::MMPlayer(HttpClient* http, const char* url, bool play_audio, bool play_video , int id_audio_device, int speed)
+	: m_id_audio_device(id_audio_device), m_speed(speed)
+{
+	static bool s_first_time = true;
+	if (s_first_time)
+	{
+		av_log_set_level(AV_LOG_QUIET);
+		s_first_time = false;
+	}
+
+	m_io_ctx = std::unique_ptr<MMIOContext>(new MMHttpStreamContext(http, url));
+	m_p_fmt_ctx = ::avformat_alloc_context();
+	m_p_fmt_ctx->pb = m_io_ctx->get_avio();
+
+	avformat_open_input(&m_p_fmt_ctx, url, nullptr, nullptr);
+	avformat_find_stream_info(m_p_fmt_ctx, nullptr);
+
+	m_duration = m_p_fmt_ctx->duration;
+
+	for (unsigned i = 0; i < m_p_fmt_ctx->nb_streams; i++)
+	{
+		if (play_audio && m_p_fmt_ctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO)
+		{
+			m_a_idx = i;
+			m_audio_time_base_num = m_p_fmt_ctx->streams[i]->time_base.num;
+			m_audio_time_base_den = m_p_fmt_ctx->streams[i]->time_base.den;
+		}
+		if (play_video && m_p_fmt_ctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
+		{
+			m_v_idx = i;
+			m_video_time_base_num = m_p_fmt_ctx->streams[i]->time_base.num;
+			m_video_time_base_den = m_p_fmt_ctx->streams[i]->time_base.den;
+		}
+	}
+
+	// audio
+	if (m_a_idx >= 0)
+	{
+		AVCodecParameters* p_codec_par = m_p_fmt_ctx->streams[m_a_idx]->codecpar;
+		AVCodec* p_codec = avcodec_find_decoder(p_codec_par->codec_id);
+		m_p_codec_ctx_audio = avcodec_alloc_context3(p_codec);
+		avcodec_parameters_to_context(m_p_codec_ctx_audio, p_codec_par);
+		avcodec_open2(m_p_codec_ctx_audio, p_codec, nullptr);
+
+		m_p_frm_raw_audio = av_frame_alloc();
+		m_p_frm_s16_audio = av_frame_alloc();
+
+		int64_t layout_in = av_get_default_channel_layout(m_p_codec_ctx_audio->channels);
+		m_swr_ctx = swr_alloc_set_opts(nullptr, AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_S16, m_p_codec_ctx_audio->sample_rate,
+			layout_in, m_p_codec_ctx_audio->sample_fmt, m_p_codec_ctx_audio->sample_rate, 0, nullptr);
+		swr_init(m_swr_ctx);
+	}
+
+	// video
+	if (m_v_idx >= 0)
+	{
+		AVCodecParameters* p_codec_par = m_p_fmt_ctx->streams[m_v_idx]->codecpar;
+		AVCodec* p_codec = avcodec_find_decoder(p_codec_par->codec_id);
+		m_p_codec_ctx_video = avcodec_alloc_context3(p_codec);
+		avcodec_parameters_to_context(m_p_codec_ctx_video, p_codec_par);
+		avcodec_open2(m_p_codec_ctx_video, p_codec, nullptr);
+
+		m_p_frm_raw_video = av_frame_alloc();
+		m_p_frm_rgb_video = av_frame_alloc();
+
+		m_video_width = m_p_codec_ctx_video->width;
+		m_video_height = m_p_codec_ctx_video->height;
+		m_video_buffer = (std::unique_ptr<Image>)(new Image(m_video_width, m_video_height));
+
+		av_image_fill_arrays(m_p_frm_rgb_video->data, m_p_frm_rgb_video->linesize, m_video_buffer->data(), AV_PIX_FMT_RGBA, m_video_width, m_video_height, 1);
+		m_sws_ctx = sws_getContext(m_video_width, m_video_height, m_p_codec_ctx_video->pix_fmt, m_video_width, m_video_height, AV_PIX_FMT_RGBA, SWS_BICUBIC, nullptr, nullptr, nullptr);
+
+		m_video_bufs[0] = (std::unique_ptr<Image>)(new Image(m_video_width, m_video_height));
+		m_video_bufs[1] = (std::unique_ptr<Image>)(new Image(m_video_width, m_video_height));
+		m_video_bufs[2] = (std::unique_ptr<Image>)(new Image(m_video_width, m_video_height));
+	}
+
+	if (m_a_idx >= 0)
+	{
+		m_queue_audio = (std::unique_ptr<PacketQueue>)(new PacketQueue(42));
+	}
+
+	if (m_v_idx >= 0)
+	{
+		m_queue_video = (std::unique_ptr<PacketQueue>)(new PacketQueue(30));
+	}
+
+	m_p_packet = std::unique_ptr<AVPacket>(new AVPacket);
+
+	m_sync_progress = 0;
+}
 
 MMPlayer::~MMPlayer()
 {
@@ -766,6 +858,15 @@ MMAudio::MMAudio(const char* filename, int id_audio_device, int speed)
 	m_internal = (std::unique_ptr<MMPlayer>)(new MMPlayer(filename, true, false, id_audio_device, speed));
 }
 
+MMAudio::MMAudio(HttpClient* http, const char* url, int id_audio_device, int speed)
+{
+	if (id_audio_device < 0)
+	{
+		GetNamesAudioPlaybackDevices(false, &id_audio_device);
+	}
+	m_internal = (std::unique_ptr<MMPlayer>)(new MMPlayer(http, url, true, false, id_audio_device, speed));
+}
+
 MMAudio::~MMAudio()
 {
 
@@ -815,14 +916,24 @@ void MMAudio::check_eof()
 	}
 }
 
-MMVideo::MMVideo(const char* filename, bool play_audio, int id_audio_device, int speed):
-	m_tex(new GLTexture2D)
+MMVideo::MMVideo(const char* filename, bool play_audio, int id_audio_device, int speed)
+	: m_tex(new GLTexture2D)
 {
 	if (play_audio && id_audio_device < 0)
 	{
 		GetNamesAudioPlaybackDevices(false, &id_audio_device);
 	}
 	m_internal = (std::unique_ptr<MMPlayer>)(new MMPlayer(filename, play_audio, true, id_audio_device, speed));
+}
+
+MMVideo::MMVideo(HttpClient* http, const char* url, bool play_audio, int id_audio_device, int speed)
+	: m_tex(new GLTexture2D)
+{
+	if (play_audio && id_audio_device < 0)
+	{
+		GetNamesAudioPlaybackDevices(false, &id_audio_device);
+	}
+	m_internal = (std::unique_ptr<MMPlayer>)(new MMPlayer(http, url, play_audio, true, id_audio_device, speed));
 }
 
 MMVideo::~MMVideo()

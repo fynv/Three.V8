@@ -73,3 +73,38 @@ private:
 	static int read(void* opaque, unsigned char* buf, int buf_size);
 	static int64_t seek(void* opaque, int64_t offset, int whence);
 };
+
+
+class HttpClient;
+class MMHttpStreamContext : public MMIOContext
+{
+public:
+	MMHttpStreamContext(HttpClient* http, const char* url, size_t buf_size = 4096);
+	virtual ~MMHttpStreamContext();
+
+private:	
+	HttpClient* m_http;
+	std::string m_url;
+	size_t m_file_size = 0;
+
+	// read state
+	size_t m_cur_pos = 0;
+	size_t m_req_size = 0;
+
+	// cache state
+	std::vector<uint8_t> m_cache;
+	size_t m_cache_pos = 0;
+	size_t m_cache_pos_file = 0;
+	size_t m_cached_size = 0;
+
+	// threading	
+	bool m_reading = false;
+	std::unique_ptr<Semaphore> m_sem_req;
+	std::unique_ptr<Semaphore> m_sem_ready;
+
+	static void thread_cache(MMHttpStreamContext* self);
+	std::unique_ptr<std::thread> m_thread_cache;
+
+	static int read(void* opaque, unsigned char* buf, int buf_size);
+	static int64_t seek(void* opaque, int64_t offset, int whence);
+};

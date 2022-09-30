@@ -50,6 +50,12 @@ void WrapperMMAudio::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	LocalContext lctx(info);
 	std::string filename = lctx.jstr_to_str(info[0]);
+	bool http = false;
+	if (filename.length() > 4 && filename.substr(0, 4) == "http")
+	{
+		http = true;
+	}
+
 	int device = -1;
 	int speed = 1;	
 	if (info.Length() > 1)
@@ -62,7 +68,18 @@ void WrapperMMAudio::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 		}
 	}
 
-	MMAudio* self = new MMAudio(filename.c_str(), device, speed);
+	MMAudio* self;
+	if (http)
+	{
+		GamePlayer* player = lctx.player();
+		HttpClient* http = lctx.ctx()->GetHttpClient();
+		self = new MMAudio(http, filename.c_str(), device, speed);
+	}
+	else
+	{
+		self = new MMAudio(filename.c_str(), device, speed);
+	}
+	
 	info.This()->SetAlignedPointerInInternalField(0, self);
 	lctx.ctx()->regiter_object(info.This(), dtor);
 }
