@@ -1,20 +1,18 @@
 #include <boost/url/src.hpp>
 using namespace boost::urls;
 
-#include <boost/certify/extensions.hpp>
-#include <boost/certify/https_verification.hpp>
-
 #include "HttpClient.h"
 #include <iostream>
 #include <thread>
+
+#include "root_certificates.hpp"
 
 HttpClient::HttpClient()
 	: m_resolver(m_ioc)
 	, m_ssl_ctx(ssl::context::tlsv12_client)
 {
-	
+	load_root_certificates(m_ssl_ctx);
 	m_ssl_ctx.set_verify_mode(ssl::context::verify_peer);
-	boost::certify::enable_native_https_server_verification(m_ssl_ctx);
 }
 
 HttpClient::~HttpClient()

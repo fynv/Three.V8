@@ -235,6 +235,7 @@
     <ClInclude Include="models\ModelComponents.h" />
     <ClInclude Include="models\SimpleModel.h" />
     <ClInclude Include="network\HttpClient.h" />
+    <ClInclude Include="network\root_certificates.hpp" />
     <ClInclude Include="renderers\CubeRenderTarget.h" />
     <ClInclude Include="renderers\GLRenderer.h" />
     <ClInclude Include="renderers\GLRenderTarget.h" />

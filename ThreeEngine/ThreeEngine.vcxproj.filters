@@ -497,6 +497,9 @@
     <ClInclude Include="gui\UIDraggable.h">
       <Filter>Header Files\gui</Filter>
     </ClInclude>
+    <ClInclude Include="network\root_certificates.hpp">
+      <Filter>Header Files\network</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
