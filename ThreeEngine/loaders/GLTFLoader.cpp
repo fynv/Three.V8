@@ -225,8 +225,7 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 		int id_mr = pbr.metallicRoughnessTexture.index;
 		if (id_mr >= 0)
 		{
-			tex_opts[id_mr].is_srgb = false;
-			tex_opts[id_mr].reverse = true;
+			tex_opts[id_mr].is_srgb = false;			
 			material_out->tex_idx_metalnessMap = id_mr;
 			material_out->tex_idx_roughnessMap = id_mr;
 		}
