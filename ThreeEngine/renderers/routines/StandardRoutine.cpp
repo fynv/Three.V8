@@ -588,11 +588,11 @@ void main()
 
 	vec3 specularFactor = uSpecularGlossiness.xyz;
 #if HAS_SPECULAR_MAP	
-	specularFactor *= texture2D( uTexSpecular, vUV ).xyz;
+	specularFactor *= texture( uTexSpecular, vUV ).xyz;
 #endif
 	float glossinessFactor = uSpecularGlossiness.w;
 #if HAS_GLOSSINESS_MAP
-	glossinessFactor *= texture2D( uTexGlossiness, vUV ).w;
+	glossinessFactor *= texture( uTexGlossiness, vUV ).w;
 #endif
 
 #else
