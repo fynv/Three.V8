@@ -86,6 +86,7 @@ layout (std140, binding = BINDING_MATERIAL) uniform Material
 {
 	vec4 uColor;
 	vec4 uEmissive;
+	vec4 uSpecularGlossiness;
 	vec2 uNormalScale;
 	float uMetallicFactor;
 	float uRoughnessFactor;
@@ -123,6 +124,14 @@ layout (location = LOCATION_VARYING_WORLD_POS) in vec3 vWorldPos;
 
 #if HAS_EMISSIVE_MAP
 layout (location = LOCATION_TEX_EMISSIVE) uniform sampler2D uTexEmissive;
+#endif
+
+#if HAS_SPECULAR_MAP
+layout (location = LOCATION_TEX_SPECULAR) uniform sampler2D uTexSpecular;
+#endif
+
+#if HAS_GLOSSINESS_MAP
+layout (location = LOCATION_TEX_GLOSSINESS) uniform sampler2D uTexGlossiness;
 #endif
 
 struct IncidentLight {
@@ -575,6 +584,19 @@ void main()
 	if (base_color.w == 0.0) discard;
 #endif
 
+#if SPECULAR_GLOSSINESS
+
+	vec3 specularFactor = uSpecularGlossiness.xyz;
+#if HAS_SPECULAR_MAP	
+	specularFactor *= texture2D( uTexSpecular, vUV ).xyz;
+#endif
+	float glossinessFactor = uSpecularGlossiness.w;
+#if HAS_GLOSSINESS_MAP
+	glossinessFactor *= texture2D( uTexGlossiness, vUV ).w;
+#endif
+
+#else
+
 	float metallicFactor = uMetallicFactor;
 	float roughnessFactor = uRoughnessFactor;
 
@@ -584,6 +606,8 @@ void main()
 
 #if HAS_ROUGHNESS_MAP
 	roughnessFactor *= texture(uTexRoughness, vUV).y;
+#endif
+
 #endif
 
 	vec3 viewDir = normalize(vViewDir);
@@ -605,16 +629,22 @@ void main()
 	}
 
 	PhysicalMaterial material;
-	material.diffuseColor = base_color.xyz * ( 1.0 - metallicFactor );
+
+#if SPECULAR_GLOSSINESS
+	material.diffuseColor = base_color.xyz * ( 1.0 -
+                          max( max( specularFactor.r, specularFactor.g ), specularFactor.b ) );
+	material.roughness = max( 1.0 - glossinessFactor, 0.0525 );	
+	material.specularColor = specularFactor.rgb;
+#else
+	material.diffuseColor = base_color.xyz * ( 1.0 - metallicFactor );	
+	material.roughness = max( roughnessFactor, 0.0525 );	
+	material.specularColor = mix( vec3( 0.04 ), base_color.xyz, metallicFactor );	
+#endif
 
 	vec3 dxy = max(abs(dFdx(norm)), abs(dFdy(norm)));
-	float geometryRoughness = max(max(dxy.x, dxy.y), dxy.z);
-
-	material.roughness = max( roughnessFactor, 0.0525 );
+	float geometryRoughness = max(max(dxy.x, dxy.y), dxy.z);	
 	material.roughness += geometryRoughness;
 	material.roughness = min( material.roughness, 1.0 );
-	
-	material.specularColor = mix( vec3( 0.04 ), base_color.xyz, metallicFactor );
 	material.specularF90 = 1.0;
 
 	vec3 emissive = uEmissive.xyz;
@@ -908,6 +938,15 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 		defines += "#define IS_HIGHTLIGHT 0\n";
 	}
 
+	if (options.specular_glossiness)
+	{
+		defines += "#define SPECULAR_GLOSSINESS 1\n";
+	}
+	else
+	{
+		defines += "#define SPECULAR_GLOSSINESS 0\n";
+	}
+
 	{
 		bindings.binding_material = bindings.binding_model + 1;
 		{
@@ -942,7 +981,8 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 		bindings.location_varying_color = bindings.location_varying_norm;
 	}
 
-	bool has_uv = options.has_color_texture || options.has_metalness_map || options.has_roughness_map || options.has_normal_map || options.has_emissive_map;
+	bool has_uv = options.has_color_texture || options.has_metalness_map || options.has_roughness_map 
+		|| options.has_normal_map || options.has_emissive_map || options.has_specular_map || options.has_glossiness_map;
 
 	if (has_uv)
 	{
@@ -1088,6 +1128,38 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 		bindings.location_tex_emissive = bindings.location_tex_normal;
 	}
 
+	if (options.has_specular_map)
+	{
+		defines += "#define HAS_SPECULAR_MAP 1\n";
+		bindings.location_tex_specular = bindings.location_tex_emissive + 1;
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_TEX_SPECULAR %d\n", bindings.location_tex_specular);
+			defines += line;
+		}
+	}
+	else
+	{
+		defines += "#define HAS_SPECULAR_MAP 0\n";
+		bindings.location_tex_specular = bindings.location_tex_emissive;
+	}
+
+	if (options.has_glossiness_map)
+	{
+		defines += "#define HAS_GLOSSINESS_MAP 1\n";
+		bindings.location_tex_glossiness = bindings.location_tex_specular + 1;
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_TEX_GLOSSINESS %d\n", bindings.location_tex_glossiness);
+			defines += line;
+		}
+	}
+	else
+	{
+		defines += "#define HAS_GLOSSINESS_MAP 0\n";
+		bindings.location_tex_glossiness = bindings.location_tex_specular;
+	}
+
 	{
 		char line[64];
 		sprintf(line, "#define NUM_DIRECTIONAL_LIGHTS %d\n", options.num_directional_lights);
@@ -1114,7 +1186,7 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 		defines += line;
 	}
 
-	bindings.location_tex_directional_shadow = bindings.location_tex_emissive + options.num_directional_shadows;
+	bindings.location_tex_directional_shadow = bindings.location_tex_glossiness + options.num_directional_shadows;
 
 	if (options.num_directional_shadows > 0)
 	{	
@@ -1303,7 +1375,8 @@ void StandardRoutine::render(const RenderParams& params)
 		glEnableVertexAttribArray(m_bindings.location_attrib_color);
 	}
 
-	bool has_uv = m_options.has_color_texture || m_options.has_metalness_map || m_options.has_roughness_map || m_options.has_normal_map || m_options.has_emissive_map;
+	bool has_uv = m_options.has_color_texture || m_options.has_metalness_map || m_options.has_roughness_map 
+		|| m_options.has_normal_map || m_options.has_emissive_map || m_options.has_specular_map || m_options.has_glossiness_map;
 	if (has_uv)
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, params.primitive->uv_buf->m_id);
@@ -1361,6 +1434,22 @@ void StandardRoutine::render(const RenderParams& params)
 		glBindTexture(GL_TEXTURE_2D, tex.tex_id);
 		glUniform1i(m_bindings.location_tex_emissive, m_bindings.location_tex_emissive);
 	}	
+
+	if (m_options.has_specular_map)
+	{
+		const GLTexture2D& tex = *params.tex_list[material.tex_idx_specularMap];
+		glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_specular);
+		glBindTexture(GL_TEXTURE_2D, tex.tex_id);
+		glUniform1i(m_bindings.location_tex_specular, m_bindings.location_tex_specular);
+	}
+
+	if (m_options.has_glossiness_map)
+	{
+		const GLTexture2D& tex = *params.tex_list[material.tex_idx_glossinessMap];
+		glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_glossiness);
+		glBindTexture(GL_TEXTURE_2D, tex.tex_id);
+		glUniform1i(m_bindings.location_tex_glossiness, m_bindings.location_tex_glossiness);
+	}
 
 	if (m_options.num_directional_shadows > 0)
 	{

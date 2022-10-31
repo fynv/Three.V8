@@ -61,6 +61,7 @@ layout (std140, binding = BINDING_MATERIAL) uniform Material
 {
 	vec4 uColor;
 	vec4 uEmissive;
+	vec4 uSpecularGlossiness;
 	vec2 uNormalScale;
 	float uMetallicFactor;
 	float uRoughnessFactor;

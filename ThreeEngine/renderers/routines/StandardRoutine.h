@@ -14,12 +14,15 @@ public:
 	{
 		AlphaMode alpha_mode = AlphaMode::Opaque;
 		bool is_highlight_pass = false;
+		bool specular_glossiness = false;
 		bool has_color = false;
 		bool has_color_texture = false;		
 		bool has_metalness_map = false;
 		bool has_roughness_map = false;
 		bool has_normal_map = false;
 		bool has_emissive_map = false;
+		bool has_specular_map = false;
+		bool has_glossiness_map = false;
 		int num_directional_lights = 0;
 		int num_directional_shadows = 0;
 		bool has_environment_map = false;
@@ -69,6 +72,8 @@ private:
 		int location_attrib_bitangent;
 		int location_varying_bitangent;
 		int location_tex_emissive;
+		int location_tex_specular;
+		int location_tex_glossiness;
 		int location_varying_world_pos;
 		int binding_directional_lights;
 		int binding_directional_shadows;

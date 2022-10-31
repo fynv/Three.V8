@@ -219,17 +219,6 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 		material_out->color = { pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2], pbr.baseColorFactor[3] };
 		material_out->tex_idx_map = pbr.baseColorTexture.index;
 
-		material_out->metallicFactor = pbr.metallicFactor;
-		material_out->roughnessFactor = pbr.roughnessFactor;
-
-		int id_mr = pbr.metallicRoughnessTexture.index;
-		if (id_mr >= 0)
-		{
-			tex_opts[id_mr].is_srgb = false;			
-			material_out->tex_idx_metalnessMap = id_mr;
-			material_out->tex_idx_roughnessMap = id_mr;
-		}
-
 		if (material_in.normalTexture.index >= 0)
 		{
 			tex_opts[material_in.normalTexture.index].is_srgb = false;
@@ -240,6 +229,63 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 
 		material_out->emissive = { material_in.emissiveFactor[0], material_in.emissiveFactor[1], material_in.emissiveFactor[2] };
 		material_out->tex_idx_emissiveMap = material_in.emissiveTexture.index;
+
+		material_out->metallicFactor = pbr.metallicFactor;
+		material_out->roughnessFactor = pbr.roughnessFactor;
+
+		int id_mr = pbr.metallicRoughnessTexture.index;
+		if (id_mr >= 0)
+		{
+			tex_opts[id_mr].is_srgb = false;
+			material_out->tex_idx_metalnessMap = id_mr;
+			material_out->tex_idx_roughnessMap = id_mr;
+		}
+
+		if (material_in.extensions.find("KHR_materials_pbrSpecularGlossiness")!= material_in.extensions.end())
+		{			
+			material_out->specular_glossiness = true;
+			tinygltf::Value::Object& sg = material_in.extensions["KHR_materials_pbrSpecularGlossiness"].Get<tinygltf::Value::Object>();
+
+			if (sg.find("diffuseFactor")!=sg.end())
+			{
+				tinygltf::Value& color = sg["diffuseFactor"];
+				float r = (float)color.Get(0).Get<double>();
+				float g = (float)color.Get(1).Get<double>();
+				float b = (float)color.Get(2).Get<double>();
+				float a = (float)color.Get(3).Get<double>();
+				material_out->color = { r,g,b,a };
+			}
+
+			if (sg.find("diffuseTexture") != sg.end())
+			{
+				tinygltf::Value::Object& tex = sg["diffuseTexture"].Get<tinygltf::Value::Object>();
+				int idx = tex["index"].Get<int>();
+				material_out->tex_idx_map = idx;
+			}
+
+			if (sg.find("glossinessFactor") != sg.end())
+			{
+				float v = (float)sg["glossinessFactor"].Get<double>();
+				material_out->glossinessFactor = v;
+			}
+
+			if (sg.find("specularFactor") != sg.end())
+			{
+				tinygltf::Value& color = sg["specularFactor"];
+				float r = (float)color.Get(0).Get<double>();
+				float g = (float)color.Get(1).Get<double>();
+				float b = (float)color.Get(2).Get<double>();
+				material_out->specular = { r,g,b };
+			}
+
+			if (sg.find("specularGlossinessTexture") != sg.end())
+			{
+				tinygltf::Value::Object& tex = sg["specularGlossinessTexture"].Get<tinygltf::Value::Object>();
+				int idx = tex["index"].Get<int>();
+				material_out->tex_idx_specularMap = idx;
+				material_out->tex_idx_glossinessMap = idx;
+			}
+		}
 
 		material_out->update_uniform();
 	}

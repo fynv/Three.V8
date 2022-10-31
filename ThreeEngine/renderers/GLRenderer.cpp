@@ -197,12 +197,15 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 	StandardRoutine::Options options;
 	options.alpha_mode = material->alphaMode;
 	options.is_highlight_pass = pass == Pass::Highlight;
+	options.specular_glossiness = material->specular_glossiness;
 	options.has_color = params.primitive->color_buf != nullptr;
 	options.has_color_texture = material->tex_idx_map >= 0;
 	options.has_metalness_map = material->tex_idx_metalnessMap >= 0;
 	options.has_roughness_map = material->tex_idx_roughnessMap >= 0;
 	options.has_normal_map = material->tex_idx_normalMap >= 0;
 	options.has_emissive_map = material->tex_idx_emissiveMap >= 0;
+	options.has_specular_map = material->tex_idx_specularMap >= 0;
+	options.has_glossiness_map = material->tex_idx_glossinessMap >= 0;
 	options.num_directional_lights = lights->num_directional_lights;
 	options.num_directional_shadows = lights->num_directional_shadows;
 	options.has_environment_map = lights->environment_map != nullptr;
