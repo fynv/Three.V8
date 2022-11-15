@@ -592,7 +592,7 @@ void EnvironmentMapCreator::Create(const GLCubemap * cubemap, EnvironmentMap * e
 		int w, h;		
 		glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, level + 1, GL_TEXTURE_WIDTH, &w);
 		glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, level + 1, GL_TEXTURE_HEIGHT, &h);		
-		glDispatchCompute(w/8, h/8, 6);
+		glDispatchCompute((w+7)/8, (h+7)/8, 6);
 	}
 
 	// filter pass
