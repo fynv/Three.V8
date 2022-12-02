@@ -520,17 +520,19 @@ void GLRenderer::_render_fog_rm(const Camera& camera, DirectionalLight& light, c
 }
 
 
-void GLRenderer::_pre_render(Scene& scene, PreRender& pre)
+void GLRenderer::_pre_render(Scene& scene)
 {
-	auto* p_pre = &pre;
-	scene.traverse([p_pre](Object3D* obj) {
+	scene.clear_lists();
+
+	auto* p_scene = &scene;
+	scene.traverse([p_scene](Object3D* obj) {
 		do
 		{
 			{
 				SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
 				if (model)
 				{
-					p_pre->simple_models.push_back(model);
+					p_scene->simple_models.push_back(model);
 					break;
 				}
 			}
@@ -538,7 +540,7 @@ void GLRenderer::_pre_render(Scene& scene, PreRender& pre)
 				GLTFModel* model = dynamic_cast<GLTFModel*>(obj);
 				if (model)
 				{
-					p_pre->gltf_models.push_back(model);
+					p_scene->gltf_models.push_back(model);
 					break;
 				}
 			}
@@ -552,7 +554,7 @@ void GLRenderer::_pre_render(Scene& scene, PreRender& pre)
 						pos_target = light->target->matrixWorld[3];
 					}
 					light->lookAt(pos_target);
-					p_pre->directional_lights.push_back(light);
+					p_scene->directional_lights.push_back(light);
 					break;
 				}
 			}
@@ -562,45 +564,22 @@ void GLRenderer::_pre_render(Scene& scene, PreRender& pre)
 	});
 
 	// update models
-	for (size_t i = 0; i < pre.simple_models.size(); i++)
+	for (size_t i = 0; i < scene.simple_models.size(); i++)
 	{
-		SimpleModel* model = pre.simple_models[i];
-		update_simple_model(model);
-
-		const MeshStandardMaterial* material = &model->material;
-		if (material->alphaMode == AlphaMode::Blend)
-		{
-			scene.has_alpha = true;
-		}
-		else
-		{
-			scene.has_opaque = true;
-		}
+		SimpleModel* model = scene.simple_models[i];
+		update_simple_model(model);		
 	}
 
-	for (size_t i = 0; i < pre.gltf_models.size(); i++)
+	for (size_t i = 0; i < scene.gltf_models.size(); i++)
 	{
-		GLTFModel* model = pre.gltf_models[i];
-		update_gltf_model(model);
-		size_t num_materials = model->m_materials.size();
-		for (size_t i = 0; i < num_materials; i++)
-		{
-			const MeshStandardMaterial* material = model->m_materials[i].get();
-			if (material->alphaMode == AlphaMode::Blend)
-			{
-				scene.has_alpha = true;
-			}
-			else
-			{
-				scene.has_opaque = true;
-			}
-		}
+		GLTFModel* model = scene.gltf_models[i];
+		update_gltf_model(model);		
 	}
 
 	// update lights
-	for (size_t i = 0; i < pre.directional_lights.size(); i++)
+	for (size_t i = 0; i < scene.directional_lights.size(); i++)
 	{
-		DirectionalLight* light = pre.directional_lights[i];
+		DirectionalLight* light = scene.directional_lights[i];
 		if (light->shadow != nullptr)
 		{
 			light->shadow->updateMatrices();
@@ -610,15 +589,15 @@ void GLRenderer::_pre_render(Scene& scene, PreRender& pre)
 			glDepthMask(GL_TRUE);
 			glClearBufferfv(GL_DEPTH, 0, &one);
 
-			for (size_t j = 0; j < pre.simple_models.size(); j++)
+			for (size_t j = 0; j < scene.simple_models.size(); j++)
 			{
-				SimpleModel* model = pre.simple_models[j];
+				SimpleModel* model = scene.simple_models[j];
 				render_shadow_model(light->shadow.get(), model);
 			}
 
-			for (size_t j = 0; j < pre.gltf_models.size(); j++)
+			for (size_t j = 0; j < scene.gltf_models.size(); j++)
 			{
-				GLTFModel* model = pre.gltf_models[j];
+				GLTFModel* model = scene.gltf_models[j];
 				render_shadow_model(light->shadow.get(), model);
 			}
 		}
@@ -629,11 +608,11 @@ void GLRenderer::_pre_render(Scene& scene, PreRender& pre)
 	Lights& lights = scene.lights;
 	lights.directional_shadow_texs.clear();
 
-	std::vector<ConstDirectionalLight> const_directional_lights(pre.directional_lights.size());
+	std::vector<ConstDirectionalLight> const_directional_lights(scene.directional_lights.size());
 	std::vector<ConstDirectionalShadow> const_directional_shadows;
-	for (size_t i = 0; i < pre.directional_lights.size(); i++)
+	for (size_t i = 0; i < scene.directional_lights.size(); i++)
 	{
-		DirectionalLight* light = pre.directional_lights[i];
+		DirectionalLight* light = scene.directional_lights[i];
 		ConstDirectionalLight& const_light = const_directional_lights[i];
 		light->makeConst(const_light);
 
@@ -730,29 +709,64 @@ void GLRenderer::_pre_render(Scene& scene, PreRender& pre)
 	}
 }
 
-void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& target, PreRender& pre)
+void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& target)
 {
 	camera.updateMatrixWorld(false);
 	camera.updateConstant();
 
 	// model culling
-	for (size_t i = 0; i < pre.simple_models.size(); i++)
+
+	std::vector<SimpleModel*> simple_models = scene.simple_models;
+	std::vector<GLTFModel*> gltf_models = scene.gltf_models;
+
+	bool has_alpha = false;
+	bool has_opaque = true;
+
+	for (size_t i = 0; i < simple_models.size(); i++)
 	{
-		SimpleModel* model = pre.simple_models[i];
+		SimpleModel* model = simple_models[i];
 		if (!visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->geometry.min_pos, model->geometry.max_pos))
 		{
-			pre.simple_models.erase(pre.simple_models.begin() + i);
+			simple_models.erase(simple_models.begin() + i);
 			i--;
+		}
+		else
+		{
+			const MeshStandardMaterial* material = &model->material;
+			if (material->alphaMode == AlphaMode::Blend)
+			{
+				has_alpha = true;
+			}
+			else
+			{
+				has_opaque = true;
+			}
 		}
 	}
 
-	for (size_t i = 0; i < pre.gltf_models.size(); i++)
+	for (size_t i = 0; i < gltf_models.size(); i++)
 	{
-		GLTFModel* model = pre.gltf_models[i];
+		GLTFModel* model = gltf_models[i];
 		if (!visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->m_min_pos, model->m_max_pos))
 		{
-			pre.gltf_models.erase(pre.gltf_models.begin() + i);
+			gltf_models.erase(gltf_models.begin() + i);
 			i--;
+		}
+		else
+		{
+			size_t num_materials = model->m_materials.size();
+			for (size_t i = 0; i < num_materials; i++)
+			{
+				const MeshStandardMaterial* material = model->m_materials[i].get();
+				if (material->alphaMode == AlphaMode::Blend)
+				{
+					has_alpha = true;
+				}
+				else
+				{
+					has_opaque = true;
+				}
+			}
 		}
 	}
 
@@ -811,39 +825,39 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 	glClearDepth(1.0f);
 	glClear(GL_DEPTH_BUFFER_BIT);
 
-	if (scene.has_opaque)
+	if (has_opaque)
 	{
 		glDisable(GL_BLEND);
 		glDepthMask(GL_TRUE);
 
-		for (size_t i = 0; i < pre.simple_models.size(); i++)
+		for (size_t i = 0; i < simple_models.size(); i++)
 		{
-			SimpleModel* model = pre.simple_models[i];
+			SimpleModel* model = simple_models[i];
 			render_model(&camera, lights, fog, model, Pass::Opaque);
 		}
 
-		for (size_t i = 0; i < pre.gltf_models.size(); i++)
+		for (size_t i = 0; i < scene.gltf_models.size(); i++)
 		{
-			GLTFModel* model = pre.gltf_models[i];
+			GLTFModel* model = scene.gltf_models[i];
 			render_model(&camera, lights, fog, model, Pass::Opaque);
 		}
 	}
 
-	if (scene.has_alpha)
+	if (has_alpha)
 	{
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_ONE, GL_ONE);
 		glDepthMask(GL_FALSE);
 
-		for (size_t i = 0; i < pre.simple_models.size(); i++)
+		for (size_t i = 0; i < simple_models.size(); i++)
 		{
-			SimpleModel* model = pre.simple_models[i];
+			SimpleModel* model = simple_models[i];
 			render_model(&camera, lights, fog, model, Pass::Highlight);
 		}
 
-		for (size_t i = 0; i < pre.gltf_models.size(); i++)
+		for (size_t i = 0; i < scene.gltf_models.size(); i++)
 		{
-			GLTFModel* model = pre.gltf_models[i];
+			GLTFModel* model = scene.gltf_models[i];
 			render_model(&camera, lights, fog, model, Pass::Highlight);
 		}
 
@@ -865,15 +879,15 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 			oit_resolvers[1]->PreDraw(target.m_OITBuffers);
 		}
 
-		for (size_t i = 0; i < pre.simple_models.size(); i++)
+		for (size_t i = 0; i < simple_models.size(); i++)
 		{
-			SimpleModel* model = pre.simple_models[i];
+			SimpleModel* model = simple_models[i];
 			render_model(&camera, lights, fog, model, Pass::Alpha);
 		}
 
-		for (size_t i = 0; i < pre.gltf_models.size(); i++)
+		for (size_t i = 0; i < scene.gltf_models.size(); i++)
 		{
-			GLTFModel* model = pre.gltf_models[i];
+			GLTFModel* model = scene.gltf_models[i];
 			render_model(&camera, lights, fog, model, Pass::Alpha);
 		}
 
@@ -891,9 +905,9 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 
 }
 
-void GLRenderer::_render(Scene& scene, Camera& camera, GLRenderTarget& target, PreRender& pre)
+void GLRenderer::_render(Scene& scene, Camera& camera, GLRenderTarget& target)
 {
-	_render_scene(scene, camera, target, pre);
+	_render_scene(scene, camera, target);
 
 	Lights& lights = scene.lights;
 
@@ -918,140 +932,126 @@ void GLRenderer::_render(Scene& scene, Camera& camera, GLRenderTarget& target, P
 
 		_render_fog(camera, lights, *fog, target);
 
-		for (size_t i = 0; i < pre.directional_lights.size(); i++)
+		for (size_t i = 0; i < scene.directional_lights.size(); i++)
 		{
-			DirectionalLight* light = pre.directional_lights[i];
+			DirectionalLight* light = scene.directional_lights[i];
 			_render_fog_rm(camera, *light, *fog, target);
 		}
 	}
 }
 
-void GLRenderer::_render_scene_to_cube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar, const PreRender& pre)
+void GLRenderer::_render_scene_to_cube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar)
 {
 	{
-		PreRender _pre = pre;
 		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
 		camera.position = position;
 		camera.up = { 0.0f, -1.0f, 0.0f };
 		camera.lookAt(position + glm::vec3(1.0f, 0.0f, 0.0f));
-		_render_scene(scene, camera, *target.m_faces[0], _pre);
+		_render_scene(scene, camera, *target.m_faces[0]);
 	}
 
 	{
-		PreRender _pre = pre;
 		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
 		camera.position = position;
 		camera.up = { 0.0f, -1.0f, 0.0f };
 		camera.lookAt(position + glm::vec3(-1.0f, 0.0f, 0.0f));
-		_render_scene(scene, camera, *target.m_faces[1], _pre);
+		_render_scene(scene, camera, *target.m_faces[1]);
 	}
 
 	{
-		PreRender _pre = pre;
 		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
 		camera.position = position;
 		camera.up = { 0.0f, 0.0f, 1.0f };
 		camera.lookAt(position + glm::vec3(0.0f, 1.0f, 0.0f));
-		_render_scene(scene, camera, *target.m_faces[2], _pre);
+		_render_scene(scene, camera, *target.m_faces[2]);
 	}
 
 	{
-		PreRender _pre = pre;
 		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
 		camera.position = position;
 		camera.up = { 0.0f, 0.0f, -1.0f };
 		camera.lookAt(position + glm::vec3(0.0f, -1.0f, 0.0f));
-		_render_scene(scene, camera, *target.m_faces[3], _pre);
+		_render_scene(scene, camera, *target.m_faces[3]);
 	}
 
 	{
-		PreRender _pre = pre;
 		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
 		camera.position = position;
 		camera.up = { 0.0f, -1.0f, 0.0f };
 		camera.lookAt(position + glm::vec3(0.0f, 0.0f, 1.0f));
-		_render_scene(scene, camera, *target.m_faces[4], _pre);
+		_render_scene(scene, camera, *target.m_faces[4]);
 	}
 
 	{
-		PreRender _pre = pre;
 		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
 		camera.position = position;
 		camera.up = { 0.0f, -1.0f, 0.0f };
 		camera.lookAt(position + glm::vec3(0.0f, 0.0f, -1.0f));
-		_render_scene(scene, camera, *target.m_faces[5], _pre);
+		_render_scene(scene, camera, *target.m_faces[5]);
 	}
 }
 
-void GLRenderer::_render_cube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar, const PreRender& pre)
+void GLRenderer::_render_cube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar)
 {
 	{
-		PreRender _pre = pre;
 		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
 		camera.position = position;
 		camera.up = { 0.0f, -1.0f, 0.0f };
 		camera.lookAt(position + glm::vec3(1.0f, 0.0f, 0.0f));
-		_render(scene, camera, *target.m_faces[0], _pre);
+		_render(scene, camera, *target.m_faces[0]);
 	}
 
 	{
-		PreRender _pre = pre;
 		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
 		camera.position = position;
 		camera.up = { 0.0f, -1.0f, 0.0f };
 		camera.lookAt(position + glm::vec3(-1.0f, 0.0f, 0.0f));
-		_render(scene, camera, *target.m_faces[1], _pre);
+		_render(scene, camera, *target.m_faces[1]);
 	}
 
 	{
-		PreRender _pre = pre;
 		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
 		camera.position = position;
 		camera.up = { 0.0f, 0.0f, 1.0f };
 		camera.lookAt(position + glm::vec3(0.0f, 1.0f, 0.0f));
-		_render(scene, camera, *target.m_faces[2], _pre);
+		_render(scene, camera, *target.m_faces[2]);
 	}
 
 	{
-		PreRender _pre = pre;
 		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
 		camera.position = position;
 		camera.up = { 0.0f, 0.0f, -1.0f };
 		camera.lookAt(position + glm::vec3(0.0f, -1.0f, 0.0f));
-		_render(scene, camera, *target.m_faces[3], _pre);
+		_render(scene, camera, *target.m_faces[3]);
 	}
 
 	{
-		PreRender _pre = pre;
 		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
 		camera.position = position;
 		camera.up = { 0.0f, -1.0f, 0.0f };
 		camera.lookAt(position + glm::vec3(0.0f, 0.0f, 1.0f));
-		_render(scene, camera, *target.m_faces[4], _pre);
+		_render(scene, camera, *target.m_faces[4]);
 	}
 
 	{
-		PreRender _pre = pre;
 		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
 		camera.position = position;
 		camera.up = { 0.0f, -1.0f, 0.0f };
 		camera.lookAt(position + glm::vec3(0.0f, 0.0f, -1.0f));
-		_render(scene, camera, *target.m_faces[5], _pre);
+		_render(scene, camera, *target.m_faces[5]);
 	}
 }
 
 void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 {
-	PreRender pre;
-	_pre_render(scene, pre);
-	_render(scene, camera, target, pre);	
+	_pre_render(scene);
+	_render(scene, camera, target);	
 }
 
 void GLRenderer::renderCube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar)
 {
-	PreRender pre;
-	_pre_render(scene, pre);
-	_render_cube(scene, target, position, zNear, zFar, pre);
+	_pre_render(scene);
+	_render_cube(scene, target, position, zNear, zFar);
 }
 
 
@@ -1060,14 +1060,14 @@ void GLRenderer::renderLayers(size_t num_layers, Layer* layers, GLRenderTarget& 
 	for (size_t i = 0; i < num_layers; i++)
 	{
 		Layer& layer = layers[i];
-		_pre_render(*layer.scene, layer.pre);
+		_pre_render(*layer.scene);
 		if (i < num_layers - 1)
 		{
-			_render_scene(*layer.scene, *layer.camera, target, layer.pre);
+			_render_scene(*layer.scene, *layer.camera, target);
 		}
 		else
 		{
-			_render(*layer.scene, *layer.camera, target, layer.pre);
+			_render(*layer.scene, *layer.camera, target);
 		}
 	}
 }
@@ -1077,14 +1077,14 @@ void GLRenderer::renderLayersToCube(size_t num_layers, CubeLayer* layers, CubeRe
 	for (size_t i = 0; i < num_layers; i++)
 	{
 		CubeLayer& layer = layers[i];
-		_pre_render(*layer.scene, layer.pre);
+		_pre_render(*layer.scene);
 		if (i < num_layers - 1)
 		{
-			_render_scene_to_cube(*layer.scene, target, layer.position, layer.zNear, layer.zFar, layer.pre);
+			_render_scene_to_cube(*layer.scene, target, layer.position, layer.zNear, layer.zFar);
 		}
 		else
 		{
-			_render_cube(*layer.scene, target, layer.position, layer.zNear, layer.zFar, layer.pre);
+			_render_cube(*layer.scene, target, layer.position, layer.zNear, layer.zFar);
 		}
 	}
 
@@ -1335,29 +1335,31 @@ void GLRenderer::render_model_lighting(Camera* p_camera, const Lights& lights, c
 
 void GLRenderer::renderCelluloid(Scene& scene, Camera& camera, GLRenderTarget* layer_base, GLRenderTarget* layer_light, GLRenderTarget* layer_alpha)
 {
-	PreRender pre;
-	_pre_render(scene, pre);
+	_pre_render(scene);
 
 	camera.updateMatrixWorld(false);
 	camera.updateConstant();
 
 	// model culling
-	for (size_t i = 0; i < pre.simple_models.size(); i++)
+	std::vector<SimpleModel*> simple_models = scene.simple_models;
+	std::vector<GLTFModel*> gltf_models = scene.gltf_models;
+
+	for (size_t i = 0; i < simple_models.size(); i++)
 	{
-		SimpleModel* model = pre.simple_models[i];
+		SimpleModel* model = simple_models[i];
 		if (!visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->geometry.min_pos, model->geometry.max_pos))
 		{
-			pre.simple_models.erase(pre.simple_models.begin() + i);
+			simple_models.erase(simple_models.begin() + i);
 			i--;
 		}
 	}
 
-	for (size_t i = 0; i < pre.gltf_models.size(); i++)
+	for (size_t i = 0; i < gltf_models.size(); i++)
 	{
-		GLTFModel* model = pre.gltf_models[i];
+		GLTFModel* model = gltf_models[i];
 		if (!visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->m_min_pos, model->m_max_pos))
 		{
-			pre.gltf_models.erase(pre.gltf_models.begin() + i);
+			gltf_models.erase(gltf_models.begin() + i);
 			i--;
 		}
 	}
@@ -1413,15 +1415,15 @@ void GLRenderer::renderCelluloid(Scene& scene, Camera& camera, GLRenderTarget* l
 
 		glDisable(GL_BLEND);		
 
-		for (size_t i = 0; i < pre.simple_models.size(); i++)
+		for (size_t i = 0; i < simple_models.size(); i++)
 		{
-			SimpleModel* model = pre.simple_models[i];
+			SimpleModel* model = simple_models[i];
 			render_model_base(&camera, model);
 		}
 
-		for (size_t i = 0; i < pre.gltf_models.size(); i++)
+		for (size_t i = 0; i < gltf_models.size(); i++)
 		{
-			GLTFModel* model = pre.gltf_models[i];
+			GLTFModel* model = gltf_models[i];
 			render_model_base(&camera,  model);
 		}
 
@@ -1455,15 +1457,15 @@ void GLRenderer::renderCelluloid(Scene& scene, Camera& camera, GLRenderTarget* l
 
 		glDisable(GL_BLEND);
 
-		for (size_t i = 0; i < pre.simple_models.size(); i++)
+		for (size_t i = 0; i < simple_models.size(); i++)
 		{
-			SimpleModel* model = pre.simple_models[i];
+			SimpleModel* model = simple_models[i];
 			render_model_lighting(&camera, lights, fog, model);
 		}
 
-		for (size_t i = 0; i < pre.gltf_models.size(); i++)
+		for (size_t i = 0; i < gltf_models.size(); i++)
 		{
-			GLTFModel* model = pre.gltf_models[i];
+			GLTFModel* model = gltf_models[i];
 			render_model_lighting(&camera, lights, fog, model);
 		}
 
@@ -1495,15 +1497,15 @@ void GLRenderer::renderCelluloid(Scene& scene, Camera& camera, GLRenderTarget* l
 		// depth pass
 		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 
-		for (size_t i = 0; i < pre.simple_models.size(); i++)
+		for (size_t i = 0; i < simple_models.size(); i++)
 		{
-			SimpleModel* model = pre.simple_models[i];
+			SimpleModel* model = simple_models[i];
 			render_model_base(&camera, model);
 		}
 
-		for (size_t i = 0; i < pre.gltf_models.size(); i++)
+		for (size_t i = 0; i < gltf_models.size(); i++)
 		{
-			GLTFModel* model = pre.gltf_models[i];
+			GLTFModel* model = gltf_models[i];
 			render_model_base(&camera, model);
 		}
 
@@ -1518,15 +1520,15 @@ void GLRenderer::renderCelluloid(Scene& scene, Camera& camera, GLRenderTarget* l
 		oit_resolvers[1]->PreDraw(t_alpha.m_OITBuffers);
 		
 
-		for (size_t i = 0; i < pre.simple_models.size(); i++)
+		for (size_t i = 0; i < simple_models.size(); i++)
 		{
-			SimpleModel* model = pre.simple_models[i];
+			SimpleModel* model = simple_models[i];
 			render_model(&camera, lights, fog, model, Pass::Alpha);
 		}
 
-		for (size_t i = 0; i < pre.gltf_models.size(); i++)
+		for (size_t i = 0; i < gltf_models.size(); i++)
 		{
-			GLTFModel* model = pre.gltf_models[i];
+			GLTFModel* model = gltf_models[i];
 			render_model(&camera, lights, fog, model, Pass::Alpha);
 		}
 
@@ -1545,9 +1547,9 @@ void GLRenderer::renderCelluloid(Scene& scene, Camera& camera, GLRenderTarget* l
 
 			_render_fog(camera, lights, *fog, t_alpha);
 
-			for (size_t i = 0; i < pre.directional_lights.size(); i++)
+			for (size_t i = 0; i < scene.directional_lights.size(); i++)
 			{
-				DirectionalLight* light = pre.directional_lights[i];
+				DirectionalLight* light = scene.directional_lights[i];
 				_render_fog_rm(camera, *light, *fog, t_alpha);
 			}
 		}

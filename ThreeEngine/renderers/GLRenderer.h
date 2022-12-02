@@ -29,19 +29,10 @@ class DirectionalLightShadow;
 class GLRenderer
 {
 public:
-	struct PreRender
-	{
-		// lists
-		std::vector<SimpleModel*> simple_models;
-		std::vector<GLTFModel*> gltf_models;
-		std::vector<DirectionalLight*> directional_lights;
-	};
-
 	struct Layer
 	{
 		Scene* scene;
 		Camera* camera;
-		PreRender pre;
 	};
 
 	struct CubeLayer
@@ -49,7 +40,6 @@ public:
 		Scene* scene;
 		glm::vec3 position;
 		float zNear, zFar;
-		PreRender pre;
 	};
 
 
@@ -101,11 +91,11 @@ private:
 	std::unique_ptr<DrawSkyBox> SkyBoxDraw;
 	std::unique_ptr<DrawHemisphere> HemisphereDraw;
 
-	void _pre_render(Scene& scene, PreRender& pre);
-	void _render_scene(Scene& scene, Camera& camera, GLRenderTarget& target, PreRender& pre);
-	void _render(Scene& scene, Camera& camera, GLRenderTarget& target, PreRender& pre);
-	void _render_scene_to_cube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar, const PreRender& pre);
-	void _render_cube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar, const PreRender& pre);
+	void _pre_render(Scene& scene);
+	void _render_scene(Scene& scene, Camera& camera, GLRenderTarget& target);
+	void _render(Scene& scene, Camera& camera, GLRenderTarget& target);
+	void _render_scene_to_cube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar);
+	void _render_cube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar);
 	
 	
 	std::unordered_map<uint64_t, std::unique_ptr<DrawFog>> fog_draw_map;

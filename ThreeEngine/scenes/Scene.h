@@ -6,16 +6,28 @@
 class Background;
 class EnvironmentMap;
 class Fog;
+class SimpleModel;
+class GLTFModel;
+class DirectionalLight;
 class Scene : public Object3D
 {
 public:
 	Background* background = nullptr;
 	IndirectLight* indirectLight = nullptr;
-
-	bool has_opaque = false;
-	bool has_alpha = false;
+	Fog* fog = nullptr;
 	Lights lights;
 
-	Fog* fog = nullptr;
+	// pre-render
+	std::vector<SimpleModel*> simple_models;
+	std::vector<GLTFModel*> gltf_models;
+	std::vector<DirectionalLight*> directional_lights;		
+
+	void clear_lists()
+	{
+		simple_models.clear();
+		gltf_models.clear();
+		directional_lights.clear();
+	}
+	
 };
 
