@@ -4,6 +4,8 @@
 #include "lights/Lights.h"
 #include "renderers/GLUtils.h"
 
+class Camera;
+class Fog;
 class FogRayMarching
 {
 public:
@@ -12,8 +14,8 @@ public:
 	struct RenderParams
 	{
 		const GLTexture2D* tex_depth;
-		const GLDynBuffer* constant_camera;
-		const GLDynBuffer* constant_fog;
+		const Camera* camera;
+		const Fog* fog;
 		
 		const GLDynBuffer* constant_diretional_light;
 		const GLDynBuffer* constant_diretional_shadow;

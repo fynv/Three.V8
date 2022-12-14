@@ -52,6 +52,9 @@
     <Filter Include="Header Files\multimedia">
       <UniqueIdentifier>{59402ca3-1e45-4b01-a06b-b5d17912aad3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\volume">
+      <UniqueIdentifier>{c7800e1b-60e2-411d-97f7-591644d8cccc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="binding.h">
@@ -191,6 +194,15 @@
     </ClInclude>
     <ClInclude Include="gui\UIDraggable.hpp">
       <Filter>Header Files\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="volume\VolumeData.hpp">
+      <Filter>Header Files\volume</Filter>
+    </ClInclude>
+    <ClInclude Include="volume\VolumeDataLoader.hpp">
+      <Filter>Header Files\volume</Filter>
+    </ClInclude>
+    <ClInclude Include="volume\VolumeIsosurfaceModel.hpp">
+      <Filter>Header Files\volume</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

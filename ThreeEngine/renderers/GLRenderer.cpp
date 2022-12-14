@@ -11,6 +11,7 @@
 #include "models/ModelComponents.h"
 #include "models/SimpleModel.h"
 #include "models/GLTFModel.h"
+#include "volume/VolumeIsosurfaceModel.h"
 #include "materials/MeshStandardMaterial.h"
 #include "lights/DirectionalLight.h"
 #include "lights/DirectionalLightShadow.h"
@@ -28,12 +29,12 @@ GLRenderer::~GLRenderer()
 
 }
 
-void GLRenderer::update_simple_model(SimpleModel* model)
+void GLRenderer::update_model(SimpleModel* model)
 {
 	model->updateConstant();
 }
 
-void GLRenderer::update_gltf_model(GLTFModel* model)
+void GLRenderer::update_model(GLTFModel* model)
 {
 	for (size_t i = 0; i < model->m_meshs.size(); i++)
 	{
@@ -109,6 +110,10 @@ void GLRenderer::update_gltf_model(GLTFModel* model)
 	model->updateMeshConstants();
 }
 
+void GLRenderer::update_model(VolumeIsosurfaceModel* model)
+{
+	model->updateConstant();
+}
 
 StandardRoutine* GLRenderer::get_routine(const StandardRoutine::Options& options)
 {
@@ -369,6 +374,15 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 	}
 }
 
+void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog* fog, VolumeIsosurfaceModel* model, Pass pass)
+{
+	if (IsosurfaceDraw == nullptr)
+	{
+		IsosurfaceDraw = std::unique_ptr<DrawIsosurface>(new DrawIsosurface);
+	}
+	IsosurfaceDraw->render(p_camera, model);
+}
+
 DirectionalShadowCast* GLRenderer::get_shadow_caster(const DirectionalShadowCast::Options& options)
 {
 	uint64_t hash = crc64(0, (const unsigned char*)&options, sizeof(DirectionalShadowCast::Options));
@@ -503,8 +517,8 @@ void GLRenderer::_render_fog_rm(const Camera& camera, DirectionalLight& light, c
 	light.updateConstant();
 	FogRayMarching::RenderParams params;
 	params.tex_depth = target.m_tex_depth.get();
-	params.constant_camera = &camera.m_constant;
-	params.constant_fog = &fog.m_constant;
+	params.camera = &camera;
+	params.fog = &fog;
 	params.constant_diretional_light = &light.m_constant;
 	if (light.shadow != nullptr)
 	{
@@ -545,6 +559,14 @@ void GLRenderer::_pre_render(Scene& scene)
 				}
 			}
 			{
+				VolumeIsosurfaceModel* model = dynamic_cast<VolumeIsosurfaceModel*>(obj);
+				if (model)
+				{
+					p_scene->volume_isosurface_models.push_back(model);
+					break;
+				}
+			}
+			{
 				DirectionalLight* light = dynamic_cast<DirectionalLight*>(obj);
 				if (light)
 				{
@@ -567,13 +589,19 @@ void GLRenderer::_pre_render(Scene& scene)
 	for (size_t i = 0; i < scene.simple_models.size(); i++)
 	{
 		SimpleModel* model = scene.simple_models[i];
-		update_simple_model(model);		
+		update_model(model);
 	}
 
 	for (size_t i = 0; i < scene.gltf_models.size(); i++)
 	{
 		GLTFModel* model = scene.gltf_models[i];
-		update_gltf_model(model);		
+		update_model(model);
+	}
+
+	for (size_t i = 0; i < scene.volume_isosurface_models.size(); i++)
+	{
+		VolumeIsosurfaceModel* model = scene.volume_isosurface_models[i];
+		update_model(model);
 	}
 
 	// update lights
@@ -718,6 +746,7 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 
 	std::vector<SimpleModel*> simple_models = scene.simple_models;
 	std::vector<GLTFModel*> gltf_models = scene.gltf_models;
+	std::vector<VolumeIsosurfaceModel*> volume_isosurface_models = scene.volume_isosurface_models;
 
 	bool has_alpha = false;
 	bool has_opaque = true;
@@ -841,6 +870,12 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 			GLTFModel* model = scene.gltf_models[i];
 			render_model(&camera, lights, fog, model, Pass::Opaque);
 		}
+
+		for (size_t i = 0; i < scene.volume_isosurface_models.size(); i++)
+		{
+			VolumeIsosurfaceModel* model = scene.volume_isosurface_models[i];
+			render_model(&camera, lights, fog, model, Pass::Opaque);
+		}
 	}
 
 	if (has_alpha)
@@ -931,6 +966,8 @@ void GLRenderer::_render(Scene& scene, Camera& camera, GLRenderTarget& target)
 		glDisable(GL_DEPTH_TEST);
 
 		_render_fog(camera, lights, *fog, target);
+
+		glBlendFunc(GL_ONE, GL_ONE);
 
 		for (size_t i = 0; i < scene.directional_lights.size(); i++)
 		{

@@ -103,6 +103,18 @@
     <Filter Include="Header Files\savers">
       <UniqueIdentifier>{1e92af15-718d-4e11-8fb0-572e951b9e16}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\volume">
+      <UniqueIdentifier>{6784e64c-7dff-4490-af8c-d40c022bda25}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\volume">
+      <UniqueIdentifier>{cc103e47-a0f2-4b88-8336-bb0af2742df4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\volume\routines">
+      <UniqueIdentifier>{eefd8c5f-275d-42f6-8619-d840a7baffe5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\volume\routines">
+      <UniqueIdentifier>{646422d6-db04-4945-aa34-ab1643e347e2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="scenes\Scene.cpp">
@@ -287,6 +299,18 @@
     </ClCompile>
     <ClCompile Include="gui\UIDraggable.cpp">
       <Filter>Source Files\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="volume\VolumeDataLoader.cpp">
+      <Filter>Source Files\volume</Filter>
+    </ClCompile>
+    <ClCompile Include="volume\VolumeIsosurfaceModel.cpp">
+      <Filter>Source Files\volume</Filter>
+    </ClCompile>
+    <ClCompile Include="volume\routines\DrawIsosurface.cpp">
+      <Filter>Source Files\volume\routines</Filter>
+    </ClCompile>
+    <ClCompile Include="volume\VolumeData.cpp">
+      <Filter>Source Files\volume</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -499,6 +523,18 @@
     </ClInclude>
     <ClInclude Include="network\root_certificates.hpp">
       <Filter>Header Files\network</Filter>
+    </ClInclude>
+    <ClInclude Include="volume\VolumeData.h">
+      <Filter>Header Files\volume</Filter>
+    </ClInclude>
+    <ClInclude Include="volume\VolumeDataLoader.h">
+      <Filter>Header Files\volume</Filter>
+    </ClInclude>
+    <ClInclude Include="volume\VolumeIsosurfaceModel.h">
+      <Filter>Header Files\volume</Filter>
+    </ClInclude>
+    <ClInclude Include="volume\routines\DrawIsosurface.h">
+      <Filter>Header Files\volume\routines</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

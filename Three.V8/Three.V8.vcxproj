@@ -173,6 +173,9 @@
     <ClInclude Include="scenes\Fog.hpp" />
     <ClInclude Include="scenes\Scene.hpp" />
     <ClInclude Include="utils\Image.hpp" />
+    <ClInclude Include="volume\VolumeData.hpp" />
+    <ClInclude Include="volume\VolumeDataLoader.hpp" />
+    <ClInclude Include="volume\VolumeIsosurfaceModel.hpp" />
     <ClInclude Include="WrapperUtils.hpp" />
   </ItemGroup>
   <ItemGroup>

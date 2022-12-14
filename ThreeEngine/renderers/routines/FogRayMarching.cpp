@@ -1,5 +1,7 @@
 #include <string>
 #include <GL/glew.h>
+#include "cameras/Camera.h"
+#include "scenes/Fog.h"
 #include "FogRayMarching.h"
 
 
@@ -387,8 +389,8 @@ FogRayMarching::FogRayMarching(bool msaa): m_msaa(msaa)
 void FogRayMarching::_render_no_shadow(const RenderParams& params)
 {
 	glUseProgram(m_prog->m_id);
-	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.constant_camera->m_id);
-	glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.constant_fog->m_id);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.camera->m_constant.m_id);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.fog->m_constant.m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 2, params.constant_diretional_light->m_id);
 
 	glActiveTexture(GL_TEXTURE0);
@@ -410,8 +412,8 @@ void FogRayMarching::_render_no_shadow(const RenderParams& params)
 void FogRayMarching::_render_shadowed(const RenderParams& params)
 {
 	glUseProgram(m_prog_shadow->m_id);
-	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.constant_camera->m_id);
-	glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.constant_fog->m_id);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.camera->m_constant.m_id);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.fog->m_constant.m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 2, params.constant_diretional_light->m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 3, params.constant_diretional_shadow->m_id);
 

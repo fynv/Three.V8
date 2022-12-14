@@ -42,6 +42,20 @@ private:
 	GLTexture2D(const GLTexture2D&);
 };
 
+class GLTexture3D
+{
+public:
+	unsigned tex_id;
+	GLTexture3D();
+	~GLTexture3D();
+
+	void load_memory(int width, int height, int depth, const uint8_t* data, int bytes_per_pixel = 1);
+
+
+private:
+	GLTexture3D(const GLTexture3D&);
+};
+
 class GLCubemap
 {
 public:

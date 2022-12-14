@@ -80,6 +80,10 @@ V8VM::~V8VM()
 #include "multimedia/MMVideo.hpp"
 #endif
 
+#include "volume/VolumeData.hpp"
+#include "volume/VolumeIsosurfaceModel.hpp"
+#include "volume/VolumeDataLoader.hpp"
+
 GlobalDefinitions GameContext::s_globals =
 {
 	{
@@ -134,12 +138,16 @@ GlobalDefinitions GameContext::s_globals =
 		{ "MMAudio", WrapperMMAudio::New, WrapperMMAudio::create_template},
 		{ "MMVideo", WrapperMMVideo::New, WrapperMMVideo::create_template},
 #endif
+		{ "VolumeData", WrapperVolumeData::New, WrapperVolumeData::create_template},
+		{ "VolumeIsosurfaceModel", WrapperVolumeIsosurfaceModel::New, WrapperVolumeIsosurfaceModel::create_template},
 	},
 	{
 		{ "fileLoader", WrapperFileLoader::create_template },
 		{ "imageLoader", WrapperImageLoader::create_template},
 		{ "gltfLoader", WrapperGLTFLoader::create_template},	
 		{ "imageSaver", WrapperImageSaver::create_template},
+
+		{ "volumeDataLoader", WrapperVolumeDataLoader::create_template},
 	}
 };
 

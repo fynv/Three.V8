@@ -8,6 +8,7 @@ class EnvironmentMap;
 class Fog;
 class SimpleModel;
 class GLTFModel;
+class VolumeIsosurfaceModel;
 class DirectionalLight;
 class Scene : public Object3D
 {
@@ -20,6 +21,7 @@ public:
 	// pre-render
 	std::vector<SimpleModel*> simple_models;
 	std::vector<GLTFModel*> gltf_models;
+	std::vector<VolumeIsosurfaceModel*> volume_isosurface_models;
 	std::vector<DirectionalLight*> directional_lights;		
 
 	void clear_lists()

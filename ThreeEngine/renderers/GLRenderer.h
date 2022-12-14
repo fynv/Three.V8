@@ -17,6 +17,8 @@
 #include "renderers/routines/LightingRoutine.h"
 #include "renderers/routines/AlphaDem.h"
 
+#include "volume/routines/DrawIsosurface.h"
+
 class Scene;
 class Fog;
 class Camera;
@@ -26,6 +28,9 @@ class SimpleModel;
 class GLTFModel;
 class DirectionalLight;
 class DirectionalLightShadow;
+
+class VolumeIsosurfaceModel;
+
 class GLRenderer
 {
 public:
@@ -58,8 +63,10 @@ public:
 private:
 	std::unique_ptr<WeightedOIT> oit_resolvers[2];
 
-	void update_simple_model(SimpleModel* model);
-	void update_gltf_model(GLTFModel* model);
+	void update_model(SimpleModel* model);
+	void update_model(GLTFModel* model);
+	
+	void update_model(VolumeIsosurfaceModel* model);
 
 	enum class Pass
 	{
@@ -73,9 +80,12 @@ private:
 
 	std::unique_ptr<DrawWire> WireDraw;
 
+	std::unique_ptr<DrawIsosurface> IsosurfaceDraw;
+
 	void render_primitive(const StandardRoutine::RenderParams& params, Pass pass);
 	void render_model(Camera* p_camera, const Lights& lights, const Fog* fog, SimpleModel* model, Pass pass);
 	void render_model(Camera* p_camera, const Lights& lights, const Fog* fog, GLTFModel* model, Pass pass);
+	void render_model(Camera* p_camera, const Lights& lights, const Fog* fog, VolumeIsosurfaceModel* model, Pass pass);
 
 	std::unique_ptr<MorphUpdate> morphers[4];
 	std::unique_ptr<SkinUpdate> skinners[2];

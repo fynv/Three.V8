@@ -189,6 +189,10 @@
     <ClCompile Include="scenes\Fog.cpp" />
     <ClCompile Include="scenes\Scene.cpp" />
     <ClCompile Include="utils\Image.cpp" />
+    <ClCompile Include="volume\routines\DrawIsosurface.cpp" />
+    <ClCompile Include="volume\VolumeData.cpp" />
+    <ClCompile Include="volume\VolumeDataLoader.cpp" />
+    <ClCompile Include="volume\VolumeIsosurfaceModel.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\thirdparty\crc64\crc64.h" />
@@ -261,6 +265,10 @@
     <ClInclude Include="utils\Image.h" />
     <ClInclude Include="utils\Semaphore.h" />
     <ClInclude Include="utils\Utils.h" />
+    <ClInclude Include="volume\routines\DrawIsosurface.h" />
+    <ClInclude Include="volume\VolumeData.h" />
+    <ClInclude Include="volume\VolumeDataLoader.h" />
+    <ClInclude Include="volume\VolumeIsosurfaceModel.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

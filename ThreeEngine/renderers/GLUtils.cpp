@@ -183,6 +183,34 @@ void GLTexture2D::load_file(const char* filename, bool is_srgb)
 	load_memory_rgba(img.width(), img.height(), img.data(), is_srgb);
 }
 
+
+GLTexture3D::GLTexture3D()
+{
+	glGenTextures(1, &tex_id);
+}
+
+GLTexture3D::~GLTexture3D()
+{
+	glDeleteTextures(1, &tex_id);
+}
+
+void GLTexture3D::load_memory(int width, int height, int depth, const uint8_t* data, int bytes_per_pixel)
+{
+	glBindTexture(GL_TEXTURE_3D, tex_id);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	GLenum type = GL_R8;
+	if (bytes_per_pixel == 2) type = GL_R16;
+	glTexImage3D(GL_TEXTURE_3D, 0, type, width, height, depth, 0, GL_RED, GL_UNSIGNED_BYTE, data);
+	glBindTexture(GL_TEXTURE_3D, 0);
+
+
+}
+
 GLCubemap::GLCubemap()
 {
 	glGenTextures(1, &tex_id);
