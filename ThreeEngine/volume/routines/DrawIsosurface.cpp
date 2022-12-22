@@ -8,37 +8,15 @@
 
 static std::string g_vertex =
 R"(#version 430
-layout (std140, binding = 0) uniform Camera
-{
-    mat4 uProjMat;
-    mat4 uViewMat;	
-    mat4 uInvProjMat;
-    mat4 uInvViewMat;	
-    vec3 uEyePos;
-};
 
-layout (std140, binding = 1) uniform Model
-{
-	mat4 uInvModelMat;
-	mat4 uModelMat;
-	mat4 uNormalMat;
-	ivec4 uSize;
-	vec3 uSpacing;
-	float uIsovalue;
-};
-
-layout (location = 0) out vec3 vDirModel;
+layout (location = 0) out vec2 vPosProj;
 
 void main()
 {
     vec2 grid = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2);
     vec2 pos_proj = grid * vec2(2.0, 2.0) + vec2(-1.0, -1.0);
+	vPosProj = pos_proj;
     gl_Position = vec4(pos_proj, 1.0, 1.0);
-
-	vec4 pos_view = uInvProjMat * gl_Position;
-    pos_view = pos_view/pos_view.w;
-    vec3 dir_world = mat3(uInvViewMat) * pos_view.xyz;
-	vDirModel = mat3(uInvModelMat) * dir_world;
 };
 )";
 
@@ -46,6 +24,8 @@ void main()
 static std::string g_frag =
 R"(#version 430
 
+#DEFINES#
+
 layout (std140, binding = 0) uniform Camera
 {
     mat4 uProjMat;
@@ -61,17 +41,293 @@ layout (std140, binding = 1) uniform Model
 	mat4 uModelMat;
 	mat4 uNormalMat;
 	ivec4 uSize;
-	vec3 uSpacing;
+	vec4 uSpacing;
+	vec4 uColor;
+	float uMetallicFactor;
+	float uRoughnessFactor;
+	float uStep;
 	float uIsovalue;
 };
 
 layout (location = 0) uniform sampler3D uTex;
 
-layout (location = 0) in vec3 vDirModel;
+#if MSAA
+layout (location = 1) uniform sampler2DMS uDepthTex;
+#else
+layout (location = 1) uniform sampler2D uDepthTex;
+#endif
+
+
+struct IncidentLight {
+	vec3 color;
+	vec3 direction;
+	bool visible;
+};
+
+#define EPSILON 1e-6
+#define PI 3.14159265359
+#define RECIPROCAL_PI 0.3183098861837907
+
+#ifndef saturate
+#define saturate( a ) clamp( a, 0.0, 1.0 )
+#endif
+
+float pow2( const in float x ) { return x*x; }
+
+struct PhysicalMaterial 
+{
+	vec3 diffuseColor;
+	float roughness;
+	vec3 specularColor;
+	float specularF90;
+};
+
+
+vec3 F_Schlick(const in vec3 f0, const in float f90, const in float dotVH) 
+{
+	float fresnel = exp2( ( - 5.55473 * dotVH - 6.98316 ) * dotVH );
+	return f0 * ( 1.0 - fresnel ) + ( f90 * fresnel );
+}
+
+float V_GGX_SmithCorrelated( const in float alpha, const in float dotNL, const in float dotNV ) 
+{
+	float a2 = pow2( alpha );
+	float gv = dotNL * sqrt( a2 + ( 1.0 - a2 ) * pow2( dotNV ) );
+	float gl = dotNV * sqrt( a2 + ( 1.0 - a2 ) * pow2( dotNL ) );
+	return 0.5 / max( gv + gl, EPSILON );
+}
+
+float D_GGX( const in float alpha, const in float dotNH ) 
+{
+	float a2 = pow2( alpha );
+	float denom = pow2( dotNH ) * ( a2 - 1.0 ) + 1.0; 
+	return RECIPROCAL_PI * a2 / pow2( denom );
+}
+
+vec3 BRDF_Lambert(const in vec3 diffuseColor) 
+{
+	return RECIPROCAL_PI * diffuseColor;
+}
+
+float BRDF_Lambert_Toon()
+{
+	return RECIPROCAL_PI;
+}
+
+vec3 BRDF_GGX( const in vec3 lightDir, const in vec3 viewDir, const in vec3 normal, const in vec3 f0, const in float f90, const in float roughness ) 
+{
+	float alpha = pow2(roughness);
+
+	vec3 halfDir = normalize(lightDir + viewDir);
+
+	float dotNL = saturate(dot(normal, lightDir));
+	float dotNV = saturate(dot(normal, viewDir));
+	float dotNH = saturate(dot(normal, halfDir));
+	float dotVH = saturate(dot(viewDir, halfDir));
+
+	vec3 F = F_Schlick(f0, f90, dotVH);
+	float V = V_GGX_SmithCorrelated(alpha, dotNL, dotNV);
+	float D = D_GGX( alpha, dotNH );
+	return F*(V*D);
+}
+
+float BRDF_GGX_Toon(const in vec3 lightDir, const in vec3 viewDir, const in vec3 normal, const in float roughness )
+{
+	float alpha = pow2(roughness);
+
+	vec3 halfDir = normalize(lightDir + viewDir);
+
+	float dotNL = saturate(dot(normal, lightDir));
+	float dotNV = saturate(dot(normal, viewDir));
+	float dotNH = saturate(dot(normal, halfDir));	
+
+	float V = V_GGX_SmithCorrelated(alpha, dotNL, dotNV);
+	float D = D_GGX( alpha, dotNH );
+	return V*D;
+}
+
+float luminance(in vec3 color)
+{
+	return color.x * 0.2126 + color.y * 0.7152 + color.z *0.0722;
+}
+
+struct DirectionalLight
+{	
+	vec4 color;
+	vec4 origin;
+	vec4 direction;
+	int has_shadow;
+	float diffuse_thresh;
+	float diffuse_high;
+	float diffuse_low;
+	float specular_thresh;
+	float specular_high;
+	float specular_low;
+};
+
+
+#if NUM_DIRECTIONAL_LIGHTS>0
+layout (std140, binding = BINDING_DIRECTIONAL_LIGHTS) uniform DirectionalLights
+{
+	DirectionalLight uDirectionalLights[NUM_DIRECTIONAL_LIGHTS];
+};
+#endif
+
+#if NUM_DIRECTIONAL_SHADOWS>0
+struct DirectionalShadow
+{
+	mat4 VPSBMat;
+	mat4 projMat;
+	mat4 viewMat;
+    vec2 leftRight;
+	vec2 bottomTop;
+	vec2 nearFar;
+	float lightRadius;
+	float padding;
+};
+
+layout (std140, binding = BINDING_DIRECTIONAL_SHADOWS) uniform DirectionalShadows
+{
+	DirectionalShadow uDirectionalShadows[NUM_DIRECTIONAL_SHADOWS];
+};
+
+layout (location = LOCATION_TEX_DIRECTIONAL_SHADOW) uniform sampler2D uDirectionalShadowTex[NUM_DIRECTIONAL_SHADOWS];
+
+vec3 computeShadowCoords(in mat4 VPSB, in vec3 world_pos)
+{
+	vec4 shadowCoords = VPSB * vec4(world_pos, 1.0);
+	return shadowCoords.xyz;
+}
+
+float borderDepthTexture(sampler2D shadowTex, vec2 uv)
+{
+	return ((uv.x <= 1.0) && (uv.y <= 1.0) &&
+	 (uv.x >= 0.0) && (uv.y >= 0.0)) ? textureLod(shadowTex, uv, 0.0).x : 1.0;
+}
+
+float borderPCFTexture(sampler2D shadowTex, vec3 uvz)
+{
+    float d = borderDepthTexture(shadowTex, uvz.xy);
+    return clamp(1.0 - (uvz.z - d)*5000.0, 0.0, 1.0);
+}
+
+
+float computeShadowCoef(in mat4 VPSB, sampler2D shadowTex, in vec3 world_pos)
+{
+	vec3 shadowCoords;
+	shadowCoords = computeShadowCoords(VPSB, world_pos);
+	return borderPCFTexture(shadowTex, shadowCoords);
+}
+#endif
+
+
+#if HAS_ENVIRONMENT_MAP
+layout (std140, binding = BINDING_ENVIRONMEN_MAP) uniform EnvironmentMap
+{
+	vec4 uSHCoefficients[9];
+	float uDiffuseThresh;
+	float uDiffuseHigh;
+	float uDiffuseLow;
+	float uSpecularThresh;
+	float uSpecularHigh;
+	float uSpecularLow;
+};
+
+vec3 shGetIrradianceAt( in vec3 normal, in vec4 shCoefficients[ 9 ] ) {
+
+	// normal is assumed to have unit length
+
+	float x = normal.x, y = normal.y, z = normal.z;
+
+	// band 0
+	vec3 result = shCoefficients[ 0 ].xyz * 0.886227;
+
+	// band 1
+	result += shCoefficients[ 1 ].xyz * 2.0 * 0.511664 * y;
+	result += shCoefficients[ 2 ].xyz * 2.0 * 0.511664 * z;
+	result += shCoefficients[ 3 ].xyz * 2.0 * 0.511664 * x;
+
+	// band 2
+	result += shCoefficients[ 4 ].xyz * 2.0 * 0.429043 * x * y;
+	result += shCoefficients[ 5 ].xyz * 2.0 * 0.429043 * y * z;
+	result += shCoefficients[ 6 ].xyz * ( 0.743125 * z * z - 0.247708 );
+	result += shCoefficients[ 7 ].xyz * 2.0 * 0.429043 * x * z;
+	result += shCoefficients[ 8 ].xyz * 0.429043 * ( x * x - y * y );
+
+	return result;
+}
+
+layout (location = LOCATION_TEX_REFLECTION_MAP) uniform samplerCube uReflectionMap;
+
+vec3 GetReflectionAt(in vec3 reflectVec, in samplerCube reflectMap, float roughness)
+{
+	float gloss;
+	if (roughness<0.053) 
+	{
+		gloss = 1.0;
+	}
+	else
+	{
+		float r2 = roughness*roughness;
+		float r4 = r2*r2;
+		gloss = log(2.0/r4 - 1.0)/log(2.0)/18.0;
+	}
+
+	float mip = (1.0-gloss)*6.0;
+	return textureLod(reflectMap, reflectVec, mip).xyz;
+}
+
+#endif
+
+#if HAS_AMBIENT_LIGHT
+layout (std140, binding = BINDING_AMBIENT_LIGHT) uniform AmbientLight
+{
+	vec4 uAmbientColor;
+	float uDiffuseThresh;
+	float uDiffuseHigh;
+	float uDiffuseLow;
+	float uSpecularThresh;
+	float uSpecularHigh;
+	float uSpecularLow;
+};
+#endif
+
+#if HAS_HEMISPHERE_LIGHT
+layout (std140, binding = BINDING_HEMISPHERE_LIGHT) uniform HemisphereLight
+{
+	vec4 uHemisphereSkyColor;
+	vec4 uHemisphereGroundColor;
+	float uDiffuseThresh;
+	float uDiffuseHigh;
+	float uDiffuseLow;
+	float uSpecularThresh;
+	float uSpecularHigh;
+	float uSpecularLow;
+};
+
+vec3 HemisphereColor(in vec3 dir)
+{
+	float k = dir.y * 0.5 + 0.5;
+	return mix( uHemisphereGroundColor.xyz, uHemisphereSkyColor.xyz, k);
+}
+#endif
+
+#if HAS_FOG
+layout (std140, binding = BINDING_FOG) uniform FOG
+{
+	vec4 fog_rgba;
+};
+#endif
+
+
+layout (location = 0) in vec2 vPosProj;
 layout (location = 0) out vec4 outColor;
 
-vec3 get_norm(in vec3 pos, in vec3 min_pos, in vec3 max_pos)
+vec3 get_norm(in vec3 pos)
 {
+	vec3 min_pos = - uSize.xyz*uSpacing.xyz *0.5;
+	vec3 max_pos = uSize.xyz*uSpacing.xyz *0.5;
+
 	vec3 delta;
 	{
 		vec3 pos1 = pos+vec3(uSpacing.x, 0.0, 0.0);
@@ -94,15 +350,109 @@ vec3 get_norm(in vec3 pos, in vec3 min_pos, in vec3 max_pos)
 		vec3 coord2 = (pos2 - min_pos)/(max_pos-min_pos);
 		delta.z = texture(uTex, coord1).x -  texture(uTex, coord2).x;
 	}
-	return -normalize(delta/uSpacing);
+
+	vec3 norm = -delta/uSpacing.xyz;	
+	vec4 world_norm = uNormalMat * vec4(norm, 0.0);
+	return normalize(world_norm.xyz);
+}
+
+vec3 get_shading(in vec3 pos)
+{
+	vec4 pos_world = uModelMat * vec4(pos, 1.0);
+	vec3 viewDir = normalize(uEyePos - pos_world.xyz);
+	vec3 norm = get_norm(pos);
+	
+	PhysicalMaterial material;
+	material.diffuseColor = uColor.xyz * ( 1.0 - uMetallicFactor );	
+	material.roughness = max( uRoughnessFactor, 0.0525 );	
+	material.specularColor = mix( vec3( 0.04 ), uColor.xyz, uMetallicFactor );	
+
+	vec3 dxy = max(abs(dFdx(norm)), abs(dFdy(norm)));
+	float geometryRoughness = max(max(dxy.x, dxy.y), dxy.z);	
+	material.roughness += geometryRoughness;
+	material.roughness = min( material.roughness, 1.0 );
+	material.specularF90 = 1.0;
+
+	vec3 specular = vec3(0.0);
+	vec3 diffuse = vec3(0.0);
+
+#if NUM_DIRECTIONAL_LIGHTS>0
+	int shadow_id = 0;
+	for (int i=0; i< NUM_DIRECTIONAL_LIGHTS; i++)
+	{	
+		DirectionalLight light_source = uDirectionalLights[i];
+		float l_shadow = 1.0;
+#if NUM_DIRECTIONAL_SHADOWS>0
+		if (light_source.has_shadow!=0)
+		{
+			DirectionalShadow shadow = uDirectionalShadows[shadow_id];
+			l_shadow = computeShadowCoef(shadow.VPSBMat, uDirectionalShadowTex[shadow_id], pos_world.xyz);
+			shadow_id++;
+		}
+#endif
+
+#if HAS_FOG
+		if (l_shadow>0.0)
+		{
+			float zEye = -dot(pos_world.xyz - light_source.origin.xyz, light_source.direction.xyz);
+			if (zEye>0.0)
+			{
+				float att = pow(1.0 - fog_rgba.w, zEye);
+				l_shadow *= att;
+			}
+		}		
+#endif
+		IncidentLight directLight = IncidentLight(light_source.color.xyz * l_shadow, light_source.direction.xyz, true);
+
+		float dotNL =  saturate(dot(norm, directLight.direction));
+		vec3 irradiance = dotNL * directLight.color;
+		diffuse += irradiance * BRDF_Lambert( material.diffuseColor );
+		specular += irradiance * BRDF_GGX( directLight.direction, viewDir, norm, material.specularColor, material.specularF90, material.roughness );
+	}
+#endif
+
+#if HAS_INDIRECT_LIGHT
+	{
+		vec3 reflectVec = reflect(-viewDir, norm);
+		reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );
+#if HAS_ENVIRONMENT_MAP
+		vec3 irradiance = shGetIrradianceAt(norm, uSHCoefficients);		
+		vec3 radiance = GetReflectionAt(reflectVec, uReflectionMap, material.roughness);
+#elif HAS_AMBIENT_LIGHT
+		vec3 irradiance = uAmbientColor.xyz * PI;
+		vec3 radiance = uAmbientColor.xyz;
+#elif HAS_HEMISPHERE_LIGHT
+		vec3 irradiance = HemisphereColor(norm) * PI;
+		vec3 radiance = HemisphereColor(reflectVec);
+#endif
+		diffuse += material.diffuseColor * irradiance * RECIPROCAL_PI;
+		specular +=  material.specularColor * radiance;
+	}
+#endif
+
+	vec3 col = specular + diffuse;
+	col = clamp(col, 0.0, 1.0);				
+	return col;
 }
 
 void main()
 {
+	ivec2 coord = ivec2(gl_FragCoord.xy);		
+#if MSAA
+	float depth = texelFetch(uDepthTex, coord, gl_SampleID).x*2.0-1.0;
+#else
+	float depth = texelFetch(uDepthTex, coord, 0).x*2.0-1.0;
+#endif
+	vec4 pos_view = uInvProjMat * vec4(vPosProj, depth, 1.0);
+	pos_view *= 1.0/pos_view.w;
+	vec4 pos_world = uInvViewMat * pos_view;
+	vec3 pos_model = (uInvModelMat * pos_world).xyz;
 	vec3 eye_pos = (uInvModelMat * vec4(uEyePos, 1.0)).xyz;
-	vec3 dir = normalize(vDirModel);
-	vec3 min_pos = - uSize.xyz*uSpacing *0.5;
-	vec3 max_pos = uSize.xyz*uSpacing *0.5;
+	vec3 dir = normalize(pos_model - eye_pos);	
+	float dis = length(pos_model - eye_pos);
+
+	vec3 min_pos = - uSize.xyz*uSpacing.xyz *0.5;
+	vec3 max_pos = uSize.xyz*uSpacing.xyz *0.5;
 	
 	vec3 t_min;
 	t_min.x = (min_pos.x - eye_pos.x)/dir.x;
@@ -127,11 +477,12 @@ void main()
 	float t_stop = min(min(t1.x, t1.y), t1.z);
 
 	if (t_stop<t_start) discard;
+	if (t_stop>dis) t_stop = dis;
 
 	float t = t_start;
-	float step = 0.001;
+	float step = uStep;
 	float v0 = 0.0;
-	float iso = 0.5;
+	float iso = uIsovalue;
 	while(t<t_stop)
 	{
 		vec3 pos = eye_pos + t*dir;
@@ -141,12 +492,15 @@ void main()
 		{
 			float k = (iso - v1)/(v1-v0);
 			t += k*step;
-			vec3 norm = get_norm(eye_pos + t*dir, min_pos, max_pos);			
-			{
-				float k = (norm.z + 1.0)*0.5;
-				vec3 col = vec3(0.318, 0.318, 0.318)*k + vec3(0.01, 0.025, 0.025)*(1.0-k);
-				outColor = vec4(col, 1.0);
-			}			
+			pos = eye_pos + t*dir;
+			vec3 col = get_shading(pos);
+			outColor = vec4(col, 1.0);
+
+			pos_world = uModelMat * vec4(pos, 1.0);
+			pos_view = uViewMat * pos_world;
+			vec4 pos_proj = uProjMat * pos_view;
+			pos_proj*= 1.0/pos_proj.w;				
+			gl_FragDepth= pos_proj.z * 0.5 + 0.5;
 			return;
 		}
 
@@ -158,10 +512,167 @@ void main()
 }
 )";
 
-DrawIsosurface::DrawIsosurface()
+
+inline void replace(std::string& str, const char* target, const char* source)
 {
+	int start = 0;
+	size_t target_len = strlen(target);
+	size_t source_len = strlen(source);
+	while (true)
+	{
+		size_t pos = str.find(target, start);
+		if (pos == std::string::npos) break;
+		str.replace(pos, target_len, source);
+		start = pos + source_len;
+	}
+}
+
+DrawIsosurface::DrawIsosurface(const Options& options) : m_options(options)
+{
+	std::string defines = "";
+	if (options.msaa)
+	{
+		defines += "#define MSAA 1\n";
+	}
+	else
+	{
+		defines += "#define MSAA 0\n";
+	}
+
+	{
+		char line[64];
+		sprintf(line, "#define NUM_DIRECTIONAL_LIGHTS %d\n", options.num_directional_lights);
+		defines += line;
+	}
+
+	if (options.num_directional_lights > 0)
+	{
+		m_bindings.binding_directional_lights = 2;
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_DIRECTIONAL_LIGHTS %d\n", m_bindings.binding_directional_lights);
+			defines += line;
+		}
+	}
+	else
+	{
+		m_bindings.binding_directional_lights = 1;
+	}
+
+
+	{
+		char line[64];
+		sprintf(line, "#define NUM_DIRECTIONAL_SHADOWS %d\n", options.num_directional_shadows);
+		defines += line;
+	}
+
+	m_bindings.location_tex_directional_shadow = 1 + options.num_directional_shadows;
+
+	if (options.num_directional_shadows > 0)
+	{
+		m_bindings.binding_directional_shadows = m_bindings.binding_directional_lights + 1;
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_DIRECTIONAL_SHADOWS %d\n", m_bindings.binding_directional_shadows);
+			defines += line;
+		}
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_TEX_DIRECTIONAL_SHADOW %d\n", m_bindings.location_tex_directional_shadow - options.num_directional_shadows + 1);
+			defines += line;
+		}
+	}
+	else
+	{
+		m_bindings.binding_directional_shadows = m_bindings.binding_directional_lights;
+	}
+
+	bool has_indirect_light = options.has_environment_map || options.has_ambient_light || options.has_hemisphere_light;
+	if (has_indirect_light)
+	{
+		defines += "#define HAS_INDIRECT_LIGHT 1\n";
+	}
+	else
+	{
+		defines += "#define HAS_INDIRECT_LIGHT 0\n";
+	}
+
+	if (options.has_environment_map)
+	{
+		defines += "#define HAS_ENVIRONMENT_MAP 1\n";
+		m_bindings.binding_environment_map = m_bindings.binding_directional_shadows + 1;
+		m_bindings.location_tex_reflection_map = m_bindings.location_tex_directional_shadow + 1;
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_ENVIRONMEN_MAP %d\n", m_bindings.binding_environment_map);
+			defines += line;
+		}
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_TEX_REFLECTION_MAP %d\n", m_bindings.location_tex_reflection_map);
+			defines += line;
+		}
+	}
+	else
+	{
+		defines += "#define HAS_ENVIRONMENT_MAP 0\n";
+		m_bindings.binding_environment_map = m_bindings.binding_directional_shadows;
+		m_bindings.location_tex_reflection_map = m_bindings.location_tex_directional_shadow;
+	}
+
+	if (options.has_ambient_light)
+	{
+		defines += "#define HAS_AMBIENT_LIGHT 1\n";
+		m_bindings.binding_ambient_light = m_bindings.binding_environment_map + 1;
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_AMBIENT_LIGHT %d\n", m_bindings.binding_ambient_light);
+			defines += line;
+		}
+	}
+	else
+	{
+		defines += "#define HAS_AMBIENT_LIGHT 0\n";
+		m_bindings.binding_ambient_light = m_bindings.binding_environment_map;
+	}
+
+	if (options.has_hemisphere_light)
+	{
+		defines += "#define HAS_HEMISPHERE_LIGHT 1\n";
+		m_bindings.binding_hemisphere_light = m_bindings.binding_ambient_light + 1;
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_HEMISPHERE_LIGHT %d\n", m_bindings.binding_hemisphere_light);
+			defines += line;
+		}
+	}
+	else
+	{
+		defines += "#define HAS_HEMISPHERE_LIGHT 0\n";
+		m_bindings.binding_hemisphere_light = m_bindings.binding_ambient_light;
+	}
+
+	if (options.has_fog)
+	{
+		defines += "#define HAS_FOG 1\n";
+		m_bindings.binding_fog = m_bindings.binding_hemisphere_light + 1;
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_FOG %d\n", m_bindings.binding_fog);
+			defines += line;
+		}
+	}
+	else
+	{
+		defines += "#define HAS_FOG 0\n";
+		m_bindings.binding_fog = m_bindings.binding_hemisphere_light;
+	}
+
+	std::string s_frag = g_frag;
+	replace(s_frag, "#DEFINES#", defines.c_str());
+
     GLShader vert_shader(GL_VERTEX_SHADER, g_vertex.c_str());
-    GLShader frag_shader(GL_FRAGMENT_SHADER, g_frag.c_str());
+    GLShader frag_shader(GL_FRAGMENT_SHADER, s_frag.c_str());
     m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(vert_shader, frag_shader));
 }
 
@@ -258,33 +769,104 @@ inline void calc_scissor(const Camera* camera, const VolumeIsosurfaceModel* mode
 
 }
 
-void DrawIsosurface::render(const Camera* camera, const VolumeIsosurfaceModel* model)
+void DrawIsosurface::render(const RenderParams& params)
 {
 	GLint i_viewport[4];
 	glGetIntegerv(GL_VIEWPORT, i_viewport);	
 
 	glm::ivec2 origin, size;
-	calc_scissor(camera, model, (float)i_viewport[2], (float)i_viewport[3], origin, size);
+	calc_scissor(params.camera, params.model, (float)i_viewport[2], (float)i_viewport[3], origin, size);
 
-	glDisable(GL_DEPTH_TEST);
+	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
+
+	if (m_options.msaa)
+	{
+		glEnable(GL_SAMPLE_SHADING);
+	}
 
 	glEnable(GL_SCISSOR_TEST);
 	glScissor(origin.x, origin.y, size.x, size.y);
 
 	glUseProgram(m_prog->m_id);
-	glBindBufferBase(GL_UNIFORM_BUFFER, 0, camera->m_constant.m_id);	
-	glBindBufferBase(GL_UNIFORM_BUFFER, 1, model->m_constant.m_id);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.camera->m_constant.m_id);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.model->m_constant.m_id);
 
-	const GLTexture3D& tex = model->m_data->texture;
+	if (m_options.num_directional_lights > 0)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_directional_lights, params.lights->constant_directional_lights->m_id);
+	}
+
+	if (m_options.num_directional_shadows > 0)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_directional_shadows, params.lights->constant_directional_shadows->m_id);
+	}
+
+	if (m_options.has_environment_map)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_environment_map, params.lights->environment_map->m_constant.m_id);
+	}
+
+	if (m_options.has_ambient_light)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_ambient_light, params.lights->ambient_light->m_constant.m_id);
+	}
+
+	if (m_options.has_hemisphere_light)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_hemisphere_light, params.lights->hemisphere_light->m_constant.m_id);
+	}
+
+	if (m_options.has_fog)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_fog, params.constant_fog->m_id);
+	}
+
+	const GLTexture3D& tex = params.model->m_data->texture;
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_3D, tex.tex_id);
 	glUniform1i(0,0);
+
+	glActiveTexture(GL_TEXTURE1);
+	if (m_options.msaa)
+	{
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, params.tex_depth->tex_id);
+	}
+	else
+	{
+		glBindTexture(GL_TEXTURE_2D, params.tex_depth->tex_id);
+	}
+	glUniform1i(1, 1);
+
+	if (m_options.num_directional_shadows > 0)
+	{
+		int start_idx = m_bindings.location_tex_directional_shadow - m_options.num_directional_shadows + 1;
+		std::vector<int> values(m_options.num_directional_shadows);
+		for (int i = 0; i < m_options.num_directional_shadows; i++)
+		{
+			glActiveTexture(GL_TEXTURE0 + start_idx + i);
+			glBindTexture(GL_TEXTURE_2D, params.lights->directional_shadow_texs[i]);
+			values[i] = start_idx + i;
+		}
+		glUniform1iv(start_idx, m_options.num_directional_shadows, values.data());
+	}
+
+	if (m_options.has_environment_map)
+	{
+		glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_reflection_map);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, params.lights->environment_map->id_cube_reflection);
+		glUniform1i(m_bindings.location_tex_reflection_map, m_bindings.location_tex_reflection_map);
+	}
 
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 	glUseProgram(0);
 
 	glDisable(GL_SCISSOR_TEST);
+
+	if (m_options.msaa)
+	{
+		glDisable(GL_SAMPLE_SHADING);
+	}
 
 }
 

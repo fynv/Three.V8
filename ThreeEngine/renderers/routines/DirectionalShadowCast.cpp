@@ -1,6 +1,5 @@
 #include <GL/glew.h>
 #include "models/ModelComponents.h"
-#include "lights/DirectionalLightShadow.h"
 #include "DirectionalShadowCast.h"
 
 static std::string g_vertex =

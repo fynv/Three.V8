@@ -126,6 +126,18 @@ StandardRoutine* GLRenderer::get_routine(const StandardRoutine::Options& options
 	return routine_map[hash].get();
 }
 
+DrawIsosurface* GLRenderer::get_isosurface_draw(const DrawIsosurface::Options& options)
+{
+	uint64_t hash = crc64(0, (const unsigned char*)&options, sizeof(DrawIsosurface::Options));
+	auto iter = IsosurfaceDraw.find(hash);
+	if (iter == IsosurfaceDraw.end())
+	{
+		IsosurfaceDraw[hash] = std::unique_ptr<DrawIsosurface>(new DrawIsosurface(options));
+	}
+	return IsosurfaceDraw[hash].get();
+
+}
+
 inline void toViewAABB(const glm::mat4& MV, const glm::vec3& min_pos, const glm::vec3& max_pos, glm::vec3& min_pos_out, glm::vec3& max_pos_out)
 {
 	glm::vec4 view_pos[8];
@@ -374,13 +386,34 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 	}
 }
 
-void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog* fog, VolumeIsosurfaceModel* model, Pass pass)
+void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog* fog, VolumeIsosurfaceModel* model, GLRenderTarget& target, Pass pass)
 {
-	if (IsosurfaceDraw == nullptr)
+	DrawIsosurface::Options options;
+	options.msaa = target.msaa();
+	options.num_directional_lights = lights.num_directional_lights;
+	options.num_directional_shadows = lights.num_directional_shadows;
+	options.has_environment_map = lights.environment_map != nullptr;
+	options.has_ambient_light = lights.ambient_light != nullptr;
+	options.has_hemisphere_light = lights.hemisphere_light != nullptr;
+	options.has_fog = fog != nullptr;	
+
+	DrawIsosurface* draw = get_isosurface_draw(options);
+
+	DrawIsosurface::RenderParams params;
+	params.camera = p_camera;
+	params.model = model;	
+	params.tex_depth = target.m_tex_depth.get();
+	params.lights = &lights;
+
+	if (fog != nullptr)
 	{
-		IsosurfaceDraw = std::unique_ptr<DrawIsosurface>(new DrawIsosurface);
+		params.constant_fog = &fog->m_constant;
 	}
-	IsosurfaceDraw->render(p_camera, model);
+	else
+	{
+		params.constant_fog = nullptr;
+	}
+	draw->render(params);
 }
 
 DirectionalShadowCast* GLRenderer::get_shadow_caster(const DirectionalShadowCast::Options& options)
@@ -477,6 +510,20 @@ void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, GLTFModel* 
 			render_shadow_primitive(params);
 		}
 	}
+}
+
+void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, VolumeIsosurfaceModel* model)
+{
+	if (isosurface_directional_shadow == nullptr)
+	{
+		isosurface_directional_shadow = std::unique_ptr<IsosurfaceDirectionalShadow>(new IsosurfaceDirectionalShadow);
+	}
+	IsosurfaceDirectionalShadow* shadow_caster = isosurface_directional_shadow.get();
+
+	IsosurfaceDirectionalShadow::RenderParams params;
+	params.model = model;
+	params.shadow = shadow;
+	shadow_caster->render(params);
 }
 
 void GLRenderer::_render_fog(const Camera& camera, const Lights& lights, const Fog& fog, GLRenderTarget& target)
@@ -626,6 +673,13 @@ void GLRenderer::_pre_render(Scene& scene)
 			for (size_t j = 0; j < scene.gltf_models.size(); j++)
 			{
 				GLTFModel* model = scene.gltf_models[j];
+				render_shadow_model(light->shadow.get(), model);
+			}
+
+
+			for (size_t j = 0; j < scene.volume_isosurface_models.size(); j++)
+			{
+				VolumeIsosurfaceModel* model = scene.volume_isosurface_models[j];
 				render_shadow_model(light->shadow.get(), model);
 			}
 		}
@@ -874,7 +928,7 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 		for (size_t i = 0; i < scene.volume_isosurface_models.size(); i++)
 		{
 			VolumeIsosurfaceModel* model = scene.volume_isosurface_models[i];
-			render_model(&camera, lights, fog, model, Pass::Opaque);
+			render_model(&camera, lights, fog, model, target, Pass::Opaque);
 		}
 	}
 

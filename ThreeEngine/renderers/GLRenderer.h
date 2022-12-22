@@ -18,6 +18,7 @@
 #include "renderers/routines/AlphaDem.h"
 
 #include "volume/routines/DrawIsosurface.h"
+#include "volume/routines/IsosurfaceDirectionalShadow.h"
 
 class Scene;
 class Fog;
@@ -80,12 +81,13 @@ private:
 
 	std::unique_ptr<DrawWire> WireDraw;
 
-	std::unique_ptr<DrawIsosurface> IsosurfaceDraw;
+	std::unordered_map<uint64_t, std::unique_ptr<DrawIsosurface>> IsosurfaceDraw;
+	DrawIsosurface* get_isosurface_draw(const DrawIsosurface::Options& options);
 
 	void render_primitive(const StandardRoutine::RenderParams& params, Pass pass);
 	void render_model(Camera* p_camera, const Lights& lights, const Fog* fog, SimpleModel* model, Pass pass);
 	void render_model(Camera* p_camera, const Lights& lights, const Fog* fog, GLTFModel* model, Pass pass);
-	void render_model(Camera* p_camera, const Lights& lights, const Fog* fog, VolumeIsosurfaceModel* model, Pass pass);
+	void render_model(Camera* p_camera, const Lights& lights, const Fog* fog, VolumeIsosurfaceModel* model, GLRenderTarget& target, Pass pass);
 
 	std::unique_ptr<MorphUpdate> morphers[4];
 	std::unique_ptr<SkinUpdate> skinners[2];
@@ -94,9 +96,12 @@ private:
 	std::unordered_map<uint64_t, std::unique_ptr<DirectionalShadowCast>> directional_shadow_caster_map;
 	DirectionalShadowCast* get_shadow_caster(const DirectionalShadowCast::Options& options);
 
+	std::unique_ptr<IsosurfaceDirectionalShadow> isosurface_directional_shadow;
+
 	void render_shadow_primitive(const DirectionalShadowCast::RenderParams& params);
 	void render_shadow_model(DirectionalLightShadow* shadow, SimpleModel* model);
 	void render_shadow_model(DirectionalLightShadow* shadow, GLTFModel* model);
+	void render_shadow_model(DirectionalLightShadow* shadow, VolumeIsosurfaceModel* model);
 
 	std::unique_ptr<DrawSkyBox> SkyBoxDraw;
 	std::unique_ptr<DrawHemisphere> HemisphereDraw;

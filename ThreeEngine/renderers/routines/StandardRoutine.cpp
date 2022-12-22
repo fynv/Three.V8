@@ -549,7 +549,7 @@ vec3 HemisphereColor(in vec3 dir)
 #endif
 
 #if HAS_FOG
-layout (std140, binding = BINDING_FOG) uniform HemisphereLight
+layout (std140, binding = BINDING_FOG) uniform FOG
 {
 	vec4 fog_rgba;
 };

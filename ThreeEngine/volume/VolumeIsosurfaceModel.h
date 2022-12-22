@@ -9,9 +9,22 @@ public:
 	VolumeIsosurfaceModel(VolumeData* data);
 	~VolumeIsosurfaceModel();
 
+	struct Material
+	{
+		glm::vec4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
+		float metallicFactor = 0.0f;
+		float roughnessFactor = 1.0f;
+	};
+
 	VolumeData* m_data;
-	float m_isovalue = 0.0f;
+	float m_isovalue = 0.4f;
+
+	Material m_material;
 
 	GLDynBuffer m_constant;
 	void updateConstant();
+
+	void set_color(const glm::vec3& color);
+	void set_metalness(float metalness);
+	void set_roughness(float roughness);
 };

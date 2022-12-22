@@ -312,6 +312,9 @@
     <ClCompile Include="volume\VolumeData.cpp">
       <Filter>Source Files\volume</Filter>
     </ClCompile>
+    <ClCompile Include="volume\routines\IsosurfaceDirectionalShadow.cpp">
+      <Filter>Source Files\volume\routines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -534,6 +537,9 @@
       <Filter>Header Files\volume</Filter>
     </ClInclude>
     <ClInclude Include="volume\routines\DrawIsosurface.h">
+      <Filter>Header Files\volume\routines</Filter>
+    </ClInclude>
+    <ClInclude Include="volume\routines\IsosurfaceDirectionalShadow.h">
       <Filter>Header Files\volume\routines</Filter>
     </ClInclude>
   </ItemGroup>
