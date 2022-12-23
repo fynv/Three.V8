@@ -28,6 +28,7 @@ public:
 	{
 		simple_models.clear();
 		gltf_models.clear();
+		volume_isosurface_models.clear();
 		directional_lights.clear();
 	}
 	
