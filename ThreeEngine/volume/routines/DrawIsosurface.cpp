@@ -42,6 +42,8 @@ layout (std140, binding = 1) uniform Model
 	mat4 uNormalMat;
 	ivec4 uSize;
 	vec4 uSpacing;
+	ivec4 uBsize;
+	ivec4 uBnum;
 	vec4 uColor;
 	float uMetallicFactor;
 	float uRoughnessFactor;
@@ -50,11 +52,12 @@ layout (std140, binding = 1) uniform Model
 };
 
 layout (location = 0) uniform sampler3D uTex;
+layout (location = 1) uniform sampler3D uGrid;
 
 #if MSAA
-layout (location = 1) uniform sampler2DMS uDepthTex;
+layout (location = 2) uniform sampler2DMS uDepthTex;
 #else
-layout (location = 1) uniform sampler2D uDepthTex;
+layout (location = 2) uniform sampler2D uDepthTex;
 #endif
 
 
@@ -464,51 +467,175 @@ void main()
 	t_max.y = (max_pos.y - eye_pos.y)/dir.y;
 	t_max.z = (max_pos.z - eye_pos.z)/dir.z;
 
-	vec3 t0;
-	t0.x = min(t_min.x, t_max.x);
-	t0.y = min(t_min.y, t_max.y);
-	t0.z = min(t_min.z, t_max.z);
-	float t_start = max(max(t0.x, t0.y), t0.z);
+	vec3 t0_start;
+	t0_start.x = min(t_min.x, t_max.x);
+	t0_start.y = min(t_min.y, t_max.y);
+	t0_start.z = min(t_min.z, t_max.z);
+	float t_start = max(max(t0_start.x, t0_start.y), t0_start.z);
 
-	vec3 t1;
-	t1.x = max(t_min.x, t_max.x);
-	t1.y = max(t_min.y, t_max.y);
-	t1.z = max(t_min.z, t_max.z);
-	float t_stop = min(min(t1.x, t1.y), t1.z);
+	vec3 t1_stop;
+	t1_stop.x = max(t_min.x, t_max.x);
+	t1_stop.y = max(t_min.y, t_max.y);
+	t1_stop.z = max(t_min.z, t_max.z);
+	float t_stop = min(min(t1_stop.x, t1_stop.y), t1_stop.z);
 
 	if (t_stop<t_start) discard;
 	if (t_stop>dis) t_stop = dis;
 
-	float t = t_start;
-	float step = uStep;
-	float v0 = 0.0;
-	float iso = uIsovalue;
-	while(t<t_stop)
-	{
-		vec3 pos = eye_pos + t*dir;
-		vec3 coord = (pos - min_pos)/(max_pos-min_pos);
-		float v1 = texture(uTex, coord).x;
-		if (v1>iso)
-		{
-			float k = (iso - v1)/(v1-v0);
-			t += k*step;
-			pos = eye_pos + t*dir;
-			vec3 col = get_shading(pos);
-			outColor = vec4(col, 1.0);
+	float tMaxX_b,tMaxY_b,tMaxZ_b;
+	float tDeltaX_b,tDeltaY_b,tDeltaZ_b;	
 
-			pos_world = uModelMat * vec4(pos, 1.0);
-			pos_view = uViewMat * pos_world;
-			vec4 pos_proj = uProjMat * pos_view;
-			pos_proj*= 1.0/pos_proj.w;				
-			gl_FragDepth= pos_proj.z * 0.5 + 0.5;
-			return;
+	int x_b,y_b,z_b;
+	int stepX,stepY,stepZ; 
+
+	float t1 = t_start;
+	vec3 pos1 = ((eye_pos + t1*dir) - min_pos) / uSpacing.xyz;
+
+	if (dir.x==0.0)
+	{
+		x_b = (int(ceil(pos1.x - 0.5)) - 1)/uBsize.x;
+		stepX = 0;
+		tMaxX_b = t_stop;
+	}
+	else if (dir.x<0.0)
+	{
+		x_b = (int(ceil(pos1.x - 0.5)) - 1)/uBsize.x;
+		stepX = -1;
+		tMaxX_b = ((float(x_b * uBsize.x) + 0.5)*uSpacing.x + min_pos.x - eye_pos.x)/dir.x;
+		tDeltaX_b = -float(uBsize.x)*uSpacing.x/dir.x;		
+	}
+	else
+	{
+		x_b = int(floor(pos1.x - 0.5))/uBsize.x;
+		stepX = 1;
+		tMaxX_b = ( (float((x_b + 1) * uBsize.x) + 0.5)*uSpacing.x + min_pos.x - eye_pos.x)/dir.x;
+		tDeltaX_b = float(uBsize.x)*uSpacing.x /dir.x;		
+	}
+
+	if (dir.y==0.0)
+	{
+		y_b = (int(ceil(pos1.y - 0.5)) - 1)/uBsize.y;
+		stepY = 0;
+		tMaxY_b = t_stop;
+	}
+	else if (dir.y <0.0)
+	{
+		y_b = (int(ceil(pos1.y -0.5)) - 1)/uBsize.y;
+		stepY = -1;
+		tMaxY_b = ( (float(y_b * uBsize.y) + 0.5)*uSpacing.y+ min_pos.y - eye_pos.y)/dir.y;
+		tDeltaY_b = -float(uBsize.y)*uSpacing.y/dir.y;		
+	}
+	else
+	{
+		y_b = int(floor(pos1.y-0.5))/uBsize.y;
+		stepY = 1;
+		tMaxY_b = ( (float((y_b + 1) * uBsize.y) + 0.5)*uSpacing.y+ min_pos.y - eye_pos.y)/dir.y;
+		tDeltaY_b = float(uBsize.y)*uSpacing.y/dir.y;		
+	}
+
+	if (dir.z==0.0)
+	{
+		z_b = (int(ceil(pos1.z - 0.5)) -1)/uBsize.z;
+		stepZ = 0;
+		tMaxZ_b = t_stop;
+	}
+	else if (dir.z < 0.0)
+	{
+		z_b = (int(ceil(pos1.z - 0.5)) - 1)/uBsize.z;
+		stepZ = -1;
+		tMaxZ_b = ( (float(z_b * uBsize.z) + 0.5)*uSpacing.z+ min_pos.z - eye_pos.z)/dir.z;
+		tDeltaZ_b = -float(uBsize.z)*uSpacing.z/dir.z;		
+	}
+	else
+	{
+		z_b = int(floor(pos1.z - 0.5))/uBsize.z;
+		stepZ = 1;
+		tMaxZ_b = ( (float((z_b + 1)*uBsize.z) + 0.5)*uSpacing.z+ min_pos.z - eye_pos.z)/dir.z;
+		tDeltaZ_b = float(uBsize.z)*uSpacing.z/dir.z;		
+	}
+
+	while(t1<t_stop)
+	{	
+		float t_b;
+		while(t1<t_stop)
+		{	
+			vec2 MinMax = texelFetch(uGrid, ivec3(x_b,y_b,z_b), 0).xy;					
+			if (tMaxX_b<tMaxY_b)
+			{
+				if (tMaxX_b<tMaxZ_b) 
+				{
+					t_b = tMaxX_b;
+					tMaxX_b+=tDeltaX_b;
+					x_b+=stepX;
+				}
+				else
+				{
+					t_b = tMaxZ_b;
+					tMaxZ_b+=tDeltaZ_b;
+					z_b+=stepZ;
+				}			
+			}
+			else
+			{
+				if (tMaxY_b<tMaxZ_b) 
+				{
+					t_b = tMaxY_b;
+					tMaxY_b+=tDeltaY_b;
+					y_b+=stepY;
+				}
+				else 
+				{
+					t_b = tMaxZ_b;
+					tMaxZ_b+=tDeltaZ_b;
+					z_b+=stepZ;
+				}
+			}
+			
+			if ( MinMax.y>=uIsovalue && MinMax.x<=uIsovalue) break;			
+			
+			t1=t_b;
 		}
 
-		v0 = v1;
-		t+=step;
+		if (t1>=t_stop) break;		
+		if (t_b>t_stop) t_b=t_stop;
+		
+		float t = t1;
+		vec3 pos = eye_pos + t*dir;
+		vec3 coord = (pos - min_pos)/(max_pos-min_pos);
+		float v0 = texture(uTex, coord).x;	
+
+		while(true)
+		{
+			t+=uStep;
+
+			pos = eye_pos + t*dir;
+			coord = (pos - min_pos)/(max_pos-min_pos);
+			float v1 = texture(uTex, coord).x;
+			if ((v0<=uIsovalue && v1>=uIsovalue) || (v0>=uIsovalue && v1<=uIsovalue))
+			{
+				float k = (uIsovalue - v1)/(v1-v0);
+				t += k*uStep;
+				pos = eye_pos + t*dir;					
+				vec3 col = get_shading(pos);
+				outColor = vec4(col, 1.0);
+
+				pos_world = uModelMat * vec4(pos, 1.0);
+				pos_view = uViewMat * pos_world;
+				vec4 pos_proj = uProjMat * pos_view;
+				pos_proj*= 1.0/pos_proj.w;				
+				gl_FragDepth= pos_proj.z * 0.5 + 0.5;
+				return;
+			}
+
+			v0 = v1;
+			if (t>=t_b) break;	
+		}		
+
+		t1=t_b;
+		
 	}
-	discard;
 	
+	discard;
 }
 )";
 
@@ -566,7 +693,7 @@ DrawIsosurface::DrawIsosurface(const Options& options) : m_options(options)
 		defines += line;
 	}
 
-	m_bindings.location_tex_directional_shadow = 1 + options.num_directional_shadows;
+	m_bindings.location_tex_directional_shadow = 2 + options.num_directional_shadows;
 
 	if (options.num_directional_shadows > 0)
 	{
@@ -825,9 +952,14 @@ void DrawIsosurface::render(const RenderParams& params)
 	const GLTexture3D& tex = params.model->m_data->texture;
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_3D, tex.tex_id);
-	glUniform1i(0,0);
+	glUniform1i(0, 0);
 
+	const GLTexture3D& grid = params.model->m_partition->minmax_texture;
 	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_3D, grid.tex_id);
+	glUniform1i(1, 1);
+
+	glActiveTexture(GL_TEXTURE2);
 	if (m_options.msaa)
 	{
 		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, params.tex_depth->tex_id);
@@ -836,7 +968,7 @@ void DrawIsosurface::render(const RenderParams& params)
 	{
 		glBindTexture(GL_TEXTURE_2D, params.tex_depth->tex_id);
 	}
-	glUniform1i(1, 1);
+	glUniform1i(2, 2);
 
 	if (m_options.num_directional_shadows > 0)
 	{

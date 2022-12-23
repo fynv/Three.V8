@@ -315,6 +315,9 @@
     <ClCompile Include="volume\routines\IsosurfaceDirectionalShadow.cpp">
       <Filter>Source Files\volume\routines</Filter>
     </ClCompile>
+    <ClCompile Include="volume\routines\InitiGridPartition.cpp">
+      <Filter>Source Files\volume\routines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -540,6 +543,12 @@
       <Filter>Header Files\volume\routines</Filter>
     </ClInclude>
     <ClInclude Include="volume\routines\IsosurfaceDirectionalShadow.h">
+      <Filter>Header Files\volume\routines</Filter>
+    </ClInclude>
+    <ClInclude Include="volume\GridPartition.h">
+      <Filter>Header Files\volume</Filter>
+    </ClInclude>
+    <ClInclude Include="volume\routines\InitiGridPartition.h">
       <Filter>Header Files\volume\routines</Filter>
     </ClInclude>
   </ItemGroup>

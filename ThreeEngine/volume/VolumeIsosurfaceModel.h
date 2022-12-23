@@ -1,7 +1,9 @@
 #pragma once
 
+#include <memory>
 #include "core/Object3D.h"
 #include "volume/VolumeData.h"
+#include "volume/GridPartition.h"
 
 class VolumeIsosurfaceModel : public Object3D
 {
@@ -17,6 +19,7 @@ public:
 	};
 
 	VolumeData* m_data;
+	std::unique_ptr<GridPartition> m_partition;
 	float m_isovalue = 0.4f;
 
 	Material m_material;

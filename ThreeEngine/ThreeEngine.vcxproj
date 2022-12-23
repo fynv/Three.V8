@@ -190,6 +190,7 @@
     <ClCompile Include="scenes\Scene.cpp" />
     <ClCompile Include="utils\Image.cpp" />
     <ClCompile Include="volume\routines\DrawIsosurface.cpp" />
+    <ClCompile Include="volume\routines\InitiGridPartition.cpp" />
     <ClCompile Include="volume\routines\IsosurfaceDirectionalShadow.cpp" />
     <ClCompile Include="volume\VolumeData.cpp" />
     <ClCompile Include="volume\VolumeDataLoader.cpp" />
@@ -266,7 +267,9 @@
     <ClInclude Include="utils\Image.h" />
     <ClInclude Include="utils\Semaphore.h" />
     <ClInclude Include="utils\Utils.h" />
+    <ClInclude Include="volume\GridPartition.h" />
     <ClInclude Include="volume\routines\DrawIsosurface.h" />
+    <ClInclude Include="volume\routines\InitiGridPartition.h" />
     <ClInclude Include="volume\routines\IsosurfaceDirectionalShadow.h" />
     <ClInclude Include="volume\VolumeData.h" />
     <ClInclude Include="volume\VolumeDataLoader.h" />
