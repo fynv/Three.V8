@@ -174,6 +174,9 @@ void main()
 		tDeltaZ_b = float(uBsize.z)*uSpacing.z/dir.z;		
 	}
 
+	bool hit = false;
+	vec3 pos;
+
 	while(t1<t_stop)
 	{
 		float t_b;
@@ -220,7 +223,7 @@ void main()
 		if (t_b>t_stop) t_b=t_stop;
 
 		float t = t1;	
-		vec3 pos = eye_pos + t*dir;
+		pos = eye_pos + t*dir;
 		vec3 coord = (pos - min_pos)/(max_pos-min_pos);
 		float v0 = texture(uTex, coord).x;		
 	
@@ -236,19 +239,25 @@ void main()
 				float k = (uIsovalue - v1)/(v1-v0);
 				t += k*uStep;
 				pos = eye_pos + t*dir;
-				pos_world = uModelMat * vec4(pos, 1.0);
-				pos_view = uViewMat * pos_world;
-				vec4 pos_proj = uProjMat * pos_view;
-				pos_proj*= 1.0/pos_proj.w;				
-				gl_FragDepth= pos_proj.z * 0.5 + 0.5;
-				return;
+				hit = true;
+				break;	
 			}
 
 			v0 = v1;
 			if (t>=t_b) break;	
 		}
-
+		if (hit) break;	
 		t1=t_b;
+	}
+
+	if (hit)
+	{
+		pos_world = uModelMat * vec4(pos, 1.0);
+		pos_view = uViewMat * pos_world;
+		vec4 pos_proj = uProjMat * pos_view;
+		pos_proj*= 1.0/pos_proj.w;				
+		gl_FragDepth= pos_proj.z * 0.5 + 0.5;
+		return;
 	}
 	
 	discard;
