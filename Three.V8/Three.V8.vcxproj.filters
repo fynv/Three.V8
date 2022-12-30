@@ -204,6 +204,12 @@
     <ClInclude Include="volume\VolumeIsosurfaceModel.hpp">
       <Filter>Header Files\volume</Filter>
     </ClInclude>
+    <ClInclude Include="network\WSClient.hpp">
+      <Filter>Header Files\network</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\Text.hpp">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="binding.cpp">

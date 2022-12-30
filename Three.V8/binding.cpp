@@ -55,6 +55,7 @@ V8VM::~V8VM()
 
 #include "GamePlayer.hpp"
 #include "network/HttpClient.hpp"
+#include "network/WSClient.hpp"
 #include "loaders/FileLoader.hpp"
 #include "loaders/ImageLoader.hpp"
 #include "loaders/GLTFLoader.hpp"
@@ -83,6 +84,8 @@ V8VM::~V8VM()
 #include "volume/VolumeData.hpp"
 #include "volume/VolumeIsosurfaceModel.hpp"
 #include "volume/VolumeDataLoader.hpp"
+
+#include "utils/Text.hpp"
 
 GlobalDefinitions GameContext::s_globals =
 {
@@ -140,6 +143,8 @@ GlobalDefinitions GameContext::s_globals =
 #endif
 		{ "VolumeData", WrapperVolumeData::New, WrapperVolumeData::create_template},
 		{ "VolumeIsosurfaceModel", WrapperVolumeIsosurfaceModel::New, WrapperVolumeIsosurfaceModel::create_template},
+
+		{ "WSClient", WrapperWSClient::New, WrapperWSClient::create_template},
 	},
 	{
 		{ "fileLoader", WrapperFileLoader::create_template },
@@ -148,6 +153,8 @@ GlobalDefinitions GameContext::s_globals =
 		{ "imageSaver", WrapperImageSaver::create_template},
 
 		{ "volumeDataLoader", WrapperVolumeDataLoader::create_template},
+
+		{ "text", WrapperText::create_template},
 	}
 };
 
@@ -505,7 +512,29 @@ void GameContext::remove_object(void* ptr)
 	m_objects.erase(ptr);
 }
 
+void GameContext::add_ws_client(WSClient* client)
+{
+	m_ws_clients.insert(client);
+}
+
+void GameContext::remove_ws_client(WSClient* client)
+{
+	auto iter = m_ws_clients.find(client);
+	if (iter != m_ws_clients.end())
+	{
+		m_ws_clients.erase(iter);
+	}
+}
+
 void GameContext::CheckPendings()
 {
 	m_http->CheckPendings();
+
+	auto iter = m_ws_clients.begin();
+	while (iter != m_ws_clients.end())
+	{
+		(*iter)->CheckPending();
+		iter++;
+	}
+
 }

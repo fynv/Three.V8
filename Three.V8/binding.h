@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include <string>
 #include <utility>
 
@@ -49,6 +50,7 @@ struct GlobalDefinitions
 
 class GamePlayer;
 class HttpClient;
+class WSClient;
 class UIManager;
 class GameContext
 {
@@ -72,11 +74,15 @@ public:
 	void regiter_object(v8::Local<v8::Object> obj, Dtor dtor);
 	void remove_object(void* ptr);
 
+	void add_ws_client(WSClient* client);
+	void remove_ws_client(WSClient* client);
+
 	void CheckPendings();
 
 private:
 	GamePlayer* m_gamePlayer;
 	std::unique_ptr<HttpClient> m_http;
+	std::unordered_set<WSClient*> m_ws_clients;
 	std::unique_ptr<UIManager> m_ui_manager;
 	static GlobalDefinitions s_globals;
 	void _create_context();

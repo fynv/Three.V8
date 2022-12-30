@@ -318,6 +318,9 @@
     <ClCompile Include="volume\routines\InitiGridPartition.cpp">
       <Filter>Source Files\volume\routines</Filter>
     </ClCompile>
+    <ClCompile Include="network\WSClient.cpp">
+      <Filter>Source Files\network</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -550,6 +553,9 @@
     </ClInclude>
     <ClInclude Include="volume\routines\InitiGridPartition.h">
       <Filter>Header Files\volume\routines</Filter>
+    </ClInclude>
+    <ClInclude Include="network\WSClient.h">
+      <Filter>Header Files\network</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

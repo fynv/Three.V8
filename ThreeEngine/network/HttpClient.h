@@ -20,12 +20,6 @@ using tcp = net::ip::tcp;           // from <boost/asio/ip/tcp.hpp>
 #include <unordered_set>
 #include <unordered_map>
 
-namespace std
-{
-	class thread;
-}
-
-
 // Get Async
 struct GetResult
 {
