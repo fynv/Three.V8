@@ -1,3 +1,4 @@
+#include <queue>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/ssl.hpp>
@@ -56,6 +57,12 @@ public:
 
 	void Send(const void* data, size_t size, bool is_binary) override
 	{
+		std::vector<char> msg_data(size);
+		memcpy(msg_data.data(), data, size);
+		m_write_queue.push({ msg_data, is_binary });
+
+		if (m_write_queue.size() > 1) return;
+
 		m_ws.binary(is_binary);
 		m_ws.async_write(
 			net::buffer(data, size),
@@ -75,6 +82,13 @@ private:
 
 	beast::flat_buffer m_buffer;
 	std::string m_host;
+
+	struct Msg
+	{
+		std::vector<char> data;
+		bool is_binary;
+	};
+	std::queue<Msg> m_write_queue;
 
 	void on_resolve(boost::system::error_code ec, tcp::resolver::results_type results)
 	{
@@ -139,7 +153,20 @@ private:
 	void on_write(boost::system::error_code ec,
 		std::size_t bytes_transferred)
 	{
-	
+		m_write_queue.pop();
+		if (!m_write_queue.empty())
+		{
+			Msg msg = m_write_queue.front();
+
+			m_ws.binary(msg.is_binary);
+			m_ws.async_write(
+				net::buffer(msg.data.data(), msg.data.size()),
+				std::bind(
+					&WSClientImpl::on_write,
+					this,
+					std::placeholders::_1,
+					std::placeholders::_2));
+		}
 	}
 };
 
@@ -177,6 +204,12 @@ public:
 
 	void Send(const void* data, size_t size, bool is_binary) override
 	{
+		std::vector<char> msg_data(size);
+		memcpy(msg_data.data(), data, size);
+		m_write_queue.push({ msg_data, is_binary });
+
+		if (m_write_queue.size() > 1) return;
+
 		m_ws.binary(is_binary);
 		m_ws.async_write(
 			net::buffer(data, size),
@@ -199,6 +232,13 @@ private:
 
 	beast::flat_buffer m_buffer;
 	std::string m_host;
+
+	struct Msg
+	{
+		std::vector<char> data;
+		bool is_binary;
+	};
+	std::queue<Msg> m_write_queue;
 
 	void on_resolve(boost::system::error_code ec, tcp::resolver::results_type results)
 	{
@@ -273,7 +313,20 @@ private:
 	void on_write(boost::system::error_code ec,
 		std::size_t bytes_transferred)
 	{
+		m_write_queue.pop();
+		if (!m_write_queue.empty())
+		{
+			Msg msg = m_write_queue.front();
 
+			m_ws.binary(msg.is_binary);
+			m_ws.async_write(
+				net::buffer(msg.data.data(), msg.data.size()),
+				std::bind(
+					&WSClientImpl_SSL::on_write,
+					this,
+					std::placeholders::_1,
+					std::placeholders::_2));
+		}
 	}
 };
 
