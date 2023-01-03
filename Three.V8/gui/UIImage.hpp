@@ -48,7 +48,7 @@ void WrapperUIImage::dtor(void* ptr, GameContext* ctx)
 	{
 		renderer.DeleteImage(self->id_image);
 	}
-	delete self;
+	WrapperUIElement::dtor(ptr, ctx);
 }
 
 void WrapperUIImage::GetSize(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)

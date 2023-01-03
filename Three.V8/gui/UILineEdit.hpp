@@ -47,7 +47,7 @@ void WrapperUILineEdit::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 void WrapperUILineEdit::dtor(void* ptr, GameContext* ctx)
 {
 	UILineEdit* self = (UILineEdit*)ptr;	
-	delete self;
+	WrapperUIElement::dtor(ptr, ctx);
 }
 
 void WrapperUILineEdit::GetSize(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)

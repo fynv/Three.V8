@@ -84,7 +84,7 @@ void WrapperUIDraggable::dtor(void* ptr, GameContext* ctx)
 		UIDragData* data = (UIDragData*)self->drag_callback_data;
 		delete data;
 	}	
-	delete self;
+	WrapperUIElement::dtor(ptr, ctx);
 }
 
 void WrapperUIDraggable::GetDraggableHorizontal(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)

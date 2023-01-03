@@ -61,7 +61,7 @@ void WrapperUIButton::dtor(void* ptr, GameContext* ctx)
 		UIButtonClickData* data = (UIButtonClickData*)self->long_press_callback_data;
 		delete data;
 	}
-	delete self;
+	WrapperUIElement::dtor(ptr, ctx);
 }
 
 void WrapperUIButton::SetStyle(const v8::FunctionCallbackInfo<v8::Value>& info)

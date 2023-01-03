@@ -545,9 +545,16 @@ bool UIManager::PointerDown(float x, float y)
 			edit->pendingEvents.push(e);
 			edit->appearance_changed = true;
 		}
+
+		if (elem->pointer_down_callback != nullptr)
+		{
+			elem->pointer_down_callback(x, y, elem->pointer_down_callback_data);
+		}
+		return true;
 	}
 
-	return hit[0].first_elem != nullptr;
+	return false;
+	
 }
 
 bool UIManager::PointerUp(float x, float y)
@@ -594,11 +601,18 @@ bool UIManager::PointerUp(float x, float y)
 			view->appearance_changed = true;
 		}
 	}
-
-	bool res = hit[0].first_elem != nullptr;
-	hit[0].first_elem = nullptr;
-
-	return res;
+	
+	if (hit[0].first_elem != nullptr)
+	{
+		UIElement* elem = hit[0].first_elem;
+		if (elem->pointer_up_callback != nullptr)
+		{
+			elem->pointer_up_callback(x, y, elem->pointer_up_callback_data);
+		}
+		hit[0].first_elem = nullptr;
+		return true;
+	}
+	return false;
 }
 
 bool UIManager::PointerMove(float x, float y)
@@ -723,7 +737,16 @@ bool UIManager::PointerMove(float x, float y)
 	}
 
 
-	return hit[0].first_elem != nullptr;
+	if (hit[0].first_elem != nullptr)
+	{
+		UIElement* elem = hit[0].first_elem;
+		if (elem->pointer_move_callback != nullptr)
+		{
+			elem->pointer_move_callback(x, y, elem->pointer_move_callback_data);
+		}		
+		return true;
+	}
+	return false;
 }
 
 bool UIManager::LongPress(float x, float y)	
