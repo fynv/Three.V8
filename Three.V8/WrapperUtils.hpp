@@ -586,7 +586,7 @@ inline void string_to_color(const char* str, glm::u8vec4& color)
 		hex.erase(0, 1);
 	}
 
-	while (hex.length() != 6) {
+	while (hex.length() < 8) {
 		hex += "0";
 	}
 

@@ -92,6 +92,12 @@ void WrapperUIButton::SetStyle(const v8::FunctionCallbackInfo<v8::Value>& info)
 		std::string str = lctx.jstr_to_str(lctx.get_property(style, "colorStroke"));
 		string_to_color(str.c_str(), self->colorStroke);
 	}
+
+	if (lctx.has_property(style, "shadowOffset"))
+	{
+		lctx.jnum_to_num(lctx.get_property(style, "shadowOffset"), self->shadowOffset);
+	}
+
 	self->appearance_changed = true;
 }
 
