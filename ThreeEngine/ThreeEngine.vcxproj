@@ -161,6 +161,7 @@
     <ClCompile Include="materials\Material.cpp" />
     <ClCompile Include="materials\MeshStandardMaterial.cpp" />
     <ClCompile Include="models\Animation.cpp" />
+    <ClCompile Include="models\AnimationMixer.cpp" />
     <ClCompile Include="models\GeometryCreator.cpp" />
     <ClCompile Include="models\GLTFModel.cpp" />
     <ClCompile Include="models\ModelComponents.cpp" />
@@ -237,6 +238,7 @@
     <ClInclude Include="materials\Material.h" />
     <ClInclude Include="materials\MeshStandardMaterial.h" />
     <ClInclude Include="models\Animation.h" />
+    <ClInclude Include="models\AnimationMixer.h" />
     <ClInclude Include="models\GeometryCreator.h" />
     <ClInclude Include="models\GLTFModel.h" />
     <ClInclude Include="models\ModelComponents.h" />

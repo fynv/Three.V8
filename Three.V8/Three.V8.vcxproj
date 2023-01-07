@@ -159,6 +159,7 @@
     <ClInclude Include="loaders\FileLoader.hpp" />
     <ClInclude Include="loaders\GLTFLoader.hpp" />
     <ClInclude Include="loaders\ImageLoader.hpp" />
+    <ClInclude Include="models\AnimationMixer.hpp" />
     <ClInclude Include="models\GLTFModel.hpp" />
     <ClInclude Include="models\SimpleModel.hpp" />
     <ClInclude Include="multimedia\MMCamera.hpp" />

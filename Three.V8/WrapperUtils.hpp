@@ -208,6 +208,93 @@ public:
 		}
 	}
 
+	inline void frame_to_jframe(const AnimationFrame& frame, v8::Local<v8::Value> jFrame)
+	{
+		v8::Local<v8::Object> obj = jFrame.As<v8::Object>();
+
+		size_t num_morphs = frame.morphs.size();
+		if (num_morphs>0)
+		{
+			v8::Local<v8::Array> jMorphs = v8::Array::New(isolate, (int)num_morphs);
+			for (size_t i = 0; i < num_morphs; i++)
+			{
+				const MorphFrame& morph = frame.morphs[i];
+				v8::Local<v8::Object> jMorph = v8::Object::New(isolate);
+				v8::Local<v8::Value> jName = str_to_jstr(morph.name.c_str());
+				set_property(jMorph, "name", jName);
+				v8::Local<v8::Array> jWeights = v8::Array::New(isolate, (int)morph.weights.size());
+				for (size_t j = 0; j < morph.weights.size(); j++)
+				{					
+					jWeights->Set(context, (unsigned)j, num_to_jnum(morph.weights[j]));
+				}
+				set_property(jMorph, "weights", jWeights);
+
+				jMorphs->Set(context, (unsigned)i, jMorph);
+			}
+			set_property(obj, "morphs", jMorphs);
+		}
+
+		size_t num_trans = frame.translations.size();
+		if (num_trans > 0)
+		{
+			v8::Local<v8::Array> jTransLst = v8::Array::New(isolate, (int)num_trans);
+			for (size_t i = 0; i < num_trans; i++)
+			{
+				const TranslationFrame& trans = frame.translations[i];
+				v8::Local<v8::Object> jTransFrame = v8::Object::New(isolate);
+				v8::Local<v8::Value> jName = str_to_jstr(trans.name.c_str());
+				set_property(jTransFrame, "name", jName);
+
+				v8::Local<v8::Object> jTranslation = v8::Object::New(isolate);
+				vec3_to_jvec3(trans.translation, jTranslation);
+				set_property(jTransFrame, "translation", jTranslation);
+
+				jTransLst->Set(context, (unsigned)i, jTransFrame);
+			}
+			set_property(obj, "translations", jTransLst);
+		}
+
+		size_t num_rots = frame.rotations.size();
+		if (num_rots > 0)
+		{
+			v8::Local<v8::Array> jRotLst = v8::Array::New(isolate, (int)num_rots);
+			for (size_t i = 0; i < num_rots; i++)
+			{
+				const RotationFrame& rot = frame.rotations[i];
+				v8::Local<v8::Object> jRotFrame = v8::Object::New(isolate);
+				v8::Local<v8::Value> jName = str_to_jstr(rot.name.c_str());
+				set_property(jRotFrame, "name", jName);
+
+				v8::Local<v8::Object> jRotation = v8::Object::New(isolate);
+				quat_to_jquat(rot.rotation, jRotation);
+				set_property(jRotFrame, "rotation", jRotation);
+
+				jRotLst->Set(context, (unsigned)i, jRotFrame);
+			}
+			set_property(obj, "rotations", jRotLst);
+		}
+
+		size_t num_scales = frame.scales.size();
+		if (num_scales > 0)
+		{
+			v8::Local<v8::Array> jScaleLst = v8::Array::New(isolate, (int)num_scales);
+			for (size_t i = 0; i < num_scales; i++)
+			{
+				const ScaleFrame& scale = frame.scales[i];
+				v8::Local<v8::Object> jScaleFrame = v8::Object::New(isolate);
+				v8::Local<v8::Value> jName = str_to_jstr(scale.name.c_str());
+				set_property(jScaleFrame, "name", jName);
+
+				v8::Local<v8::Object> jScale = v8::Object::New(isolate);
+				vec3_to_jvec3(scale.scale, jScale);
+				set_property(jScaleFrame, "scale", jScale);
+
+				jScaleLst->Set(context, (unsigned)i, jScaleFrame);
+			}
+			set_property(obj, "scales", jScaleLst);
+		}
+
+	}
 
 	inline void jframe_to_frame(v8::Local<v8::Value> jFrame, AnimationFrame& frame)
 	{
@@ -286,6 +373,8 @@ public:
 
 		}		
 	}
+
+	
 
 	inline void anim_to_janim(const AnimationClip& anim, v8::Local<v8::Value> janim)
 	{

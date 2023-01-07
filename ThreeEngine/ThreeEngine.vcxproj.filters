@@ -321,6 +321,9 @@
     <ClCompile Include="network\WSClient.cpp">
       <Filter>Source Files\network</Filter>
     </ClCompile>
+    <ClCompile Include="models\AnimationMixer.cpp">
+      <Filter>Source Files\models</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -556,6 +559,9 @@
     </ClInclude>
     <ClInclude Include="network\WSClient.h">
       <Filter>Header Files\network</Filter>
+    </ClInclude>
+    <ClInclude Include="models\AnimationMixer.h">
+      <Filter>Header Files\models</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

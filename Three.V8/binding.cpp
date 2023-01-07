@@ -43,6 +43,7 @@ V8VM::~V8VM()
 
 #include "models/SimpleModel.hpp"
 #include "models/GLTFModel.hpp"
+#include "models/AnimationMixer.hpp"
 
 #include "scenes/Scene.hpp"
 #include "scenes/Fog.hpp"
@@ -114,6 +115,7 @@ GlobalDefinitions GameContext::s_globals =
 		{ "CubeRenderTarget", WrapperCubeRenderTarget::New,  WrapperCubeRenderTarget::create_template },
 		{ "SimpleModel", WrapperSimpleModel::New,  WrapperSimpleModel::create_template },
 		{ "GLTFModel", WrapperGLTFModel::New,  WrapperGLTFModel::create_template },
+		{ "AnimationMixer", WrapperAnimationMixer::New,  WrapperAnimationMixer::create_template },
 		{ "Image", WrapperImage::New,  WrapperImage::create_template },
 		{ "CubeImage", WrapperCubeImage::New,  WrapperCubeImage::create_template },
 		{ "DirectionalLight", WrapperDirectionalLight::New, WrapperDirectionalLight::create_template },
