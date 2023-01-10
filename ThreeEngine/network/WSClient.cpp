@@ -27,6 +27,55 @@ using namespace boost::urls;
 
 #include "root_certificates.hpp"
 
+#include "utils/Semaphore.h"
+
+template<typename T>
+class ConcurrentQueue
+{
+public:
+	ConcurrentQueue() 
+	{
+	}
+
+	~ConcurrentQueue()
+	{
+	}
+
+	size_t Size()
+	{
+		return m_queue.size();
+	}
+
+	T Front()
+	{
+		return m_queue.front();
+	}
+
+	void Push(T packet)
+	{
+		m_mutex.lock();
+		m_queue.push(packet);
+		m_mutex.unlock();
+		m_semaphore_out.notify();
+	}
+
+	T Pop()
+	{
+		m_semaphore_out.wait();
+		m_mutex.lock();
+		T ret = m_queue.front();
+		m_queue.pop();
+		m_mutex.unlock();
+		return ret;
+	}
+
+private:
+	std::queue<T> m_queue;
+	std::mutex m_mutex;	
+	Semaphore m_semaphore_out;
+};
+
+
 class WSClientImpl : public WSClient::Impl
 {
 public:
@@ -35,42 +84,40 @@ public:
 		, m_ws(m_ioc)
 	{
 		m_host = std::string(host) + ":" + port;
+		m_thread = (std::unique_ptr<std::thread>)(new std::thread(on_create, this, std::string(host), std::string(port)));
+	}
 
-		m_resolver.async_resolve(
-			host,
-			port,
-			std::bind(
-				&WSClientImpl::on_resolve,
-				this,
-				std::placeholders::_1,
-				std::placeholders::_2));
+	~WSClientImpl()
+	{
+		m_running = false;
+		m_thread->join();
 	}
 
 	void CheckPending() override
 	{
-		while (true)
+		if (m_connected)
 		{
-			int n = m_ioc.run_for(std::chrono::microseconds(1));
-			if (n == 0) break;
+			m_connected = false;
+			if (open_callback != nullptr)
+			{
+				open_callback(open_callback_data);
+			}
 		}
+		while (m_user_read_queue.Size() > 0)
+		{
+			Msg msg = m_user_read_queue.Pop();
+			if (msg_callback != nullptr)
+			{				
+				msg_callback(msg.data.data(), msg.data.size(), msg.is_binary, msg_callback_data);
+			}
+		}		
 	}
 
 	void Send(const void* data, size_t size, bool is_binary) override
 	{
 		std::vector<char> msg_data(size);
 		memcpy(msg_data.data(), data, size);
-		m_write_queue.push({ msg_data, is_binary });
-
-		if (m_write_queue.size() > 1) return;
-
-		m_ws.binary(is_binary);
-		m_ws.async_write(
-			net::buffer(data, size),
-			std::bind(
-				&WSClientImpl::on_write,
-				this,
-				std::placeholders::_1,
-				std::placeholders::_2));
+		m_user_write_queue.Push({ msg_data, is_binary });
 	}
 
 private:
@@ -89,6 +136,51 @@ private:
 		bool is_binary;
 	};
 	std::queue<Msg> m_write_queue;
+
+	ConcurrentQueue<Msg> m_user_read_queue;
+	ConcurrentQueue<Msg> m_user_write_queue;
+
+	bool m_running = true;
+	bool m_connected = false;
+	std::unique_ptr<std::thread> m_thread;
+
+	static void on_create(WSClientImpl* self, std::string host, std::string port)
+	{		
+		self->m_resolver.async_resolve(
+			host,
+			port,
+			std::bind(
+				&WSClientImpl::on_resolve,
+				self,
+				std::placeholders::_1,
+				std::placeholders::_2));
+
+		while (self->m_running)
+		{
+			while (self->m_user_write_queue.Size() > 0)
+			{
+				Msg msg = self->m_user_write_queue.Pop();
+				self->m_write_queue.push(msg);
+
+				if (self->m_write_queue.size() > 1) continue;
+
+				self->m_ws.binary(msg.is_binary);
+				self->m_ws.async_write(
+					net::buffer(msg.data.data(), msg.data.size()),
+					std::bind(
+						&WSClientImpl::on_write,
+						self,
+						std::placeholders::_1,
+						std::placeholders::_2));
+			}
+
+			while (true)
+			{
+				int n = self->m_ioc.run_for(std::chrono::microseconds(1));
+				if (n == 0) break;
+			}
+		}
+	}
 
 	void on_resolve(boost::system::error_code ec, tcp::resolver::results_type results)
 	{
@@ -121,10 +213,7 @@ private:
 				std::placeholders::_1,
 				std::placeholders::_2));
 
-		if (open_callback != nullptr)
-		{
-			open_callback(open_callback_data);
-		}
+		m_connected = true;
 	}
 
 	void on_read(boost::system::error_code ec,
@@ -132,12 +221,11 @@ private:
 	{
 		if (ec) return;
 
-		if (msg_callback != nullptr)
-		{
-			const char* data = (const char*)m_buffer.data().data();
-			size_t size = m_buffer.data().size();
-			msg_callback(data, size, m_ws.got_binary(), msg_callback_data);
-		}		
+		Msg msg;
+		msg.data.resize(m_buffer.data().size());
+		memcpy(msg.data.data(), m_buffer.data().data(), m_buffer.data().size());
+		msg.is_binary = m_ws.got_binary();
+		m_user_read_queue.Push(msg);
 
 		m_buffer.clear();
 
@@ -168,6 +256,7 @@ private:
 					std::placeholders::_2));
 		}
 	}
+
 };
 
 class WSClientImpl_SSL : public WSClient::Impl
@@ -182,23 +271,33 @@ public:
 		m_ssl_ctx.set_verify_mode(ssl::context::verify_peer);
 
 		m_host = std::string(host) + ":" + port;
+		m_thread = (std::unique_ptr<std::thread>)(new std::thread(on_create, this, std::string(host), std::string(port)));
 
-		m_resolver.async_resolve(
-			host,
-			port,
-			std::bind(
-				&WSClientImpl_SSL::on_resolve,
-				this,
-				std::placeholders::_1,
-				std::placeholders::_2));
+	}
+
+	~WSClientImpl_SSL()
+	{
+		m_running = false;
+		m_thread->join();
 	}
 
 	void CheckPending() override
 	{
-		while (true)
+		if (m_connected)
 		{
-			int n = m_ioc.run_for(std::chrono::microseconds(1));
-			if (n == 0) break;
+			m_connected = false;
+			if (open_callback != nullptr)
+			{
+				open_callback(open_callback_data);
+			}
+		}
+		while (m_user_read_queue.Size() > 0)
+		{
+			Msg msg = m_user_read_queue.Pop();
+			if (msg_callback != nullptr)
+			{
+				msg_callback(msg.data.data(), msg.data.size(), msg.is_binary, msg_callback_data);
+			}
 		}
 	}
 
@@ -206,18 +305,7 @@ public:
 	{
 		std::vector<char> msg_data(size);
 		memcpy(msg_data.data(), data, size);
-		m_write_queue.push({ msg_data, is_binary });
-
-		if (m_write_queue.size() > 1) return;
-
-		m_ws.binary(is_binary);
-		m_ws.async_write(
-			net::buffer(data, size),
-			std::bind(
-				&WSClientImpl_SSL::on_write,
-				this,
-				std::placeholders::_1,
-				std::placeholders::_2));
+		m_user_write_queue.Push({ msg_data, is_binary });
 	}
 
 private:
@@ -239,6 +327,51 @@ private:
 		bool is_binary;
 	};
 	std::queue<Msg> m_write_queue;
+
+	ConcurrentQueue<Msg> m_user_read_queue;
+	ConcurrentQueue<Msg> m_user_write_queue;
+
+	bool m_running = true;
+	bool m_connected = false;
+	std::unique_ptr<std::thread> m_thread;
+
+	static void on_create(WSClientImpl_SSL* self, std::string host, std::string port)
+	{
+		self->m_resolver.async_resolve(
+			host,
+			port,
+			std::bind(
+				&WSClientImpl_SSL::on_resolve,
+				self,
+				std::placeholders::_1,
+				std::placeholders::_2));
+
+		while (self->m_running)
+		{
+			while (self->m_user_write_queue.Size() > 0)
+			{
+				Msg msg = self->m_user_write_queue.Pop();
+				self->m_write_queue.push(msg);
+
+				if (self->m_write_queue.size() > 1) continue;
+
+				self->m_ws.binary(msg.is_binary);
+				self->m_ws.async_write(
+					net::buffer(msg.data.data(), msg.data.size()),
+					std::bind(
+						&WSClientImpl_SSL::on_write,
+						self,
+						std::placeholders::_1,
+						std::placeholders::_2));
+			}
+
+			while (true)
+			{
+				int n = self->m_ioc.run_for(std::chrono::microseconds(1));
+				if (n == 0) break;
+			}
+		}
+	}
 
 	void on_resolve(boost::system::error_code ec, tcp::resolver::results_type results)
 	{
@@ -281,10 +414,7 @@ private:
 				std::placeholders::_1,
 				std::placeholders::_2));
 
-		if (open_callback != nullptr)
-		{
-			open_callback(open_callback_data);
-		}
+		m_connected = true;
 	}
 
 	void on_read(boost::system::error_code ec,
@@ -292,12 +422,11 @@ private:
 	{
 		if (ec) return;
 
-		if (msg_callback != nullptr)
-		{
-			const char* data = (const char*)m_buffer.data().data();
-			size_t size = m_buffer.data().size();
-			msg_callback(data, size, m_ws.got_binary(), msg_callback_data);
-		}
+		Msg msg;
+		msg.data.resize(m_buffer.data().size());
+		memcpy(msg.data.data(), m_buffer.data().data(), m_buffer.data().size());
+		msg.is_binary = m_ws.got_binary();
+		m_user_read_queue.Push(msg);
 
 		m_buffer.clear();
 
