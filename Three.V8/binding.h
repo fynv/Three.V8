@@ -104,7 +104,7 @@ private:
 
 #if THREE_MM
 	static void GetListOfCameras(const v8::FunctionCallbackInfo<v8::Value>& args);
-	static void GetListOfAudioPlaybackDevices(const v8::FunctionCallbackInfo<v8::Value>& args);
+	static void GetListOfAudioDevices(const v8::FunctionCallbackInfo<v8::Value>& args);
 #endif
 
 	static void GeneralCall(const v8::FunctionCallbackInfo<v8::Value>& args);

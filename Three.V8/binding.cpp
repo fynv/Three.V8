@@ -97,7 +97,7 @@ GlobalDefinitions GameContext::s_globals =
 		{"getGLError", GameContext::GetGLError},
 #if THREE_MM
 		{"getListOfCameras", GameContext::GetListOfCameras},
-		{"getListOfAudioPlaybackDevices", GameContext::GetListOfAudioPlaybackDevices},
+		{"getListOfAudioDevices", GameContext::GetListOfAudioDevices},
 #endif
 		{"generalCall", GameContext::GeneralCall},
 	},
@@ -426,10 +426,10 @@ void GameContext::GetListOfCameras(const v8::FunctionCallbackInfo<v8::Value>& ar
 	args.GetReturnValue().Set(ret);
 }
 
-void GameContext::GetListOfAudioPlaybackDevices(const v8::FunctionCallbackInfo<v8::Value>& args)
+void GameContext::GetListOfAudioDevices(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
 	LocalContext lctx(args);
-	const std::vector<std::string>& lst = GetNamesAudioPlaybackDevices(false);
+	const std::vector<std::string>& lst = GetNamesAudioDevices(false);
 
 	v8::Local<v8::Array> ret = v8::Array::New(lctx.isolate);
 	for (size_t i = 0; i < lst.size(); i++)

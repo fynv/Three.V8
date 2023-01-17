@@ -846,16 +846,16 @@ const Image* MMPlayer::read_video_frame()
 }
 
 
-const std::vector<std::string>& GetNamesAudioPlaybackDevices(bool refresh, int* id_default)
+const std::vector<std::string>& GetNamesAudioDevices(bool refresh, int* id_default_in, int* id_default_out)
 {
-	return AudioOut::s_get_list_audio_devices(refresh, id_default);
+	return g_get_list_audio_devices(refresh, id_default_in, id_default_out);
 }
 
 MMAudio::MMAudio(const char* filename, int id_audio_device, int speed)
 {
 	if (id_audio_device < 0)
-	{
-		GetNamesAudioPlaybackDevices(false, &id_audio_device);
+	{		
+		GetNamesAudioDevices(false, nullptr, &id_audio_device);
 	}
 	m_internal = (std::unique_ptr<MMPlayer>)(new MMPlayer(filename, true, false, id_audio_device, speed));
 }
@@ -864,7 +864,7 @@ MMAudio::MMAudio(HttpClient* http, const char* url, int id_audio_device, int spe
 {
 	if (id_audio_device < 0)
 	{
-		GetNamesAudioPlaybackDevices(false, &id_audio_device);
+		GetNamesAudioDevices(false, nullptr, &id_audio_device);
 	}
 	m_internal = (std::unique_ptr<MMPlayer>)(new MMPlayer(http, url, true, false, id_audio_device, speed));
 }
@@ -923,7 +923,7 @@ MMVideo::MMVideo(const char* filename, bool play_audio, int id_audio_device, int
 {
 	if (play_audio && id_audio_device < 0)
 	{
-		GetNamesAudioPlaybackDevices(false, &id_audio_device);
+		GetNamesAudioDevices(false, nullptr, &id_audio_device);
 	}
 	m_internal = (std::unique_ptr<MMPlayer>)(new MMPlayer(filename, play_audio, true, id_audio_device, speed));
 }
@@ -933,7 +933,7 @@ MMVideo::MMVideo(HttpClient* http, const char* url, bool play_audio, int id_audi
 {
 	if (play_audio && id_audio_device < 0)
 	{
-		GetNamesAudioPlaybackDevices(false, &id_audio_device);
+		GetNamesAudioDevices(false, nullptr, &id_audio_device);
 	}
 	m_internal = (std::unique_ptr<MMPlayer>)(new MMPlayer(http, url, play_audio, true, id_audio_device, speed));
 }

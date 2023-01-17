@@ -2,7 +2,7 @@
 #include "AudioIO.h"
 #include <pa_win_wasapi.h>
 
-const std::vector<std::string>& AudioOut::s_get_list_audio_devices(bool refresh, int* id_default)
+const std::vector<std::string>& g_get_list_audio_devices(bool refresh, int* id_default_in, int* id_default_out)
 {
 	static bool s_first_time = true;
 	if (s_first_time)
@@ -12,7 +12,8 @@ const std::vector<std::string>& AudioOut::s_get_list_audio_devices(bool refresh,
 	}
 
 	static std::vector<std::string> s_list_devices;
-	static int s_id_default;
+	static int s_id_default_in;
+	static int s_id_default_out;
 	
 	if (refresh || s_list_devices.size() == 0)
 	{
@@ -23,12 +24,18 @@ const std::vector<std::string>& AudioOut::s_get_list_audio_devices(bool refresh,
 			const PaDeviceInfo* deviceInfo = Pa_GetDeviceInfo(i);
 			s_list_devices.push_back(deviceInfo->name);
 		}
-		s_id_default = Pa_GetDefaultOutputDevice();
+		s_id_default_in = Pa_GetDefaultInputDevice();
+		s_id_default_out = Pa_GetDefaultOutputDevice();
 	}
 
-	if (id_default != nullptr)
+	if (id_default_in != nullptr)
 	{
-		*id_default = s_id_default;
+		*id_default_in = s_id_default_in;
+	}
+
+	if (id_default_out != nullptr)
+	{
+		*id_default_out = s_id_default_out;
 	}
 	
 	return s_list_devices;

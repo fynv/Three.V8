@@ -13,13 +13,22 @@ namespace std
 	class thread;
 }
 
+const std::vector<std::string>& g_get_list_audio_devices(bool refresh, int* id_default_in, int* id_default_out);
+
+class AudioIn
+{
+public:
+
+
+};
+
 class AudioOut
 {
 public:
 	AudioOut(int audio_device_id, int samplerate, AudioWriteCallback callback, EOFCallback eof_callback, void* user_ptr);
 	~AudioOut();
 
-	static const std::vector<std::string>& s_get_list_audio_devices(bool refresh, int* id_default);
+
 
 private:
 	AudioWriteCallback m_callback;

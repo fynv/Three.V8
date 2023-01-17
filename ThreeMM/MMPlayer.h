@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 
-const std::vector<std::string>& GetNamesAudioPlaybackDevices(bool refresh, int* id_default = nullptr);
+const std::vector<std::string>& GetNamesAudioDevices(bool refresh, int* id_default_in = nullptr, int* id_default_out = nullptr);
 
 class HttpClient;
 class MMPlayer;
