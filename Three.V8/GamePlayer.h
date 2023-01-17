@@ -6,13 +6,6 @@
 #include <renderers/GLUIRenderer.h>
 #include "binding.h"
 
-struct WindowCalls
-{
-	void* window = nullptr;
-	void (*SetMouseCapture)(void* window) = nullptr;
-	void (*ReleaseMouseCapture)(void* window) = nullptr;
-};
-
 struct MsgHandler
 {
 	void* window = nullptr;
