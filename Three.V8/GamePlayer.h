@@ -56,9 +56,6 @@ private:
 	
 	std::unique_ptr<GameContext> m_context;
 	
-	std::unordered_map<std::string, MsgHandler> m_msg_map;
-
-	WindowCalls m_windowCalls;
-	
+	std::unordered_map<std::string, MsgHandler> m_msg_map;	
 };
 
