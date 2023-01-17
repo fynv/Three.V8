@@ -4209,11 +4209,11 @@ class View extends EventDispatcher {
     }
 
     setPointerCapture() {
-        gamePlayer.setMouseCapture();
+        gamePlayer.message("setPointerCapture", "");
     }
 
     releasePointerCapture() {
-        gamePlayer.releaseMouseCapture();
+        gamePlayer.message("releasePointerCapture", "");
     }
 }
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+#include <unordered_map>
 #include <renderers/GLRenderTarget.h>
 #include <renderers/GLUIRenderer.h>
 #include "binding.h"
@@ -9,6 +11,12 @@ struct WindowCalls
 	void* window = nullptr;
 	void (*SetMouseCapture)(void* window) = nullptr;
 	void (*ReleaseMouseCapture)(void* window) = nullptr;
+};
+
+struct MsgHandler
+{
+	void* window = nullptr;
+	void (*Call)(void* window, const char* msg) = nullptr;
 };
 
 class GamePlayer
@@ -36,13 +44,11 @@ public:
 	void OnChar(int keyChar);
 	void OnControlKey(unsigned code);
 
-	// window calls
-	void SetWindowCalls(const WindowCalls& windowCalls)
-	{
-		m_windowCalls = windowCalls;
-	}
-	void SetMouseCapture();
-	void ReleaseMouseCapture();
+	void AddMessageHandler(const char* name, MsgHandler handler);
+	void RemoveMessageHandler(const char* name);
+
+	void UserMessage(const char* name, const char* msg);
+	void SendMessageToUser(const char* name, const char* msg);	
 
 	GLRenderTarget& renderTarget()
 	{
@@ -56,6 +62,8 @@ private:
 	GLUIRenderer m_ui_renderer;
 	
 	std::unique_ptr<GameContext> m_context;
+	
+	std::unordered_map<std::string, MsgHandler> m_msg_map;
 
 	WindowCalls m_windowCalls;
 	

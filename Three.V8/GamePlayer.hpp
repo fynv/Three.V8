@@ -12,8 +12,7 @@ private:
 	static void GetWidth(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void GetHeight(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	
-	static void SetMouseCapture(const v8::FunctionCallbackInfo<v8::Value>& info);
-	static void ReleaseMouseCapture(const v8::FunctionCallbackInfo<v8::Value>& info);
+	static void Message(const v8::FunctionCallbackInfo<v8::Value>& info);	
 
 	static void HasFont(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void CreateFontFromFile(const v8::FunctionCallbackInfo<v8::Value>& info);
@@ -27,8 +26,7 @@ v8::Local<v8::ObjectTemplate> WrapperGamePlayer::create_template(v8::Isolate* is
 	templ->SetInternalFieldCount(1);
 	templ->SetAccessor(v8::String::NewFromUtf8(isolate, "width").ToLocalChecked(), GetWidth, 0);
 	templ->SetAccessor(v8::String::NewFromUtf8(isolate, "height").ToLocalChecked(), GetHeight, 0);
-	templ->Set(isolate, "setMouseCapture", v8::FunctionTemplate::New(isolate, SetMouseCapture));
-	templ->Set(isolate, "releaseMouseCapture", v8::FunctionTemplate::New(isolate, ReleaseMouseCapture));
+	templ->Set(isolate, "message", v8::FunctionTemplate::New(isolate, Message));
 	templ->Set(isolate, "hasFont", v8::FunctionTemplate::New(isolate, HasFont));
 	templ->Set(isolate, "createFontFromFile", v8::FunctionTemplate::New(isolate, CreateFontFromFile));
 	templ->Set(isolate, "createFontFromMemory", v8::FunctionTemplate::New(isolate, CreateFontFromMemory));
@@ -49,18 +47,13 @@ void WrapperGamePlayer::GetHeight(v8::Local<v8::String> property, const v8::Prop
 	info.GetReturnValue().Set(lctx.num_to_jnum(self->height()));
 }
 
-void WrapperGamePlayer::SetMouseCapture(const v8::FunctionCallbackInfo<v8::Value>& info)
+void WrapperGamePlayer::Message(const v8::FunctionCallbackInfo<v8::Value>& info)
 {	
 	LocalContext lctx(info);
 	GamePlayer* self = lctx.self<GamePlayer>();
-	self->SetMouseCapture();
-}
-
-void WrapperGamePlayer::ReleaseMouseCapture(const v8::FunctionCallbackInfo<v8::Value>& info)
-{
-	LocalContext lctx(info);
-	GamePlayer* self = lctx.self<GamePlayer>();
-	self->ReleaseMouseCapture();
+	std::string name = lctx.jstr_to_str(info[0]);
+	std::string msg = lctx.jstr_to_str(info[1]);
+	self->UserMessage(name.c_str(), msg.c_str());
 }
 
 void WrapperGamePlayer::HasFont(const v8::FunctionCallbackInfo<v8::Value>& info)

@@ -141,14 +141,14 @@ namespace CLRBinding
 		return Control::ProcessCmdKey(msg, keyData);
 	}
 
-	static void SetMouseCapture(void* pwin)
+	static void SetMouseCapture(void* pwin, const char*)
 	{
 		GCHandle handle_win = GCHandle::FromIntPtr((IntPtr)pwin);
 		Control^ win = (Control^)handle_win.Target;
 		win->Capture = true;
 	}
 
-	static void ReleaseMouseCapture(void* pwin)
+	static void ReleaseMouseCapture(void* pwin, const char*)
 	{
 		GCHandle handle_win = GCHandle::FromIntPtr((IntPtr)pwin);
 		Control^ win = (Control^)handle_win.Target;
@@ -161,11 +161,9 @@ namespace CLRBinding
 		m_native = new GamePlayer(cpath, window->Width, window->Height);
 
 		m_handle_win = GCHandle::Alloc(window, GCHandleType::Normal);
-		WindowCalls wincalls;
-		wincalls.window = (void*)GCHandle::ToIntPtr(m_handle_win);
-		wincalls.SetMouseCapture = SetMouseCapture;
-		wincalls.ReleaseMouseCapture = ReleaseMouseCapture;
-		m_native->SetWindowCalls(wincalls);
+		void* p_win = (void*)GCHandle::ToIntPtr(m_handle_win);
+		m_native->AddMessageHandler("setPointerCapture", { p_win, SetMouseCapture });
+		m_native->AddMessageHandler("releasePointerCapture", { p_win, ReleaseMouseCapture });
 	}
 
 	CGamePlayer::!CGamePlayer()

@@ -11,11 +11,11 @@ class View extends EventDispatcher {
     }
 
     setPointerCapture() {
-        gamePlayer.setMouseCapture();
+        gamePlayer.message("setPointerCapture", "");
     }
 
     releasePointerCapture() {
-        gamePlayer.releaseMouseCapture();
+        gamePlayer.message("releasePointerCapture", "");
     }
 }
 
@@ -59,4 +59,45 @@ setCallback('OnMouseUp', OnMouseUp);
 setCallback('OnMouseMove', OnMouseMove);
 setCallback('OnMouseWheel', OnMouseWheel);
 
-export { view };
+class UIViewDispatcher extends EventDispatcher {
+    
+    constructor(view3d){
+        super();
+        this.view = view3d;        
+        view3d.onMouseDown = (e)=>{
+            let event = makeMouseEvent(e, "pointerdown");
+            this.dispatchEvent(event);
+        };        
+        view3d.onMouseUp = (e)=>{
+            let event = makeMouseEvent(e, "pointerup");
+            this.dispatchEvent(event);
+        };
+        view3d.onMouseMove = (e)=>{
+            let event = makeMouseEvent(e, "pointermove");
+            this.dispatchEvent(event);
+        };
+        view3d.onMouseWheel = (e)=>{
+            let event = makeMouseEvent(e, "wheel");
+            this.dispatchEvent(event);
+        };
+    }
+
+    get clientWidth() {
+        return this.view.size.x;
+    }
+
+    get clientHeight() {
+        return this.view.size.y;
+    }
+
+    setPointerCapture() {
+        gamePlayer.message("setPointerCapture", "");
+    }
+
+    releasePointerCapture() {
+        gamePlayer.message("releasePointerCapture", "");
+    }
+}
+
+
+export { view, UIViewDispatcher };

@@ -229,18 +229,39 @@ void GamePlayer::OnControlKey(unsigned code)
 	}
 }
 
-void GamePlayer::SetMouseCapture()
+void GamePlayer::AddMessageHandler(const char* name, MsgHandler handler)
 {
-	if (m_windowCalls.window != nullptr && m_windowCalls.SetMouseCapture != nullptr)
+	m_msg_map[name] = handler;
+}
+
+void GamePlayer::RemoveMessageHandler(const char* name)
+{
+	auto iter = m_msg_map.find(name);
+	if (iter != m_msg_map.end())
 	{
-		m_windowCalls.SetMouseCapture(m_windowCalls.window);
+		m_msg_map.erase(iter);
 	}
 }
 
-void GamePlayer::ReleaseMouseCapture()
+void GamePlayer::UserMessage(const char* name, const char* msg)
 {
-	if (m_windowCalls.window != nullptr && m_windowCalls.ReleaseMouseCapture != nullptr)
+	auto iter = m_msg_map.find(name);
+	if (iter != m_msg_map.end())
 	{
-		m_windowCalls.ReleaseMouseCapture(m_windowCalls.window);
+		iter->second.Call(iter->second.window, msg);
+	}
+}
+
+void GamePlayer::SendMessageToUser(const char* name, const char* msg)
+{
+	v8::Isolate* isolate = m_v8vm.m_isolate;
+	v8::HandleScope handle_scope(isolate);
+	v8::Context::Scope context_scope(m_context->m_context.Get(isolate));
+	v8::Function* callback_init = m_context->GetCallback("message");
+	if (callback_init != nullptr)
+	{
+		std::vector<v8::Local<v8::Value>> args(1);
+		args[0] = v8::String::NewFromUtf8(isolate, msg).ToLocalChecked();
+		m_context->InvokeCallback(callback_init, args);
 	}
 }
