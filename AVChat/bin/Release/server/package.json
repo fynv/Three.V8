@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "bufferutil": "^4.0.7",
+    "utf-8-validate": "^5.0.10",
+    "uuid": "^9.0.0",
+    "ws": "^8.11.0"
+  },
+  "type": "module"
+}

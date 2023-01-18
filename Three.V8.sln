@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameDev", "GameDev\GameDev.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ThreeMM", "ThreeMM\ThreeMM.vcxproj", "{7F3BB2FF-13E9-45A0-B8E3-F663FC651EFD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AVChat", "AVChat\AVChat.csproj", "{B9425FA6-D290-4225-8A91-0F8F4BE2FECA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -115,6 +117,18 @@ Global
 		{7F3BB2FF-13E9-45A0-B8E3-F663FC651EFD}.Release|x64.Build.0 = Release|x64
 		{7F3BB2FF-13E9-45A0-B8E3-F663FC651EFD}.Release|x86.ActiveCfg = Release|Win32
 		{7F3BB2FF-13E9-45A0-B8E3-F663FC651EFD}.Release|x86.Build.0 = Release|Win32
+		{B9425FA6-D290-4225-8A91-0F8F4BE2FECA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B9425FA6-D290-4225-8A91-0F8F4BE2FECA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B9425FA6-D290-4225-8A91-0F8F4BE2FECA}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{B9425FA6-D290-4225-8A91-0F8F4BE2FECA}.Debug|x64.Build.0 = Debug|Any CPU
+		{B9425FA6-D290-4225-8A91-0F8F4BE2FECA}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B9425FA6-D290-4225-8A91-0F8F4BE2FECA}.Debug|x86.Build.0 = Debug|Any CPU
+		{B9425FA6-D290-4225-8A91-0F8F4BE2FECA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B9425FA6-D290-4225-8A91-0F8F4BE2FECA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B9425FA6-D290-4225-8A91-0F8F4BE2FECA}.Release|x64.ActiveCfg = Release|Any CPU
+		{B9425FA6-D290-4225-8A91-0F8F4BE2FECA}.Release|x64.Build.0 = Release|Any CPU
+		{B9425FA6-D290-4225-8A91-0F8F4BE2FECA}.Release|x86.ActiveCfg = Release|Any CPU
+		{B9425FA6-D290-4225-8A91-0F8F4BE2FECA}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

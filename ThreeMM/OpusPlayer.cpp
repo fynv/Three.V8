@@ -199,6 +199,15 @@ private:
 					}
 					if (!self->m_audio_playing) break;
 
+					if (queue.Size() >= 4)
+					{
+						while (queue.Size() > 1)
+						{
+							self->m_packet = queue.Pop();
+							av_packet_unref(&self->m_packet);
+						}
+					}
+
 					self->m_packet = queue.Pop();
 					self->m_packet_ref = true;
 
