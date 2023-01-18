@@ -80,6 +80,8 @@ V8VM::~V8VM()
 #include "multimedia/MMLazyVideo.hpp"
 #include "multimedia/MMAudio.hpp"
 #include "multimedia/MMVideo.hpp"
+#include "multimedia/OpusRecorder.hpp"
+#include "multimedia/OpusPlayer.hpp"
 #endif
 
 #include "volume/VolumeData.hpp"
@@ -142,6 +144,8 @@ GlobalDefinitions GameContext::s_globals =
 		{ "MMLazyVideo", WrapperMMLazyVideo::New, WrapperMMLazyVideo::create_template},
 		{ "MMAudio", WrapperMMAudio::New, WrapperMMAudio::create_template},
 		{ "MMVideo", WrapperMMVideo::New, WrapperMMVideo::create_template},
+		{ "OpusRecorder", WrapperOpusRecorder::New, WrapperOpusRecorder::create_template},
+		{ "OpusPlayer", WrapperOpusPlayer::New, WrapperOpusPlayer::create_template},
 #endif
 		{ "VolumeData", WrapperVolumeData::New, WrapperVolumeData::create_template},
 		{ "VolumeIsosurfaceModel", WrapperVolumeIsosurfaceModel::New, WrapperVolumeIsosurfaceModel::create_template},
@@ -528,15 +532,40 @@ void GameContext::remove_ws_client(WSClient* client)
 	}
 }
 
+void GameContext::add_opus_recorder(OpusRecorder* rec)
+{
+	m_opus_recorders.insert(rec);
+}
+
+void GameContext::remove_opus_recorder(OpusRecorder* rec)
+{
+	auto iter = m_opus_recorders.find(rec);
+	if (iter != m_opus_recorders.end())
+	{
+		m_opus_recorders.erase(iter);
+	}
+}
+
 void GameContext::CheckPendings()
 {
 	m_http->CheckPendings();
 
-	auto iter = m_ws_clients.begin();
-	while (iter != m_ws_clients.end())
 	{
-		(*iter)->CheckPending();
-		iter++;
+		auto iter = m_ws_clients.begin();
+		while (iter != m_ws_clients.end())
+		{
+			(*iter)->CheckPending();
+			iter++;
+		}
 	}
-
+#if THREE_MM
+	{
+		auto iter = m_opus_recorders.begin();
+		while (iter != m_opus_recorders.end())
+		{
+			(*iter)->CheckPending();
+			iter++;
+		}
+	}
+#endif
 }

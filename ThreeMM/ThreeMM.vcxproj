@@ -137,6 +137,8 @@
     <ClInclude Include="MMIOContext.h" />
     <ClInclude Include="MMLazyVideo.h" />
     <ClInclude Include="MMPlayer.h" />
+    <ClInclude Include="OpusPlayer.h" />
+    <ClInclude Include="OpusRecorder.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AudioBuffer.cpp" />
@@ -145,6 +147,8 @@
     <ClCompile Include="MMIOContext.cpp" />
     <ClCompile Include="MMLazyVideo.cpp" />
     <ClCompile Include="MMPlayer.cpp" />
+    <ClCompile Include="OpusPlayer.cpp" />
+    <ClCompile Include="OpusRecorder.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ThreeEngine\ThreeEngine.vcxproj">

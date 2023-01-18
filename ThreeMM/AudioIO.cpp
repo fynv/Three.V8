@@ -41,6 +41,70 @@ const std::vector<std::string>& g_get_list_audio_devices(bool refresh, int* id_d
 	return s_list_devices;
 }
 
+int AudioIn::stream_callback(const void* inputBuffer, void* outputBuffer,
+	unsigned long framesPerBuffer,
+	const PaStreamCallbackTimeInfo* timeInfo,
+	PaStreamCallbackFlags statusFlags,
+	void* userData)
+{
+	AudioIn* self = (AudioIn*)userData;
+	const short* in = (const short*)inputBuffer;
+	bool ret = self->m_callback(in, framesPerBuffer, self->m_user_ptr);
+	if (ret)
+	{
+		return paContinue;
+	}
+	else
+	{
+		return paComplete;
+	}
+}
+
+
+void AudioIn::stream_finished_callback(void* userData)
+{
+	AudioIn* self = (AudioIn*)userData;
+	self->m_eof_callback(self->m_user_ptr);
+}
+
+
+AudioIn::AudioIn(int audio_device_id, int samplerate, AudioReadCallback callback, EOFCallback eof_callback, void* user_ptr)
+	: m_callback(callback), m_eof_callback(eof_callback), m_user_ptr(user_ptr)
+{
+	static bool s_first_time = true;
+	if (s_first_time)
+	{
+		Pa_Initialize();
+		s_first_time = false;
+	}
+
+	PaStreamParameters inputParameters = {};
+	inputParameters.device = audio_device_id;
+	inputParameters.channelCount = 1;
+	inputParameters.sampleFormat = paInt16;
+	inputParameters.suggestedLatency = Pa_GetDeviceInfo(inputParameters.device)->defaultLowInputLatency;
+
+	PaWasapiStreamInfo wasapi_info{ 0 };
+	wasapi_info.size = sizeof(PaWasapiStreamInfo);
+	wasapi_info.hostApiType = paWASAPI;
+	wasapi_info.version = 1;
+	wasapi_info.flags = paWinWasapiAutoConvert;
+	inputParameters.hostApiSpecificStreamInfo = &wasapi_info;
+
+	unsigned long bufferFrameCount = (unsigned long)ceil(inputParameters.suggestedLatency * (double)samplerate);
+
+	Pa_OpenStream(&m_stream, &inputParameters, nullptr, samplerate, bufferFrameCount, paClipOff, stream_callback, this);
+	Pa_SetStreamFinishedCallback(m_stream, stream_finished_callback);
+	Pa_StartStream(m_stream);
+
+}
+
+AudioIn::~AudioIn()
+{
+	Pa_CloseStream(m_stream);
+}
+
+
 int AudioOut::stream_callback(const void* inputBuffer, void* outputBuffer,
 	unsigned long framesPerBuffer,
 	const PaStreamCallbackTimeInfo* timeInfo,

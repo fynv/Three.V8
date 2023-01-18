@@ -213,6 +213,12 @@
     <ClInclude Include="models\AnimationMixer.hpp">
       <Filter>Header Files\models</Filter>
     </ClInclude>
+    <ClInclude Include="multimedia\OpusRecorder.hpp">
+      <Filter>Header Files\multimedia</Filter>
+    </ClInclude>
+    <ClInclude Include="multimedia\OpusPlayer.hpp">
+      <Filter>Header Files\multimedia</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="binding.cpp">
