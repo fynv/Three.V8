@@ -15,6 +15,9 @@ public:
 	void SetFramerate(float fps);
 	void PostAction(void(*act)(void*), void* userData);
 
+	void SetMouseCapture();
+	void ReleaseMouseCapture();
+
 protected:
 	virtual void idle() {}
 	virtual void paint(int width, int height) {}

@@ -148,6 +148,16 @@ void GLMain::PostAction(void(*act)(void*), void* userData)
 	PostMessage(m_hWnd, WM_USER, 0, (LPARAM)p_action);
 }
 
+void GLMain::SetMouseCapture()
+{
+	SetCapture(m_hWnd);
+}
+
+void GLMain::ReleaseMouseCapture()
+{
+	ReleaseCapture();
+}
+
 GLMain*& GLMain::from_hwnd(HWND hwnd)
 {
 	static std::unordered_map<HWND, GLMain*> s_map;

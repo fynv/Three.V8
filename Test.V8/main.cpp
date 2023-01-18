@@ -15,6 +15,8 @@ public:
 	{
 		glewInit();
 		m_game_player = std::unique_ptr<GamePlayer>(new GamePlayer(exec_path, width, height));
+		m_game_player->AddMessageHandler("setPointerCapture", { this, s_SetMouseCapture });
+		m_game_player->AddMessageHandler("releasePointerCapture", { this, s_ReleaseMouseCapture });
 		this->SetFramerate(60.0f);		
 	}
 
@@ -33,6 +35,18 @@ public:
 		GLMain::MainLoop();
 	}
 
+	static void s_SetMouseCapture(void* pwin, const char*)
+	{
+		AppMain* win = (AppMain*)pwin;
+		win->SetMouseCapture();
+	}
+
+	static void s_ReleaseMouseCapture(void* pwin, const char*)
+	{
+		AppMain* win = (AppMain*)pwin;
+		win->ReleaseMouseCapture();
+	}
+	
 protected:
 	virtual void idle() override
 	{
