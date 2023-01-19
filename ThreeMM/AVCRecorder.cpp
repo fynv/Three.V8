@@ -101,8 +101,20 @@ public:
 		avcodec_parameters_to_context(m_p_codec_ctx_in, p_codec_par);
 		avcodec_open2(m_p_codec_ctx_in, p_codec_in, nullptr);
 
-		m_width = m_p_codec_ctx_in->width;
-		m_height = m_p_codec_ctx_in->height;
+		m_width_in = m_p_codec_ctx_in->width;
+		m_height_in = m_p_codec_ctx_in->height;
+		
+		if (m_height_in>720)
+		{
+			float rate = 720.0f / (float)m_height_in;
+			m_width_out = (int)(rate * (float)m_width_in);
+			m_height_out = 720;
+		}
+		else
+		{
+			m_width_out = m_width_in;
+			m_height_out = m_height_in;
+		}
 		
 		m_p_frm_raw = av_frame_alloc();
 
@@ -159,12 +171,12 @@ public:
 
 		static double a = 0.078;
 		static double b = 0.2027;
-		double mega_pixels = (double)(m_width * m_height) / 1000000.0;
+		double mega_pixels = (double)(m_width_out * m_height_out) / 1000000.0;
 		double mega_bps = (sqrt(b * b + 4 * a * mega_pixels) - b) / (2 * a);
 
 		m_p_codec_ctx_out->bit_rate = (int64_t)(mega_bps * 1000000.0);
-		m_p_codec_ctx_out->width = m_width;
-		m_p_codec_ctx_out->height = m_height;
+		m_p_codec_ctx_out->width = m_width_out;
+		m_p_codec_ctx_out->height = m_height_out;
 		m_p_codec_ctx_out->time_base = { m_frame_rate_den, m_frame_rate_num };
 		m_p_codec_ctx_out->framerate = { m_frame_rate_num, m_frame_rate_den };
 		m_p_codec_ctx_out->max_b_frames = 0;
@@ -194,11 +206,11 @@ public:
 
 		m_p_frm_yuv = av_frame_alloc();
 		m_p_frm_yuv->format = pix_fmt;
-		m_p_frm_yuv->width = m_width;
-		m_p_frm_yuv->height = m_height;
+		m_p_frm_yuv->width = m_width_out;
+		m_p_frm_yuv->height = m_height_out;
 		av_frame_get_buffer(m_p_frm_yuv, 0);
 
-		m_sws_ctx = sws_getContext(m_width, m_height, m_p_codec_ctx_in->pix_fmt, m_width, m_height, pix_fmt, SWS_BILINEAR, nullptr, nullptr, nullptr);		
+		m_sws_ctx = sws_getContext(m_width_in, m_height_in, m_p_codec_ctx_in->pix_fmt, m_width_out, m_height_out, pix_fmt, SWS_BILINEAR, nullptr, nullptr, nullptr);
 
 		m_start_time = time_micro_sec();
 		m_thread_encode = (std::unique_ptr<std::thread>)(new std::thread(thread_encode, this));
@@ -221,7 +233,8 @@ public:
 	ConcurrentQueue<std::vector<uint8_t>> m_pkt_queue;
 
 private:
-	int m_width, m_height;
+	int m_width_in, m_height_in;
+	int m_width_out, m_height_out;
 	int m_frame_rate_num, m_frame_rate_den;
 	uint64_t m_start_time;
 	size_t m_frame_count = 0;
@@ -266,7 +279,8 @@ private:
 			{
 
 				av_frame_make_writable(self->m_p_frm_yuv);
-				sws_scale(self->m_sws_ctx, self->m_p_frm_raw->data, self->m_p_frm_raw->linesize, 0, self->m_height, self->m_p_frm_yuv->data, self->m_p_frm_yuv->linesize);
+				sws_scale(self->m_sws_ctx, self->m_p_frm_raw->data, self->m_p_frm_raw->linesize, 0, self->m_height_in, self->m_p_frm_yuv->data, self->m_p_frm_yuv->linesize);
+
 				self->m_p_frm_yuv->pts = self->m_next_pts++;
 
 				int ret = avcodec_send_frame(self->m_p_codec_ctx_out, self->m_p_frm_yuv);
