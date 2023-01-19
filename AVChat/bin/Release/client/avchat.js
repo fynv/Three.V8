@@ -51,12 +51,15 @@ class MsgDispatcher extends EventDispatcher
     }
 }
 
+let users = {};
+
 function enter(room_id)
 {
-    let self = null;
-    let users = {};
+    let self = null;    
     let audio_recorder = null;
-    let callbacks = {};
+    let video_recorder = null;
+    let audio_callbacks = {};
+    let video_callbacks = {};
     
     //let ws = new WSClient("ws://127.0.0.1:8888");
     let ws = new WSClient("ws://192.168.10.104:8888");
@@ -76,7 +79,11 @@ function enter(room_id)
                 if (!info_users.hasOwnProperty(_username))
                 {
                     user.audio_player.dispose();
-                    messenger.removeEventListener(_username+"_audio", callbacks[_username]);
+                    user.video_player.dispose();
+                    messenger.removeEventListener(_username+"_audio", audio_callbacks[_username]);
+                    messenger.removeEventListener(_username+"_video", video_callbacks[_username]);
+                    delete audio_callbacks[_username];
+                    delete video_callbacks[_username];
                     delete users[_username];
                 }
             }
@@ -89,13 +96,20 @@ function enter(room_id)
                     if (!users.hasOwnProperty(_username))
                     {
                         users[_username] = user;
-                        user.audio_player = new OpusPlayer();                        
-                        let callback = (event)=>{                            
-                            user.audio_player.addPacket(event.data);
-                        };                        
-                        messenger.addEventListener(_username+"_audio", callback);
-                        callbacks[_username] = callback;
                         
+                        user.audio_player = new OpusPlayer();                        
+                        let audio_callback = (event)=>{                            
+                            user.audio_player.addPacket(event.data);
+                        };
+                        messenger.addEventListener(_username+"_audio", audio_callback);
+                        audio_callbacks[_username] = audio_callback;
+                        
+                        user.video_player = new AVCPlayer();
+                        let video_callback = (event)=>{                            
+                            user.video_player.addPacket(event.data);
+                        };                        
+                        messenger.addEventListener(_username+"_video", video_callback);
+                        video_callbacks[_username] = video_callback;
                     }
                 }
             }
@@ -106,6 +120,10 @@ function enter(room_id)
             messenger.send("audio", arr);
         };
         
+        video_recorder = new AVCRecorder();
+        video_recorder.callback = (arr) => {
+            messenger.send("video", arr);
+        };
     };
 }
 
@@ -198,6 +216,45 @@ function render(width, height, size_changed)
     }
     
     renderer.render(scene, camera);
+    
+    let num_clients = Object.keys(users).length;
+    if (num_clients>0)
+    {
+        let cols = Math.ceil(Math.sqrt(num_clients));
+        let rows = Math.ceil(num_clients/cols);
+        
+        let h = height / cols;
+        let y_offset = (height - h*rows)/2;
+        
+        let i = 0;
+        let x_offset = 0;
+        for (let name in users)
+        {
+            let user = users[name];
+            let x = i % cols;
+            let y = Math.floor(i/cols);
+            
+            if (x==0)
+            {
+                x_offset = 0;
+            }
+            
+            let player = user.video_player;
+            let vw = player.width;
+            let vh = player.height;
+            let w = h*vw/vh;
+            
+            let up = y_offset + y * h + h*0.05;
+            let left = x_offset + w*0.05;
+            x_offset += w;
+            
+            player.updateTexture();
+            renderer.renderTexture(player, left, up, w*0.9, h*0.9);
+            
+            i++;
+        }
+        
+    }
 }
 
 setCallback('init', init);

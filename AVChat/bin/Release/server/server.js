@@ -139,6 +139,10 @@ ws_server.on('connection', (ws, req) => {
     messenger.addEventListener("audio", (event)=>{        
         room.broadcast(user.username+'_audio', event.data, user);
     });
+    
+    messenger.addEventListener("video", (event)=>{        
+        room.broadcast(user.username+'_video', event.data, user);
+    });
 
 
     ws.on('close', () => {
