@@ -219,6 +219,12 @@
     <ClInclude Include="multimedia\OpusPlayer.hpp">
       <Filter>Header Files\multimedia</Filter>
     </ClInclude>
+    <ClInclude Include="multimedia\AVCRecorder.hpp">
+      <Filter>Header Files\multimedia</Filter>
+    </ClInclude>
+    <ClInclude Include="multimedia\AVCPlayer.hpp">
+      <Filter>Header Files\multimedia</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="binding.cpp">

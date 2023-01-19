@@ -9,6 +9,7 @@
 #include <MMCamera.h>
 #include <MMLazyVideo.h>
 #include <MMPlayer.h>
+#include <AVCPlayer.h>
 #endif
 
 class WrapperGLRenderer
@@ -219,6 +220,14 @@ void WrapperGLRenderer::RenderTexture(const v8::FunctionCallbackInfo<v8::Value>&
 		if (video != nullptr)
 		{
 			tex = video->get_texture();
+		}
+	}
+	else if (clsname == "AVCPlayer")
+	{
+		AVCPlayer* player = lctx.jobj_to_obj<AVCPlayer>(holder_image);
+		if (player != nullptr)
+		{
+			tex = player->get_texture();
 		}
 	}
 

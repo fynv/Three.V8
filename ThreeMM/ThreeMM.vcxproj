@@ -133,6 +133,8 @@
   <ItemGroup>
     <ClInclude Include="AudioBuffer.h" />
     <ClInclude Include="AudioIO.h" />
+    <ClInclude Include="AVCPlayer.h" />
+    <ClInclude Include="AVCRecorder.h" />
     <ClInclude Include="MMCamera.h" />
     <ClInclude Include="MMIOContext.h" />
     <ClInclude Include="MMLazyVideo.h" />
@@ -143,6 +145,8 @@
   <ItemGroup>
     <ClCompile Include="AudioBuffer.cpp" />
     <ClCompile Include="AudioIO.cpp" />
+    <ClCompile Include="AVCPlayer.cpp" />
+    <ClCompile Include="AVCRecorder.cpp" />
     <ClCompile Include="MMCamera.cpp" />
     <ClCompile Include="MMIOContext.cpp" />
     <ClCompile Include="MMLazyVideo.cpp" />

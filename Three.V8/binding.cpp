@@ -82,6 +82,8 @@ V8VM::~V8VM()
 #include "multimedia/MMVideo.hpp"
 #include "multimedia/OpusRecorder.hpp"
 #include "multimedia/OpusPlayer.hpp"
+#include "multimedia/AVCRecorder.hpp"
+#include "multimedia/AVCPlayer.hpp"
 #endif
 
 #include "volume/VolumeData.hpp"
@@ -146,6 +148,8 @@ GlobalDefinitions GameContext::s_globals =
 		{ "MMVideo", WrapperMMVideo::New, WrapperMMVideo::create_template},
 		{ "OpusRecorder", WrapperOpusRecorder::New, WrapperOpusRecorder::create_template},
 		{ "OpusPlayer", WrapperOpusPlayer::New, WrapperOpusPlayer::create_template},
+		{ "AVCRecorder", WrapperAVCRecorder::New, WrapperAVCRecorder::create_template},
+		{ "AVCPlayer", WrapperAVCPlayer::New, WrapperAVCPlayer::create_template},
 #endif
 		{ "VolumeData", WrapperVolumeData::New, WrapperVolumeData::create_template},
 		{ "VolumeIsosurfaceModel", WrapperVolumeIsosurfaceModel::New, WrapperVolumeIsosurfaceModel::create_template},
@@ -546,6 +550,21 @@ void GameContext::remove_opus_recorder(OpusRecorder* rec)
 	}
 }
 
+
+void GameContext::add_avc_recorder(AVCRecorder* rec)
+{
+	m_avc_recorders.insert(rec);
+}
+
+void GameContext::remove_avc_recorder(AVCRecorder* rec)
+{
+	auto iter = m_avc_recorders.find(rec);
+	if (iter != m_avc_recorders.end())
+	{
+		m_avc_recorders.erase(iter);
+	}
+}
+
 void GameContext::CheckPendings()
 {
 	m_http->CheckPendings();
@@ -562,6 +581,14 @@ void GameContext::CheckPendings()
 	{
 		auto iter = m_opus_recorders.begin();
 		while (iter != m_opus_recorders.end())
+		{
+			(*iter)->CheckPending();
+			iter++;
+		}
+	}
+	{
+		auto iter = m_avc_recorders.begin();
+		while (iter != m_avc_recorders.end())
 		{
 			(*iter)->CheckPending();
 			iter++;
