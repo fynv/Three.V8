@@ -292,8 +292,9 @@ private:
 					if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
 						break;
 
-					std::vector<uint8_t> packet(pkt.size);
-					memcpy(packet.data(), pkt.data, pkt.size);
+					std::vector<uint8_t> packet(pkt.size+1);
+					packet[0] = pkt.flags & 1;
+					memcpy(packet.data() + 1, pkt.data, pkt.size);
 					self->m_pkt_queue.Push(packet);
 
 					av_packet_unref(&pkt);

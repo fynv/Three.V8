@@ -107,9 +107,18 @@ public:
 	void AddPacket(size_t size, const uint8_t* data)
 	{
 		AVPacket pkt;
-		av_new_packet(&pkt, (int)size);
-		memcpy(pkt.data, data, size);
-		m_packet_queue.Push(pkt);
+		av_new_packet(&pkt, (int)(size-1));
+		memcpy(pkt.data, data+1, size-1);
+		if (data[0] == 1)
+		{
+			pkt.flags |= 1;
+			key_recieved = true;
+		}
+
+		if (key_recieved)
+		{
+			m_packet_queue.Push(pkt);
+		}
 	}
 
 
@@ -124,6 +133,7 @@ public:
 	}
 
 private:
+	bool key_recieved = false;
 	ConcurrentQueue<AVPacket> m_packet_queue;
 
 	AVCodecContext* m_p_codec_ctx_video;
