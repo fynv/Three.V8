@@ -62,7 +62,8 @@ function enter(room_id)
     let video_callbacks = {};
     
     //let ws = new WSClient("ws://127.0.0.1:8888");
-    let ws = new WSClient("ws://192.168.10.104:8888");
+    //let ws = new WSClient("ws://192.168.10.104:8888");
+    let ws = new WSClient("ws://www.vulcaneon.com:3000");
     ws.onOpen = ()=>{
         messenger = new MsgDispatcher(ws);
         
