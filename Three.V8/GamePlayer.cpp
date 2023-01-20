@@ -248,7 +248,7 @@ std::string GamePlayer::UserMessage(const char* name, const char* msg)
 	auto iter = m_msg_map.find(name);
 	if (iter != m_msg_map.end())
 	{
-		return iter->second.Call(iter->second.window, msg);
+		return iter->second.Call(iter->second.ptr, msg);
 	}
 	return "";
 }
@@ -261,8 +261,9 @@ std::string GamePlayer::SendMessageToUser(const char* name, const char* msg)
 	v8::Function* callback_init = m_context->GetCallback("message");
 	if (callback_init != nullptr)
 	{
-		std::vector<v8::Local<v8::Value>> args(1);
-		args[0] = v8::String::NewFromUtf8(isolate, msg).ToLocalChecked();
+		std::vector<v8::Local<v8::Value>> args(2);
+		args[0] = v8::String::NewFromUtf8(isolate, name).ToLocalChecked();
+		args[1] = v8::String::NewFromUtf8(isolate, msg).ToLocalChecked();
 		v8::Local<v8::Value> res = m_context->InvokeCallback(callback_init, args).ToLocalChecked();
 		v8::String::Utf8Value str(isolate, res);
 		return *str;

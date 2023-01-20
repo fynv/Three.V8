@@ -8,8 +8,8 @@
 
 struct MsgHandler
 {
-	void* window = nullptr;
-	std::string (*Call)(void* window, const char* msg) = nullptr;
+	void* ptr = nullptr;
+	std::string (*Call)(void* ptr, const char* msg) = nullptr;
 };
 
 class GamePlayer
