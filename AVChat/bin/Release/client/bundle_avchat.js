@@ -152,10 +152,24 @@ function enter(room_id)
         messenger.send("join_room", room_id);
         
         messenger.addEventListenerObj("identity", (identity)=>{
-            self = identity;            
+            self = identity;
+            audio_recorder = new OpusRecorder();        
+            audio_recorder.callback = (arr) => {
+                messenger.send("audio", arr);
+            };
+            
+            let lst = getListOfCameras();
+            if (lst.length>0)
+            {
+                video_recorder = new AVCRecorder();
+                video_recorder.callback = (arr) => {
+                    messenger.send("video", arr);
+                };
+            }
         });
         
         messenger.addEventListenerObj("users", (info_users)=>{
+            if (self === null) return;
             for (let _username in users)
             {
                 const user = users[_username];
@@ -196,17 +210,8 @@ function enter(room_id)
                     }
                 }
             }
-        });
+        });        
         
-        audio_recorder = new OpusRecorder();        
-        audio_recorder.callback = (arr) => {
-            messenger.send("audio", arr);
-        };
-        
-        video_recorder = new AVCRecorder();
-        video_recorder.callback = (arr) => {
-            messenger.send("video", arr);
-        };
     };
 }
 
