@@ -35,16 +35,18 @@ public:
 		GLMain::MainLoop();
 	}
 
-	static void s_SetMouseCapture(void* pwin, const char*)
+	static std::string s_SetMouseCapture(void* pwin, const char*)
 	{
 		AppMain* win = (AppMain*)pwin;
 		win->SetMouseCapture();
+		return "";
 	}
 
-	static void s_ReleaseMouseCapture(void* pwin, const char*)
+	static std::string s_ReleaseMouseCapture(void* pwin, const char*)
 	{
 		AppMain* win = (AppMain*)pwin;
 		win->ReleaseMouseCapture();
+		return "";
 	}
 	
 protected:

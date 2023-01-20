@@ -9,7 +9,7 @@
 struct MsgHandler
 {
 	void* window = nullptr;
-	void (*Call)(void* window, const char* msg) = nullptr;
+	std::string (*Call)(void* window, const char* msg) = nullptr;
 };
 
 class GamePlayer
@@ -40,8 +40,8 @@ public:
 	void AddMessageHandler(const char* name, MsgHandler handler);
 	void RemoveMessageHandler(const char* name);
 
-	void UserMessage(const char* name, const char* msg);
-	void SendMessageToUser(const char* name, const char* msg);	
+	std::string UserMessage(const char* name, const char* msg);
+	std::string SendMessageToUser(const char* name, const char* msg);	
 
 	GLRenderTarget& renderTarget()
 	{

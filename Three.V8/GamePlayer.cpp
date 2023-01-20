@@ -243,16 +243,17 @@ void GamePlayer::RemoveMessageHandler(const char* name)
 	}
 }
 
-void GamePlayer::UserMessage(const char* name, const char* msg)
+std::string GamePlayer::UserMessage(const char* name, const char* msg)
 {
 	auto iter = m_msg_map.find(name);
 	if (iter != m_msg_map.end())
 	{
-		iter->second.Call(iter->second.window, msg);
+		return iter->second.Call(iter->second.window, msg);
 	}
+	return "";
 }
 
-void GamePlayer::SendMessageToUser(const char* name, const char* msg)
+std::string GamePlayer::SendMessageToUser(const char* name, const char* msg)
 {
 	v8::Isolate* isolate = m_v8vm.m_isolate;
 	v8::HandleScope handle_scope(isolate);
@@ -262,6 +263,9 @@ void GamePlayer::SendMessageToUser(const char* name, const char* msg)
 	{
 		std::vector<v8::Local<v8::Value>> args(1);
 		args[0] = v8::String::NewFromUtf8(isolate, msg).ToLocalChecked();
-		m_context->InvokeCallback(callback_init, args);
+		v8::Local<v8::Value> res = m_context->InvokeCallback(callback_init, args).ToLocalChecked();
+		v8::String::Utf8Value str(isolate, res);
+		return *str;
 	}
+	return "";
 }

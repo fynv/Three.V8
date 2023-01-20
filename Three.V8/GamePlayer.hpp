@@ -53,7 +53,8 @@ void WrapperGamePlayer::Message(const v8::FunctionCallbackInfo<v8::Value>& info)
 	GamePlayer* self = lctx.self<GamePlayer>();
 	std::string name = lctx.jstr_to_str(info[0]);
 	std::string msg = lctx.jstr_to_str(info[1]);
-	self->UserMessage(name.c_str(), msg.c_str());
+	std::string res = self->UserMessage(name.c_str(), msg.c_str());
+	info.GetReturnValue().Set(lctx.str_to_jstr(res.c_str()));
 }
 
 void WrapperGamePlayer::HasFont(const v8::FunctionCallbackInfo<v8::Value>& info)

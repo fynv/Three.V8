@@ -141,18 +141,20 @@ namespace CLRBinding
 		return Control::ProcessCmdKey(msg, keyData);
 	}
 
-	static void SetMouseCapture(void* pwin, const char*)
+	static std::string SetMouseCapture(void* pwin, const char*)
 	{
 		GCHandle handle_win = GCHandle::FromIntPtr((IntPtr)pwin);
 		Control^ win = (Control^)handle_win.Target;
 		win->Capture = true;
+		return "";
 	}
 
-	static void ReleaseMouseCapture(void* pwin, const char*)
+	static std::string ReleaseMouseCapture(void* pwin, const char*)
 	{
 		GCHandle handle_win = GCHandle::FromIntPtr((IntPtr)pwin);
 		Control^ win = (Control^)handle_win.Target;
 		win->Capture = false;
+		return "";
 	}
 
 	CGamePlayer::CGamePlayer(String^ exec_path, Control^ window)
