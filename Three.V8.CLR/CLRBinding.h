@@ -78,6 +78,8 @@ namespace CLRBinding
 		int y;
 	};
 
+	public delegate void PrintCallback(String^ str);
+
 	public ref class CGamePlayer
 	{
 	public:
@@ -105,10 +107,18 @@ namespace CLRBinding
 		void OnChar(int keyChar);
 		void OnControlKey(unsigned code);
 
+		void SetPrintCallbacks(PrintCallback^ print_callback, PrintCallback^ error_callback);
+		void PrintStd(String^ str);
+		void PrintErr(String^ str);
+
 	private:
 		GamePlayer* m_native = nullptr;
 		bool m_finalized = false;
 		GCHandle m_handle_win;
+		GCHandle m_handle_this;
+
+		PrintCallback^ m_print_callback = nullptr;
+		PrintCallback^ m_error_callback = nullptr;
 	};
 
 

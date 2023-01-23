@@ -33,6 +33,7 @@ void GamePlayer::LoadScript(const char* dir, const char* filename)
 	UnloadScript();
 	std::filesystem::current_path(dir);
 	m_context = std::unique_ptr<GameContext>(new GameContext(&m_v8vm, this, filename));
+	m_context->SetPrintCallbacks(m_print_callback_data, m_print_callback, m_error_callback);
 
 	v8::Isolate* isolate = m_v8vm.m_isolate;
 	v8::HandleScope handle_scope(isolate);
@@ -269,4 +270,16 @@ std::string GamePlayer::SendMessageToUser(const char* name, const char* msg)
 		return *str;
 	}
 	return "";
+}
+
+void GamePlayer::SetPrintCallbacks(void* ptr, GameContext::PrintCallback print_callback, GameContext::PrintCallback error_callback)
+{
+	m_print_callback_data = ptr;
+	m_print_callback = print_callback;
+	m_error_callback = error_callback;
+
+	if (m_context != nullptr)
+	{
+		m_context->SetPrintCallbacks(ptr, print_callback, error_callback);
+	}
 }

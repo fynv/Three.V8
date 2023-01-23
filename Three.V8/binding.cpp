@@ -267,7 +267,7 @@ void GameContext::_report_exception(v8::TryCatch* try_catch)
 	if (message.IsEmpty()) {
 		// V8 didn't provide any extra information about this error; just
 		// print the exception.
-		fprintf(stderr, "%s\n", exception_string);
+		print_err(exception_string);
 	}
 	else {
 		// Print (filename):(line number): (message).
@@ -276,29 +276,39 @@ void GameContext::_report_exception(v8::TryCatch* try_catch)
 		v8::Local<v8::Context> context(m_vm->m_isolate->GetCurrentContext());
 		const char* filename_string = ToCString(filename);
 		int linenum = message->GetLineNumber(context).FromJust();
-		fprintf(stderr, "%s:%i: %s\n", filename_string, linenum, exception_string);
+		{
+			char line[1024];
+			sprintf(line, "%s:%i: %s", filename_string, linenum, exception_string);
+			print_err(line);
+		}
 		// Print line of source code.
 		v8::String::Utf8Value sourceline(
 			m_vm->m_isolate, message->GetSourceLine(context).ToLocalChecked());
 		const char* sourceline_string = ToCString(sourceline);
-		fprintf(stderr, "%s\n", sourceline_string);
-		// Print wavy underline (GetUnderline is deprecated).
-		int start = message->GetStartColumn(context).FromJust();
-		for (int i = 0; i < start; i++) {
-			fprintf(stderr, " ");
+		print_err(sourceline_string);
+
+		{
+			std::string line = "";
+			// Print wavy underline (GetUnderline is deprecated).
+			int start = message->GetStartColumn(context).FromJust();
+			for (int i = 0; i < start; i++) 
+			{
+				line += " ";
+			}
+			int end = message->GetEndColumn(context).FromJust();
+			for (int i = start; i < end; i++) 
+			{
+				line += "^";
+			}
+			print_err(line.c_str());
 		}
-		int end = message->GetEndColumn(context).FromJust();
-		for (int i = start; i < end; i++) {
-			fprintf(stderr, "^");
-		}
-		fprintf(stderr, "\n");
 		v8::Local<v8::Value> stack_trace_string;
 		if (try_catch->StackTrace(context).ToLocal(&stack_trace_string) &&
 			stack_trace_string->IsString() &&
 			stack_trace_string.As<v8::String>()->Length() > 0) {
 			v8::String::Utf8Value stack_trace(m_vm->m_isolate, stack_trace_string);
 			const char* err = ToCString(stack_trace);
-			fprintf(stderr, "%s\n", err);
+			print_err(err);
 		}
 	}
 }
@@ -334,7 +344,7 @@ bool GameContext::_execute_string(v8::Local<v8::String> source, v8::Local<v8::Va
 				// the returned value.
 				v8::String::Utf8Value str(m_vm->m_isolate, result);
 				const char* cstr = ToCString(str);
-				printf("%s\n", cstr);
+				print_std(cstr);
 			}
 			return true;
 		}
@@ -361,21 +371,26 @@ void GameContext::_run_script(const char* filename)
 
 void GameContext::Print(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
+	std::string line = "";
 	bool first = true;
 	for (int i = 0; i < args.Length(); i++) {
 		v8::HandleScope handle_scope(args.GetIsolate());
 		if (first) {
 			first = false;
 		}
-		else {
-			printf(" ");
+		else 
+		{
+			line += " ";
 		}
 		v8::String::Utf8Value str(args.GetIsolate(), args[i]);
 		const char* cstr = ToCString(str);
-		printf("%s", cstr);
+		line += cstr;
 	}
-	printf("\n");
-	fflush(stdout);
+
+	LocalContext lctx(args);
+	GameContext* self = lctx.ctx();
+	self->print_std(line.c_str());
+	
 }
 
 void GameContext::SetCallback(const v8::FunctionCallbackInfo<v8::Value>& args)
@@ -595,4 +610,36 @@ void GameContext::CheckPendings()
 		}
 	}
 #endif
+}
+
+void GameContext::SetPrintCallbacks(void* ptr, PrintCallback print_callback, PrintCallback error_callback)
+{
+	m_print_callback_data = ptr;
+	m_print_callback = print_callback;
+	m_error_callback = error_callback;
+}
+
+void GameContext::print_std(const char* str)
+{
+	if (m_print_callback != nullptr)
+	{
+		m_print_callback(m_print_callback_data, str);
+	}
+	else
+	{
+		printf("%s\n", str);
+	}
+}
+
+void GameContext::print_err(const char* str)
+{
+	if (m_error_callback != nullptr)
+	{
+		m_error_callback(m_print_callback_data, str);
+	}
+	else
+	{
+		fprintf(stderr, "%s\n", str);
+	}
+
 }

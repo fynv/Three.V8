@@ -1,9 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Data;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Windows;
 
 namespace GameDev
@@ -13,5 +8,29 @@ namespace GameDev
     /// </summary>
     public partial class App : Application
     {
+        private MainWindow mainWnd = null;
+
+        private void Application_Startup(object sender, StartupEventArgs e)
+        {
+            mainWnd = new MainWindow();
+            this.MainWindow = mainWnd;
+            mainWnd.Show();
+        }
+            
+        private void Application_Deactivated(object sender, EventArgs e)
+        {
+            if (mainWnd != null)
+            {
+                mainWnd.AppDeactivated();
+            }           
+        }
+
+        private void Application_Activated(object sender, EventArgs e)
+        {
+            if (mainWnd != null)
+            {
+                mainWnd.AppActivated();
+            }            
+        }
     }
 }

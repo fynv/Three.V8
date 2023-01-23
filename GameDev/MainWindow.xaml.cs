@@ -1,15 +1,19 @@
 ﻿using System;
 using System.IO;
 using System.Text;
-using System.Timers;
+using System.Text.RegularExpressions;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
-using System.Diagnostics;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Input;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
 using Microsoft.Win32;
-using CLRBinding;
+using Newtonsoft.Json.Linq;
+using System.Diagnostics;
+using System.Threading.Tasks;
+using Microsoft.VisualBasic.FileIO;
+using System.Xml.Linq;
 
 namespace GameDev
 {
@@ -17,7 +21,15 @@ namespace GameDev
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window
-    {        
+    {
+        public static RoutedCommand RoutedCommandNewProject = new RoutedCommand();
+        public static RoutedCommand RoutedCommandOpenProject = new RoutedCommand();
+        public static RoutedCommand RoutedCommandCloseFile = new RoutedCommand();
+        public static RoutedCommand RoutedCommandCloseProject = new RoutedCommand();
+        public static RoutedCommand RoutedCommandSaveAll = new RoutedCommand();
+        public static RoutedCommand RoutedCommandReopen = new RoutedCommand();
+        public static RoutedCommand RoutedCommandReopenAll = new RoutedCommand();
+
         public static RoutedCommand RoutedCommandComment = new RoutedCommand();
         public static RoutedCommand RoutedCommandUpper = new RoutedCommand();
         public static RoutedCommand RoutedCommandLower = new RoutedCommand();
@@ -26,369 +38,589 @@ namespace GameDev
         public static RoutedCommand RoutedCommandFindPrev = new RoutedCommand();
         public static RoutedCommand RoutedCommandReplace = new RoutedCommand();
         public static RoutedCommand RoutedCommandGoto = new RoutedCommand();
-        public static RoutedCommand RoutedCommandRotate = new RoutedCommand();
 
-        private CGLControl glControl = null;
-        private CGamePlayer game_player = null;
+        public static RoutedCommand RoutedCommandProjectSettings = new RoutedCommand();
 
-        private string current_filename = "";
-        private bool is_portrait = false;
+        private string cur_path = "";
+        private JsonData project = new JsonData();
+        private HashSet<string> target_outputs = new HashSet<string>();
+        private Dictionary<string, TabItem> opened_tabs = new Dictionary<string, TabItem>();
+
+        private ContextMenu ctxMenu_dir =null;
+        private ContextMenu ctxMenu_file = null;
+        private ContextMenu ctxMenu_target = null;
+
+        private void CreateContextMenus()
+        {
+            ctxMenu_dir = new ContextMenu();
+            {
+                var item_add = new MenuItem();
+                item_add.Header = "_New File";
+                ctxMenu_dir.Items.Add(item_add);
+                item_add.Click += (sender, e) =>
+                {
+                    MenuItem mi = sender as MenuItem;
+                    if (mi != null)
+                    {
+                        ContextMenu cm = (ContextMenu)mi.Parent;
+                        TreeViewItem node = (TreeViewItem)cm.PlacementTarget;
+                        string dir_path = (string)node.Tag;
+                        NewFile(dir_path);
+                    }
+                };
+
+                var item_delete = new MenuItem();
+                item_delete.Header = "_Delete";
+                ctxMenu_dir.Items.Add(item_delete);
+                item_delete.Click += (sender, e) =>
+                {
+                    MenuItem mi = sender as MenuItem;
+                    if (mi != null)
+                    {
+                        ContextMenu cm = (ContextMenu)mi.Parent;
+                        TreeViewItem node = (TreeViewItem)cm.PlacementTarget;
+                        string dir_path = (string)node.Tag;
+
+                        if (MessageBox.Show($"Delete directory\"{dir_path}\"?", "Delete Directory", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                        {
+                            FileSystem.DeleteDirectory(dir_path, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin);
+                            update_cur_path();
+                        }
+                    }
+                };
+            }
+
+            ctxMenu_file = new ContextMenu();
+            {
+                var item_open = new MenuItem();
+                item_open.Header = "_Open";
+                ctxMenu_file.Items.Add(item_open);
+                item_open.Click += (sender, e) =>
+                {
+                    MenuItem mi = sender as MenuItem;
+                    if (mi != null)
+                    {
+                        ContextMenu cm = (ContextMenu)mi.Parent;
+                        TreeViewItem node = (TreeViewItem)cm.PlacementTarget;
+                        string file_path = (string)node.Tag;
+                        string ext = Path.GetExtension(file_path);
+                        if (ext == ".js")
+                        {
+                            OpenJavaScript(file_path);
+                        }
+                    }
+                };
+
+                var item_delete = new MenuItem();
+                item_delete.Header = "_Delete";
+                ctxMenu_file.Items.Add(item_delete);
+                item_delete.Click += (sender, e) =>
+                {
+                    MenuItem mi = sender as MenuItem;
+                    if (mi != null)
+                    {
+                        ContextMenu cm = (ContextMenu)mi.Parent;
+                        TreeViewItem node = (TreeViewItem)cm.PlacementTarget;
+                        string file_path = (string)node.Tag;
+
+                        if (MessageBox.Show($"Delete file\"{file_path}\"?", "Delete File", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                        {
+                            FileSystem.DeleteFile(file_path, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin);
+                            update_cur_path();
+                        }
+                    }
+                };
+            }
+
+            ctxMenu_target = new ContextMenu();
+            {
+                var item_run = new MenuItem();
+                item_run.Header = "_Run";
+                ctxMenu_target.Items.Add(item_run);
+                item_run.Click += (sender, e) =>
+                {
+                    MenuItem mi = sender as MenuItem;
+                    if (mi != null)
+                    {
+                        ContextMenu cm = (ContextMenu)mi.Parent;
+                        StackPanel item = (StackPanel)cm.PlacementTarget;
+                        JObject jTarget = (JObject)item.Tag;
+                        RunTarget(jTarget);
+                    }
+                };
+
+                var item_edit = new MenuItem();
+                item_edit.Header = "_Edit";
+                ctxMenu_target.Items.Add(item_edit);
+                item_edit.Click += (sender, e) =>
+                {
+                    MenuItem mi = sender as MenuItem;
+                    if (mi != null)
+                    {
+                        ContextMenu cm = (ContextMenu)mi.Parent;
+                        StackPanel item = (StackPanel)cm.PlacementTarget;
+                        JObject jTarget = (JObject)item.Tag;
+                        EditTarget(jTarget);
+                    }
+                };
+
+
+                var item_remove = new MenuItem();
+                item_remove.Header = "_Remove";
+                ctxMenu_target.Items.Add(item_remove);
+                item_remove.Click += (sender, e) =>
+                {
+                    MenuItem mi = sender as MenuItem;
+                    if (mi != null)
+                    {
+                        ContextMenu cm = (ContextMenu)mi.Parent;
+                        StackPanel item = (StackPanel)cm.PlacementTarget;
+                        JObject jTarget = (JObject)item.Tag;
+                        RemoveTarget(jTarget);
+                    }
+                };
+
+            }
+
+        }
+
+
+
+        private void create_default_project()
+        {
+            project.filename = $"{cur_path}\\project.json";
+
+            if (!File.Exists(project.filename))
+            {
+                string project_name = Path.GetFileName(cur_path);
+                project.data = new JObject();
+                project.data["project_name"] = project_name;
+                project.Save();
+            }
+        }
+
+        private StackPanel create_item(string name, string icon_name, int icon_size = 24)
+        {
+            var panel = new StackPanel();
+            panel.Orientation = Orientation.Horizontal;
+
+            var icon_image = new BitmapImage(new Uri($"pack://application:,,,/Icons/{icon_name}"));
+            var icon = new Image();
+            icon.Source = icon_image;
+            RenderOptions.SetBitmapScalingMode(icon, BitmapScalingMode.HighQuality);
+            icon.Width = icon_size;
+            icon.Height = icon_size;
+            panel.Children.Add(icon);
+
+            var label = new TextBlock();            
+            label.VerticalAlignment = VerticalAlignment.Center;            
+            label.Text = name;
+            label.Margin = new Thickness(5.0);
+            panel.Children.Add(label);
+            return panel;
+        }
+        
+        private void update_dir(ItemsControl item, string path)
+        {
+            item.Items.Clear();
+            if (path == "") return;
+
+
+            var list_dirs = Directory.GetDirectories(path);
+            foreach (var dir in list_dirs)
+            {
+                string dir_name = Path.GetFileName(dir);
+                var subitem = new TreeViewItem();
+                subitem.Header = create_item(dir_name, "folder.png");
+                subitem.Tag = dir;
+                subitem.ContextMenu = ctxMenu_dir;
+                item.Items.Add(subitem);
+                update_dir(subitem, dir);
+            }
+
+
+            var list_files = Directory.GetFiles(path);
+            foreach (var file in list_files)
+            {
+                string file_name = Path.GetFileName(file);
+                string ext = Path.GetExtension(file_name);
+                if (ext == ".js")
+                {
+                    string rel_path = file.Substring(cur_path.Length+1);
+                    if (target_outputs.Contains(rel_path)) continue;
+                }
+
+                string icon_name = "doc.png";
+                if (ext == ".js") icon_name = "js.png";
+                if (ext == ".xml") icon_name = "xml.png";
+                if (ext == ".json") icon_name = "json.png";
+
+                var subitem = new TreeViewItem();
+                subitem.Header = create_item(file_name, icon_name);
+                subitem.Tag = file;
+                subitem.ContextMenu = ctxMenu_file;
+
+                subitem.MouseDoubleClick += (sender, e) =>
+                {                   
+                    if (ext == ".js")
+                    {
+                        OpenJavaScript(file);
+                    }
+                };
+
+                item.Items.Add(subitem);
+
+            }
+        } 
+        
+        private void update_targets()
+        {
+            lst_targets.Items.Clear();
+            target_outputs.Clear();
+            JObject obj_proj = (JObject)project.data;
+            if (obj_proj != null && obj_proj.ContainsKey("targets"))
+            {                
+                var jTargets = (JArray)obj_proj["targets"];                
+
+                foreach (JObject jTarget in jTargets)
+                {
+                    string name = jTarget["name"].ToString();
+                    var subitem = new ListViewItem();
+                    subitem.Content = create_item(name, "target.png", 36);
+                    subitem.Tag = jTarget;
+                    subitem.ContextMenu = ctxMenu_target;
+                    subitem.MouseDoubleClick += (sender,e) =>
+                    {
+                        RunTarget(jTarget);
+                    };
+
+                    lst_targets.Items.Add(subitem);
+                    target_outputs.Add(jTarget["output"].ToString());
+                }
+            }            
+
+        }
+
+        private void update_cur_path()
+        {
+            if (cur_path == "")
+            {
+                project.Clear();
+                this.Title = "GameDev";
+            }
+            else
+            {                
+                if (!File.Exists($"{cur_path}\\project.json"))
+                {
+                    create_default_project();
+                }
+                else 
+                {
+                    project.filename = $"{cur_path}\\project.json";
+                    project.Load();
+                }                
+                this.Title = $"GameDev - {project.data["project_name"]}";
+            }
+            update_targets();            
+            update_dir(tree_files, cur_path);            
+        }
+
+        private void change_path(string path)
+        {
+            const string userRoot = "HKEY_CURRENT_USER";
+            const string subkey = "Software\\GameDev";
+            const string keyName = userRoot + "\\" + subkey;
+            Registry.SetValue(keyName, "cur_path", path);
+            cur_path = path;
+            update_cur_path();
+
+        }
 
         public MainWindow()
         {
             InitializeComponent();
-            glControl = new CGLControl();
-            glControl.SetFramerate(60.0f);
-            glControl.Paint += GLControl_Paint;
-            glControl.Dock = System.Windows.Forms.DockStyle.Fill;
-            glControl.MouseDown += GLControl_MouseDown;
-            glControl.MouseUp += GLControl_MouseUp;
-            glControl.MouseMove += GLControl_MouseMove;
-            glControl.MouseWheel += GLControl_MouseWheel;
-            glControl.KeyPress += GLControl_KeyChar;
-            glControl.ControlKey += GLControl_ControlKey;
-            wfh_three.Child = glControl;
+            CreateContextMenus();
 
-            string exe_name = Process.GetCurrentProcess().ProcessName;
-            game_player = new CGamePlayer(exe_name, glControl);
-            
-            string local_path = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
-            webView.Source = new Uri($"{local_path}/editor/index.html");
-
-            update_title();
-            
-        }        
-
-        private bool closable = false;
-        protected override async void OnClosing(System.ComponentModel.CancelEventArgs e)
-        {
-            if (!closable)
+            const string userRoot = "HKEY_CURRENT_USER";
+            const string subkey = "Software\\GameDev";
+            const string keyName = userRoot + "\\" + subkey;
+            string path = (string)Registry.GetValue(keyName, "cur_path", "");
+            if (File.Exists($"{path}\\project.json"))
             {
-                e.Cancel = true;
-                closable = await doc_close();
-                if (closable)
-                {
-                    Close();
-                }
+                cur_path = path;
+                update_cur_path();
+            }
+        }
+
+        private bool in_background = false;
+
+        public void AppDeactivated()
+        {
+            in_background = true;
+        }
+
+        public void AppActivated()
+        {
+            if (in_background)
+            {
+                in_background = false;
+                update_cur_path();
+            }
+        }
+
+        private void TabItem_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            if (!(e.Source is TextBlock tb))
+            {  
                 return;
             }
-            glControl.MakeCurrent();
-            game_player.Dispose();
-            game_player = null;
+
+            TabItem tabItem = (TabItem)((StackPanel)tb.Parent).Parent;
+
+            if (Mouse.PrimaryDevice.LeftButton == MouseButtonState.Pressed)
+            {
+                DragDrop.DoDragDrop(tabItem, tabItem, DragDropEffects.All);
+            }
+        }
+
+        private void TabItem_Drop(object sender, DragEventArgs e)
+        {
+            if (e.Source is TextBlock tb1 &&
+                e.Data.GetData(typeof(TabItem)) is TabItem tabItemSource)               
+            {
+                TabItem tabItemTarget = (TabItem)((StackPanel)tb1.Parent).Parent;               
+
+                if (!tabItemTarget.Equals(tabItemSource) &&
+                tabItemTarget.Parent is TabControl tabControl)
+                {
+                    int targetIndex = tabControl.Items.IndexOf(tabItemTarget);
+
+                    tabControl.Items.Remove(tabItemSource);
+                    tabControl.Items.Insert(targetIndex, tabItemSource);
+                    tabItemSource.IsSelected = true;
+                }
+            }
+            
+        }
+
+        protected override async void OnClosing(System.ComponentModel.CancelEventArgs e)
+        {
+            if (TabCtrl_Editor.Items.Count > 0)
+            {
+                e.Cancel = true;
+                while (TabCtrl_Editor.Items.Count>0)
+                {
+                    TabItem tabItem = (TabItem)TabCtrl_Editor.Items[0];
+                    bool closed = await CloseTab(tabItem);
+                    if (!closed) return;
+                }
+                Close();
+                return;
+            }
+
             base.OnClosing(e);
         }
 
-        private void GLControl_Paint(object sender, System.Windows.Forms.PaintEventArgs e)
-        {
-            if (game_player == null) return;
-            game_player.Draw(glControl.Width, glControl.Height);
-        }
-
-        private CLRBinding.MouseEventArgs convert_args(System.Windows.Forms.MouseEventArgs e)
-        {
-            int button = -1;
-            if (e.Button == System.Windows.Forms.MouseButtons.Left)
-            {
-                button = 0;
-            }
-            else if (e.Button == System.Windows.Forms.MouseButtons.Middle)
-            {
-                button = 1;
-            }
-            else if (e.Button == System.Windows.Forms.MouseButtons.Right)
-            {
-                button = 2;
-            }
-            else if (e.Button == System.Windows.Forms.MouseButtons.XButton1)
-            {
-                button = 3;
-            }
-            else if (e.Button == System.Windows.Forms.MouseButtons.XButton2)
-            {
-                button = 4;
-            }
-
-            CLRBinding.MouseEventArgs args;
-            args.button = button;
-            args.clicks = e.Clicks;
-            args.delta = e.Delta;
-            args.x = e.X;
-            args.y = e.Y;
-            return args;
-        }
-
-        private Timer press_timer = null;
-        private int x_down;
-        private int y_down;
-
-        private void GLControl_MouseDown(object sender, System.Windows.Forms.MouseEventArgs e)
-        {
-            if (game_player == null) return;
-            glControl.Focus();
-            glControl.MakeCurrent();
-            game_player.OnMouseDown(convert_args(e));
-
-            if (e.Button == System.Windows.Forms.MouseButtons.Left)
-            {
-                x_down = e.X;
-                y_down = e.Y;
-
-                press_timer = new Timer();
-                press_timer.Elapsed += (source, timer_event) =>
-                {
-                    Dispatcher.Invoke(() =>
-                    {
-                        press_timer = null;
-                        game_player.OnLongPress(x_down, y_down);
-                    });
-
-                };
-                press_timer.AutoReset = false;
-                press_timer.Interval = 500.0;
-                press_timer.Start();
-            }
-        }
-
-        private void GLControl_MouseUp(object sender, System.Windows.Forms.MouseEventArgs e)
-        {
-            if (game_player == null) return;
-            glControl.MakeCurrent();
-            game_player.OnMouseUp(convert_args(e));
-
-            if (press_timer != null)
-            {
-                press_timer.Stop();
-                press_timer = null;
-            }
-        }
-
-        private void GLControl_MouseMove(object sender, System.Windows.Forms.MouseEventArgs e)
-        {
-            if (game_player == null) return;
-            glControl.MakeCurrent();
-            game_player.OnMouseMove(convert_args(e));
-
-            if (press_timer != null)
-            {
-                int x = e.X;
-                int y = e.Y;
-
-                int dx = x - x_down;
-                int dy = y - y_down;
-                double dis = Math.Sqrt((double)(dx * dx) + (double)(dy * dy));
-                if (dis > 3.0)
-                {
-                    press_timer.Stop();
-                    press_timer = null;
-                }
-
-            }
-        }
-
-        private void GLControl_MouseWheel(object sender, System.Windows.Forms.MouseEventArgs e)
-        {
-            if (game_player == null) return;
-            glControl.MakeCurrent();
-            game_player.OnMouseWheel(convert_args(e));
-        }
-
-        private void GLControl_ControlKey(uint code)
-        {
-            if (game_player == null) return;
-            glControl.MakeCurrent();
-            game_player.OnControlKey(code);
-        }
-
-        private void GLControl_KeyChar(object sender, System.Windows.Forms.KeyPressEventArgs e)
-        {
-            if (game_player == null) return;
-            glControl.MakeCurrent();
-            game_player.OnChar(e.KeyChar);
-            e.Handled = true;
-        }
-
-        private async Task<bool> TextChanged()
-        {
-            string response = await webView.ExecuteScriptAsync("doc_modified()");
-            return (bool)JsonConvert.DeserializeObject(response);
-        }
-
-        private async Task<string> GetText()
-        {
-            string response = await webView.ExecuteScriptAsync("doc_get_text()");
-            return JsonConvert.DeserializeObject(response).ToString();
-        }
-
-        private async void SetText(string text)
-        {
-            string para = JsonConvert.SerializeObject(text);
-            await webView.ExecuteScriptAsync($"doc_set_text({para})");
-        }
-
-        private void update_title()
-        {
-            if (current_filename=="")
-            {
-                this.Title = "GameDev - Untitled";
-            }
-            else
-            {
-                string name = Path.GetFileName(current_filename);
-                this.Title = $"GameDev - {name}";
-            }
-        }
-
-        private void load_script()
-        {
-            string dir_name = Path.GetDirectoryName(current_filename);
-            string file_name = Path.GetFileName(current_filename);
-            Directory.SetCurrentDirectory(dir_name);
-            Process proc = new Process();
-            proc.StartInfo.FileName = "cmd.exe";
-            proc.StartInfo.Arguments = $"/C \"rollup.cmd {file_name} --file bundle_{file_name}\"";
-            proc.StartInfo.UseShellExecute = false;
-            proc.Start();
-            proc.WaitForExit();
-
-            string fn_bundle = $"{dir_name}/bundle_{file_name}";
-            game_player.LoadScript(fn_bundle);
-        }
-
-        private void unload_script()
-        {
-            game_player.UnloadScript();
-        }
-
-        private async void _doc_save(string filename)
-        {
-            string text = await GetText();
-            File.WriteAllText(filename, text, Encoding.UTF8);
-            load_script();
-        }
-
-        private void _doc_open(string filename)
-        {
-            string text = File.ReadAllText(filename, Encoding.UTF8);
-            SetText(text);
-        }
-
-        private bool doc_save_as()
+        private void CommandNewProject(object sender, ExecutedRoutedEventArgs e)
         {
             var dialog = new SaveFileDialog();
-            dialog.Filter = "Javascript|*.js";
-            if (dialog.ShowDialog() != true)
-            {
-                return false;
-            }
-            current_filename = dialog.FileName;
-            _doc_save(current_filename);
-            update_title();            
-            return true;            
+            dialog.Filter = "Project|project.json";
+            dialog.FileName = "project.json";
+            if (dialog.ShowDialog() != true) return;
+
+            cur_path = Path.GetDirectoryName(dialog.FileName);
+            create_default_project();
+
+            change_path(cur_path);
         }
 
-        private bool doc_save()
+        private void CommandOpenProject(object sender, ExecutedRoutedEventArgs e)
         {
-            if (current_filename!="")
-            {
-                _doc_save(current_filename);                
-                return true;
-            }
-            return doc_save_as();
+            var dialog = new OpenFileDialog();
+            dialog.Filter = "Project|project.json";
+            dialog.FileName = "project.json";
+            if (dialog.ShowDialog() != true) return;
+
+            string path = Path.GetDirectoryName(dialog.FileName);
+            change_path(path);
         }
 
-        private async Task<bool> doc_close()
+        private void NewFile(string path_dir)
         {
-            bool changed = await TextChanged();           
-            if (changed)
+            var dialog = new DlgNewFile(this);
+            if (dialog.ShowDialog() != true) return;
+
+            string path = $"{path_dir}\\{dialog.filename}";
+            if (!File.Exists(path))
             {
-                var result = MessageBox.Show("File has been modified. Save it?", "Save file", MessageBoxButton.YesNoCancel);
-                if (result == MessageBoxResult.Yes)
+                File.WriteAllText(path, "");
+                update_cur_path();
+            }
+
+            string ext = Path.GetExtension(dialog.filename);
+            if (ext == ".js")
+            {
+                OpenJavaScript(path);
+            }
+
+        }
+
+        private void CommandNewFile(object sender, ExecutedRoutedEventArgs e)
+        {
+            NewFile(cur_path);           
+        }
+
+        private void CommandOpenFile(object sender, ExecutedRoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog();
+            dialog.Filter = "JavaScript(*.js)|*.js";
+            if (dialog.ShowDialog() != true) return;
+            string ext = Path.GetExtension(dialog.FileName);
+            if (ext == ".js")
+            {
+                OpenJavaScript(dialog.FileName);
+            }
+        }
+
+        private async Task<bool> CloseTab(TabItem tabItem)
+        {
+            var editor = tabItem.Content as Editor;
+            if (editor != null)
+            {
+                bool closed = await editor.doc_close();
+                if (closed)
                 {
-                    return doc_save();
-                }
-                else if (result == MessageBoxResult.No)
-                {
+                    string filepath = (string)tabItem.Tag;
+                    TabCtrl_Editor.Items.Remove(tabItem);
+                    opened_tabs.Remove(filepath);
                     return true;
                 }
-                else 
+            }
+            return false;
+        }
+
+        
+        private void CommandCloseFile(object sender, ExecutedRoutedEventArgs e)
+        {
+            int idx = TabCtrl_Editor.SelectedIndex;
+            if (idx>=0)
+            {
+                CloseTab((TabItem)TabCtrl_Editor.Items[idx]);
+            }
+        }
+
+        private void CommandCloseProject(object sender, ExecutedRoutedEventArgs e)
+        {            
+            change_path("");
+        }
+
+        private void SetDirty()
+        {
+            if (project.data == null) return;
+            JObject obj_proj = (JObject)project.data;
+            if (!obj_proj.ContainsKey("targets")) return;
+            JArray targets = (JArray)obj_proj["targets"];
+            foreach(JObject target in targets)
+            {
+                target["dirty"] = true;
+            }
+            project.Save();
+        }
+
+        private async void SaveTab(TabItem tabItem)
+        {
+            var editor = tabItem.Content as Editor;
+            if (editor != null)
+            {
+                await editor.doc_save();
+                string filepath = (string)tabItem.Tag;
+                string ext = Path.GetExtension(filepath);
+                string filename = Path.GetFileName(filepath);
+                if (filename == "project.json")
                 {
-                    return false;
+                    update_cur_path();
+                }
+                if (ext==".js" && filepath.StartsWith(cur_path))
+                {
+                    SetDirty();
                 }
             }
-            else 
-            {
-                return true;
-            }
-        }
-
-        private async void doc_new()
-        {
-            if (await doc_close())
-            {
-                string text = Properties.Resources.start;
-                SetText(text);
-                current_filename = "";
-                update_title();
-                unload_script();
-            }
-        }
-
-        private async void doc_open()
-        {
-            if (await doc_close())
-            {
-                var dialog = new OpenFileDialog();
-                dialog.Filter = "Javascript|*.js";
-                if (dialog.ShowDialog() != true) return;
-                current_filename = dialog.FileName;
-                _doc_open(current_filename);
-                update_title();
-                load_script();
-            }
-        }
-
-        private async void doc_fresh()
-        {
-            if (await doc_close())
-            {
-                if (current_filename!="")
-                {
-                    _doc_open(current_filename);
-                    load_script();
-                }
-                else
-                {
-                    string text = Properties.Resources.start;
-                    SetText(text);
-                    unload_script();
-                }
-            }
-            
-        }
-
-        private void CommandNew(object sender, ExecutedRoutedEventArgs e)
-        {
-            doc_new();
-        }
-
-        private void CommandOpen(object sender, ExecutedRoutedEventArgs e)
-        {
-            doc_open();
         }
 
         private void CommandSave(object sender, ExecutedRoutedEventArgs e)
         {
-            doc_save();
+            int idx = TabCtrl_Editor.SelectedIndex;
+            if (idx >= 0)
+            {
+                var tabItem = (TabItem)TabCtrl_Editor.Items[idx];
+                SaveTab(tabItem);                
+            }
+        }
+
+        private async void SaveAsTab(TabItem tabItem)
+        {
+            var editor = tabItem.Content as Editor;
+            if (editor != null)
+            {
+                string new_path = await editor.doc_save_as();
+                if (new_path != "")
+                {
+                    opened_tabs.Remove((string)tabItem.Tag);
+                    opened_tabs[new_path] = tabItem;
+                    tabItem.Tag = new_path;
+                    StackPanel header = (StackPanel)tabItem.Header;
+                    TextBlock text = (TextBlock)header.Children[0];
+                    text.Text = Path.GetFileName(new_path);
+                    update_cur_path();
+                }
+            }
+
         }
 
         private void CommandSaveAs(object sender, ExecutedRoutedEventArgs e)
         {
-            doc_save_as();
+            int idx = TabCtrl_Editor.SelectedIndex;
+            if (idx >= 0)
+            {
+                var tabItem = (TabItem)TabCtrl_Editor.Items[idx];
+                SaveAsTab(tabItem);
+            }
         }
 
-        private void CommandRefresh(object sender, ExecutedRoutedEventArgs e)
+        private void CommandSaveAll(object sender, ExecutedRoutedEventArgs e)
         {
-            doc_fresh();
+            foreach (TabItem tabItem in TabCtrl_Editor.Items)
+            {
+                SaveTab(tabItem);
+            }
+        }
+
+        private async void ReopenTab(TabItem tabItem)
+        {
+            var editor = tabItem.Content as Editor;
+            if (editor != null)
+            {
+                await editor.doc_fresh();                
+            }
+        }
+
+        private void CommandReopen(object sender, ExecutedRoutedEventArgs e)
+        {
+            int idx = TabCtrl_Editor.SelectedIndex;
+            if (idx >= 0)
+            {
+                var tabItem = (TabItem)TabCtrl_Editor.Items[idx];
+                ReopenTab(tabItem);
+            }
+
+        }
+
+        private void CommandReopenAll(object sender, ExecutedRoutedEventArgs e)
+        {
+            foreach (TabItem tabItem in TabCtrl_Editor.Items)
+            {
+                ReopenTab(tabItem);
+            }
         }
 
         private void CommandExit(object sender, ExecutedRoutedEventArgs e)
@@ -398,74 +630,352 @@ namespace GameDev
 
         private void CommandUndo(object sender, ExecutedRoutedEventArgs e)
         {
-            webView.ExecuteScriptAsync("editor.execCommand('undo');");
+            int idx = TabCtrl_Editor.SelectedIndex;
+            if (idx >= 0)
+            {
+                var tabItem = (TabItem)TabCtrl_Editor.Items[idx];
+                var editor = tabItem.Content as Editor;
+                if (editor != null)
+                {
+                    editor.undo();
+                }
+            }
         }
 
         private void CommandRedo(object sender, ExecutedRoutedEventArgs e)
         {
-            webView.ExecuteScriptAsync("editor.execCommand('redo');");
-        }      
+            int idx = TabCtrl_Editor.SelectedIndex;
+            if (idx >= 0)
+            {
+                var tabItem = (TabItem)TabCtrl_Editor.Items[idx];
+                var editor = tabItem.Content as Editor;
+                if (editor != null)
+                {
+                    editor.redo();
+                }
+            }
+        }
 
         private void CommandComment(object sender, ExecutedRoutedEventArgs e)
         {
-            webView.ExecuteScriptAsync("editor.execCommand('togglecomment');");
+            int idx = TabCtrl_Editor.SelectedIndex;
+            if (idx >= 0)
+            {
+                var tabItem = (TabItem)TabCtrl_Editor.Items[idx];
+                var editor = tabItem.Content as Editor;
+                if (editor != null)
+                {
+                    editor.comment();
+                }
+            }
         }
 
         private void CommandUpper(object sender, ExecutedRoutedEventArgs e)
         {
-            webView.ExecuteScriptAsync("editor.execCommand('touppercase');");
+            int idx = TabCtrl_Editor.SelectedIndex;
+            if (idx >= 0)
+            {
+                var tabItem = (TabItem)TabCtrl_Editor.Items[idx];
+                var editor = tabItem.Content as Editor;
+                if (editor != null)
+                {
+                    editor.upper();
+                }
+            }
         }
 
         private void CommandLower(object sender, ExecutedRoutedEventArgs e)
         {
-            webView.ExecuteScriptAsync("editor.execCommand('tolowercase');");
+            int idx = TabCtrl_Editor.SelectedIndex;
+            if (idx >= 0)
+            {
+                var tabItem = (TabItem)TabCtrl_Editor.Items[idx];
+                var editor = tabItem.Content as Editor;
+                if (editor != null)
+                {
+                    editor.lower();
+                }
+            }
         }
 
         private void CommandFind(object sender, ExecutedRoutedEventArgs e)
         {
-            webView.ExecuteScriptAsync("editor.execCommand('find');");
+            int idx = TabCtrl_Editor.SelectedIndex;
+            if (idx >= 0)
+            {
+                var tabItem = (TabItem)TabCtrl_Editor.Items[idx];
+                var editor = tabItem.Content as Editor;
+                if (editor != null)
+                {
+                    editor.find();
+                }
+            }
         }
 
         private void CommandFindNext(object sender, ExecutedRoutedEventArgs e)
         {
-            webView.ExecuteScriptAsync("editor.execCommand('findnext');");
+            int idx = TabCtrl_Editor.SelectedIndex;
+            if (idx >= 0)
+            {
+                var tabItem = (TabItem)TabCtrl_Editor.Items[idx];
+                var editor = tabItem.Content as Editor;
+                if (editor != null)
+                {
+                    editor.findnext();
+                }
+            }
         }
 
         private void CommandFindPrev(object sender, ExecutedRoutedEventArgs e)
         {
-            webView.ExecuteScriptAsync("editor.execCommand('findprevious');");
+            int idx = TabCtrl_Editor.SelectedIndex;
+            if (idx >= 0)
+            {
+                var tabItem = (TabItem)TabCtrl_Editor.Items[idx];
+                var editor = tabItem.Content as Editor;
+                if (editor != null)
+                {
+                    editor.findprev();
+                }
+            }
         }
 
         private void CommandReplace(object sender, ExecutedRoutedEventArgs e)
         {
-            webView.ExecuteScriptAsync("editor.execCommand('replace');");
+            int idx = TabCtrl_Editor.SelectedIndex;
+            if (idx >= 0)
+            {
+                var tabItem = (TabItem)TabCtrl_Editor.Items[idx];
+                var editor = tabItem.Content as Editor;
+                if (editor != null)
+                {
+                    editor.replace();
+                }
+            }
         }
 
         private void CommandGoto(object sender, ExecutedRoutedEventArgs e)
         {
-            webView.ExecuteScriptAsync("editor.execCommand('gotoline');");
+            int idx = TabCtrl_Editor.SelectedIndex;
+            if (idx >= 0)
+            {
+                var tabItem = (TabItem)TabCtrl_Editor.Items[idx];
+                var editor = tabItem.Content as Editor;
+                if (editor != null)
+                {
+                    editor.gotoline();
+                }
+            }
         }
 
-        private void CommandRotate(object sender, ExecutedRoutedEventArgs e)
+
+        private void CommandProjectSettings(object sender, ExecutedRoutedEventArgs e)
         {
-            if (!is_portrait)
+            if (project.data == null) return;
+
+            var dlg = new DlgProjectSettings(this, (JObject)project.data);
+            if (dlg.ShowDialog() == true)
             {
-                wfh_three.Width = 360;
-                wfh_three.Height = 640;
-                DockPanel.SetDock(wfh_three, Dock.Left);
-                is_portrait = true;
-                menu_rotate.Header = "To _Landscape";
+                project.Save();
+                update_cur_path();
+            }
+        }
+
+        private void AddTarget()
+        {
+            var dlg = new DlgEditTarget(this, null, cur_path);
+            if (dlg.ShowDialog() == true)
+            {
+                JObject obj_proj = (JObject)project.data;
+                JArray jTargets;
+                if (!obj_proj.ContainsKey("targets"))
+                {
+                    jTargets = new JArray();
+                    obj_proj["targets"] = jTargets;
+                }
+                else
+                {
+                    jTargets = (JArray)obj_proj["targets"];
+                }
+                jTargets.Add(dlg.jTarget);
+
+                string path_in = $"{cur_path}\\{dlg.jTarget["input"]}";
+
+                if (!File.Exists(path_in))
+                {
+                    File.WriteAllText(path_in, "");
+                }
+
+                project.Save();
+                update_cur_path();
+                lst_targets.SelectedIndex = lst_targets.Items.Count - 1;
+
+                OpenJavaScript(path_in);
+
+            }
+        }
+
+        private void btn_add_target_Click(object sender, RoutedEventArgs e)
+        {
+            if (project.data == null) return;
+            AddTarget();
+        }
+
+        private void RemoveTarget(JObject jTarget)
+        {
+            if (MessageBox.Show($"Remove target\"{jTarget["name"]}\"?", "Remove Target", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+            {
+                jTarget.Remove();
+                project.Save();
+                update_cur_path();
+            }
+        }
+
+        private void btn_remove_target_Click(object sender, RoutedEventArgs e)
+        {
+            if (project.data == null) return;
+            int idx = lst_targets.SelectedIndex;
+            if (idx == -1) return;
+            var item = (ListViewItem)lst_targets.Items[idx];
+            JObject jTarget = (JObject)item.Tag;
+            RemoveTarget(jTarget);
+        }
+
+        private void EditTarget(JObject jTarget)
+        {
+            var dlg = new DlgEditTarget(this, jTarget, cur_path);
+            if (dlg.ShowDialog() == true)
+            {
+                project.Save();
+                update_cur_path();
+            }
+
+        }
+
+        private void btn_edit_target_Click(object sender, RoutedEventArgs e)
+        {
+            if (project.data == null) return;
+            int idx = lst_targets.SelectedIndex;
+            if (idx == -1) return;
+            var item = (ListViewItem)lst_targets.Items[idx];
+            JObject jTarget = (JObject)item.Tag;
+            EditTarget(jTarget);
+        }
+
+        private int GetTargetIndex(JObject jTarget)
+        {
+            JObject obj_proj = (JObject)project.data;
+            var jTargets = (JArray)obj_proj["targets"];
+            for (int idx=0; idx<jTargets.Count; idx++)
+            {
+                JObject t = (JObject)jTargets[idx];
+                if (t == jTarget) return idx;
+            }
+            return -1;
+        }
+
+        private void RunTarget(JObject jTarget)
+        {
+            bool dirty = (bool)jTarget["dirty"];
+            if (dirty)
+            {
+                Directory.SetCurrentDirectory(cur_path);
+
+                string input = (string)jTarget["input"];
+                string output = (string)jTarget["output"];
+                Process proc = new Process();
+                proc.StartInfo.FileName = "cmd.exe";
+                proc.StartInfo.Arguments = $"/C \"rollup.cmd {input} --file {output}\"";
+                proc.StartInfo.UseShellExecute = false;
+                proc.StartInfo.RedirectStandardError = true;
+                proc.StartInfo.StandardErrorEncoding = Encoding.UTF8;
+                proc.Start();
+                proc.WaitForExit();
+
+                console.Text += "running rollup.js: \n";
+                string line;
+                while ((line = proc.StandardError.ReadLine()) != null)
+                {
+                    line = Regex.Replace(line, "[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]", "");
+                    console.Text += line + "\n";
+                }
+
+                jTarget["dirty"] = false;
+                project.Save();
+            }
+
+            int idx = GetTargetIndex(jTarget);
+            string Location = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
+            Process.Start($"{Location}\\GamePlayer.exe", $"\"{project.filename}\" \"{idx}\"");
+
+        }        
+
+        private TabItem NewTabItem(string filepath, string name)
+        {
+            if (opened_tabs.ContainsKey(filepath))
+            {
+                TabItem item = opened_tabs[filepath];
+                TabCtrl_Editor.SelectedItem = item;
+                return item;
+            }
+
+            TabItem tabItem = new TabItem();
+            var header = new StackPanel();
+            header.Orientation = Orientation.Horizontal;
+            var text = new TextBlock();
+            text.Text = name;
+            header.Children.Add(text);
+            var btn = new Button();
+            btn.Background = Brushes.Transparent;
+            btn.BorderBrush = Brushes.Transparent;
+            btn.Content = "🞨";
+            btn.Padding = new Thickness(2.0, 0.0, 2.0, 0.0);
+            header.Children.Add(btn);
+            tabItem.Header = header;
+            TabCtrl_Editor.Items.Add(tabItem);
+            opened_tabs[filepath] = tabItem;
+            TabCtrl_Editor.SelectedItem = tabItem;
+            tabItem.Tag = filepath;
+
+            btn.Click += async (sender, e) =>
+            {
+                CloseTab(tabItem);
+
+            };
+
+            return tabItem;
+
+        }
+
+        private void OpenJavaScript(string file_path)
+        {  
+            string filename = Path.GetFileName(file_path);
+            TabItem item = NewTabItem(file_path, filename);
+            if (item.Content == null)
+            {
+                JSEditor editor = new JSEditor(file_path);
+                item.Content = editor;
             }
             else
             {
-
-                wfh_three.Width = 640;
-                wfh_three.Height = 360;
-                DockPanel.SetDock(wfh_three, Dock.Top);
-                is_portrait = false;
-                menu_rotate.Header = "To _Portrait";
+                ReopenTab(item);
             }
         }
 
+        private void menu_clear_console_Click(object sender, RoutedEventArgs e)
+        {
+            console.Text = "";
+        }
+
+        private void menu_new_file_Click(object sender, RoutedEventArgs e)
+        {
+            NewFile(cur_path);
+        }
+
+        private void menu_add_target_Click(object sender, RoutedEventArgs e)
+        {
+            AddTarget();
+        }
     }
 }
+;

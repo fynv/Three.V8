@@ -48,12 +48,18 @@ public:
 		return m_render_target;
 	}
 
+	void SetPrintCallbacks(void* ptr, GameContext::PrintCallback print_callback, GameContext::PrintCallback error_callback);
+
 private:
 	V8VM m_v8vm;
 
 	GLRenderTarget m_render_target;
 	GLUIRenderer m_ui_renderer;
 	
+	void* m_print_callback_data = nullptr;
+	GameContext::PrintCallback m_print_callback = nullptr;
+	GameContext::PrintCallback m_error_callback = nullptr;
+
 	std::unique_ptr<GameContext> m_context;
 	
 	std::unordered_map<std::string, MsgHandler> m_msg_map;	

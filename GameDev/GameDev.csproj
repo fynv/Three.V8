@@ -4,7 +4,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{84BDDBB4-EA44-4FDA-92A7-C2C56ABE5C49}</ProjectGuid>
+    <ProjectGuid>{50E53E1E-BC53-442C-AA8E-E1149F23D6E1}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <RootNamespace>GameDev</RootNamespace>
     <AssemblyName>GameDev</AssemblyName>
@@ -38,9 +38,9 @@
     <StartupObject />
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.VisualBasic" />
     <Reference Include="System" />
     <Reference Include="System.Data" />
-    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Core" />
@@ -50,9 +50,9 @@
     <Reference Include="System.Xaml">
       <RequiredTargetFramework>4.0</RequiredTargetFramework>
     </Reference>
+    <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
-    <Reference Include="WindowsBase" />
     <Reference Include="WindowsFormsIntegration" />
   </ItemGroup>
   <ItemGroup>
@@ -60,6 +60,22 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Page Include="DlgEditTarget.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="DlgNewFile.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="DlgProjectSettings.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="JSEditor.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -68,6 +84,20 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="DlgEditTarget.xaml.cs">
+      <DependentUpon>DlgEditTarget.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="DlgNewFile.xaml.cs">
+      <DependentUpon>DlgNewFile.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="DlgProjectSettings.xaml.cs">
+      <DependentUpon>DlgProjectSettings.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Editor.cs" />
+    <Compile Include="JSEditor.xaml.cs">
+      <DependentUpon>JSEditor.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="JsonData.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -100,21 +130,34 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="Icons\folder.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\doc.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\js.png" />
+    <Resource Include="Icons\xml.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2">
+      <Version>1.0.1518.46</Version>
+    </PackageReference>
+    <PackageReference Include="Newtonsoft.Json">
+      <Version>13.0.2</Version>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\json.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\target.png" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Three.V8.CLR\Three.V8.CLR.vcxproj">
       <Project>{8accb6bd-c7b1-4a80-91d5-53cf222b716a}</Project>
       <Name>Three.V8.CLR</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Web.WebView2">
-      <Version>1.0.1343.22</Version>
-    </PackageReference>
-    <PackageReference Include="Newtonsoft.Json">
-      <Version>13.0.1</Version>
-    </PackageReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="start.js" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

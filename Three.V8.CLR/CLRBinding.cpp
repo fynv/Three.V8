@@ -174,6 +174,10 @@ namespace CLRBinding
 		{
 			m_handle_win.Free();
 		}
+		if (m_handle_this.IsAllocated)
+		{
+			m_handle_this.Free();
+		}
 		delete m_native;
 	}
 
@@ -230,6 +234,41 @@ namespace CLRBinding
 	void CGamePlayer::OnControlKey(unsigned code)
 	{
 		m_native->OnControlKey(code);
+	}
+
+	static void g_PrintStd(void* pplayer, const char* str)
+	{
+		GCHandle handle_player = GCHandle::FromIntPtr((IntPtr)pplayer);
+		CGamePlayer^ player = (CGamePlayer^)handle_player.Target;
+		player->PrintStd(gcnew String(str));
+	}
+
+	static void g_PrintErr(void* pplayer, const char* str)
+	{
+		GCHandle handle_player = GCHandle::FromIntPtr((IntPtr)pplayer);
+		CGamePlayer^ player = (CGamePlayer^)handle_player.Target;
+		player->PrintErr(gcnew String(str));
+	}
+
+	void CGamePlayer::SetPrintCallbacks(PrintCallback^ print_callback, PrintCallback^ error_callback)
+	{
+		m_handle_this = GCHandle::Alloc(this, GCHandleType::Normal);
+		void* pplayer = (void*)GCHandle::ToIntPtr(m_handle_this);
+
+		m_print_callback = print_callback;
+		m_error_callback = error_callback;
+
+		m_native->SetPrintCallbacks(pplayer, g_PrintStd, g_PrintErr);
+	}
+
+	void CGamePlayer::PrintStd(String^ str)
+	{
+		m_print_callback(str);
+	}
+
+	void CGamePlayer::PrintErr(String^ str)
+	{
+		m_error_callback(str);
 	}
 
 }

@@ -4,16 +4,21 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:GameDev"
-        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         mc:Ignorable="d"
-        Title="GameDev" Height="800" Width="1024" WindowStartupLocation="CenterScreen">
-    
+        Title="GameDev" Width="1620" Height="1080"  WindowStartupLocation="CenterScreen">
+
     <Window.CommandBindings>
-        <CommandBinding Command="New" Executed="CommandNew"/>
-        <CommandBinding Command="Open" Executed="CommandOpen"/>
+        <CommandBinding Command="{x:Static local:MainWindow.RoutedCommandNewProject}" Executed="CommandNewProject"/>
+        <CommandBinding Command="{x:Static local:MainWindow.RoutedCommandOpenProject}" Executed="CommandOpenProject"/>
+        <CommandBinding Command="New" Executed="CommandNewFile"/>
+        <CommandBinding Command="Open" Executed="CommandOpenFile"/>
+        <CommandBinding Command="{x:Static local:MainWindow.RoutedCommandCloseFile}" Executed="CommandCloseFile"/>
+        <CommandBinding Command="{x:Static local:MainWindow.RoutedCommandCloseProject}" Executed="CommandCloseProject"/>
         <CommandBinding Command="Save" Executed="CommandSave"/>
         <CommandBinding Command="SaveAs" Executed="CommandSaveAs"/>
-        <CommandBinding Command="Refresh" Executed="CommandRefresh"/>
+        <CommandBinding Command="{x:Static local:MainWindow.RoutedCommandSaveAll}" Executed="CommandSaveAll"/>
+        <CommandBinding Command="{x:Static local:MainWindow.RoutedCommandReopen}" Executed="CommandReopen"/>
+        <CommandBinding Command="{x:Static local:MainWindow.RoutedCommandReopenAll}" Executed="CommandReopenAll"/>
         <CommandBinding Command="Close" Executed="CommandExit"/>
 
         <CommandBinding Command="Undo" Executed="CommandUndo"/>
@@ -27,31 +32,47 @@
         <CommandBinding Command="{x:Static local:MainWindow.RoutedCommandFindNext}" Executed="CommandFindNext"/>
         <CommandBinding Command="{x:Static local:MainWindow.RoutedCommandFindPrev}" Executed="CommandFindPrev"/>
         <CommandBinding Command="{x:Static local:MainWindow.RoutedCommandReplace}" Executed="CommandReplace"/>
-        <CommandBinding Command="{x:Static local:MainWindow.RoutedCommandGoto}" Executed="CommandGoto"/>        
+        <CommandBinding Command="{x:Static local:MainWindow.RoutedCommandGoto}" Executed="CommandGoto"/>
 
-        <CommandBinding Command="{x:Static local:MainWindow.RoutedCommandRotate}" Executed="CommandRotate"/>
+
+        <CommandBinding Command="{x:Static local:MainWindow.RoutedCommandProjectSettings}" Executed="CommandProjectSettings"/>
+        
         
     </Window.CommandBindings>
 
     <Window.InputBindings>
+        <KeyBinding Key="N" Modifiers="Control+Shift" Command="{x:Static local:MainWindow.RoutedCommandNewProject}"/>
+        <KeyBinding Key="O" Modifiers="Control+Shift" Command="{x:Static local:MainWindow.RoutedCommandOpenProject}"/>
         <KeyBinding Key="N" Modifiers="Control" Command="New"/>
         <KeyBinding Key="O" Modifiers="Control" Command="Open"/>
         <KeyBinding Key="S" Modifiers="Control" Command="Save"/>
-        <KeyBinding Key="F5" Command="Refresh"/>
+        <KeyBinding Key="F5" Command="{x:Static local:MainWindow.RoutedCommandReopen}"/>
         <KeyBinding Key="F4" Modifiers="Alt" Command="Close"/>
 
-        <KeyBinding Key="R" Modifiers="Control" Command="{x:Static local:MainWindow.RoutedCommandRotate}"/>
+        <KeyBinding Key="F7" Modifiers="Alt" Command="{x:Static local:MainWindow.RoutedCommandProjectSettings}"/>
     </Window.InputBindings>
-
+    
     <DockPanel>
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_File">
-                <MenuItem Header="_New" InputGestureText="Ctrl+N" Command="New"/>
-                <MenuItem Header="_Open" InputGestureText="Ctrl+O" Command="Open"/>
+                <MenuItem Header="_New">
+                    <MenuItem Header="Project..." InputGestureText="Ctrl+Shift+N" Command="{x:Static local:MainWindow.RoutedCommandNewProject}"/>
+                    <MenuItem Header="File..." InputGestureText="Ctrl+N" Command="New"/>                    
+                </MenuItem>
+                <MenuItem Header="_Open">
+                    <MenuItem Header="Project..." InputGestureText="Ctrl+Shift+O" Command="{x:Static local:MainWindow.RoutedCommandOpenProject}"/>
+                    <MenuItem Header="File..." InputGestureText="Ctrl+O" Command="Open"/>
+                </MenuItem>
+                <Separator/>
                 <MenuItem Header="_Save" InputGestureText="Ctrl+S" Command="Save"/>
-                <MenuItem Header="Save _as" Command="SaveAs"/>
-                <Separator />
-                <MenuItem Header="_Refresh" InputGestureText="F5" Command="Refresh"/>
+                <MenuItem Header="Save _As" Command="SaveAs"/>
+                <MenuItem Header="Save All" Command="{x:Static local:MainWindow.RoutedCommandSaveAll}"/>
+                <Separator/>
+                <MenuItem Header="_Reopen" InputGestureText="F5" Command="{x:Static local:MainWindow.RoutedCommandReopen}"/>
+                <MenuItem Header="Reopen All" Command="{x:Static local:MainWindow.RoutedCommandReopenAll}"/>
+                <Separator/>
+                <MenuItem Header="_Close" Command="{x:Static local:MainWindow.RoutedCommandCloseFile}"/>
+                <MenuItem Header="Close Project" Command="{x:Static local:MainWindow.RoutedCommandCloseProject}"/>
                 <Separator />
                 <MenuItem Header="_Exit" InputGestureText="Alt+F4" Command="Close"/>
             </MenuItem>
@@ -70,13 +91,83 @@
                 <MenuItem Header="_Replace" InputGestureText="Ctrl+H" Command="{x:Static local:MainWindow.RoutedCommandReplace}"/>
                 <MenuItem Header="Go to _Line" InputGestureText="Ctrl+L" Command="{x:Static local:MainWindow.RoutedCommandGoto}"/>
             </MenuItem>
-            <MenuItem Header="_View">
-                <MenuItem x:Name="menu_rotate" Header="To _Portrait" InputGestureText="Ctrl+R" Command="{x:Static local:MainWindow.RoutedCommandRotate}"/>
+            <MenuItem Header="_Project">
+                <MenuItem Header="Settings" InputGestureText="Alt+F7" Command="{x:Static local:MainWindow.RoutedCommandProjectSettings}"/>
             </MenuItem>
         </Menu>
-        <DockPanel>
-            <WindowsFormsHost x:Name="wfh_three" Margin="10" Width="640" Height="360" DockPanel.Dock="Top"/>
-            <wv2:WebView2 Name="webView"/>
-        </DockPanel>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="250" />
+                <ColumnDefinition Width="5" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <TabControl Grid.Column="0">
+                <TabItem Header="Files">
+                    <TreeView x:Name="tree_files">
+                        <TreeView.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem x:Name="menu_new_file" Header="_New File" Click="menu_new_file_Click"/>
+                            </ContextMenu>
+                        </TreeView.ContextMenu>
+                    </TreeView>
+                </TabItem>
+                <TabItem Header="Targets">
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+                            <Button x:Name="btn_add_target" Margin="5" Padding="5" Click="btn_add_target_Click">_Add</Button>
+                            <Button x:Name="btn_remove_target" Margin="5" Padding="5" Click="btn_remove_target_Click">_Remove</Button>
+                            <Button x:Name="btn_edit_target" Margin="5" Padding="5" Click="btn_edit_target_Click">_Edit</Button>
+                        </StackPanel>
+                        <ListView x:Name="lst_targets">
+                            <ListView.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem x:Name="menu_add_target" Header="_Add Target" Click="menu_add_target_Click"/>
+                                </ContextMenu>
+                            </ListView.ContextMenu>
+                        </ListView>
+                    </DockPanel>
+                </TabItem>
+
+            </TabControl>
+
+            <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch"/>
+
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="5"/>
+                    <RowDefinition Height="240"/>
+                </Grid.RowDefinitions>
+
+                <TabControl x:Name="TabCtrl_Editor" Grid.Row="0">
+                    <TabControl.Resources>
+                        <Style TargetType="TabItem">
+                            <Setter Property="AllowDrop" Value="True"/>
+                            <EventSetter Event="PreviewMouseMove" Handler="TabItem_PreviewMouseMove"/>
+                            <EventSetter Event="Drop" Handler="TabItem_Drop"/>
+                        </Style>
+                    </TabControl.Resources>
+                </TabControl>
+
+                <GridSplitter Grid.Row="1" HorizontalAlignment="Stretch"/>
+                
+                <TabControl Grid.Row="2">
+                    <TabItem Header="Console">
+                        <ScrollViewer>
+                            <TextBlock x:Name="console"></TextBlock>
+                            <ScrollViewer.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem x:Name="menu_clear_console" Header="Clear" Click="menu_clear_console_Click"/>
+                                </ContextMenu>
+                            </ScrollViewer.ContextMenu>
+                        </ScrollViewer>
+                    </TabItem>
+                </TabControl>
+
+            </Grid>
+        </Grid>
+
+
     </DockPanel>
 </Window>

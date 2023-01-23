@@ -87,6 +87,9 @@ public:
 
 	void CheckPendings();
 
+	typedef void (*PrintCallback)(void* ptr, const char* str);
+	void SetPrintCallbacks(void* ptr,  PrintCallback print_callback, PrintCallback error_callback);
+
 private:
 	GamePlayer* m_gamePlayer;
 	std::unique_ptr<HttpClient> m_http;
@@ -106,6 +109,13 @@ private:
 
 	typedef v8::Global<v8::Object> ObjectT;
 	std::unordered_map<void*, std::pair<ObjectT, Dtor>> m_objects;
+
+	void* m_print_callback_data = nullptr;
+	PrintCallback m_print_callback = nullptr;
+	PrintCallback m_error_callback = nullptr;
+
+	void print_std(const char* str);
+	void print_err(const char* str);
 
 	static void Print(const v8::FunctionCallbackInfo<v8::Value>& args);
 	static void SetCallback(const v8::FunctionCallbackInfo<v8::Value>& args);
