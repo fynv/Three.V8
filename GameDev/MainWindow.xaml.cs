@@ -359,6 +359,7 @@ namespace GameDev
             }
         }
 
+        private bool no_update = false;
         private bool in_background = false;
 
         public void AppDeactivated()
@@ -368,7 +369,7 @@ namespace GameDev
 
         public void AppActivated()
         {
-            if (in_background)
+            if (in_background && !no_update)
             {
                 in_background = false;
                 update_cur_path();
@@ -886,6 +887,11 @@ namespace GameDev
 
                 string input = (string)jTarget["input"];
                 string output = (string)jTarget["output"];
+
+                File.Delete(output);
+
+                no_update = true;
+
                 Process proc = new Process();
                 proc.StartInfo.FileName = "cmd.exe";
                 proc.StartInfo.Arguments = $"/C \"rollup.cmd {input} --file {output}\"";
@@ -893,7 +899,7 @@ namespace GameDev
                 proc.StartInfo.RedirectStandardError = true;
                 proc.StartInfo.StandardErrorEncoding = Encoding.UTF8;
                 proc.Start();
-                proc.WaitForExit();
+                proc.WaitForExit();                
 
                 console.Text += "running rollup.js: \n";
                 string line;
@@ -901,11 +907,22 @@ namespace GameDev
                 {
                     line = Regex.Replace(line, "[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]", "");
                     console.Text += line + "\n";
-                }
-                console.Text += "\n";
+                }                
 
-                jTarget["dirty"] = false;
+                if (!File.Exists(output))
+                {
+                    console.Text += "Bundling failed!\n\n";
+                    jTarget["dirty"] = true;
+                }
+                else
+                {
+                    console.Text += "Bundling succeeded\n\n";
+                    jTarget["dirty"] = false;
+                }
+                console_scroll.ScrollToBottom();                
                 project.Save();
+
+                no_update = false;
             }
 
             int idx = GetTargetIndex(jTarget);

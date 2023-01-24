@@ -154,7 +154,7 @@
                 
                 <TabControl Grid.Row="2">
                     <TabItem Header="Console">
-                        <ScrollViewer>
+                        <ScrollViewer x:Name="console_scroll">
                             <TextBlock x:Name="console"></TextBlock>
                             <ScrollViewer.ContextMenu>
                                 <ContextMenu>
