@@ -34,18 +34,18 @@ namespace GameDev
                 this.jTarget["dirty"] = true;
             }
 
-            text_name.Text = jTarget["name"].ToString();
-            text_input.Text = jTarget["input"].ToString();
-            text_output.Text = jTarget["output"].ToString();
+            text_name.Text = this.jTarget["name"].ToString();
+            text_input.Text = this.jTarget["input"].ToString();
+            text_output.Text = this.jTarget["output"].ToString();
 
-            if (jTarget.ContainsKey("width"))
+            if (this.jTarget.ContainsKey("width"))
             {
-                text_width.Text = jTarget["width"].ToString();
+                text_width.Text = this.jTarget["width"].ToString();
             }
 
-            if (jTarget.ContainsKey("height"))
+            if (this.jTarget.ContainsKey("height"))
             {
-                text_height.Text = jTarget["height"].ToString();
+                text_height.Text = this.jTarget["height"].ToString();
             }
         }
 

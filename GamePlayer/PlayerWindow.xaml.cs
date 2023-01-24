@@ -61,19 +61,27 @@ namespace GamePlayer
 
         private void console_std(string str)
         {
-            var line = new TextBlock();
-            line.FontFamily = font_courier;            
-            line.Text = str;
-            console.Children.Add(line);
+            string[] lines = str.Split(new char[]{'\n'});
+            foreach(string str_line in lines)
+            {
+                var line = new TextBlock();
+                line.FontFamily = font_courier;
+                line.Text = str_line;
+                console.Children.Add(line);
+            }
         }
 
         private void console_err(string str)
         {
-            var line = new TextBlock();
-            line.FontFamily = font_courier;
-            line.Foreground = brush_red;
-            line.Text = str;
-            console.Children.Add(line);
+            string[] lines = str.Split(new char[] { '\n' });
+            foreach (string str_line in lines)
+            {
+                var line = new TextBlock();
+                line.FontFamily = font_courier;
+                line.Foreground = brush_red;
+                line.Text = str_line;
+                console.Children.Add(line);
+            }
         }
 
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
