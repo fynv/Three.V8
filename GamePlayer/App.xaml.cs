@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Windows;
 
 namespace GamePlayer
@@ -16,8 +17,12 @@ namespace GamePlayer
                 int idx = int.Parse(e.Args[1]);                
                 this.MainWindow = new PlayerWindow(path_proj, idx);
             }
-            else
+            else if (File.Exists(".\\client\\project.json"))
             {
+                this.MainWindow = new PlayerWindow(".\\client\\project.json", 0);
+            }
+            else
+            {                
                 this.MainWindow = new MainWindow();
             }
 
