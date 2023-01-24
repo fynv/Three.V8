@@ -6,16 +6,16 @@
         xmlns:local="clr-namespace:GamePlayer"
         mc:Ignorable="d"
         Title="PlayerWindow" Width="800" Height="700" WindowStartupLocation="CenterScreen"  Closing="MainWindow_Closing">
-    <Grid>
+    <Grid x:Name="grid">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <RowDefinition Height="5"/>
-            <RowDefinition Height="240"/>
+            <RowDefinition Height="0"/>
         </Grid.RowDefinitions>
 
         <WindowsFormsHost x:Name="wf_host" Margin="10" Grid.Row="0"/>
         <GridSplitter Grid.Row="1" HorizontalAlignment="Stretch"/>
-        <TabControl Grid.Row="2">
+        <TabControl x:Name="tab_console" Grid.Row="2">
             <TabItem Header="Console">
                 <ScrollViewer>
                     <StackPanel x:Name="console"></StackPanel>

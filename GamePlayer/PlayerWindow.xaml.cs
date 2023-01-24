@@ -21,7 +21,7 @@ namespace GamePlayer
 
         public PlayerWindow(string path_proj, int idx)
         {            
-            InitializeComponent();            
+            InitializeComponent();
 
             JObject obj_proj = JObject.Parse(File.ReadAllText(path_proj));
             JObject obj_target = (JObject)obj_proj["targets"][idx];

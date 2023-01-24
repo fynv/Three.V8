@@ -1,0 +1,11 @@
+{
+  "project_name": "AVChat",
+  "targets": [
+    {
+      "name": "avchat",
+      "input": "avchat.js",
+      "output": "bundle_avchat.js",
+      "dirty": false
+    }
+  ]
+}

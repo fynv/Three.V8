@@ -13,7 +13,6 @@ using Newtonsoft.Json.Linq;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using Microsoft.VisualBasic.FileIO;
-using System.Xml.Linq;
 
 namespace GameDev
 {
@@ -143,9 +142,24 @@ namespace GameDev
                     if (mi != null)
                     {
                         ContextMenu cm = (ContextMenu)mi.Parent;
-                        StackPanel item = (StackPanel)cm.PlacementTarget;
+                        ListViewItem item = (ListViewItem)cm.PlacementTarget;
                         JObject jTarget = (JObject)item.Tag;
                         RunTarget(jTarget);
+                    }
+                };
+
+                var item_shortcut = new MenuItem();
+                item_shortcut.Header = "Create _shortcut";
+                ctxMenu_target.Items.Add(item_shortcut);
+                item_shortcut.Click += (sender, e) =>
+                {
+                    MenuItem mi = sender as MenuItem;
+                    if (mi != null)
+                    {
+                        ContextMenu cm = (ContextMenu)mi.Parent;
+                        ListViewItem item = (ListViewItem)cm.PlacementTarget;
+                        JObject jTarget = (JObject)item.Tag;
+                        CreateTargetShortcut(jTarget);
                     }
                 };
 
@@ -158,7 +172,7 @@ namespace GameDev
                     if (mi != null)
                     {
                         ContextMenu cm = (ContextMenu)mi.Parent;
-                        StackPanel item = (StackPanel)cm.PlacementTarget;
+                        ListViewItem item = (ListViewItem)cm.PlacementTarget;
                         JObject jTarget = (JObject)item.Tag;
                         EditTarget(jTarget);
                     }
@@ -174,7 +188,7 @@ namespace GameDev
                     if (mi != null)
                     {
                         ContextMenu cm = (ContextMenu)mi.Parent;
-                        StackPanel item = (StackPanel)cm.PlacementTarget;
+                        ListViewItem item = (ListViewItem)cm.PlacementTarget;
                         JObject jTarget = (JObject)item.Tag;
                         RemoveTarget(jTarget);
                     }
@@ -536,13 +550,17 @@ namespace GameDev
                 string filepath = (string)tabItem.Tag;
                 string ext = Path.GetExtension(filepath);
                 string filename = Path.GetFileName(filepath);
-                if (filename == "project.json")
+
+                if (filepath.StartsWith(cur_path))
                 {
-                    update_cur_path();
-                }
-                if (ext==".js" && filepath.StartsWith(cur_path))
-                {
-                    SetDirty();
+                    if (filename == "project.json")
+                    {
+                        update_cur_path();
+                    }
+                    if (ext == ".js")
+                    {
+                        SetDirty();
+                    }
                 }
             }
         }
@@ -907,8 +925,24 @@ namespace GameDev
             int idx = GetTargetIndex(jTarget);
             string Location = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
             Process.Start($"{Location}\\GamePlayer.exe", $"\"{project.filename}\" \"{idx}\"");
-
         }        
+
+        private void CreateTargetShortcut(JObject jTarget)
+        {
+            int idx = GetTargetIndex(jTarget);
+            string Location = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
+
+            var shell = new IWshRuntimeLibrary.WshShell();
+            var shDesktop = (object)"Desktop";
+            var shortcutAddress = (string)shell.SpecialFolders.Item(ref shDesktop) + "\\" + jTarget["name"] + ".lnk";
+            var shortcut = (IWshRuntimeLibrary.IWshShortcut)shell.CreateShortcut(shortcutAddress);
+            shortcut.Description = "Shortcut for Three.V8 app " + jTarget["name"];
+            shortcut.TargetPath = $"{Location}\\GamePlayer.exe";
+            shortcut.Arguments = $"\"{project.filename}\" \"{idx}\"";
+            shortcut.Save();
+
+            MessageBox.Show($"Created shortcut for target \"{jTarget["name"]}\"");
+        }
 
         private TabItem NewTabItem(string filepath, string name)
         {
