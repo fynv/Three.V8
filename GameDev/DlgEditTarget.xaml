@@ -25,6 +25,12 @@
                 <TextBlock VerticalAlignment="Center">Output File:</TextBlock>
                 <TextBox x:Name="text_output" Margin="5" Width="200" IsEnabled="False"></TextBox>
             </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock VerticalAlignment="Center">Default Size:</TextBlock>
+                <TextBox x:Name="text_width" Margin="5" Width="50"></TextBox>
+                <TextBlock VerticalAlignment="Center">x</TextBlock>
+                <TextBox x:Name="text_height" Margin="5" Width="50"></TextBox>
+            </StackPanel>
         </StackPanel>
     </DockPanel>
 </Window>

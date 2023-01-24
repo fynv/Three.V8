@@ -31,6 +31,12 @@ namespace GamePlayer
 
             Title = obj_target["name"].ToString();
 
+            if (obj_target.ContainsKey("width") && obj_target.ContainsKey("height"))
+            {
+                this.Width = int.Parse(obj_target["width"].ToString()) + 36.0;
+                this.Height = int.Parse(obj_target["height"].ToString()) + 64.0;
+            }
+
             glControl = new CGLControl();
             glControl.SetFramerate(60.0f);
             glControl.Paint += GLControl_Paint;

@@ -34,9 +34,19 @@ namespace GameDev
                 this.jTarget["dirty"] = true;
             }
 
-            text_name.Text = this.jTarget["name"].ToString();
-            text_input.Text = this.jTarget["input"].ToString();
-            text_output.Text = this.jTarget["output"].ToString();
+            text_name.Text = jTarget["name"].ToString();
+            text_input.Text = jTarget["input"].ToString();
+            text_output.Text = jTarget["output"].ToString();
+
+            if (jTarget.ContainsKey("width"))
+            {
+                text_width.Text = jTarget["width"].ToString();
+            }
+
+            if (jTarget.ContainsKey("height"))
+            {
+                text_height.Text = jTarget["height"].ToString();
+            }
         }
 
         private void btn_ok_Click(object sender, RoutedEventArgs e)
@@ -45,6 +55,29 @@ namespace GameDev
             jTarget["name"] = text_name.Text;
             jTarget["input"] = text_input.Text;
             jTarget["output"] = text_output.Text;
+
+            int width = -1;
+            int.TryParse(text_width.Text, out width);
+            if (width > 0)
+            {
+                jTarget["width"] = width;
+            }
+            else if (jTarget.ContainsKey("width"))
+            {
+                jTarget.Remove("width");
+            }
+
+            int height = -1;
+            int.TryParse(text_height.Text, out height);
+            if (height>0)
+            {
+                jTarget["height"] = height;
+            }
+            else if (jTarget.ContainsKey("height"))
+            {
+                jTarget.Remove("height");
+            }
+
             DialogResult = true;
         }
 

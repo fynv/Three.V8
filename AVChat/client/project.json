@@ -5,7 +5,9 @@
       "name": "avchat",
       "input": "avchat.js",
       "output": "bundle_avchat.js",
-      "dirty": false
+      "dirty": false,
+      "width": 1280,
+      "height": 720
     }
   ]
 }
