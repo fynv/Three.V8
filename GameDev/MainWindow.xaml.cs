@@ -102,11 +102,7 @@ namespace GameDev
                         ContextMenu cm = (ContextMenu)mi.Parent;
                         TreeViewItem node = (TreeViewItem)cm.PlacementTarget;
                         string file_path = (string)node.Tag;
-                        string ext = Path.GetExtension(file_path);
-                        if (ext == ".js")
-                        {
-                            OpenJavaScript(file_path);
-                        }
+                        OpenFile(file_path);                        
                     }
                 };
 
@@ -275,11 +271,8 @@ namespace GameDev
                 subitem.ContextMenu = ctxMenu_file;
 
                 subitem.MouseDoubleClick += (sender, e) =>
-                {                   
-                    if (ext == ".js")
-                    {
-                        OpenJavaScript(file);
-                    }
+                {
+                    OpenFile(file);
                 };
 
                 item.Items.Add(subitem);
@@ -471,11 +464,7 @@ namespace GameDev
                 update_cur_path();
             }
 
-            string ext = Path.GetExtension(dialog.filename);
-            if (ext == ".js")
-            {
-                OpenJavaScript(path);
-            }
+            OpenFile(dialog.filename);
 
         }
 
@@ -487,13 +476,9 @@ namespace GameDev
         private void CommandOpenFile(object sender, ExecutedRoutedEventArgs e)
         {
             var dialog = new OpenFileDialog();
-            dialog.Filter = "JavaScript(*.js)|*.js";
+            dialog.Filter = "All Supported(*.js;*.json;*.xml)|*.js;*.json;*.xml|JavaScript(*.js)|*.js|JSON(*.json)|*.json|XML(*.xml)|*.xml";
             if (dialog.ShowDialog() != true) return;
-            string ext = Path.GetExtension(dialog.FileName);
-            if (ext == ".js")
-            {
-                OpenJavaScript(dialog.FileName);
-            }
+            OpenFile(dialog.FileName);            
         }
 
         private async Task<bool> CloseTab(TabItem tabItem)
@@ -994,6 +979,54 @@ namespace GameDev
             {
                 ReopenTab(item);
             }
+        }
+
+        private void OpenJSON(string file_path)
+        {
+            string filename = Path.GetFileName(file_path);
+            TabItem item = NewTabItem(file_path, filename);
+            if (item.Content == null)
+            {
+                JsonEditor editor = new JsonEditor(file_path);
+                item.Content = editor;
+            }
+            else
+            {
+                ReopenTab(item);
+            }
+        }
+
+        private void OpenXML(string file_path)
+        {
+            string filename = Path.GetFileName(file_path);
+            TabItem item = NewTabItem(file_path, filename);
+            if (item.Content == null)
+            {
+                XMLEditor editor = new XMLEditor(file_path);
+                item.Content = editor;
+            }
+            else
+            {
+                ReopenTab(item);
+            }
+        }
+
+        private void OpenFile(string file_path)
+        {
+            string ext = Path.GetExtension(file_path);
+            if (ext == ".js")
+            {
+                OpenJavaScript(file_path);
+            }
+            else if (ext == ".json")
+            {
+                OpenJSON(file_path);
+            }
+            else if (ext == ".xml")
+            {
+                OpenXML(file_path);
+            }
+
         }
 
         private void menu_clear_console_Click(object sender, RoutedEventArgs e)

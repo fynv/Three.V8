@@ -11,18 +11,18 @@ using Microsoft.Win32;
 namespace GameDev
 {
     /// <summary>
-    /// Interaction logic for JSEditor.xaml
+    /// Interaction logic for XMLEditor.xaml
     /// </summary>
-    public partial class JSEditor : UserControl, Editor
+    public partial class XMLEditor : UserControl, Editor
     {
         private string file_path;
-        public JSEditor(string file_path)
+        public XMLEditor(string file_path)
         {
             InitializeComponent();
             this.file_path = file_path;
 
             string local_path = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
-            webView.Source = new Uri($"{local_path}/editor/js_editor.html");
+            webView.Source = new Uri($"{local_path}/editor/xml_editor.html");
             webView.NavigationCompleted += (sender, e) =>
             {
                 _doc_open(file_path);
@@ -33,7 +33,7 @@ namespace GameDev
         private async Task _doc_save(string filename)
         {
             string text = await GetText();
-            File.WriteAllText(filename, text, Encoding.UTF8);            
+            File.WriteAllText(filename, text, Encoding.UTF8);
         }
 
         private void _doc_open(string filename)
@@ -45,13 +45,13 @@ namespace GameDev
         public async Task<string> doc_save_as()
         {
             var dialog = new SaveFileDialog();
-            dialog.Filter = "Javascript(*.js)|*.js";
+            dialog.Filter = "XML(*.xml)|*.xml";
             if (dialog.ShowDialog() != true)
             {
                 return "";
             }
             file_path = dialog.FileName;
-            await _doc_save(file_path);           
+            await _doc_save(file_path);
             return file_path;
         }
 

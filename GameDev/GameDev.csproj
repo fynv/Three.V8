@@ -60,6 +60,9 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="XMLEditor.xaml.cs">
+      <DependentUpon>XMLEditor.xaml</DependentUpon>
+    </Compile>
     <Page Include="DlgEditTarget.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -73,6 +76,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="JSEditor.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="JsonEditor.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -98,10 +105,17 @@
       <DependentUpon>JSEditor.xaml</DependentUpon>
     </Compile>
     <Compile Include="JsonData.cs" />
+    <Compile Include="JsonEditor.xaml.cs">
+      <DependentUpon>JsonEditor.xaml</DependentUpon>
+    </Compile>
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="XMLEditor.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">
