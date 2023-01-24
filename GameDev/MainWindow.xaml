@@ -140,7 +140,7 @@
                     <RowDefinition Height="240"/>
                 </Grid.RowDefinitions>
 
-                <TabControl x:Name="TabCtrl_Editor" Grid.Row="0">
+                <local:HackedTabControl x:Name="TabCtrl_Editor" Grid.Row="0">
                     <TabControl.Resources>
                         <Style TargetType="TabItem">
                             <Setter Property="AllowDrop" Value="True"/>
@@ -148,7 +148,7 @@
                             <EventSetter Event="Drop" Handler="TabItem_Drop"/>
                         </Style>
                     </TabControl.Resources>
-                </TabControl>
+                </local:HackedTabControl>
 
                 <GridSplitter Grid.Row="1" HorizontalAlignment="Stretch"/>
                 

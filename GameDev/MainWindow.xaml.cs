@@ -902,6 +902,7 @@ namespace GameDev
                     line = Regex.Replace(line, "[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]", "");
                     console.Text += line + "\n";
                 }
+                console.Text += "\n";
 
                 jTarget["dirty"] = false;
                 project.Save();
