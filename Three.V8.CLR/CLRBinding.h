@@ -8,8 +8,10 @@
 #pragma managed
 
 using namespace System;
+using namespace System::Text;
 using namespace System::Windows::Forms;
 using namespace System::Runtime::InteropServices;
+using namespace System::Collections::Generic;
 
 namespace CLRBinding
 {
@@ -79,6 +81,7 @@ namespace CLRBinding
 	};
 
 	public delegate void PrintCallback(String^ str);
+	public delegate String^ MessageCallback(String^ msg);
 
 	public ref class CGamePlayer
 	{
@@ -95,7 +98,7 @@ namespace CLRBinding
 		}
 
 		void Draw(int width, int height);
-		void LoadScript(String^ fullpath);
+		void LoadScript(String^ script_path, String^ resource_root);
 		void UnloadScript();
 
 		void OnMouseDown(MouseEventArgs e);
@@ -107,15 +110,25 @@ namespace CLRBinding
 		void OnChar(int keyChar);
 		void OnControlKey(unsigned code);
 
+		void AddUserMessageHandler(String^ name, MessageCallback^ callback);
+
+		String^ UserMessage(String^ name, String^ msg);
+		String^ SendMessageToUser(String^ name, String^ msg);
+
 		void SetPrintCallbacks(PrintCallback^ print_callback, PrintCallback^ error_callback);
 		void PrintStd(String^ str);
 		void PrintErr(String^ str);
 
 	private:
+		Control^ m_window = nullptr;
 		GamePlayer* m_native = nullptr;
 		bool m_finalized = false;
-		GCHandle m_handle_win;
 		GCHandle m_handle_this;
+
+		Dictionary<String^, MessageCallback^>^ m_msg_dict;
+		
+		String^ SetCapture(String^ msg);
+		String^ ReleaseCapture(String^ msg);
 
 		PrintCallback^ m_print_callback = nullptr;
 		PrintCallback^ m_error_callback = nullptr;

@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <cstring>
 #include <memory>
 #include "GLMain.h"
 #include <GL/glew.h>
@@ -15,8 +16,7 @@ public:
 	{
 		glewInit();
 		m_game_player = std::unique_ptr<GamePlayer>(new GamePlayer(exec_path, width, height));
-		m_game_player->AddMessageHandler("setPointerCapture", { this, s_SetMouseCapture });
-		m_game_player->AddMessageHandler("releasePointerCapture", { this, s_ReleaseMouseCapture });
+		m_game_player->SetUserMessageCallback(this, s_user_message);		
 		this->SetFramerate(60.0f);		
 	}
 
@@ -35,17 +35,17 @@ public:
 		GLMain::MainLoop();
 	}
 
-	static std::string s_SetMouseCapture(void* pwin, const char*)
+	static std::string s_user_message(void* pwin, const char* name, const char* msg)
 	{
 		AppMain* win = (AppMain*)pwin;
-		win->SetMouseCapture();
-		return "";
-	}
-
-	static std::string s_ReleaseMouseCapture(void* pwin, const char*)
-	{
-		AppMain* win = (AppMain*)pwin;
-		win->ReleaseMouseCapture();
+		if (strcmp(name, "setPointerCapture") == 0)
+		{
+			win->SetMouseCapture();
+		}
+		else if (strcmp(name, "releasePointerCapture") == 0)
+		{
+			win->ReleaseMouseCapture();
+		}
 		return "";
 	}
 	

@@ -35,7 +35,7 @@ namespace GamePlayer
 
             string exe_name = Process.GetCurrentProcess().ProcessName;
             game_player = new CGamePlayer(exe_name, glControl);
-            game_player.LoadScript(default_script);
+            game_player.LoadScript(default_script, null);
         }
 
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -59,7 +59,7 @@ namespace GamePlayer
             if (openFileDialog.ShowDialog() == true)
             {
                 glControl.MakeCurrent();
-                game_player.LoadScript(openFileDialog.FileName);
+                game_player.LoadScript(openFileDialog.FileName, null);
             }
         }
 

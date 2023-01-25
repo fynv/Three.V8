@@ -52,7 +52,7 @@ namespace GamePlayer
             string exe_name = Process.GetCurrentProcess().ProcessName;
             game_player = new CGamePlayer(exe_name, glControl);
             game_player.SetPrintCallbacks(console_std, console_err);
-            game_player.LoadScript(path_output);
+            game_player.LoadScript(path_output, null);
             
         }
 

@@ -6,8 +6,14 @@
 
 #define ENABLE_MSAA 1
 
+V8VM& GamePlayer::s_get_vm(const char* exec_path)
+{
+	static thread_local V8VM vm(exec_path);
+	return vm;
+}
+
 GamePlayer::GamePlayer(const char* exec_path, int width, int height)
-	: m_v8vm(exec_path)
+	: m_v8vm(s_get_vm(exec_path))
 #if ENABLE_MSAA
 	, m_render_target(true, true)
 #else
@@ -17,15 +23,13 @@ GamePlayer::GamePlayer(const char* exec_path, int width, int height)
 	if (width > 0 && height > 0)
 	{
 		m_render_target.update_framebuffers(width, height);
-	}
-	m_v8vm.m_isolate->Enter();
+	}	
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 }
 
 GamePlayer::~GamePlayer()
 {
 	UnloadScript();
-	m_v8vm.m_isolate->Exit();
 }
 
 void GamePlayer::LoadScript(const char* dir, const char* filename)
@@ -230,27 +234,18 @@ void GamePlayer::OnControlKey(unsigned code)
 	}
 }
 
-void GamePlayer::AddMessageHandler(const char* name, MsgHandler handler)
+void GamePlayer::SetUserMessageCallback(void* ptr, UserMessageCallback callback)
 {
-	m_msg_map[name] = handler;
-}
-
-void GamePlayer::RemoveMessageHandler(const char* name)
-{
-	auto iter = m_msg_map.find(name);
-	if (iter != m_msg_map.end())
-	{
-		m_msg_map.erase(iter);
-	}
+	m_user_message_callback_data = ptr;
+	m_user_message_callback = callback;
 }
 
 std::string GamePlayer::UserMessage(const char* name, const char* msg)
 {
-	auto iter = m_msg_map.find(name);
-	if (iter != m_msg_map.end())
+	if (m_user_message_callback != nullptr)
 	{
-		return iter->second.Call(iter->second.ptr, msg);
-	}
+		return m_user_message_callback(m_user_message_callback_data, name, msg);
+	}	
 	return "";
 }
 

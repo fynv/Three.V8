@@ -15,11 +15,13 @@ V8VM::V8VM(const char* exec_path)
 	v8::Isolate::CreateParams create_params;
 	m_array_buffer_allocator = v8::ArrayBuffer::Allocator::NewDefaultAllocator();
 	create_params.array_buffer_allocator = m_array_buffer_allocator;
-	m_isolate = v8::Isolate::New(create_params);	
+	m_isolate = v8::Isolate::New(create_params);
+	m_isolate->Enter();
 }
 
 V8VM::~V8VM()
 {	
+	m_isolate->Exit();
 	m_isolate->Dispose();
 	v8::V8::Dispose();
 	v8::V8::ShutdownPlatform();

@@ -37,8 +37,8 @@ public:
 	void OnChar(int keyChar);
 	void OnControlKey(unsigned code);
 
-	void AddMessageHandler(const char* name, MsgHandler handler);
-	void RemoveMessageHandler(const char* name);
+	typedef std::string(*UserMessageCallback)(void* ptr, const char* name, const char* msg);	
+	void SetUserMessageCallback(void* ptr, UserMessageCallback callback);
 
 	std::string UserMessage(const char* name, const char* msg);
 	std::string SendMessageToUser(const char* name, const char* msg);	
@@ -51,7 +51,8 @@ public:
 	void SetPrintCallbacks(void* ptr, GameContext::PrintCallback print_callback, GameContext::PrintCallback error_callback);
 
 private:
-	V8VM m_v8vm;
+	static V8VM& s_get_vm(const char* exec_path);
+	V8VM& m_v8vm;
 
 	GLRenderTarget m_render_target;
 	GLUIRenderer m_ui_renderer;
@@ -61,7 +62,9 @@ private:
 	GameContext::PrintCallback m_error_callback = nullptr;
 
 	std::unique_ptr<GameContext> m_context;
+
+	void* m_user_message_callback_data = nullptr;
+	UserMessageCallback m_user_message_callback = nullptr;
 	
-	std::unordered_map<std::string, MsgHandler> m_msg_map;	
 };
 

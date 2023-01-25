@@ -141,19 +141,33 @@ namespace CLRBinding
 		return Control::ProcessCmdKey(msg, keyData);
 	}
 
-	static std::string SetMouseCapture(void* pwin, const char*)
+	static std::string g_HandleUserMessage(void* pplayer, const char* cname, const char* cmsg)
 	{
-		GCHandle handle_win = GCHandle::FromIntPtr((IntPtr)pwin);
-		Control^ win = (Control^)handle_win.Target;
-		win->Capture = true;
+		GCHandle handle_player = GCHandle::FromIntPtr((IntPtr)pplayer);
+		CGamePlayer^ player = (CGamePlayer^)handle_player.Target;
+
+		String^ name = gcnew String(cname, 0, strlen(cname), Encoding::UTF8);
+		String^ msg = gcnew String(cmsg, 0, strlen(cmsg), Encoding::UTF8);
+		String^ ret = player->UserMessage(name, msg);
+
+		int len_ret = Encoding::UTF8->GetByteCount(ret);
+		array<unsigned char>^ bytes_ret = gcnew array<unsigned char>(len_ret + 1);
+		Encoding::UTF8->GetBytes(ret, 0, ret->Length, bytes_ret, 0);
+		bytes_ret[len_ret] = 0;
+		const char* cret = (const char*)(void*)(Marshal::UnsafeAddrOfPinnedArrayElement(bytes_ret, 0));
+
+		return cret;
+	}
+
+	String^ CGamePlayer::SetCapture(String^ msg)
+	{
+		m_window->Capture = true;
 		return "";
 	}
 
-	static std::string ReleaseMouseCapture(void* pwin, const char*)
+	String^ CGamePlayer::ReleaseCapture(String^ msg)
 	{
-		GCHandle handle_win = GCHandle::FromIntPtr((IntPtr)pwin);
-		Control^ win = (Control^)handle_win.Target;
-		win->Capture = false;
+		m_window->Capture = false;
 		return "";
 	}
 
@@ -162,18 +176,20 @@ namespace CLRBinding
 		const char* cpath = (const char*)(void*)Marshal::StringToHGlobalAnsi(exec_path);
 		m_native = new GamePlayer(cpath, window->Width, window->Height);
 
-		m_handle_win = GCHandle::Alloc(window, GCHandleType::Normal);
-		void* p_win = (void*)GCHandle::ToIntPtr(m_handle_win);
-		m_native->AddMessageHandler("setPointerCapture", { p_win, SetMouseCapture });
-		m_native->AddMessageHandler("releasePointerCapture", { p_win, ReleaseMouseCapture });
+		m_window = window;
+
+		m_handle_this = GCHandle::Alloc(this, GCHandleType::Normal);
+		void* pplayer = (void*)GCHandle::ToIntPtr(m_handle_this);
+		m_native->SetUserMessageCallback(pplayer, g_HandleUserMessage);
+
+		m_msg_dict = gcnew Dictionary<String^, MessageCallback^>();
+
+		AddUserMessageHandler("setPointerCapture", gcnew MessageCallback(this, &CGamePlayer::SetCapture));
+		AddUserMessageHandler("releasePointerCapture", gcnew MessageCallback(this, &CGamePlayer::ReleaseCapture));
 	}
 
 	CGamePlayer::!CGamePlayer()
 	{
-		if (m_handle_win.IsAllocated)
-		{
-			m_handle_win.Free();
-		}
 		if (m_handle_this.IsAllocated)
 		{
 			m_handle_this.Free();
@@ -187,13 +203,16 @@ namespace CLRBinding
 		m_native->Idle();
 	}
 
-	void CGamePlayer::LoadScript(String^ fullpath)
+	void CGamePlayer::LoadScript(String^ script_path, String^ resource_root)
 	{
-		String^ path = Path::GetDirectoryName(fullpath);
-		String^ name = Path::GetFileName(fullpath);
-		const char* cpath = (const char*)(void*)Marshal::StringToHGlobalAnsi(path);
-		const char* cname = (const char*)(void*)Marshal::StringToHGlobalAnsi(name);
-		m_native->LoadScript(cpath, cname);
+		if (resource_root == nullptr)
+		{
+			resource_root = Path::GetDirectoryName(script_path);
+			script_path = Path::GetFileName(script_path);
+		}		
+		const char* cscript_path = (const char*)(void*)Marshal::StringToHGlobalAnsi(script_path);
+		const char* cresource_root = (const char*)(void*)Marshal::StringToHGlobalAnsi(resource_root);
+		m_native->LoadScript(cresource_root, cscript_path);
 	}
 
 	void CGamePlayer::UnloadScript()
@@ -236,23 +255,56 @@ namespace CLRBinding
 		m_native->OnControlKey(code);
 	}
 
-	static void g_PrintStd(void* pplayer, const char* str)
+	void CGamePlayer::AddUserMessageHandler(String^ name, MessageCallback^ callback)
 	{
-		GCHandle handle_player = GCHandle::FromIntPtr((IntPtr)pplayer);
-		CGamePlayer^ player = (CGamePlayer^)handle_player.Target;
-		player->PrintStd(gcnew String(str));
+		m_msg_dict[name] = callback;
 	}
 
-	static void g_PrintErr(void* pplayer, const char* str)
+	String^ CGamePlayer::UserMessage(String^ name, String^ msg)
+	{
+		if (m_msg_dict->ContainsKey(name))
+		{
+			return m_msg_dict[name](msg);
+		}
+		return "";
+	}
+
+	String^ CGamePlayer::SendMessageToUser(String^ name, String^ msg)
+	{		
+		int len_name = Encoding::UTF8->GetByteCount(name);
+		array<unsigned char>^ bytes_name = gcnew array<unsigned char>(len_name + 1);
+		Encoding::UTF8->GetBytes(name, 0, name->Length, bytes_name, 0);
+		bytes_name[len_name] = 0;
+		const char* cname = (const char*)(void*)(Marshal::UnsafeAddrOfPinnedArrayElement(bytes_name, 0));
+
+		int len_msg = Encoding::UTF8->GetByteCount(msg);
+		array<unsigned char>^ bytes_msg = gcnew array<unsigned char>(len_msg + 1);
+		Encoding::UTF8->GetBytes(msg, 0, msg->Length, bytes_msg, 0);
+		bytes_msg[len_msg] = 0;
+		const char* cmsg = (const char*)(void*)(Marshal::UnsafeAddrOfPinnedArrayElement(bytes_msg, 0));
+
+		std::string cret = m_native->SendMessageToUser(cname, cmsg);
+		return gcnew String(cret.c_str(), 0, cret.length(), Encoding::UTF8);
+	}
+
+	static void g_PrintStd(void* pplayer, const char* cstr)
 	{
 		GCHandle handle_player = GCHandle::FromIntPtr((IntPtr)pplayer);
 		CGamePlayer^ player = (CGamePlayer^)handle_player.Target;
-		player->PrintErr(gcnew String(str));
+		String^ str = gcnew String(cstr, 0, strlen(cstr), Encoding::UTF8);
+		player->PrintStd(str);
+	}
+
+	static void g_PrintErr(void* pplayer, const char* cstr)
+	{
+		GCHandle handle_player = GCHandle::FromIntPtr((IntPtr)pplayer);
+		CGamePlayer^ player = (CGamePlayer^)handle_player.Target;
+		String^ str = gcnew String(cstr, 0, strlen(cstr), Encoding::UTF8);
+		player->PrintErr(str);
 	}
 
 	void CGamePlayer::SetPrintCallbacks(PrintCallback^ print_callback, PrintCallback^ error_callback)
 	{
-		m_handle_this = GCHandle::Alloc(this, GCHandleType::Normal);
 		void* pplayer = (void*)GCHandle::ToIntPtr(m_handle_this);
 
 		m_print_callback = print_callback;
