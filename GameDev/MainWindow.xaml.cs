@@ -622,6 +622,7 @@ namespace GameDev
                 bool closed = await editor.doc_close();
                 if (closed)
                 {
+                    editor.cleanup();
                     string filepath = (string)tabItem.Tag;
                     TabCtrl_Editor.Items.Remove(tabItem);
                     opened_tabs.Remove(filepath);
@@ -1152,7 +1153,7 @@ namespace GameDev
             TabItem item = NewTabItem(file_path, filename);
             if (item.Content == null)
             {
-                XMLEditor editor = new XMLEditor(file_path);
+                XMLEditor editor = new XMLEditor(file_path, cur_path);
                 item.Content = editor;
             }
             else

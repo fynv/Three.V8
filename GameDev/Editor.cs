@@ -5,6 +5,8 @@ namespace GameDev
 {
     internal interface Editor
     {
+        void cleanup();
+
         Task<string> doc_save_as();
         Task doc_save();        
         Task<bool> doc_close();

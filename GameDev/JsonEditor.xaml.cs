@@ -29,6 +29,10 @@ namespace GameDev
             };
         }
 
+        public void cleanup()
+        {
+
+        }
 
         private async Task _doc_save(string filename)
         {
