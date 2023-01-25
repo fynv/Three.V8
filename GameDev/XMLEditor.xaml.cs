@@ -22,7 +22,7 @@ namespace GameDev
         private CGLControl glControl = null;
         private CGamePlayer game_player = null;
 
-        public XMLEditor(string file_path, string resource_root)
+        public XMLEditor(string file_path, string resource_root, PrintCallback print_std, PrintCallback print_err)
         {
             InitializeComponent();
             this.file_path = file_path;
@@ -41,6 +41,7 @@ namespace GameDev
 
             string exe_name = Process.GetCurrentProcess().ProcessName;
             game_player = new CGamePlayer(exe_name, glControl);
+            game_player.SetPrintCallbacks(print_std, print_err);
 
             string local_path = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
             game_player.LoadScript($"{local_path}\\xmleditor\\bundle_index.js", resource_root);

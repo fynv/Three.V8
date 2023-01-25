@@ -5,7 +5,11 @@ import { view } from "./view.js";
 function set_xml(xml)
 {
     doc.reset();
-    doc.load_xml(xml, "local");	
+    doc.load_xml(xml, "local");
+    
+    let rexml = doc.get_xml();
+    print(rexml);
+    
     return "";
 }
 

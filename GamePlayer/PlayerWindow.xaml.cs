@@ -56,18 +56,30 @@ namespace GamePlayer
             
         }
 
+        private Thickness thickness_zero = new Thickness(0);
         private FontFamily font_courier = new FontFamily("Courier New");
         private SolidColorBrush brush_red = new SolidColorBrush(Colors.Red);
+
+        private void console_log(string str_line, Brush brush = null)
+        {
+            var line = new TextBox();
+            line.BorderThickness = thickness_zero;
+            line.IsReadOnly = true;
+            line.FontFamily = font_courier;
+            if (brush != null)
+            {
+                line.Foreground = brush;
+            }
+            line.Text = str_line;
+            console.Children.Add(line);            
+        }
 
         private void console_std(string str)
         {
             string[] lines = str.Split(new char[]{'\n'});
             foreach(string str_line in lines)
             {
-                var line = new TextBlock();
-                line.FontFamily = font_courier;
-                line.Text = str_line;
-                console.Children.Add(line);
+                console_log(str_line);
             }
             console_scroll.ScrollToBottom();
         }
@@ -77,11 +89,7 @@ namespace GamePlayer
             string[] lines = str.Split(new char[] { '\n' });
             foreach (string str_line in lines)
             {
-                var line = new TextBlock();
-                line.FontFamily = font_courier;
-                line.Foreground = brush_red;
-                line.Text = str_line;
-                console.Children.Add(line);
+                console_log(str_line, brush_red);                
             }
             console_scroll.ScrollToBottom();
         }

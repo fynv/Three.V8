@@ -162,7 +162,7 @@
                 <TabControl Grid.Row="2">
                     <TabItem Header="Console">
                         <ScrollViewer x:Name="console_scroll">
-                            <TextBlock x:Name="console"></TextBlock>
+                            <StackPanel x:Name="console"></StackPanel>
                             <ScrollViewer.ContextMenu>
                                 <ContextMenu>
                                     <MenuItem x:Name="menu_clear_console" Header="Clear" Click="menu_clear_console_Click"/>

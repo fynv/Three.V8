@@ -1011,6 +1011,45 @@ namespace GameDev
             return -1;
         }
 
+        private Thickness thickness_zero = new Thickness(0);
+        private FontFamily font_courier = new FontFamily("Courier New");
+        private SolidColorBrush brush_red = new SolidColorBrush(Colors.Red);
+        private SolidColorBrush brush_blue = new SolidColorBrush(Colors.Blue);
+
+        private void console_log(string str_line, Brush brush = null)
+        {
+            var line = new TextBox();
+            line.BorderThickness = thickness_zero;
+            line.IsReadOnly = true;
+            line.FontFamily = font_courier;
+            if (brush != null)
+            {
+                line.Foreground = brush;
+            }
+            line.Text = str_line;
+            console.Children.Add(line);            
+        }
+
+        private void console_std(string str, string tag)
+        {
+            string[] lines = str.Split(new char[] { '\n' });
+            foreach (string str_line in lines)
+            {
+                console_log($"{tag}: {str_line}");
+            }
+            console_scroll.ScrollToBottom();
+        }
+
+        private void console_err(string str, string tag)
+        {
+            string[] lines = str.Split(new char[] { '\n' });
+            foreach (string str_line in lines)
+            {
+                console_log($"{tag}: {str_line}", brush_red);
+            }
+            console_scroll.ScrollToBottom();
+        }
+
         private void RunTarget(JObject jTarget)
         {
             bool dirty = (bool)jTarget["dirty"];
@@ -1032,24 +1071,26 @@ namespace GameDev
                 proc.StartInfo.RedirectStandardError = true;
                 proc.StartInfo.StandardErrorEncoding = Encoding.UTF8;
                 proc.Start();
-                proc.WaitForExit();                
+                proc.WaitForExit();
 
-                console.Text += "running rollup.js: \n";
+                console_log("running rollup.js:");
                 string line;
                 while ((line = proc.StandardError.ReadLine()) != null)
                 {
                     line = Regex.Replace(line, "[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]", "");
-                    console.Text += line + "\n";
+                    console_log(line, brush_blue);
                 }                
 
                 if (!File.Exists(output))
                 {
-                    console.Text += "Bundling failed!\n\n";
+                    console_log("Bundling failed!");
+                    console_log("");
                     jTarget["dirty"] = true;
                 }
                 else
                 {
-                    console.Text += "Bundling succeeded\n\n";
+                    console_log("Bundling succeeded!");
+                    console_log("");                    
                     jTarget["dirty"] = false;
                 }
                 console_scroll.ScrollToBottom();                
@@ -1153,7 +1194,11 @@ namespace GameDev
             TabItem item = NewTabItem(file_path, filename);
             if (item.Content == null)
             {
-                XMLEditor editor = new XMLEditor(file_path, cur_path);
+                XMLEditor editor = new XMLEditor(file_path, cur_path, (str) =>{
+                    console_std(str, filename);
+                }, (str) =>{
+                    console_err(str, filename);
+                });
                 item.Content = editor;
             }
             else
@@ -1188,7 +1233,7 @@ namespace GameDev
 
         private void menu_clear_console_Click(object sender, RoutedEventArgs e)
         {
-            console.Text = "";
+            console.Children.Clear();
         }
 
         private void menu_new_file_Click(object sender, RoutedEventArgs e)
