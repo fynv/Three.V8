@@ -17,7 +17,7 @@
         <GridSplitter Grid.Row="1" HorizontalAlignment="Stretch"/>
         <TabControl x:Name="tab_console" Grid.Row="2">
             <TabItem Header="Console">
-                <ScrollViewer>
+                <ScrollViewer x:Name="console_scroll">
                     <StackPanel x:Name="console"></StackPanel>
                     <ScrollViewer.ContextMenu>
                         <ContextMenu>

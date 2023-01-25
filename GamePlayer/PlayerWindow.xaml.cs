@@ -69,6 +69,7 @@ namespace GamePlayer
                 line.Text = str_line;
                 console.Children.Add(line);
             }
+            console_scroll.ScrollToBottom();
         }
 
         private void console_err(string str)
@@ -82,6 +83,7 @@ namespace GamePlayer
                 line.Text = str_line;
                 console.Children.Add(line);
             }
+            console_scroll.ScrollToBottom();
         }
 
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
