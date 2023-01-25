@@ -45,6 +45,9 @@ namespace GameDev
         private HashSet<string> target_outputs = new HashSet<string>();
         private Dictionary<string, TabItem> opened_tabs = new Dictionary<string, TabItem>();
 
+        private List<string> RecentFiles = new List<string>();
+        private List<string> RecentProjects = new List<string>();
+
         private ContextMenu ctxMenu_dir =null;
         private ContextMenu ctxMenu_file = null;
         private ContextMenu ctxMenu_target = null;
@@ -194,7 +197,136 @@ namespace GameDev
 
         }
 
+        private void UpdateRecentFiles()
+        {
+            menu_recent_files.Items.Clear();
+            if (RecentFiles.Count<1)
+            {
+                MenuItem item = new MenuItem();
+                item.IsEnabled = false;
+                item.Header = "None";
+                menu_recent_files.Items.Add(item);
+                return;
+            }
 
+            for (int i =0; i< RecentFiles.Count; i++)
+            {
+                string filename = RecentFiles[i];
+                MenuItem item = new MenuItem();
+                item.Header = $"{i+1} {filename}";                
+                item.Click += (sender, e) =>
+                {
+                    OpenFile(filename);
+                };
+                menu_recent_files.Items.Add(item);
+            }            
+        }
+
+        private void LoadRecentFiles()
+        {
+            RecentFiles.Clear();
+            const string reg_path = "HKEY_CURRENT_USER\\Software\\GameDev\\recent_files";
+            for (int i = 0; i < 10; i++)
+            {
+                string key = i.ToString();
+                string filename = (string)Registry.GetValue(reg_path, key, "");
+                if (filename== null || filename == "") break;
+                RecentFiles.Add(filename);
+            }
+            UpdateRecentFiles();
+        }
+
+        private void SaveRecentFiles()
+        {            
+            const string reg_path = "HKEY_CURRENT_USER\\Software\\GameDev\\recent_files";
+            for (int i=0; i<RecentFiles.Count; i++)
+            {
+                string key = i.ToString();
+                string filename = RecentFiles[i];
+                Registry.SetValue(reg_path, key, filename);
+            }
+        }
+
+        private void AddRecentFile(string file_path)
+        {
+            RecentFiles.Insert(0, file_path);
+            for (int i = 1; i < RecentFiles.Count; i++)
+            {
+                if (RecentFiles[i] == file_path || i >= 10)
+                {
+                    RecentFiles.RemoveAt(i);
+                    i--;
+                }
+            }
+            UpdateRecentFiles();
+            SaveRecentFiles();
+        }
+
+        private void UpdateRecentProjects()
+        {
+            menu_recent_projects.Items.Clear();
+            if (RecentProjects.Count < 1)
+            {
+                MenuItem item = new MenuItem();
+                item.IsEnabled = false;
+                item.Header = "None";
+                menu_recent_projects.Items.Add(item);
+                return;
+            }
+
+            for (int i = 0; i < RecentProjects.Count; i++)
+            {
+                string filename = RecentProjects[i];
+                string path = Path.GetDirectoryName(filename);
+                MenuItem item = new MenuItem();
+                item.Header = $"{i + 1} {filename}";                
+                item.Click += (sender, e) =>
+                {                    
+                    change_path(path);
+                };
+                menu_recent_projects.Items.Add(item);
+            }
+        }
+
+        private void LoadRecentProjects()
+        {
+            RecentProjects.Clear();
+            const string reg_path = "HKEY_CURRENT_USER\\Software\\GameDev\\recent_projects";
+            for (int i = 0; i < 10; i++)
+            {
+                string key = i.ToString();
+                string filename = (string)Registry.GetValue(reg_path, key, "");
+                if (filename == null || filename == "") break;
+                RecentProjects.Add(filename);
+            }
+            UpdateRecentProjects();
+        }
+
+        private void SaveRecentProjects()
+        {
+            const string reg_path = "HKEY_CURRENT_USER\\Software\\GameDev\\recent_projects";
+            for (int i = 0; i < RecentProjects.Count; i++)
+            {
+                string key = i.ToString();
+                string filename = RecentProjects[i];
+                Registry.SetValue(reg_path, key, filename);
+            }
+        }
+
+        private void AddRecentProject(string file_path)
+        {
+            RecentProjects.Insert(0, file_path);
+            for (int i = 1; i < RecentProjects.Count; i++)
+            {
+                if (RecentProjects[i] == file_path || i >= 10)
+                {
+                    RecentProjects.RemoveAt(i);
+                    i--;
+                }
+            }
+            UpdateRecentProjects();
+            SaveRecentProjects();
+        }
 
         private void create_default_project()
         {
@@ -325,6 +457,7 @@ namespace GameDev
                 {
                     project.filename = $"{cur_path}\\project.json";
                     project.Load();
+                    AddRecentProject(project.filename);
                 }                
                 this.Title = $"GameDev - {project.data["project_name"]}";
             }
@@ -334,10 +467,8 @@ namespace GameDev
 
         private void change_path(string path)
         {
-            const string userRoot = "HKEY_CURRENT_USER";
-            const string subkey = "Software\\GameDev";
-            const string keyName = userRoot + "\\" + subkey;
-            Registry.SetValue(keyName, "cur_path", path);
+            const string reg_path = "HKEY_CURRENT_USER\\Software\\GameDev";            
+            Registry.SetValue(reg_path, "cur_path", path);
             cur_path = path;
             update_cur_path();
 
@@ -348,15 +479,16 @@ namespace GameDev
             InitializeComponent();
             CreateContextMenus();
 
-            const string userRoot = "HKEY_CURRENT_USER";
-            const string subkey = "Software\\GameDev";
-            const string keyName = userRoot + "\\" + subkey;
-            string path = (string)Registry.GetValue(keyName, "cur_path", "");
+            const string reg_path = "HKEY_CURRENT_USER\\Software\\GameDev";
+            string path = (string)Registry.GetValue(reg_path, "cur_path", "");
             if (File.Exists($"{path}\\project.json"))
             {
                 cur_path = path;
                 update_cur_path();
             }
+
+            LoadRecentFiles();
+            LoadRecentProjects();
         }
 
         private bool no_update = false;
@@ -1030,20 +1162,26 @@ namespace GameDev
         }
 
         private void OpenFile(string file_path)
-        {
+        {            
             string ext = Path.GetExtension(file_path);
             if (ext == ".js")
             {
-                OpenJavaScript(file_path);
+                OpenJavaScript(file_path);         
             }
             else if (ext == ".json")
             {
-                OpenJSON(file_path);
+                OpenJSON(file_path);                
             }
             else if (ext == ".xml")
             {
-                OpenXML(file_path);
+                OpenXML(file_path);                
             }
+            else
+            {
+                return;
+            }
+
+            AddRecentFile(file_path);
 
         }
 

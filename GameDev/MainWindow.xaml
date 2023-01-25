@@ -74,6 +74,13 @@
                 <MenuItem Header="_Close" Command="{x:Static local:MainWindow.RoutedCommandCloseFile}"/>
                 <MenuItem Header="Close Project" Command="{x:Static local:MainWindow.RoutedCommandCloseProject}"/>
                 <Separator />
+                <MenuItem x:Name="menu_recent_files" Header="Recent Files">
+                    <MenuItem Header="None" IsEnabled="False"/>
+                </MenuItem>
+                <MenuItem x:Name="menu_recent_projects" Header="Recent Projects">
+                    <MenuItem Header="None" IsEnabled="False"/>
+                </MenuItem>
+                <Separator />
                 <MenuItem Header="_Exit" InputGestureText="Alt+F4" Command="Close"/>
             </MenuItem>
             <MenuItem Header="_Edit">
