@@ -19,14 +19,19 @@ function getXML(x)
     return doc.get_xml();
 }
 
+function picking(state)
+{
+    let bstate = state=="on";
+    doc.picking(bstate);
+}
+
 function init(width, height)
 {
     renderer = new GLRenderer();
     doc = new Document(view);
     clock = new Clock();
     
-    message_map = { isModified, setXML, getXML };
-
+    message_map = { isModified, setXML, getXML, picking };
 }
 
 function render(width, height, size_changed)

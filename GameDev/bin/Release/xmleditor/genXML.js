@@ -9,17 +9,17 @@
         return code;
     }
     
-    let name = node["tagName"];
+    let name = node.tagName;
     code += `<${name}`;
     
-    let attributes = node["attributes"];
+    let attributes = node.attributes;
     for(let att in attributes)
     {
         let value = attributes[att];
         code+=` ${att}=\"${value}\"`;
     }
     
-    let children = node["children"];
+    let children = node.children;
     
     if (children.length<1)
     {
@@ -47,9 +47,9 @@ export function genXML(nodes)
     let xml = "";
     for (let top of nodes)
     {
-        if (top["tagName"]=="?xml")
+        if (top.tagName =="?xml")
         {
-           let version = top["attributes"]["version"];
+           let version = top.attributes.version;
            xml += `<?xml version=\"${version}\"?>\n`;
         }
         else

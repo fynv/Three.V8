@@ -42,7 +42,10 @@ public:
 	GLBuffer constant_material;
 	void update_uniform();
 
-	// 1: direct - diffuse 2: direct - specular 4: indirect - diffuse 8: indirect - specular
+	// 1: direct - diffuse 2: direct - specular 4: indirect - diffuse 8: indirect - specular 16: wire_only
 	int tone_shading = 0;
 	float wire_width = 1.5f;
+	glm::vec3 wire_color = { 0.0f, 0.0f, 0.0f };
+
+
 };

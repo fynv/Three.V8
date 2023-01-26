@@ -265,11 +265,12 @@ void GLTFModel::updateAnimation()
 	}
 }
 
-void GLTFModel::set_toon_shading(int mode, float wire_width)
+void GLTFModel::set_toon_shading(int mode, float wire_width, const glm::vec3& wire_color)
 {
 	for (size_t i = 0; i < m_materials.size(); i++)
 	{
 		m_materials[i]->tone_shading = mode;
 		m_materials[i]->wire_width = wire_width;
+		m_materials[i]->wire_color = wire_color;
 	}
 }

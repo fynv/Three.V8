@@ -208,6 +208,7 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 		params2.constant_model = params.constant_model;
 		params2.primitive = params.primitive;
 		params2.radius = material->wire_width;
+		params2.wire_color = material->wire_color;
 		WireDraw->render(params2);		
 	}
 	
@@ -1198,6 +1199,7 @@ void GLRenderer::render_primitive_base(const BaseColorRoutine::RenderParams& par
 		params2.constant_model = params.constant_model;
 		params2.primitive = params.primitive;
 		params2.radius = material->wire_width;
+		params2.wire_color = material->wire_color;
 		WireDraw->render(params2);
 	}
 

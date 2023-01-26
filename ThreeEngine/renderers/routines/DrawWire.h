@@ -15,6 +15,7 @@ public:
 		const GLDynBuffer* constant_model;
 		const Primitive* primitive;
 		float radius;
+		glm::vec3 wire_color;
 	};
 
 	void render(const RenderParams& params);

@@ -238,10 +238,15 @@ void WrapperSimpleModel::SetToonShading(const v8::FunctionCallbackInfo<v8::Value
 	int mode;
 	lctx.jnum_to_num(info[0], mode);
 	float width = 1.5f;
+	glm::vec3 wire_color = { 0.0f, 0.0f, 0.0f };
 	if (info.Length() > 1)
 	{
 		lctx.jnum_to_num(info[1], width);
+		if (info.Length() > 2)
+		{
+			lctx.jvec3_to_vec3(info[2], wire_color);
+		}
 	}
-	self->set_toon_shading(mode, width);
+	self->set_toon_shading(mode, width, wire_color);
 }
 

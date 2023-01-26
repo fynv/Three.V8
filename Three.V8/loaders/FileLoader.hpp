@@ -2,6 +2,7 @@
 
 #include "WrapperUtils.hpp"
 #include <loaders/FileLoader.h>
+#include <utils/Utils.h>
 
 class WrapperFileLoader
 {
@@ -28,6 +29,12 @@ void WrapperFileLoader::LoadBinaryFile(const v8::FunctionCallbackInfo<v8::Value>
 	LocalContext lctx(info);
 	std::string filename = lctx.jstr_to_str(info[0]);
 
+	if (!exists_test(filename.c_str()))
+	{
+		info.GetReturnValue().Set(v8::Null(lctx.isolate));
+		return;
+	}
+
 	std::vector<unsigned char> data;
 	::LoadBinaryFile(filename.c_str(), data);
 
@@ -42,6 +49,12 @@ void WrapperFileLoader::LoadTextFile(const v8::FunctionCallbackInfo<v8::Value>& 
 {
 	LocalContext lctx(info);
 	std::string filename = lctx.jstr_to_str(info[0]);
+
+	if (!exists_test(filename.c_str()))
+	{
+		info.GetReturnValue().Set(v8::Null(lctx.isolate));
+		return;
+	}
 
 	std::vector<char> data;
 	::LoadTextFile(filename.c_str(), data);

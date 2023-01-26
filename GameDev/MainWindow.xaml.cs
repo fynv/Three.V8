@@ -551,10 +551,10 @@ namespace GameDev
                 while (TabCtrl_Editor.Items.Count>0)
                 {
                     TabItem tabItem = (TabItem)TabCtrl_Editor.Items[0];
-                    bool closed = await CloseTab(tabItem);
+                    bool closed = await CloseTab(tabItem);                    
                     if (!closed) return;
                 }
-                Close();
+                _ = Dispatcher.BeginInvoke(new Action(() => Close()));
                 return;
             }
 

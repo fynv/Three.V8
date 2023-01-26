@@ -25,6 +25,14 @@
                 </DockPanel>
             </TabItem>
             <TabItem Header="Knobs">
+                <DockPanel>
+                    <GroupBox DockPanel.Dock="Left" Header="Tools">
+                        <StackPanel>
+                            <ToggleButton x:Name="btn_picking" Padding="5" Checked="btn_picking_Checked" Unchecked="btn_picking_Unchecked">Picking</ToggleButton>
+                        </StackPanel>
+                    </GroupBox>                    
+                    <StackPanel x:Name="property_area"></StackPanel>
+                </DockPanel>
             </TabItem>
         </local:HackedTabControl>
     </Grid>

@@ -46,8 +46,9 @@ void SimpleModel::set_roughness(float roughness)
 	material.update_uniform();
 }
 
-void SimpleModel::set_toon_shading(int mode, float wire_width)
+void SimpleModel::set_toon_shading(int mode, float wire_width, const glm::vec3& wire_color)
 {
 	material.tone_shading = mode;
 	material.wire_width = wire_width;
+	material.wire_color = wire_color;
 }

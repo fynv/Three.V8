@@ -66,10 +66,11 @@ void main()
 
 static std::string g_frag =
 R"(#version 430
+layout (location = 2) uniform vec3 uColor;
 out vec4 outColor;
 void main()
 {
-    outColor = vec4(0.0,0.0,0.0, 1.0);
+    outColor = vec4(uColor, 1.0);
 }
 )";
 
@@ -103,6 +104,7 @@ void DrawWire::render(const RenderParams& params)
 	glm::vec2 viewport = { (float)i_viewport[2], (float)i_viewport[3] };
 	glUniform2fv(0, 1, (float*)&viewport);
 	glUniform1f(1, params.radius);
+	glUniform3fv(2, 1, (float*)&params.wire_color);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, params.primitive->wire_ind_buf->m_id);
 	glDrawElements(GL_LINES, params.primitive->num_wires * 2, GL_UNSIGNED_INT, nullptr);	

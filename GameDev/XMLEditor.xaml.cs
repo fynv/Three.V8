@@ -435,11 +435,11 @@ namespace GameDev
                         await GetText_code();
                         SetText_gl(text_cache);
                     }
-                }
-                
+                }                
             }
             else
             {
+                btn_picking.IsChecked = false;
                 if (TextChanged_gl())
                 {
                     GetText_gl();                    
@@ -454,6 +454,16 @@ namespace GameDev
         {
             await GetText_code();
             SetText_gl(text_cache);
+        }
+
+        private void btn_picking_Checked(object sender, RoutedEventArgs e)
+        {
+            game_player.SendMessageToUser("picking", "on");
+        }
+
+        private void btn_picking_Unchecked(object sender, RoutedEventArgs e)
+        {
+            game_player.SendMessageToUser("picking", "off");
         }
     }
 }

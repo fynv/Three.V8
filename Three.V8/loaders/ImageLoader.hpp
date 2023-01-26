@@ -29,9 +29,14 @@ v8::Local<v8::ObjectTemplate> WrapperImageLoader::create_template(v8::Isolate* i
 void WrapperImageLoader::LoadFile(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	LocalContext lctx(info);
-	v8::Local<v8::Object> holder = lctx.instantiate("Image");
-	Image* self = lctx.jobj_to_obj<Image>(holder);	
 	std::string filename = lctx.jstr_to_str(info[0]);
+	if (!exists_test(filename.c_str()))
+	{
+		info.GetReturnValue().Set(v8::Null(lctx.isolate));
+		return;
+	}
+	v8::Local<v8::Object> holder = lctx.instantiate("Image");
+	Image* self = lctx.jobj_to_obj<Image>(holder);		
 	ImageLoader::LoadFile(self, filename.c_str());
 	info.GetReturnValue().Set(holder);
 }
@@ -49,9 +54,7 @@ void WrapperImageLoader::LoadMemory(const v8::FunctionCallbackInfo<v8::Value>& i
 
 void WrapperImageLoader::LoadCubeFromFile(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
-	LocalContext lctx(info);
-	v8::Local<v8::Object> holder = lctx.instantiate("CubeImage");
-	CubeImage* self = lctx.jobj_to_obj<CubeImage>(holder);
+	LocalContext lctx(info);	
 	std::string filenames[6] =
 	{
 		lctx.jstr_to_str(info[0]),
@@ -61,7 +64,18 @@ void WrapperImageLoader::LoadCubeFromFile(const v8::FunctionCallbackInfo<v8::Val
 		lctx.jstr_to_str(info[4]),
 		lctx.jstr_to_str(info[5])
 	};
+
+	for (int i = 0; i < 6; i++)
+	{
+		if (!exists_test(filenames[i].c_str()))
+		{
+			info.GetReturnValue().Set(v8::Null(lctx.isolate));
+			return;
+		}
+	}
 	
+	v8::Local<v8::Object> holder = lctx.instantiate("CubeImage");
+	CubeImage* self = lctx.jobj_to_obj<CubeImage>(holder);
 	ImageLoader::LoadCubeFromFile(self, filenames[0].c_str(), filenames[1].c_str(), 
 		filenames[2].c_str(), filenames[3].c_str(), filenames[4].c_str(), filenames[5].c_str());
 

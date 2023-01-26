@@ -23,7 +23,7 @@ public:
 	void set_metalness(float metalness);
 	void set_roughness(float roughness);
 
-	void set_toon_shading(int mode, float wire_width);
+	void set_toon_shading(int mode, float wire_width, const glm::vec3& wire_color);
 };
 
 

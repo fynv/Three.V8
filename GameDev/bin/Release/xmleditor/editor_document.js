@@ -1,9 +1,40 @@
 ﻿import { OrbitControls } from "./controls/OrbitControls.js";
 import { Vector3 } from "./math/Vector3.js";
+import { Vector4 } from "./math/Vector4.js";
+import { Matrix4 } from "./math/Matrix4.js";
 import { view } from "./view.js";
 
 import * as txml from "./txml.js";
 import { genXML } from "./genXML.js";
+
+function uuid(len, radix) {
+    var chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
+    var uuid = [], i;
+    radix = radix || chars.length;
+ 
+    if (len) {
+      // Compact form
+      for (i = 0; i < len; i++) uuid[i] = chars[0 | Math.random()*radix];
+    } else {
+      // rfc4122, version 4 form
+      var r;
+ 
+      // rfc4122 requires these characters
+      uuid[8] = uuid[13] = uuid[18] = uuid[23] = '-';
+      uuid[14] = '4';
+ 
+      // Fill in random data.  At i==19 set the high bits of clock sequence as
+      // per rfc4122, sec. 4.1.5
+      for (i = 0; i < 36; i++) {
+        if (!uuid[i]) {
+          r = 0 | Math.random()*16;
+          uuid[i] = chars[(i == 19) ? (r & 0x3) | 0x8 : r];
+        }
+      }
+    }
+ 
+    return uuid.join('');
+}
 
 function string_to_boolean(string) {
 	switch (string.toLowerCase().trim()) {
@@ -38,7 +69,7 @@ const scene = {
 const camera = {
 	reset: (doc) => {
 		doc.camera = new PerspectiveCamera(45, doc.width / doc.height, 0.1, 100);
-		doc.camera.setPosition(0, 1.5, 0);
+		doc.camera.setPosition(0, 1.5, 5.0);
 	},
 
 	create: async (doc, props, mode, parent) => {
@@ -56,7 +87,7 @@ const control = {
 			doc.controls.dispose();
 		doc.controls = new OrbitControls(doc.camera, doc.view);
 		doc.controls.enableDamping = true;
-		doc.controls.target.set(0, 1.5, -1);
+		doc.controls.target.set(0, 1.5, 0);
 	},
 	create: async (doc, props, mode, parent) =>{
 		const type = props.type;
@@ -254,9 +285,7 @@ const env_light = {
 const group = {
 	create: async (doc, props, mode, parent) => {
 		const group = new Object3D();
-		if (props.hasOwnProperty('name')) {
-			group.name = props.name;
-		}
+		group.name = uuid();
 		if (parent != null) {
 			parent.add(group);
 		}
@@ -275,10 +304,7 @@ const plane = {
 				
 		const plane = new SimpleModel();
 		plane.createPlane(width, height);
-		
-		if (props.hasOwnProperty('name')) {
-			plane.name = props.name;
-		}
+		plane.name = uuid();
 
 		if (parent != null) {
 			parent.add(plane);
@@ -299,11 +325,8 @@ const box = {
 		const depth = parseFloat(size[2]);
 		
 		const box = new SimpleModel();
-		box.createBox(width, height, depth);		
-		
-		if (props.hasOwnProperty('name')) {
-			box.name = props.name;
-		}
+		box.createBox(width, height, depth);
+		box.name = uuid();
 
 		if (parent != null) {
 			parent.add(box);
@@ -323,10 +346,8 @@ const sphere = {
 		
 		const sphere = new SimpleModel();
 		sphere.createSphere(radius, widthSegments, heightSegments);
-	
-		if (props.hasOwnProperty('name')) {
-			sphere.name = props.name;
-		}
+		sphere.name = uuid();
+		
 		if (parent != null) {
 			parent.add(sphere);
 		}
@@ -341,10 +362,7 @@ const model = {
 	create: async (doc, props, mode, parent) => {
 		const url = props.src;
 		const model = gltfLoader.loadModelFromFile(url);
-		if (props.hasOwnProperty("name"))
-		{
-			model.name = props.name;
-		}
+		model.name = uuid();
 		if (parent != null) {
 			parent.add(model);
 		}
@@ -354,6 +372,14 @@ const model = {
 		return model;
 	}
 }
+
+const avatar = {
+	create: async (doc, props, mode, parent) => {
+	    let avatar = await model.create(doc, { ...props}, mode, parent);
+	    return avatar;
+	}
+}
+
 
 const directional_light = {
 	create: async (doc, props, mode, parent) => {
@@ -404,7 +430,8 @@ export class Document
 		this.view = view;
 		this.width = view.clientWidth;
 		this.height = view.clientHeight;
-		this.Tags = { scene, camera, fog, sky, env_light, control, group, plane, box, sphere, model, directional_light };
+		this.Tags = { scene, camera, fog, sky, env_light, control, group, plane, box, sphere, model, avatar, directional_light };
+		this.hitable_tags = { plane, box, sphere, model, avatar };
 		this.reset();
 	}
 	
@@ -423,6 +450,9 @@ export class Document
     reset() 
 	{
 	    this.saved_text = "";
+	    this.hitables = [];
+	    this.picked_obj = null;
+	    
 		for (let tag in this.Tags) 
 		{
 			if (this.Tags[tag].hasOwnProperty('reset')) 
@@ -452,12 +482,26 @@ export class Document
 		}
 	}
 	
+	add_hitable_object(obj) {
+		this.hitables.push(obj);
+	}
+
+	remove_hitable_object(obj) {
+		for (let i = 0; i < this.hitables.length; i++) {
+			if (this.hitables[i] == obj) {
+				this.hitables.splice(i, 1);
+				i--;
+			}
+		}
+	}
+	
 	
 	async create(tag, props, mode, parent = null) 
 	{
 	    if (!(tag in this.Tags)) return null;
 	    
 		const obj = await this.Tags[tag].create(this, props, mode, parent);
+		if (obj == null) return null;
 		
 		if (props.hasOwnProperty('position')) 
 		{
@@ -492,11 +536,19 @@ export class Document
 			obj.setColorTexture(img);
 		}
 		
+		if (tag in this.hitable_tags)
+		{
+		    this.add_hitable_object(obj);
+		}
+		
 		return obj;
 	}
 	
 	remove(obj)
 	{
+	    obj.traverse((child) => {
+			this.remove_hitable_object(child);
+		});
 		if (obj.parent) 
 		{
 			obj.parent.remove(obj);
@@ -510,7 +562,14 @@ export class Document
 		}
 		for (let child of xmlNode.children) {			
 			const obj = await this.create(child.tagName, child.attributes, mode, parent);
+			
 			if (obj===null) continue;
+			
+			if (Object.isExtensible(obj))
+			{
+			    obj.xml_node = child;
+			}
+			
 			await this.load_xml_node(child, mode, obj);
 		}
 	}
@@ -531,6 +590,16 @@ export class Document
 		{
 			await this.load_xml_node(root, mode);
 		}
+		
+		if (this.hitables.length>0)
+		{ 
+			this.bvh = new BoundingVolumeHierarchy(this.hitables);
+		}
+		else
+		{
+			this.bvh = null;
+		}
+		
 		this.saved_text = genXML(this.xml_nodes);
 	}
 	
@@ -545,10 +614,70 @@ export class Document
 	    this.saved_text = genXML(this.xml_nodes);
 	    return this.saved_text;
 	}
+	
+	picking(state)
+	{
+	    if (state)
+	    {
+	        this.controls.enabled = false;
+	        view.addEventListener("pointerdown", picking_pointerdown);
+	    }
+	    else
+	    {
+	        this.controls.enabled = true;
+	        view.removeEventListener("pointerdown", picking_pointerdown);
+	    }
+	}
+	
+	pick_obj(obj)
+	{
+	    if (this.picked_obj != null)
+	    {
+	        this.picked_obj.setToonShading(0);
+	    }
+	    
+	    this.picked_obj = obj;
+	    
+	    if (obj!=null)
+	    {
+	        obj.setToonShading(16, 5.0, new Vector3(1.0, 1.0, 0.2));
+	    }
+	}
 
 }
 
+function picking_pointerdown(event)
+{
+    if (doc.bvh == null) return;
+    
+    let origin = doc.camera.getWorldPosition(new Vector3());
+    
+    let x = event.clientX;
+    let y = event.clientY;
+    
+    let clipX = (x/doc.width)*2.0 -1.0;
+    let clipY = 1.0 - (y/doc.height)*2.0;
+    
+    let pos = new Vector4(clipX, clipY, 0.0, 1.0);
+    
+    let matProjInv = doc.camera.getProjectionMatrixInverse(new Matrix4());
+    let matViewInv = doc.camera.getMatrixWorld(new Matrix4());
+    pos.applyMatrix4(matProjInv);
+    pos.applyMatrix4(matViewInv);
+    
+    let dir = new Vector3(pos.x/pos.w, pos.y/pos.w, pos.z/pos.w);
+    dir.sub(origin);
+    dir.normalize();
 
+    let intersect = doc.bvh.intersect({origin: origin, direction: dir});
+    if (intersect!=null)
+    {
+        let name = intersect.name;
+        let obj = doc.scene.getObjectByName(name);
+        doc.pick_obj(obj);
+    }
+    
+}
 
 
 

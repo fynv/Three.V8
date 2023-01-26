@@ -4196,6 +4196,669 @@ class OrbitControls extends EventDispatcher {
 
 }
 
+class Vector4 {
+
+	constructor( x = 0, y = 0, z = 0, w = 1 ) {
+
+		this.x = x;
+		this.y = y;
+		this.z = z;
+		this.w = w;
+
+	}
+
+	get width() {
+
+		return this.z;
+
+	}
+
+	set width( value ) {
+
+		this.z = value;
+
+	}
+
+	get height() {
+
+		return this.w;
+
+	}
+
+	set height( value ) {
+
+		this.w = value;
+
+	}
+
+	set( x, y, z, w ) {
+
+		this.x = x;
+		this.y = y;
+		this.z = z;
+		this.w = w;
+
+		return this;
+
+	}
+
+	setScalar( scalar ) {
+
+		this.x = scalar;
+		this.y = scalar;
+		this.z = scalar;
+		this.w = scalar;
+
+		return this;
+
+	}
+
+	setX( x ) {
+
+		this.x = x;
+
+		return this;
+
+	}
+
+	setY( y ) {
+
+		this.y = y;
+
+		return this;
+
+	}
+
+	setZ( z ) {
+
+		this.z = z;
+
+		return this;
+
+	}
+
+	setW( w ) {
+
+		this.w = w;
+
+		return this;
+
+	}
+
+	setComponent( index, value ) {
+
+		switch ( index ) {
+
+			case 0: this.x = value; break;
+			case 1: this.y = value; break;
+			case 2: this.z = value; break;
+			case 3: this.w = value; break;
+			default: throw new Error( 'index is out of range: ' + index );
+
+		}
+
+		return this;
+
+	}
+
+	getComponent( index ) {
+
+		switch ( index ) {
+
+			case 0: return this.x;
+			case 1: return this.y;
+			case 2: return this.z;
+			case 3: return this.w;
+			default: throw new Error( 'index is out of range: ' + index );
+
+		}
+
+	}
+
+	clone() {
+
+		return new this.constructor( this.x, this.y, this.z, this.w );
+
+	}
+
+	copy( v ) {
+
+		this.x = v.x;
+		this.y = v.y;
+		this.z = v.z;
+		this.w = ( v.w !== undefined ) ? v.w : 1;
+
+		return this;
+
+	}
+
+	add( v, w ) {
+
+		if ( w !== undefined ) {
+
+			console.warn( 'THREE.Vector4: .add() now only accepts one argument. Use .addVectors( a, b ) instead.' );
+			return this.addVectors( v, w );
+
+		}
+
+		this.x += v.x;
+		this.y += v.y;
+		this.z += v.z;
+		this.w += v.w;
+
+		return this;
+
+	}
+
+	addScalar( s ) {
+
+		this.x += s;
+		this.y += s;
+		this.z += s;
+		this.w += s;
+
+		return this;
+
+	}
+
+	addVectors( a, b ) {
+
+		this.x = a.x + b.x;
+		this.y = a.y + b.y;
+		this.z = a.z + b.z;
+		this.w = a.w + b.w;
+
+		return this;
+
+	}
+
+	addScaledVector( v, s ) {
+
+		this.x += v.x * s;
+		this.y += v.y * s;
+		this.z += v.z * s;
+		this.w += v.w * s;
+
+		return this;
+
+	}
+
+	sub( v, w ) {
+
+		if ( w !== undefined ) {
+
+			console.warn( 'THREE.Vector4: .sub() now only accepts one argument. Use .subVectors( a, b ) instead.' );
+			return this.subVectors( v, w );
+
+		}
+
+		this.x -= v.x;
+		this.y -= v.y;
+		this.z -= v.z;
+		this.w -= v.w;
+
+		return this;
+
+	}
+
+	subScalar( s ) {
+
+		this.x -= s;
+		this.y -= s;
+		this.z -= s;
+		this.w -= s;
+
+		return this;
+
+	}
+
+	subVectors( a, b ) {
+
+		this.x = a.x - b.x;
+		this.y = a.y - b.y;
+		this.z = a.z - b.z;
+		this.w = a.w - b.w;
+
+		return this;
+
+	}
+
+	multiply( v ) {
+
+		this.x *= v.x;
+		this.y *= v.y;
+		this.z *= v.z;
+		this.w *= v.w;
+
+		return this;
+
+	}
+
+	multiplyScalar( scalar ) {
+
+		this.x *= scalar;
+		this.y *= scalar;
+		this.z *= scalar;
+		this.w *= scalar;
+
+		return this;
+
+	}
+
+	applyMatrix4( m ) {
+
+		const x = this.x, y = this.y, z = this.z, w = this.w;
+		const e = m.elements;
+
+		this.x = e[ 0 ] * x + e[ 4 ] * y + e[ 8 ] * z + e[ 12 ] * w;
+		this.y = e[ 1 ] * x + e[ 5 ] * y + e[ 9 ] * z + e[ 13 ] * w;
+		this.z = e[ 2 ] * x + e[ 6 ] * y + e[ 10 ] * z + e[ 14 ] * w;
+		this.w = e[ 3 ] * x + e[ 7 ] * y + e[ 11 ] * z + e[ 15 ] * w;
+
+		return this;
+
+	}
+
+	divideScalar( scalar ) {
+
+		return this.multiplyScalar( 1 / scalar );
+
+	}
+
+	setAxisAngleFromQuaternion( q ) {
+
+		// http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToAngle/index.htm
+
+		// q is assumed to be normalized
+
+		this.w = 2 * Math.acos( q.w );
+
+		const s = Math.sqrt( 1 - q.w * q.w );
+
+		if ( s < 0.0001 ) {
+
+			this.x = 1;
+			this.y = 0;
+			this.z = 0;
+
+		} else {
+
+			this.x = q.x / s;
+			this.y = q.y / s;
+			this.z = q.z / s;
+
+		}
+
+		return this;
+
+	}
+
+	setAxisAngleFromRotationMatrix( m ) {
+
+		// http://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToAngle/index.htm
+
+		// assumes the upper 3x3 of m is a pure rotation matrix (i.e, unscaled)
+
+		let angle, x, y, z; // variables for result
+		const epsilon = 0.01,		// margin to allow for rounding errors
+			epsilon2 = 0.1,		// margin to distinguish between 0 and 180 degrees
+
+			te = m.elements,
+
+			m11 = te[ 0 ], m12 = te[ 4 ], m13 = te[ 8 ],
+			m21 = te[ 1 ], m22 = te[ 5 ], m23 = te[ 9 ],
+			m31 = te[ 2 ], m32 = te[ 6 ], m33 = te[ 10 ];
+
+		if ( ( Math.abs( m12 - m21 ) < epsilon ) &&
+		     ( Math.abs( m13 - m31 ) < epsilon ) &&
+		     ( Math.abs( m23 - m32 ) < epsilon ) ) {
+
+			// singularity found
+			// first check for identity matrix which must have +1 for all terms
+			// in leading diagonal and zero in other terms
+
+			if ( ( Math.abs( m12 + m21 ) < epsilon2 ) &&
+			     ( Math.abs( m13 + m31 ) < epsilon2 ) &&
+			     ( Math.abs( m23 + m32 ) < epsilon2 ) &&
+			     ( Math.abs( m11 + m22 + m33 - 3 ) < epsilon2 ) ) {
+
+				// this singularity is identity matrix so angle = 0
+
+				this.set( 1, 0, 0, 0 );
+
+				return this; // zero angle, arbitrary axis
+
+			}
+
+			// otherwise this singularity is angle = 180
+
+			angle = Math.PI;
+
+			const xx = ( m11 + 1 ) / 2;
+			const yy = ( m22 + 1 ) / 2;
+			const zz = ( m33 + 1 ) / 2;
+			const xy = ( m12 + m21 ) / 4;
+			const xz = ( m13 + m31 ) / 4;
+			const yz = ( m23 + m32 ) / 4;
+
+			if ( ( xx > yy ) && ( xx > zz ) ) {
+
+				// m11 is the largest diagonal term
+
+				if ( xx < epsilon ) {
+
+					x = 0;
+					y = 0.707106781;
+					z = 0.707106781;
+
+				} else {
+
+					x = Math.sqrt( xx );
+					y = xy / x;
+					z = xz / x;
+
+				}
+
+			} else if ( yy > zz ) {
+
+				// m22 is the largest diagonal term
+
+				if ( yy < epsilon ) {
+
+					x = 0.707106781;
+					y = 0;
+					z = 0.707106781;
+
+				} else {
+
+					y = Math.sqrt( yy );
+					x = xy / y;
+					z = yz / y;
+
+				}
+
+			} else {
+
+				// m33 is the largest diagonal term so base result on this
+
+				if ( zz < epsilon ) {
+
+					x = 0.707106781;
+					y = 0.707106781;
+					z = 0;
+
+				} else {
+
+					z = Math.sqrt( zz );
+					x = xz / z;
+					y = yz / z;
+
+				}
+
+			}
+
+			this.set( x, y, z, angle );
+
+			return this; // return 180 deg rotation
+
+		}
+
+		// as we have reached here there are no singularities so we can handle normally
+
+		let s = Math.sqrt( ( m32 - m23 ) * ( m32 - m23 ) +
+			( m13 - m31 ) * ( m13 - m31 ) +
+			( m21 - m12 ) * ( m21 - m12 ) ); // used to normalize
+
+		if ( Math.abs( s ) < 0.001 ) s = 1;
+
+		// prevent divide by zero, should not happen if matrix is orthogonal and should be
+		// caught by singularity test above, but I've left it in just in case
+
+		this.x = ( m32 - m23 ) / s;
+		this.y = ( m13 - m31 ) / s;
+		this.z = ( m21 - m12 ) / s;
+		this.w = Math.acos( ( m11 + m22 + m33 - 1 ) / 2 );
+
+		return this;
+
+	}
+
+	min( v ) {
+
+		this.x = Math.min( this.x, v.x );
+		this.y = Math.min( this.y, v.y );
+		this.z = Math.min( this.z, v.z );
+		this.w = Math.min( this.w, v.w );
+
+		return this;
+
+	}
+
+	max( v ) {
+
+		this.x = Math.max( this.x, v.x );
+		this.y = Math.max( this.y, v.y );
+		this.z = Math.max( this.z, v.z );
+		this.w = Math.max( this.w, v.w );
+
+		return this;
+
+	}
+
+	clamp( min, max ) {
+
+		// assumes min < max, componentwise
+
+		this.x = Math.max( min.x, Math.min( max.x, this.x ) );
+		this.y = Math.max( min.y, Math.min( max.y, this.y ) );
+		this.z = Math.max( min.z, Math.min( max.z, this.z ) );
+		this.w = Math.max( min.w, Math.min( max.w, this.w ) );
+
+		return this;
+
+	}
+
+	clampScalar( minVal, maxVal ) {
+
+		this.x = Math.max( minVal, Math.min( maxVal, this.x ) );
+		this.y = Math.max( minVal, Math.min( maxVal, this.y ) );
+		this.z = Math.max( minVal, Math.min( maxVal, this.z ) );
+		this.w = Math.max( minVal, Math.min( maxVal, this.w ) );
+
+		return this;
+
+	}
+
+	clampLength( min, max ) {
+
+		const length = this.length();
+
+		return this.divideScalar( length || 1 ).multiplyScalar( Math.max( min, Math.min( max, length ) ) );
+
+	}
+
+	floor() {
+
+		this.x = Math.floor( this.x );
+		this.y = Math.floor( this.y );
+		this.z = Math.floor( this.z );
+		this.w = Math.floor( this.w );
+
+		return this;
+
+	}
+
+	ceil() {
+
+		this.x = Math.ceil( this.x );
+		this.y = Math.ceil( this.y );
+		this.z = Math.ceil( this.z );
+		this.w = Math.ceil( this.w );
+
+		return this;
+
+	}
+
+	round() {
+
+		this.x = Math.round( this.x );
+		this.y = Math.round( this.y );
+		this.z = Math.round( this.z );
+		this.w = Math.round( this.w );
+
+		return this;
+
+	}
+
+	roundToZero() {
+
+		this.x = ( this.x < 0 ) ? Math.ceil( this.x ) : Math.floor( this.x );
+		this.y = ( this.y < 0 ) ? Math.ceil( this.y ) : Math.floor( this.y );
+		this.z = ( this.z < 0 ) ? Math.ceil( this.z ) : Math.floor( this.z );
+		this.w = ( this.w < 0 ) ? Math.ceil( this.w ) : Math.floor( this.w );
+
+		return this;
+
+	}
+
+	negate() {
+
+		this.x = - this.x;
+		this.y = - this.y;
+		this.z = - this.z;
+		this.w = - this.w;
+
+		return this;
+
+	}
+
+	dot( v ) {
+
+		return this.x * v.x + this.y * v.y + this.z * v.z + this.w * v.w;
+
+	}
+
+	lengthSq() {
+
+		return this.x * this.x + this.y * this.y + this.z * this.z + this.w * this.w;
+
+	}
+
+	length() {
+
+		return Math.sqrt( this.x * this.x + this.y * this.y + this.z * this.z + this.w * this.w );
+
+	}
+
+	manhattanLength() {
+
+		return Math.abs( this.x ) + Math.abs( this.y ) + Math.abs( this.z ) + Math.abs( this.w );
+
+	}
+
+	normalize() {
+
+		return this.divideScalar( this.length() || 1 );
+
+	}
+
+	setLength( length ) {
+
+		return this.normalize().multiplyScalar( length );
+
+	}
+
+	lerp( v, alpha ) {
+
+		this.x += ( v.x - this.x ) * alpha;
+		this.y += ( v.y - this.y ) * alpha;
+		this.z += ( v.z - this.z ) * alpha;
+		this.w += ( v.w - this.w ) * alpha;
+
+		return this;
+
+	}
+
+	lerpVectors( v1, v2, alpha ) {
+
+		this.x = v1.x + ( v2.x - v1.x ) * alpha;
+		this.y = v1.y + ( v2.y - v1.y ) * alpha;
+		this.z = v1.z + ( v2.z - v1.z ) * alpha;
+		this.w = v1.w + ( v2.w - v1.w ) * alpha;
+
+		return this;
+
+	}
+
+	equals( v ) {
+
+		return ( ( v.x === this.x ) && ( v.y === this.y ) && ( v.z === this.z ) && ( v.w === this.w ) );
+
+	}
+
+	fromArray( array, offset = 0 ) {
+
+		this.x = array[ offset ];
+		this.y = array[ offset + 1 ];
+		this.z = array[ offset + 2 ];
+		this.w = array[ offset + 3 ];
+
+		return this;
+
+	}
+
+	toArray( array = [], offset = 0 ) {
+
+		array[ offset ] = this.x;
+		array[ offset + 1 ] = this.y;
+		array[ offset + 2 ] = this.z;
+		array[ offset + 3 ] = this.w;
+
+		return array;
+
+	}
+
+	fromBufferAttribute( attribute, index, offset ) {
+
+		if ( offset !== undefined ) {
+
+			console.warn( 'THREE.Vector4: offset has been removed from .fromBufferAttribute().' );
+
+		}
+
+		this.x = attribute.getX( index );
+		this.y = attribute.getY( index );
+		this.z = attribute.getZ( index );
+		this.w = attribute.getW( index );
+
+		return this;
+
+	}
+
+	random() {
+
+		this.x = Math.random();
+		this.y = Math.random();
+		this.z = Math.random();
+		this.w = Math.random();
+
+		return this;
+
+	}
+
+	*[ Symbol.iterator ]() {
+
+		yield this.x;
+		yield this.y;
+		yield this.z;
+		yield this.w;
+
+	}
+
+}
+
+Vector4.prototype.isVector4 = true;
+
 class View extends EventDispatcher {
 
     get clientWidth() {
@@ -4666,17 +5329,17 @@ function genNode(node, level)
         return code;
     }
     
-    let name = node["tagName"];
+    let name = node.tagName;
     code += `<${name}`;
     
-    let attributes = node["attributes"];
+    let attributes = node.attributes;
     for(let att in attributes)
     {
         let value = attributes[att];
         code+=` ${att}=\"${value}\"`;
     }
     
-    let children = node["children"];
+    let children = node.children;
     
     if (children.length<1)
     {
@@ -4704,9 +5367,9 @@ function genXML(nodes)
     let xml = "";
     for (let top of nodes)
     {
-        if (top["tagName"]=="?xml")
+        if (top.tagName =="?xml")
         {
-           let version = top["attributes"]["version"];
+           let version = top.attributes.version;
            xml += `<?xml version=\"${version}\"?>\n`;
         }
         else
@@ -4717,6 +5380,35 @@ function genXML(nodes)
     }
     return xml;
     
+}
+
+function uuid(len, radix) {
+    var chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
+    var uuid = [], i;
+    radix = radix || chars.length;
+ 
+    if (len) {
+      // Compact form
+      for (i = 0; i < len; i++) uuid[i] = chars[0 | Math.random()*radix];
+    } else {
+      // rfc4122, version 4 form
+      var r;
+ 
+      // rfc4122 requires these characters
+      uuid[8] = uuid[13] = uuid[18] = uuid[23] = '-';
+      uuid[14] = '4';
+ 
+      // Fill in random data.  At i==19 set the high bits of clock sequence as
+      // per rfc4122, sec. 4.1.5
+      for (i = 0; i < 36; i++) {
+        if (!uuid[i]) {
+          r = 0 | Math.random()*16;
+          uuid[i] = chars[(i == 19) ? (r & 0x3) | 0x8 : r];
+        }
+      }
+    }
+ 
+    return uuid.join('');
 }
 
 function string_to_boolean(string) {
@@ -4752,7 +5444,7 @@ const scene = {
 const camera = {
 	reset: (doc) => {
 		doc.camera = new PerspectiveCamera(45, doc.width / doc.height, 0.1, 100);
-		doc.camera.setPosition(0, 1.5, 0);
+		doc.camera.setPosition(0, 1.5, 5.0);
 	},
 
 	create: async (doc, props, mode, parent) => {
@@ -4770,7 +5462,7 @@ const control = {
 			doc.controls.dispose();
 		doc.controls = new OrbitControls(doc.camera, doc.view);
 		doc.controls.enableDamping = true;
-		doc.controls.target.set(0, 1.5, -1);
+		doc.controls.target.set(0, 1.5, 0);
 	},
 	create: async (doc, props, mode, parent) =>{
 		const type = props.type;
@@ -4968,9 +5660,7 @@ const env_light = {
 const group = {
 	create: async (doc, props, mode, parent) => {
 		const group = new Object3D();
-		if (props.hasOwnProperty('name')) {
-			group.name = props.name;
-		}
+		group.name = uuid();
 		if (parent != null) {
 			parent.add(group);
 		}
@@ -4989,10 +5679,7 @@ const plane = {
 				
 		const plane = new SimpleModel();
 		plane.createPlane(width, height);
-		
-		if (props.hasOwnProperty('name')) {
-			plane.name = props.name;
-		}
+		plane.name = uuid();
 
 		if (parent != null) {
 			parent.add(plane);
@@ -5013,11 +5700,8 @@ const box = {
 		const depth = parseFloat(size[2]);
 		
 		const box = new SimpleModel();
-		box.createBox(width, height, depth);		
-		
-		if (props.hasOwnProperty('name')) {
-			box.name = props.name;
-		}
+		box.createBox(width, height, depth);
+		box.name = uuid();
 
 		if (parent != null) {
 			parent.add(box);
@@ -5037,10 +5721,8 @@ const sphere = {
 		
 		const sphere = new SimpleModel();
 		sphere.createSphere(radius, widthSegments, heightSegments);
-	
-		if (props.hasOwnProperty('name')) {
-			sphere.name = props.name;
-		}
+		sphere.name = uuid();
+		
 		if (parent != null) {
 			parent.add(sphere);
 		}
@@ -5055,10 +5737,7 @@ const model = {
 	create: async (doc, props, mode, parent) => {
 		const url = props.src;
 		const model = gltfLoader.loadModelFromFile(url);
-		if (props.hasOwnProperty("name"))
-		{
-			model.name = props.name;
-		}
+		model.name = uuid();
 		if (parent != null) {
 			parent.add(model);
 		}
@@ -5068,6 +5747,14 @@ const model = {
 		return model;
 	}
 };
+
+const avatar = {
+	create: async (doc, props, mode, parent) => {
+	    let avatar = await model.create(doc, { ...props}, mode, parent);
+	    return avatar;
+	}
+};
+
 
 const directional_light = {
 	create: async (doc, props, mode, parent) => {
@@ -5118,7 +5805,8 @@ class Document
 		this.view = view;
 		this.width = view.clientWidth;
 		this.height = view.clientHeight;
-		this.Tags = { scene, camera, fog, sky, env_light, control, group, plane, box, sphere, model, directional_light };
+		this.Tags = { scene, camera, fog, sky, env_light, control, group, plane, box, sphere, model, avatar, directional_light };
+		this.hitable_tags = { plane, box, sphere, model, avatar };
 		this.reset();
 	}
 	
@@ -5137,6 +5825,9 @@ class Document
     reset() 
 	{
 	    this.saved_text = "";
+	    this.hitables = [];
+	    this.picked_obj = null;
+	    
 		for (let tag in this.Tags) 
 		{
 			if (this.Tags[tag].hasOwnProperty('reset')) 
@@ -5166,12 +5857,26 @@ class Document
 		}
 	}
 	
+	add_hitable_object(obj) {
+		this.hitables.push(obj);
+	}
+
+	remove_hitable_object(obj) {
+		for (let i = 0; i < this.hitables.length; i++) {
+			if (this.hitables[i] == obj) {
+				this.hitables.splice(i, 1);
+				i--;
+			}
+		}
+	}
+	
 	
 	async create(tag, props, mode, parent = null) 
 	{
 	    if (!(tag in this.Tags)) return null;
 	    
 		const obj = await this.Tags[tag].create(this, props, mode, parent);
+		if (obj == null) return null;
 		
 		if (props.hasOwnProperty('position')) 
 		{
@@ -5206,11 +5911,19 @@ class Document
 			obj.setColorTexture(img);
 		}
 		
+		if (tag in this.hitable_tags)
+		{
+		    this.add_hitable_object(obj);
+		}
+		
 		return obj;
 	}
 	
 	remove(obj)
 	{
+	    obj.traverse((child) => {
+			this.remove_hitable_object(child);
+		});
 		if (obj.parent) 
 		{
 			obj.parent.remove(obj);
@@ -5224,7 +5937,14 @@ class Document
 		}
 		for (let child of xmlNode.children) {			
 			const obj = await this.create(child.tagName, child.attributes, mode, parent);
+			
 			if (obj===null) continue;
+			
+			if (Object.isExtensible(obj))
+			{
+			    obj.xml_node = child;
+			}
+			
 			await this.load_xml_node(child, mode, obj);
 		}
 	}
@@ -5245,6 +5965,16 @@ class Document
 		{
 			await this.load_xml_node(root, mode);
 		}
+		
+		if (this.hitables.length>0)
+		{ 
+			this.bvh = new BoundingVolumeHierarchy(this.hitables);
+		}
+		else
+		{
+			this.bvh = null;
+		}
+		
 		this.saved_text = genXML(this.xml_nodes);
 	}
 	
@@ -5259,7 +5989,69 @@ class Document
 	    this.saved_text = genXML(this.xml_nodes);
 	    return this.saved_text;
 	}
+	
+	picking(state)
+	{
+	    if (state)
+	    {
+	        this.controls.enabled = false;
+	        view.addEventListener("pointerdown", picking_pointerdown);
+	    }
+	    else
+	    {
+	        this.controls.enabled = true;
+	        view.removeEventListener("pointerdown", picking_pointerdown);
+	    }
+	}
+	
+	pick_obj(obj)
+	{
+	    if (this.picked_obj != null)
+	    {
+	        this.picked_obj.setToonShading(0);
+	    }
+	    
+	    this.picked_obj = obj;
+	    
+	    if (obj!=null)
+	    {
+	        obj.setToonShading(16, 5.0, new Vector3(1.0, 1.0, 0.2));
+	    }
+	}
 
+}
+
+function picking_pointerdown(event)
+{
+    if (doc.bvh == null) return;
+    
+    let origin = doc.camera.getWorldPosition(new Vector3());
+    
+    let x = event.clientX;
+    let y = event.clientY;
+    
+    let clipX = (x/doc.width)*2.0 -1.0;
+    let clipY = 1.0 - (y/doc.height)*2.0;
+    
+    let pos = new Vector4(clipX, clipY, 0.0, 1.0);
+    
+    let matProjInv = doc.camera.getProjectionMatrixInverse(new Matrix4());
+    let matViewInv = doc.camera.getMatrixWorld(new Matrix4());
+    pos.applyMatrix4(matProjInv);
+    pos.applyMatrix4(matViewInv);
+    
+    let dir = new Vector3(pos.x/pos.w, pos.y/pos.w, pos.z/pos.w);
+    dir.sub(origin);
+    dir.normalize();
+
+    let intersect = doc.bvh.intersect({origin: origin, direction: dir});
+    if (intersect!=null)
+    {
+        let name = intersect.name;
+        let obj = doc.scene.getObjectByName(name);
+        doc.pick_obj(obj);
+    }
+    
 }
 
 class Clock {
@@ -5346,14 +6138,19 @@ function getXML(x)
     return doc.get_xml();
 }
 
+function picking(state)
+{
+    let bstate = state=="on";
+    doc.picking(bstate);
+}
+
 function init(width, height)
 {
     renderer = new GLRenderer();
     doc = new Document(view);
     clock = new Clock();
     
-    message_map = { isModified, setXML, getXML };
-
+    message_map = { isModified, setXML, getXML, picking };
 }
 
 function render(width, height, size_changed)

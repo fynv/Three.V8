@@ -59,5 +59,5 @@ public:
 
 	void updateAnimation();
 
-	void set_toon_shading(int mode, float wire_width);
+	void set_toon_shading(int mode, float wire_width, const glm::vec3& wire_color);
 };
