@@ -25,13 +25,25 @@ function picking(state)
     doc.picking(bstate);
 }
 
+function tuning(args)
+{
+    doc.tuning(args);
+    return "";
+}
+
+function generate(x)
+{
+    doc.generate();
+    return "";
+}
+
 function init(width, height)
 {
     renderer = new GLRenderer();
     doc = new Document(view);
     clock = new Clock();
     
-    message_map = { isModified, setXML, getXML, picking };
+    message_map = { isModified, setXML, getXML, picking, tuning, generate};
 }
 
 function render(width, height, size_changed)

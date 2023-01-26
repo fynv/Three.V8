@@ -1,3 +1,4 @@
+#include <cstring>
 #include "ImageSaver.h"
 #include "utils/Image.h"
 
@@ -6,7 +7,14 @@
 
 void ImageSaver::SaveFile(const Image* image, const char* fn)
 {
-	stbi_write_png(fn, image->width(), image->height(), 4, image->data(), image->width() * 4);
+	if (strlen(fn) > 4 && strcmp(fn + strlen(fn) - 4, ".jpg") == 0)
+	{
+		stbi_write_jpg(fn, image->width(), image->height(), 4, image->data(), 80);
+	}
+	else
+	{
+		stbi_write_png(fn, image->width(), image->height(), 4, image->data(), image->width() * 4);
+	}
 }
 
 

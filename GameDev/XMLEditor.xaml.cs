@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 using System.Windows;
 using Microsoft.Win32;
 using CLRBinding;
+using Newtonsoft.Json.Linq;
 
 namespace GameDev
 {
@@ -46,6 +47,7 @@ namespace GameDev
             string exe_name = Process.GetCurrentProcess().ProcessName;
             game_player = new CGamePlayer(exe_name, glControl);
             game_player.SetPrintCallbacks(print_std, print_err);
+            game_player.AddUserMessageHandler("object_picked", object_picked);
 
             string local_path = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
             game_player.LoadScript($"{local_path}\\xmleditor\\bundle_index.js", resource_root);
@@ -464,6 +466,28 @@ namespace GameDev
         private void btn_picking_Unchecked(object sender, RoutedEventArgs e)
         {
             game_player.SendMessageToUser("picking", "off");
+        }
+
+        private string object_picked(string json_str)
+        {
+            property_area.Children.Clear();
+            if (json_str != "")
+            {
+                var picked_obj = JObject.Parse(json_str);
+                string tag = picked_obj["tagName"].ToString();
+                if (tag == "env_light")
+                {
+                    string type = picked_obj["attributes"]["type"].ToString();
+                    if (type == "cube")
+                    {
+                        var tuner = new EnvMapTuner(game_player, picked_obj);
+                        property_area.Children.Add(tuner);
+                    }
+
+                }
+
+            }
+            return "";
         }
     }
 }

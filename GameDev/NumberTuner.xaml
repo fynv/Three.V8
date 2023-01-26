@@ -1,0 +1,15 @@
+﻿<UserControl x:Class="GameDev.NumberTuner"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:GameDev"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <StackPanel Orientation="Horizontal">
+        <Button x:Name="btn_decr" Click="btn_decr_Click">⏴</Button>
+        <TextBox x:Name="text" Width="50" LostFocus="text_LostFocus" KeyDown="text_KeyDown">0.0</TextBox>
+        <Button x:Name="btn_incr" Click="btn_incr_Click">⏵</Button>
+
+    </StackPanel>
+</UserControl>
