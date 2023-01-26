@@ -15,9 +15,14 @@
         </Grid.ColumnDefinitions>
         <WindowsFormsHost x:Name="wf_host"/>
         <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch"/>
-        <local:HackedTabControl Grid.Column="2">
+        <local:HackedTabControl x:Name="tab" Grid.Column="2" SelectionChanged="tab_SelectionChanged">
             <TabItem Header="Code">
-                <wv2:WebView2 Name="webView"/>
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+                        <Button x:Name="btn_apply" Padding="5" Click="btn_apply_Click">⇐Apply</Button>
+                    </StackPanel>
+                    <wv2:WebView2 Name="webView"/>
+                </DockPanel>
             </TabItem>
             <TabItem Header="Knobs">
             </TabItem>

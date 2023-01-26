@@ -147,8 +147,7 @@ static void UIElementPointerCallback(float x, float y, void* ptr)
 	v8::HandleScope handle_scope(isolate);
 	v8::Local<v8::Context> context = ctx->m_context.Get(isolate);
 	v8::Context::Scope context_scope(context);
-	v8::Local<v8::Function> callback = data->callback.Get(isolate);
-	v8::Local<v8::Object> global = context->Global();
+	v8::Local<v8::Function> callback = data->callback.Get(isolate);	
 	std::vector<v8::Local<v8::Value>> args(2);
 	args[0] = v8::Number::New(isolate, (double)x);
 	args[1] = v8::Number::New(isolate, (double)y);	

@@ -17,6 +17,10 @@ namespace GameDev
     /// </summary>
     public partial class XMLEditor : UserControl, Editor
     {
+        private bool changed_cache = false;
+        private string text_cache = "";
+        private int cur_tab = 0;
+
         private string file_path;
 
         private CGLControl glControl = null;
@@ -199,8 +203,7 @@ namespace GameDev
         private void _doc_open(string filename)
         {
             string text = File.ReadAllText(filename, Encoding.UTF8);
-            SetText(text);
-            game_player.SendMessageToUser("setXML", text);            
+            SetText(text);                        
         }
 
         public async Task<string> doc_save_as()
@@ -229,7 +232,7 @@ namespace GameDev
                 var result = MessageBox.Show("File has been modified. Save it?", "Save file", MessageBoxButton.YesNoCancel);
                 if (result == MessageBoxResult.Yes)
                 {
-                    doc_save();
+                    await doc_save();
                     return true;
                 }
                 else if (result == MessageBoxResult.No)
@@ -256,74 +259,201 @@ namespace GameDev
 
         }
 
-
-        private async Task<bool> TextChanged()
+        private async Task<bool> TextChanged_code()
         {
             string response = await webView.ExecuteScriptAsync("doc_modified()");
             return (bool)JsonConvert.DeserializeObject(response);
         }
 
-        private async Task<string> GetText()
+        private bool TextChanged_gl()
         {
-            string response = await webView.ExecuteScriptAsync("doc_get_text()");
-            return JsonConvert.DeserializeObject(response).ToString();
+            string ret = game_player.SendMessageToUser("isModified", "");
+            return (bool)JsonConvert.DeserializeObject(ret);
         }
 
-        private async void SetText(string text)
+        private async Task<bool> TextChanged()
+        {
+            if (changed_cache) return true;
+            if (cur_tab == 0)
+            {
+                return await TextChanged_code();
+            }
+            else
+            {
+                return TextChanged_gl();
+            }
+        }
+
+        private async Task<string> GetText_code()
+        {
+            bool changed = await TextChanged_code();
+            if (changed)
+            {
+                string response = await webView.ExecuteScriptAsync("doc_get_text()");
+                text_cache = JsonConvert.DeserializeObject(response).ToString();
+                changed_cache = true;
+            }
+            return text_cache;
+        }
+
+        private string GetText_gl()
+        {
+            bool changed = TextChanged_gl();
+            if (changed)
+            {
+                text_cache = game_player.SendMessageToUser("getXML", "");
+                changed_cache = true;
+            }
+            return text_cache;
+        }
+
+        private async Task<string> GetText()
+        {
+            if (cur_tab == 0)
+            {
+                await GetText_code();
+                SetText_gl(text_cache);
+            }
+            else
+            {
+                GetText_gl();
+            }
+            changed_cache = false;
+            return text_cache;
+        }
+
+        private async Task SetText_code(string text)
         {
             string para = JsonConvert.SerializeObject(text);
             await webView.ExecuteScriptAsync($"doc_set_text({para})");
         }
 
+        private void SetText_gl(string text)
+        {
+            _ = game_player.SendMessageToUser("setXML", text);
+        }
+
+        private async void SetText(string text)
+        {
+            text_cache = text;
+            changed_cache = false;
+            await SetText_code(text);
+            SetText_gl(text);
+        }
+
 
         public void undo()
         {
-            webView.ExecuteScriptAsync("editor.execCommand('undo');");
+            if (cur_tab == 0)
+            {
+                webView.ExecuteScriptAsync("editor.execCommand('undo');");
+            }
         }
 
         public void redo()
         {
-            webView.ExecuteScriptAsync("editor.execCommand('redo');");
+            if (cur_tab == 0)
+            {
+                webView.ExecuteScriptAsync("editor.execCommand('redo');");
+            }
         }
 
         public void comment()
         {
-            webView.ExecuteScriptAsync("editor.execCommand('togglecomment');");
+            if (cur_tab == 0)
+            {
+                webView.ExecuteScriptAsync("editor.execCommand('togglecomment');");
+            }
         }
 
         public void upper()
         {
-            webView.ExecuteScriptAsync("editor.execCommand('touppercase');");
+            if (cur_tab == 0)
+            {
+                webView.ExecuteScriptAsync("editor.execCommand('touppercase');");
+            }
         }
 
         public void lower()
         {
-            webView.ExecuteScriptAsync("editor.execCommand('tolowercase');");
+            if (cur_tab == 0)
+            {
+                webView.ExecuteScriptAsync("editor.execCommand('tolowercase');");
+            }
         }
 
         public void find()
         {
-            webView.ExecuteScriptAsync("editor.execCommand('find');");
+            if (cur_tab == 0)
+            {
+                webView.ExecuteScriptAsync("editor.execCommand('find');");
+            }
         }
 
         public void findnext()
         {
-            webView.ExecuteScriptAsync("editor.execCommand('findnext');");
+            if (cur_tab == 0)
+            {
+                webView.ExecuteScriptAsync("editor.execCommand('findnext');");
+            }
         }
 
         public void findprev()
         {
-            webView.ExecuteScriptAsync("editor.execCommand('findprevious');");
+            if (cur_tab == 0)
+            {
+                webView.ExecuteScriptAsync("editor.execCommand('findprevious');");
+            }
         }
 
         public void replace()
         {
-            webView.ExecuteScriptAsync("editor.execCommand('replace');");
+            if (cur_tab == 0)
+            {
+                webView.ExecuteScriptAsync("editor.execCommand('replace');");
+            }
         }
 
         public void gotoline()
         {
-            webView.ExecuteScriptAsync("editor.execCommand('gotoline');");
+            if (cur_tab == 0)
+            {
+                webView.ExecuteScriptAsync("editor.execCommand('gotoline');");
+            }
+        }
+
+        private async void tab_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (tab.SelectedIndex == cur_tab) return;
+            
+            if (cur_tab == 0)
+            {
+                if (await TextChanged_code())
+                {
+                    if (MessageBox.Show($"Code has changed, apply it to view?", "Apply changes", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                    {
+                        await GetText_code();
+                        SetText_gl(text_cache);
+                    }
+                }
+                
+            }
+            else
+            {
+                if (TextChanged_gl())
+                {
+                    GetText_gl();                    
+                }
+                await SetText_code(text_cache);
+            }
+            
+            cur_tab = tab.SelectedIndex;
+        }
+
+        private async void btn_apply_Click(object sender, RoutedEventArgs e)
+        {
+            await GetText_code();
+            SetText_gl(text_cache);
         }
     }
 }

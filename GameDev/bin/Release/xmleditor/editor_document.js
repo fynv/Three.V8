@@ -422,6 +422,7 @@ export class Document
 
     reset() 
 	{
+	    this.saved_text = "";
 		for (let tag in this.Tags) 
 		{
 			if (this.Tags[tag].hasOwnProperty('reset')) 
@@ -530,11 +531,19 @@ export class Document
 		{
 			await this.load_xml_node(root, mode);
 		}
+		this.saved_text = genXML(this.xml_nodes);
+	}
+	
+	is_modified()
+	{
+	    let gen_xml = genXML(this.xml_nodes);
+	    return gen_xml != this.saved_text;
 	}
 	
 	get_xml()
 	{
-	    return genXML(this.xml_nodes);
+	    this.saved_text = genXML(this.xml_nodes);
+	    return this.saved_text;
 	}
 
 }

@@ -2,18 +2,19 @@
 import { Clock } from "./utils/Clock.js";
 import { view } from "./view.js";
 
-function set_xml(xml)
+function isModified(x)
+{
+    return JSON.stringify(doc.is_modified());
+}
+
+function setXML(xml)
 {
     doc.reset();
     doc.load_xml(xml, "local");
-    
-    let rexml = doc.get_xml();
-    print(rexml);
-    
     return "";
 }
 
-function get_xml(x)
+function getXML(x)
 {
     return doc.get_xml();
 }
@@ -24,10 +25,7 @@ function init(width, height)
     doc = new Document(view);
     clock = new Clock();
     
-    message_map = { 
-        "setXML": set_xml,
-        "getXML": get_xml,
-    };
+    message_map = { isModified, setXML, getXML };
 
 }
 
