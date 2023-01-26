@@ -251,18 +251,18 @@ void WrapperUI3DViewer::SetSize(const v8::FunctionCallbackInfo<v8::Value>& info)
 static void UI3DViewerRenderCallback(int width, int height, bool size_changed, void* ptr)
 {
 	UI3DViewerCallbackData* data = (UI3DViewerCallbackData*)ptr;
-	GameContext* ctx = data->ctx;
+	GameContext* ctx = data->ctx;	
 	v8::Isolate* isolate = ctx->m_vm->m_isolate;
 	v8::HandleScope handle_scope(isolate);
 	v8::Local<v8::Context> context = ctx->m_context.Get(isolate);
 	v8::Context::Scope context_scope(context);
 	v8::Local<v8::Function> callback = data->callback.Get(isolate);	
-	v8::Local<v8::Object> global = context->Global();
 	std::vector<v8::Local<v8::Value>> args(3);
 	args[0] = v8::Number::New(isolate, (double)width);
 	args[1] = v8::Number::New(isolate, (double)height);
 	args[2] = v8::Boolean::New(isolate, size_changed);
-	callback->Call(context, global, 3, args.data());
+	ctx->InvokeCallback(*callback, args);
+	
 }
 
 void WrapperUI3DViewer::GetOnRender(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
@@ -316,11 +316,10 @@ static void UI3DViewerMouseCallback(int button, int clicks, int delta, int x, in
 	v8::HandleScope handle_scope(isolate);
 	v8::Local<v8::Context> context = ctx->m_context.Get(isolate);
 	v8::Context::Scope context_scope(context);
-	v8::Local<v8::Function> callback = data->callback.Get(isolate);	
-	v8::Local<v8::Object> global = context->Global();
+	v8::Local<v8::Function> callback = data->callback.Get(isolate);		
 	std::vector<v8::Local<v8::Value>> args(1);
 	args[0] = g_CreateMouseEvent(isolate, context, button, clicks, delta, x, y);
-	callback->Call(context, global, 1, args.data());
+	ctx->InvokeCallback(*callback, args);
 }
 
 void WrapperUI3DViewer::GetOnMouseDown(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
@@ -464,11 +463,10 @@ static void UI3DViewerTouchCallback(int pointerId, float x, float y, void* ptr)
 	v8::HandleScope handle_scope(isolate);
 	v8::Local<v8::Context> context = ctx->m_context.Get(isolate);
 	v8::Context::Scope context_scope(context);
-	v8::Local<v8::Function> callback = data->callback.Get(isolate);	
-	v8::Local<v8::Object> global = context->Global();
+	v8::Local<v8::Function> callback = data->callback.Get(isolate);		
 	std::vector<v8::Local<v8::Value>> args(1);
 	args[0] = g_CreateTouchEvent(isolate, context, pointerId, x, y);
-	callback->Call(context, global, 1, args.data());
+	ctx->InvokeCallback(*callback, args);
 }
 
 void WrapperUI3DViewer::GetOnTouchDown(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)

@@ -260,9 +260,12 @@ std::string GamePlayer::SendMessageToUser(const char* name, const char* msg)
 		std::vector<v8::Local<v8::Value>> args(2);
 		args[0] = v8::String::NewFromUtf8(isolate, name).ToLocalChecked();
 		args[1] = v8::String::NewFromUtf8(isolate, msg).ToLocalChecked();
-		v8::Local<v8::Value> res = m_context->InvokeCallback(callback_init, args).ToLocalChecked();
-		v8::String::Utf8Value str(isolate, res);
-		return *str;
+		v8::Local<v8::Value> res;
+		if (m_context->InvokeCallback(callback_init, args).ToLocal(&res))
+		{
+			v8::String::Utf8Value str(isolate, res);
+			return *str;
+		}
 	}
 	return "";
 }

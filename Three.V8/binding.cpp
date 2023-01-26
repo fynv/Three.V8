@@ -415,9 +415,15 @@ v8::Function* GameContext::GetCallback(const char* name)
 v8::MaybeLocal<v8::Value> GameContext::InvokeCallback(v8::Function* callback, const std::vector<v8::Local<v8::Value>>& args)
 {
 	v8::Isolate* isolate = m_vm->m_isolate;
+	v8::TryCatch try_catch(isolate);
 	v8::Local<v8::Context> context = isolate->GetCurrentContext();
 	v8::Local<v8::Object> global = context->Global();	
-	return callback->Call(context, global, (int)args.size(), (v8::Local<v8::Value>*)args.data());
+	v8::Local<v8::Value> ret;
+	if (!callback->Call(context, global, (int)args.size(), (v8::Local<v8::Value>*)args.data()).ToLocal(&ret))	
+	{		
+		_report_exception(&try_catch);		
+	}
+	return ret;
 }
 
 void GameContext::Now(const v8::FunctionCallbackInfo<v8::Value>& args)

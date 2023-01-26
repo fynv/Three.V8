@@ -79,13 +79,12 @@ static void AVCRecorderCallback(const void* msg_data, size_t msg_size, void* ptr
 	v8::Local<v8::Context> context = ctx->m_context.Get(isolate);
 	v8::Context::Scope context_scope(context);
 	v8::Local<v8::Function> callback = data->callback.Get(isolate);
-	v8::Local<v8::Object> global = context->Global();
 
 	v8::Local<v8::ArrayBuffer> buf = v8::ArrayBuffer::New(isolate, msg_size);
 	memcpy(buf->GetBackingStore()->Data(), msg_data, msg_size);
 
-	std::vector<v8::Local<v8::Value>> args = { buf };
-	callback->Call(context, global, 1, args.data());
+	std::vector<v8::Local<v8::Value>> args = { buf };	
+	ctx->InvokeCallback(*callback, args);
 }
 
 

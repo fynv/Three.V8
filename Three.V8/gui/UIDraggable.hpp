@@ -241,12 +241,11 @@ static void UIDragCallback(void* ptr, const glm::vec2& value)
 	v8::HandleScope handle_scope(isolate);
 	v8::Local<v8::Context> context = ctx->m_context.Get(isolate);
 	v8::Context::Scope context_scope(context);
-	v8::Local<v8::Function> callback = data->callback.Get(isolate);
-	v8::Local<v8::Object> global = context->Global();
+	v8::Local<v8::Function> callback = data->callback.Get(isolate);	
 	std::vector<v8::Local<v8::Value>> args(2);
 	args[0] = v8::Number::New(isolate, (double)value.x);
-	args[1] = v8::Number::New(isolate, (double)value.y);
-	callback->Call(context, global, 2, args.data());
+	args[1] = v8::Number::New(isolate, (double)value.y);	
+	ctx->InvokeCallback(*callback, args);
 }
 
 void WrapperUIDraggable::GetOnDrag(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)

@@ -104,8 +104,9 @@ static void WSClientOpenCallback(void* ptr)
 	v8::Local<v8::Context> context = ctx->m_context.Get(isolate);
 	v8::Context::Scope context_scope(context);
 	v8::Local<v8::Function> callback = data->callback.Get(isolate);
-	v8::Local<v8::Object> global = context->Global();
-	callback->Call(context, global, 0, nullptr);
+	std::vector<v8::Local<v8::Value>> args;
+	ctx->InvokeCallback(*callback, args);
+	
 }
 
 
@@ -147,22 +148,21 @@ static void WSClientMessageCallback(const void* msg_data, size_t msg_size, bool 
 	v8::HandleScope handle_scope(isolate);
 	v8::Local<v8::Context> context = ctx->m_context.Get(isolate);
 	v8::Context::Scope context_scope(context);
-	v8::Local<v8::Function> callback = data->callback.Get(isolate);
-	v8::Local<v8::Object> global = context->Global();
+	v8::Local<v8::Function> callback = data->callback.Get(isolate);	
 
 	if (is_binary)
 	{
 		v8::Local<v8::ArrayBuffer> buf = v8::ArrayBuffer::New(isolate, msg_size);
 		memcpy(buf->GetBackingStore()->Data(), msg_data, msg_size);
-
-		std::vector<v8::Local<v8::Value>> args = { buf };
-		callback->Call(context, global, 1, args.data());
+		std::vector<v8::Local<v8::Value>> args = { buf };		
+		ctx->InvokeCallback(*callback, args);
+		
 	}
 	else
 	{
 		v8::Local<v8::String> str = v8::String::NewFromUtf8(isolate, (const char*)msg_data, v8::NewStringType::kNormal, (int)msg_size).ToLocalChecked();
 		std::vector<v8::Local<v8::Value>> args = { str };
-		callback->Call(context, global, 1, args.data());
+		ctx->InvokeCallback(*callback, args);
 	}
 }
 

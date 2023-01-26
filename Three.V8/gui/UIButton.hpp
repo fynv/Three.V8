@@ -111,8 +111,8 @@ static void UIButtonClickCallback(void* ptr)
 	v8::Local<v8::Context> context = ctx->m_context.Get(isolate);
 	v8::Context::Scope context_scope(context);
 	v8::Local<v8::Function> callback = data->callback.Get(isolate);	
-	v8::Local<v8::Object> global = context->Global();
-	callback->Call(context, global, 0, nullptr);
+	std::vector<v8::Local<v8::Value>> args;
+	ctx->InvokeCallback(*callback, args);
 }
 
 void WrapperUIButton::GetOnClick(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)

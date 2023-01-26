@@ -149,11 +149,10 @@ static void UIElementPointerCallback(float x, float y, void* ptr)
 	v8::Context::Scope context_scope(context);
 	v8::Local<v8::Function> callback = data->callback.Get(isolate);
 	v8::Local<v8::Object> global = context->Global();
-
 	std::vector<v8::Local<v8::Value>> args(2);
 	args[0] = v8::Number::New(isolate, (double)x);
 	args[1] = v8::Number::New(isolate, (double)y);	
-	callback->Call(context, global, 2, args.data());
+	ctx->InvokeCallback(*callback, args);
 }
 
 void WrapperUIElement::GetOnPointerDown(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
