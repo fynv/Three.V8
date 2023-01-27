@@ -515,7 +515,8 @@ namespace GameDev
                 return;
             }
 
-            TabItem tabItem = (TabItem)((StackPanel)tb.Parent).Parent;
+            TabItem tabItem = ((StackPanel)tb.Parent).Parent as TabItem;
+            if (tabItem == null) return;
 
             if (Mouse.PrimaryDevice.LeftButton == MouseButtonState.Pressed)
             {

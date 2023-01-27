@@ -11,6 +11,8 @@ using System.Windows;
 using Microsoft.Win32;
 using CLRBinding;
 using Newtonsoft.Json.Linq;
+using System.Windows.Media.Imaging;
+using System.Windows.Media;
 
 namespace GameDev
 {
@@ -482,6 +484,27 @@ namespace GameDev
             scene_graph.IsEnabled = true;
         }
 
+        private StackPanel create_item(string name, string icon_name, int icon_size = 24)
+        {
+            var panel = new StackPanel();
+            panel.Orientation = Orientation.Horizontal;
+
+            var icon_image = new BitmapImage(new Uri($"pack://application:,,,/Icons/{icon_name}"));
+            var icon = new Image();
+            icon.Source = icon_image;
+            RenderOptions.SetBitmapScalingMode(icon, BitmapScalingMode.HighQuality);
+            icon.Width = icon_size;
+            icon.Height = icon_size;
+            panel.Children.Add(icon);
+
+            var label = new TextBlock();
+            label.VerticalAlignment = VerticalAlignment.Center;
+            label.Text = name;
+            label.Margin = new Thickness(5.0);
+            panel.Children.Add(label);
+            return panel;
+        }
+
         private void update_index_item(TreeViewItem item, JObject obj)
         {
             JObject dict = (JObject)index["index"];
@@ -503,7 +526,58 @@ namespace GameDev
                 {
                     name = tagName;
                 }
-                subitem.Header = name;
+
+                string icon_name = "object3d.png";
+                if (tagName == "camera")
+                {
+                    icon_name = "camera.png";
+                }
+                else if (tagName == "fog")
+                {
+                    icon_name = "fog.png";
+                }
+                else if (tagName == "sky")
+                {
+                    icon_name = "sky.png";
+                }
+                else if (tagName == "env_light")
+                {
+                    icon_name = "env_light.png";
+                }
+                else if (tagName == "control")
+                {
+                    icon_name = "control.png";
+                }
+                else if (tagName == "group")
+                {
+                    icon_name = "group.png";
+                }
+                else if (tagName == "plane")
+                {
+                    icon_name = "plane.png";
+                }
+                else if (tagName == "box")
+                {
+                    icon_name = "box.png";
+                }
+                else if (tagName == "sphere")
+                {
+                    icon_name = "sphere.png";
+                }
+                else if (tagName == "model")
+                {
+                    icon_name = "model.png";
+                }
+                else if (tagName == "avatar")
+                {
+                    icon_name = "avatar.png";
+                }
+                else if (tagName == "directional_light")
+                {
+                    icon_name = "directional_light.png";
+                }
+
+                subitem.Header = create_item(name, icon_name);
                 item.Items.Add(subitem);
                 update_index_item(subitem, child);
             }
@@ -533,7 +607,7 @@ namespace GameDev
             {
                 name = tagName;
             }
-            item.Header = name;
+            item.Header = create_item(name, "scene.png");
             scene_graph.Items.Add(item);
             update_index_item(item, root);
         }

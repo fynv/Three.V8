@@ -207,5 +207,45 @@
       <EmbedInteropTypes>True</EmbedInteropTypes>
     </COMReference>
   </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\scene.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\camera.png" />
+    <Resource Include="Icons\object3d.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\fog.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\sky.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\env_light.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\directional_light.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\control.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\group.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\plane.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\box.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\sphere.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\model.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\avatar.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
