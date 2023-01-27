@@ -5737,12 +5737,13 @@ const env_light = {
     tuning: (doc, obj, args) => {
         let input = JSON.parse(args);
         let node = obj.xml_node;
-        if (node.attributes.type == "cube")
+        let props = node.attributes;
+        if (props.type == "cube")
         {
             if ("probe_position" in input)
             {
                 let probe_position = input.probe_position;
-                node.attributes.probe_position = probe_position;
+                props.probe_position = probe_position;
                 let position = probe_position.split(',');
                 obj.setPosition(parseFloat(position[0]), parseFloat(position[1]), parseFloat(position[2]));
             }
@@ -5750,47 +5751,47 @@ const env_light = {
             let reload = false;
             if ("path" in input)
             {
-                node.attributes.path = input.path;
+                props.path = input.path;
                 reload = true;
             }
             if ("posx" in input)
             {
-                node.attributes.posx = input.posx;
+                props.posx = input.posx;
                 reload = true;
             }
             if ("negx" in input)
             {
-                node.attributes.negx = input.negx;
+                props.negx = input.negx;
                 reload = true;
             }
             if ("posy" in input)
             {
-                node.attributes.posy = input.posy;
+                props.posy = input.posy;
                 reload = true;
             }
             if ("negy" in input)
             {
-                node.attributes.negy = input.negy;
+                props.negy = input.negy;
                 reload = true;
             }
             if ("posz" in input)
             {
-                node.attributes.posz = input.posz;
+                props.posz = input.posz;
                 reload = true;
             }
             if ("negz" in input)
             {
-                node.attributes.negz = input.negz;
+                props.negz = input.negz;
                 reload = true;
             }
             if (reload)
             {
-                const url = input.path;
+                const url = props.path;
     
                 let cube_img = imageLoader.loadCubeFromFile(
-                    url+"/"+input.posx, url+"/"+input.negx, 
-                    url+"/"+input.posy, url+"/"+input.negy, 
-                    url+"/"+input.posz, url+"/"+input.negz);
+                    url+"/"+props.posx, url+"/"+props.negx, 
+                    url+"/"+props.posy, url+"/"+props.negy, 
+                    url+"/"+props.posz, url+"/"+props.negz);
                     
                 let envLight = null;
                 if (cube_img!=null)
@@ -5806,7 +5807,8 @@ const env_light = {
     
     generate: (doc, obj) =>{
         let node = obj.xml_node;
-        if (node.attributes.type == "cube")
+        let props = node.attributes;
+        if (props.type == "cube")
         {
             doc.env_gen = new EnvMapGen(doc, obj, node);
         }
