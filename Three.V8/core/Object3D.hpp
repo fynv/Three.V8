@@ -14,6 +14,9 @@ private:
 	static void GetName(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void SetName(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
 
+	static void GetUuid(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void SetUuid(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
+
 	static void GetParent(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void SetParent(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
 	static void GetChildren(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
@@ -88,6 +91,7 @@ v8::Local<v8::FunctionTemplate> WrapperObject3D::create_template(v8::Isolate* is
 	templ->InstanceTemplate()->Set(isolate, "dispose", v8::FunctionTemplate::New(isolate, GeneralDispose));
 
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "name").ToLocalChecked(), GetName, SetName);
+	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "uuid").ToLocalChecked(), GetUuid, SetUuid);
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "parent").ToLocalChecked(), GetParent, SetParent);
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "children").ToLocalChecked(), GetChildren, 0);
 
@@ -168,7 +172,6 @@ void WrapperObject3D::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 	lctx.ctx()->regiter_object(info.This(), dtor);
 }
 
-
 void WrapperObject3D::GetName(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
 	LocalContext lctx(info);	
@@ -183,6 +186,23 @@ void WrapperObject3D::SetName(v8::Local<v8::String> property, v8::Local<v8::Valu
 	Object3D* self = lctx.self<Object3D>();
 	self->name = lctx.jstr_to_str(value);
 }
+
+
+void WrapperObject3D::GetUuid(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	Object3D* self = lctx.self<Object3D>();
+	info.GetReturnValue().Set(lctx.str_to_jstr(self->uuid.c_str()));
+}
+
+void WrapperObject3D::SetUuid(v8::Local<v8::String> property, v8::Local<v8::Value> value,
+	const v8::PropertyCallbackInfo<void>& info)
+{
+	LocalContext lctx(info);
+	Object3D* self = lctx.self<Object3D>();
+	self->uuid = lctx.jstr_to_str(value);
+}
+
 
 void WrapperObject3D::GetParent(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {

@@ -360,7 +360,7 @@ const env_light = {
     
     tuning: (doc, obj, args) => {
         let input = JSON.parse(args);
-        let node = doc.internal_index[obj.name].xml_node;
+        let node = doc.internal_index[obj.uuid].xml_node;
         let props = node.attributes;
         if (props.type == "cube")
         {
@@ -431,7 +431,7 @@ const env_light = {
     },
     
     generate: (doc, obj) =>{
-        let node = doc.internal_index[obj.name].xml_node;
+        let node = doc.internal_index[obj.uuid].xml_node;
         let props = node.attributes;
         if (props.type == "cube")
         {
@@ -671,7 +671,12 @@ export class Document
         const obj = await this.Tags[tag].create(this, props, mode, parent);
         if (obj == null) return null;
         
-        obj.name = uuid();
+        obj.uuid = uuid();
+        
+        if (props.hasOwnProperty('name')) 
+        {
+            obj.name = props.name;
+        }
         
         if (props.hasOwnProperty('position')) 
         {
@@ -739,7 +744,7 @@ export class Document
             }
             if (obj===null) continue;
             
-            let key = obj.name;
+            let key = obj.uuid;
             
             let internal_node = {};
             internal_node.obj = obj;
@@ -757,8 +762,8 @@ export class Document
             }
             else if (parent!=null)
             {
-                let parent_key = parent.name;
-                let external_node_parent = this.external_index.index[parent.name];
+                let parent_key = parent.uuid;
+                let external_node_parent = this.external_index.index[parent.uuid];
                 external_node.parent = parent_key;
                 external_node_parent.children.push(key);
             }
@@ -850,7 +855,7 @@ export class Document
             {
                 obj.setToonShading(16, 5.0, new Vector3(1.0, 1.0, 0.2));
             }
-            gamePlayer.message("object_picked", obj.name);
+            gamePlayer.message("object_picked", obj.uuid);
         }
         else
         {
@@ -863,7 +868,7 @@ export class Document
         if (this.picked_obj==null) return;
         
         let input = JSON.parse(args);
-        let node = this.internal_index[this.picked_obj.name].xml_node;
+        let node = this.internal_index[this.picked_obj.uuid].xml_node;
         let tag = node.tagName;
         
         if (!(tag in this.Tags)) return;
@@ -873,7 +878,7 @@ export class Document
     generate()
     {
         if (this.picked_obj==null) return;
-        let node = this.internal_index[this.picked_obj.name].xml_node;
+        let node = this.internal_index[this.picked_obj.uuid].xml_node;
         let tag = node.tagName;
         
         if (!(tag in this.Tags)) return;
@@ -907,11 +912,15 @@ function picking_pointerdown(event)
     let intersect = doc.bvh.intersect({origin: origin, direction: dir});
     if (intersect!=null)
     {
-        doc.pick_obj(intersect.name);
+        doc.pick_obj(intersect.uuid);
+    }
+    else if (doc.scene.background!=null)
+    {
+        doc.pick_obj(doc.scene.background.uuid);
     }
     else
     {
-        doc.pick_obj("");
+        doc.pick_obj(doc.scene.uuid);
     }
     
 }

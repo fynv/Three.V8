@@ -97,7 +97,9 @@ void WrappeBoundingVolumeHierarchy::Intersect(const v8::FunctionCallbackInfo<v8:
 	if (intersection.has_value())
 	{	
 		v8::Local<v8::String> name = lctx.str_to_jstr(intersection->object->name.c_str());
+		v8::Local<v8::String> uuid = lctx.str_to_jstr(intersection->object->uuid.c_str());
 		lctx.set_property(ret, "name", name);
+		lctx.set_property(ret, "uuid", uuid);
 		lctx.set_property(ret, "distance", lctx.num_to_jnum(intersection->distance()));
 		info.GetReturnValue().Set(ret);		
 	}

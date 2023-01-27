@@ -12,6 +12,7 @@ public:
 	virtual ~Object3D();
 
 	std::string name;
+	std::string uuid; // for editor
 	Object3D* parent = nullptr;
 	std::vector<Object3D*> children;
 
