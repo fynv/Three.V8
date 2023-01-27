@@ -23,6 +23,13 @@ function picking(state)
 {
     let bstate = state=="on";
     doc.picking(bstate);
+    return "";
+}
+
+function pick_obj(key)
+{
+    doc.pick_obj(key);
+    return "";
 }
 
 function tuning(args)
@@ -43,7 +50,7 @@ function init(width, height)
     doc = new Document(view);
     clock = new Clock();
     
-    message_map = { isModified, setXML, getXML, picking, tuning, generate};
+    message_map = { isModified, setXML, getXML, picking, pick_obj, tuning, generate};
 }
 
 function render(width, height, size_changed)

@@ -5702,7 +5702,6 @@ const env_light = {
         {
             const proxy = new SimpleModel();
             proxy.createBox(0.3, 0.3, 0.3);
-            proxy.name = uuid();
             
             if (props.hasOwnProperty('probe_position')) 
             {
@@ -5736,7 +5735,7 @@ const env_light = {
     
     tuning: (doc, obj, args) => {
         let input = JSON.parse(args);
-        let node = obj.xml_node;
+        let node = doc.internal_index[obj.name].xml_node;
         let props = node.attributes;
         if (props.type == "cube")
         {
@@ -5746,6 +5745,7 @@ const env_light = {
                 props.probe_position = probe_position;
                 let position = probe_position.split(',');
                 obj.setPosition(parseFloat(position[0]), parseFloat(position[1]), parseFloat(position[2]));
+                doc.generate_bvh();
             }
             
             let reload = false;
@@ -5806,7 +5806,7 @@ const env_light = {
     },
     
     generate: (doc, obj) =>{
-        let node = obj.xml_node;
+        let node = doc.internal_index[obj.name].xml_node;
         let props = node.attributes;
         if (props.type == "cube")
         {
@@ -5818,7 +5818,6 @@ const env_light = {
 const group = {
     create: async (doc, props, mode, parent) => {
         const group = new Object3D();
-        group.name = uuid();
         if (parent != null) {
             parent.add(group);
         }
@@ -5837,7 +5836,6 @@ const plane = {
                 
         const plane = new SimpleModel();
         plane.createPlane(width, height);
-        plane.name = uuid();
 
         if (parent != null) {
             parent.add(plane);
@@ -5859,7 +5857,6 @@ const box = {
         
         const box = new SimpleModel();
         box.createBox(width, height, depth);
-        box.name = uuid();
 
         if (parent != null) {
             parent.add(box);
@@ -5879,7 +5876,6 @@ const sphere = {
         
         const sphere = new SimpleModel();
         sphere.createSphere(radius, widthSegments, heightSegments);
-        sphere.name = uuid();
         
         if (parent != null) {
             parent.add(sphere);
@@ -5895,7 +5891,6 @@ const model = {
     create: async (doc, props, mode, parent) => {
         const url = props.src;
         const model = gltfLoader.loadModelFromFile(url);
-        model.name = uuid();
         if (parent != null) {
             parent.add(model);
         }
@@ -5999,6 +5994,10 @@ class Document
             }
         }
         
+        this.internal_index = {};
+        this.external_index = {};
+        this.external_index.index = {};
+        
         this.env_gen = null;
     }
     
@@ -6046,6 +6045,8 @@ class Document
         
         const obj = await this.Tags[tag].create(this, props, mode, parent);
         if (obj == null) return null;
+        
+        obj.name = uuid();
         
         if (props.hasOwnProperty('position')) 
         {
@@ -6101,20 +6102,56 @@ class Document
     
     async load_xml_node(xmlNode, mode, parent = null)
     {
-        if (parent = null) {
-            parent = this;
-        }
         for (let child of xmlNode.children) {           
-            const obj = await this.create(child.tagName, child.attributes, mode, parent);
-            
+            let obj = null;
+            if (parent == null)
+            {
+                obj = await this.create(child.tagName, child.attributes, mode, this);
+            }
+            else
+            {
+                obj = await this.create(child.tagName, child.attributes, mode, parent);
+            }
             if (obj===null) continue;
             
-            if (Object.isExtensible(obj))
+            let key = obj.name;
+            
+            let internal_node = {};
+            internal_node.obj = obj;
+            internal_node.xml_node = child;
+            this.internal_index[key] = internal_node;
+            
+            let external_node = {};
+            external_node.tagName = child.tagName;
+            external_node.attributes = child.attributes;
+            external_node.children = [];
+            
+            if(child.tagName == "scene")
             {
-                obj.xml_node = child;
+                this.external_index.root = key;
             }
+            else if (parent!=null)
+            {
+                let parent_key = parent.name;
+                let external_node_parent = this.external_index.index[parent.name];
+                external_node.parent = parent_key;
+                external_node_parent.children.push(key);
+            }
+            this.external_index.index[key] = external_node;
             
             await this.load_xml_node(child, mode, obj);
+        }
+    }
+    
+    generate_bvh()
+    {
+        if (this.hitables.length>0)
+        { 
+            this.bvh = new BoundingVolumeHierarchy(this.hitables);
+        }
+        else
+        {
+            this.bvh = null;
         }
     }
     
@@ -6135,16 +6172,11 @@ class Document
             await this.load_xml_node(root, mode);
         }
         
-        if (this.hitables.length>0)
-        { 
-            this.bvh = new BoundingVolumeHierarchy(this.hitables);
-        }
-        else
-        {
-            this.bvh = null;
-        }
+        this.generate_bvh();
         
         this.saved_text = genXML(this.xml_nodes);
+        
+        gamePlayer.message("index_loaded", JSON.stringify(this.external_index));
     }
     
     is_modified()
@@ -6173,9 +6205,14 @@ class Document
         }
     }
     
-    pick_obj(obj)
+    pick_obj(key)
     {
-        if (this.picked_obj != null)
+        let obj = null;
+        if (key!="") 
+        {
+            obj = this.internal_index[key].obj;
+        }
+        if (this.picked_obj != null && this.picked_obj.hasOwnProperty("setToonShading"))
         {
             this.picked_obj.setToonShading(0);
         }
@@ -6184,8 +6221,11 @@ class Document
         
         if (obj!=null)
         {
-            obj.setToonShading(16, 5.0, new Vector3(1.0, 1.0, 0.2));
-            gamePlayer.message("object_picked", JSON.stringify(obj.xml_node));
+            if (obj.hasOwnProperty("setToonShading"))
+            {
+                obj.setToonShading(16, 5.0, new Vector3(1.0, 1.0, 0.2));
+            }
+            gamePlayer.message("object_picked", obj.name);
         }
         else
         {
@@ -6198,8 +6238,7 @@ class Document
         if (this.picked_obj==null) return;
         
         JSON.parse(args);
-        
-        let node = this.picked_obj.xml_node;
+        let node = this.internal_index[this.picked_obj.name].xml_node;
         let tag = node.tagName;
         
         if (!(tag in this.Tags)) return;
@@ -6209,7 +6248,7 @@ class Document
     generate()
     {
         if (this.picked_obj==null) return;
-        let node = this.picked_obj.xml_node;
+        let node = this.internal_index[this.picked_obj.name].xml_node;
         let tag = node.tagName;
         
         if (!(tag in this.Tags)) return;
@@ -6243,13 +6282,11 @@ function picking_pointerdown(event)
     let intersect = doc.bvh.intersect({origin: origin, direction: dir});
     if (intersect!=null)
     {
-        let name = intersect.name;
-        let obj = doc.scene.getObjectByName(name);
-        doc.pick_obj(obj);
+        doc.pick_obj(intersect.name);
     }
     else
     {
-        dock.pick_obj(null);
+        doc.pick_obj("");
     }
     
 }
@@ -6342,6 +6379,13 @@ function picking(state)
 {
     let bstate = state=="on";
     doc.picking(bstate);
+    return "";
+}
+
+function pick_obj(key)
+{
+    doc.pick_obj(key);
+    return "";
 }
 
 function tuning(args)
@@ -6362,7 +6406,7 @@ function init(width, height)
     doc = new Document(view);
     clock = new Clock();
     
-    message_map = { isModified, setXML, getXML, picking, tuning, generate};
+    message_map = { isModified, setXML, getXML, picking, pick_obj, tuning, generate};
 }
 
 function render(width, height, size_changed)

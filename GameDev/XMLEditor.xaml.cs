@@ -5,6 +5,7 @@ using System.Timers;
 using System.Diagnostics;
 using System.Windows.Controls;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 using System.Windows;
 using Microsoft.Win32;
@@ -27,6 +28,9 @@ namespace GameDev
         private CGLControl glControl = null;
         private CGamePlayer game_player = null;
 
+        private JObject index = null;
+        private Dictionary<string, TreeViewItem> TreeItemMap = new Dictionary<string, TreeViewItem>();
+
         public XMLEditor(string file_path, string resource_root, PrintCallback print_std, PrintCallback print_err)
         {
             InitializeComponent();
@@ -47,6 +51,7 @@ namespace GameDev
             string exe_name = Process.GetCurrentProcess().ProcessName;
             game_player = new CGamePlayer(exe_name, glControl);
             game_player.SetPrintCallbacks(print_std, print_err);
+            game_player.AddUserMessageHandler("index_loaded", index_loaded);
             game_player.AddUserMessageHandler("object_picked", object_picked);
 
             string local_path = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
@@ -427,7 +432,7 @@ namespace GameDev
         private async void tab_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (tab.SelectedIndex == cur_tab) return;
-            
+
             if (cur_tab == 0)
             {
                 if (await TextChanged_code())
@@ -437,16 +442,23 @@ namespace GameDev
                         await GetText_code();
                         SetText_gl(text_cache);
                     }
-                }                
+                }
             }
             else
             {
-                btn_picking.IsChecked = false;
-                if (TextChanged_gl())
+                if (tab.SelectedIndex == 0)
                 {
-                    GetText_gl();                    
+                    if (TextChanged_gl())
+                    {
+                        GetText_gl();
+                    }
+                    await SetText_code(text_cache);
                 }
-                await SetText_code(text_cache);
+
+                if (cur_tab == 1)
+                {
+                    btn_picking.IsChecked = false;
+                }
             }
             
             cur_tab = tab.SelectedIndex;
@@ -460,20 +472,85 @@ namespace GameDev
 
         private void btn_picking_Checked(object sender, RoutedEventArgs e)
         {
+            scene_graph.IsEnabled = false;
             game_player.SendMessageToUser("picking", "on");
         }
 
         private void btn_picking_Unchecked(object sender, RoutedEventArgs e)
         {
             game_player.SendMessageToUser("picking", "off");
+            scene_graph.IsEnabled = true;
         }
 
-        private string object_picked(string json_str)
+        private void update_index_item(TreeViewItem item, JObject obj)
+        {
+            JObject dict = (JObject)index["index"];
+            JArray children = (JArray)obj["children"];
+            foreach(string key in children)
+            {
+                JObject child = (JObject)dict[key];
+                var subitem = new TreeViewItem();
+                subitem.Tag = key;
+                TreeItemMap[key] = subitem;
+                string tagName = child["tagName"].ToString();
+                JObject attributes = (JObject)child["attributes"];
+                string name;
+                if (attributes.ContainsKey("name"))
+                {
+                    name = attributes["name"].ToString();
+                }
+                else
+                {
+                    name = tagName;
+                }
+                subitem.Header = name;
+                item.Items.Add(subitem);
+                update_index_item(subitem, child);
+            }
+
+            item.IsExpanded = true;
+        }
+
+        private void update_index()
+        {
+            scene_graph.Items.Clear();
+            TreeItemMap.Clear();
+
+            string key = index["root"].ToString();
+            JObject dict = (JObject)index["index"];
+            JObject root = (JObject)dict[key];
+            var item = new TreeViewItem();
+            item.Tag = key;
+            TreeItemMap[key] = item;
+            string tagName = root["tagName"].ToString();
+            JObject attributes = (JObject)root["attributes"];
+            string name;
+            if (attributes.ContainsKey("name"))
+            {
+                name = attributes["name"].ToString();
+            }
+            else
+            {
+                name = tagName;
+            }
+            item.Header = name;
+            scene_graph.Items.Add(item);
+            update_index_item(item, root);
+        }
+
+        private string index_loaded(string json_str)
+        {
+            index = JObject.Parse(json_str);
+            update_index();
+            return "";
+        }
+
+        private string object_picked(string key)
         {
             property_area.Children.Clear();
-            if (json_str != "")
+            if (key != "")
             {
-                var picked_obj = JObject.Parse(json_str);
+                var picked_obj = (JObject)index["index"][key];
                 string tag = picked_obj["tagName"].ToString();
                 if (tag == "env_light")
                 {
@@ -485,9 +562,22 @@ namespace GameDev
                     }
 
                 }
+                var treeItem = TreeItemMap[key];
+                treeItem.IsSelected = true;
             }
             btn_picking.IsChecked = false;
             return "";
+        }
+
+        private void scene_graph_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+        {
+            if (btn_picking.IsChecked == true) return;
+            var item = (TreeViewItem)scene_graph.SelectedItem;
+            if (item!=null)
+            {
+                string key = (string)item.Tag;
+                game_player.SendMessageToUser("pick_obj", key);
+            }
         }
     }
 }

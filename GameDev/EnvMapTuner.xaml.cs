@@ -44,6 +44,10 @@ namespace GameDev
         {
             JObject tuning = new JObject();
             tuning["probe_position"] = $"{tuner_probe_pos.x},{tuner_probe_pos.y},{tuner_probe_pos.z}";
+
+            var att = (JObject)jobj["attributes"];
+            att["probe_position"] = tuning["probe_position"];
+
             game_player.SendMessageToUser("tuning", tuning.ToString());
         }
 
@@ -57,6 +61,16 @@ namespace GameDev
             tuning["negy"] = name_negy.Text;
             tuning["posz"] = name_posz.Text;
             tuning["negz"] = name_negz.Text;
+
+            var att = (JObject)jobj["attributes"];
+            att["path"] = tuning["path"];
+            att["posx"] = tuning["posx"];
+            att["negx"] = tuning["negx"];
+            att["posy"] = tuning["posy"];
+            att["negy"] = tuning["negy"];
+            att["posz"] = tuning["posz"];
+            att["negz"] = tuning["negz"];
+
             game_player.SendMessageToUser("tuning", tuning.ToString());
         }
 
