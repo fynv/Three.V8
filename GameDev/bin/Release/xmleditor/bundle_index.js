@@ -5429,6 +5429,63 @@ function string_to_boolean(string) {
     }
 }
 
+class EnvMapGen
+{
+    constructor(doc, proxy, xml_node)
+    {
+        this.doc = doc;
+        this.proxy = proxy;
+        this.xml_node = xml_node;
+        
+        this.cube_target = new CubeRenderTarget(128,128);
+        this.envMapCreator = new EnvironmentMapCreator();
+        this.iter = 0;
+    }
+    
+    render(renderer)
+    {
+        print(`Building environemnt map, iteration: ${this.iter}`);
+        let props = this.xml_node.attributes;
+        
+        let x = 0.0;
+        let y = 0.0;
+        let z = 0.0;
+        if ("probe_position" in props)
+        {
+            let probe_position = props.probe_position;
+            let position = probe_position.split(',');
+            x = parseFloat(position[0]);
+            y = parseFloat(position[1]);
+            z = parseFloat(position[2]);
+        }
+        
+        let in_scene = this.proxy.parent == this.doc.scene;
+        if (in_scene) this.doc.scene.remove(this.proxy);
+        renderer.renderCube(this.doc.scene, this.cube_target, new Vector3(x, y,z));
+        if (in_scene) this.doc.scene.add(this.proxy);
+        
+        let envLight = this.envMapCreator.create(this.cube_target);
+        this.doc.scene.indirectLight = envLight;
+        
+        this.iter++;
+        if (this.iter > 5)
+        {
+            print("Saving environemnt map.");
+            let down_img = this.cube_target.getCubeImage();
+            
+            const url = props.path;
+                    
+            imageSaver.saveCubeToFile(down_img, 
+                url+"/"+props.posx, url+"/"+props.negx, 
+                url+"/"+props.posy, url+"/"+props.negy, 
+                url+"/"+props.posz, url+"/"+props.negz);
+            
+            this.doc.env_gen = null;
+        }
+    }
+    
+}
+
 // Tags
 const scene = {
     reset: (doc) => {
@@ -5438,6 +5495,14 @@ const scene = {
         doc.scene = new Scene();
         return doc.scene;
     }
+};
+
+const create_default_controls = (doc)=>{
+    if (doc.controls)
+        doc.controls.dispose();
+    doc.controls = new OrbitControls(doc.camera, doc.view);
+    doc.controls.enableDamping = true;
+    doc.controls.target.set(0, 1.5, 0);
 };
 
 
@@ -5452,17 +5517,14 @@ const camera = {
         const near = parseFloat(props.near);
         const far = parseFloat(props.far);
         doc.camera = new PerspectiveCamera(fov, doc.width / doc.height, near, far);
+        create_default_controls(doc);
         return doc.camera;
     }
 };
 
 const control = {
     reset: (doc) => {
-        if (doc.controls)
-            doc.controls.dispose();
-        doc.controls = new OrbitControls(doc.camera, doc.view);
-        doc.controls.enableDamping = true;
-        doc.controls.target.set(0, 1.5, 0);
+        create_default_controls(doc);
     },
     create: async (doc, props, mode, parent) =>{
         const type = props.type;
@@ -5665,12 +5727,89 @@ const env_light = {
                 envLight = envMapCreator.create(cube_img);
             }
             doc.scene.indirectLight = envLight;
-            proxy.envMap = envLight;
             
             return proxy;
         }
         
         return doc.scene.indirectLight;
+    },
+    
+    tuning: (doc, obj, args) => {
+        let input = JSON.parse(args);
+        let node = obj.xml_node;
+        if (node.attributes.type == "cube")
+        {
+            if ("probe_position" in input)
+            {
+                let probe_position = input.probe_position;
+                node.attributes.probe_position = probe_position;
+                let position = probe_position.split(',');
+                obj.setPosition(parseFloat(position[0]), parseFloat(position[1]), parseFloat(position[2]));
+            }
+            
+            let reload = false;
+            if ("path" in input)
+            {
+                node.attributes.path = input.path;
+                reload = true;
+            }
+            if ("posx" in input)
+            {
+                node.attributes.posx = input.posx;
+                reload = true;
+            }
+            if ("negx" in input)
+            {
+                node.attributes.negx = input.negx;
+                reload = true;
+            }
+            if ("posy" in input)
+            {
+                node.attributes.posy = input.posy;
+                reload = true;
+            }
+            if ("negy" in input)
+            {
+                node.attributes.negy = input.negy;
+                reload = true;
+            }
+            if ("posz" in input)
+            {
+                node.attributes.posz = input.posz;
+                reload = true;
+            }
+            if ("negz" in input)
+            {
+                node.attributes.negz = input.negz;
+                reload = true;
+            }
+            if (reload)
+            {
+                const url = input.path;
+    
+                let cube_img = imageLoader.loadCubeFromFile(
+                    url+"/"+input.posx, url+"/"+input.negx, 
+                    url+"/"+input.posy, url+"/"+input.negy, 
+                    url+"/"+input.posz, url+"/"+input.negz);
+                    
+                let envLight = null;
+                if (cube_img!=null)
+                {
+                    let envMapCreator = new EnvironmentMapCreator();
+                    envLight = envMapCreator.create(cube_img);
+                }
+                doc.scene.indirectLight = envLight;
+            }
+        }
+        
+    },
+    
+    generate: (doc, obj) =>{
+        let node = obj.xml_node;
+        if (node.attributes.type == "cube")
+        {
+            doc.env_gen = new EnvMapGen(doc, obj, node);
+        }
     }
 };
 
@@ -5858,11 +5997,7 @@ class Document
             }
         }
         
-        // envmap creation
-        this.cube_target = null;
-        this.envMapCreator = null;
-        this.envMap_iter = -1;
-        this.envMap_proxy = null;
+        this.env_gen = null;
     }
     
     tick(delta)
@@ -5874,57 +6009,14 @@ class Document
                 this.controls.update();
             }
         }
-        
-        if (this.envMap_iter>=0)
-        {
-            print(`Building environemnt map, iteration: ${this.envMap_iter}`);
-            let node = this.envMap_proxy.xml_node;
-            let props = node.attributes;
-        
-            let x = 0.0;
-            let y = 0.0;
-            let z = 0.0;
-            if ("probe_position" in props)
-            {
-                let probe_position = props.probe_position;
-                let position = probe_position.split(',');
-                x = parseFloat(position[0]);
-                y = parseFloat(position[1]);
-                z = parseFloat(position[2]);
-            }
-            
-            this.scene.remove(this.envMap_proxy);
-            renderer.renderCube(this.scene, this.cube_target, new Vector3(x, y,z));
-            this.scene.add(this.envMap_proxy);
-            
-            let envLight = this.envMapCreator.create(this.cube_target);
-            this.scene.indirectLight = envLight;
-            this.envMap_proxy.envMap = envLight;
-            
-            this.envMap_iter++;
-            if (this.envMap_iter>5)
-            {
-                print("Saving environemnt map.");
-                
-                let down_img = this.cube_target.getCubeImage();
-                 
-                const url = props.path;
-                    
-                imageSaver.saveCubeToFile(down_img, 
-                    url+"/"+props.posx, url+"/"+props.negx, 
-                    url+"/"+props.posy, url+"/"+props.negy, 
-                    url+"/"+props.posz, url+"/"+props.negz);
-                    
-                this.cube_target = null;
-                this.envMapCreator = null;
-                this.envMap_iter = -1;
-                this.envMap_proxy = null;
-            }
-        }
     }
     
     render(renderer)
     {
+        if (this.env_gen!=null)
+        {
+            this.env_gen.render(renderer);
+        }
         
         if (this.scene && this.camera) 
         {
@@ -6103,76 +6195,13 @@ class Document
     {
         if (this.picked_obj==null) return;
         
-        let input = JSON.parse(args);
+        JSON.parse(args);
         
         let node = this.picked_obj.xml_node;
         let tag = node.tagName;
-        if (tag == "env_light")
-        {
-            if ("probe_position" in input)
-            {
-                let probe_position = input.probe_position;
-                node.attributes.probe_position = probe_position;
-                let position = probe_position.split(',');
-                this.picked_obj.setPosition(parseFloat(position[0]), parseFloat(position[1]), parseFloat(position[2]));
-            }
-            
-            let reload = false;
-            if ("path" in input)
-            {
-                node.attributes.path = input.path;
-                reload = true;
-            }
-            if ("posx" in input)
-            {
-                node.attributes.posx = input.posx;
-                reload = true;
-            }
-            if ("negx" in input)
-            {
-                node.attributes.negx = input.negx;
-                reload = true;
-            }
-            if ("posy" in input)
-            {
-                node.attributes.posy = input.posy;
-                reload = true;
-            }
-            if ("negy" in input)
-            {
-                node.attributes.negy = input.negy;
-                reload = true;
-            }
-            if ("posz" in input)
-            {
-                node.attributes.posz = input.posz;
-                reload = true;
-            }
-            if ("negz" in input)
-            {
-                node.attributes.negz = input.negz;
-                reload = true;
-            }
-            if (reload)
-            {
-                const url = input.path;
-    
-                let cube_img = imageLoader.loadCubeFromFile(
-                    url+"/"+input.posx, url+"/"+input.negx, 
-                    url+"/"+input.posy, url+"/"+input.negy, 
-                    url+"/"+input.posz, url+"/"+input.negz);
-                    
-                let envLight = null;
-                if (cube_img!=null)
-                {
-                    let envMapCreator = new EnvironmentMapCreator();
-                    envLight = envMapCreator.create(cube_img);
-                }
-                this.scene.indirectLight = envLight;
-                this.picked_obj.envMap = envLight;
-            }
-        }
         
+        if (!(tag in this.Tags)) return;
+        this.Tags[tag].tuning(this, this.picked_obj, args);
     }
 
     generate()
@@ -6180,14 +6209,9 @@ class Document
         if (this.picked_obj==null) return;
         let node = this.picked_obj.xml_node;
         let tag = node.tagName;
-        if (tag == "env_light")
-        {
-            this.cube_target = new CubeRenderTarget(128,128);
-            this.envMapCreator = new EnvironmentMapCreator();
-            this.envMap_proxy = this.picked_obj;
-            this.envMap_iter = 0;
-        }
         
+        if (!(tag in this.Tags)) return;
+        this.Tags[tag].generate(this, this.picked_obj);
     }
 }
 

@@ -485,8 +485,8 @@ namespace GameDev
                     }
 
                 }
-
             }
+            btn_picking.IsChecked = false;
             return "";
         }
     }
