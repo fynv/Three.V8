@@ -9,8 +9,8 @@ namespace GameDev
     /// </summary>
     public partial class DlgNewFile : Window
     {
-        private string[] type_names = new string[] { "js" };
-        private string[] default_filenames = new string[] { "index.js" };
+        private string[] type_names = new string[] { "js", "xml", "json" };
+        private string[] default_filenames = new string[] { "index.js", "scene.xml", "data.json" };
         private bool initialized = false;
 
         public string typename;

@@ -20,6 +20,18 @@
                         <TextBlock VerticalAlignment="Center" Margin="5">JavaScript</TextBlock>
                     </StackPanel>
                 </ListViewItem>
+                <ListViewItem>
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="Icons/xml.png" Width="24" Height="24"/>
+                        <TextBlock VerticalAlignment="Center" Margin="5">XML</TextBlock>
+                    </StackPanel>
+                </ListViewItem>
+                <ListViewItem>
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="Icons/json.png" Width="24" Height="24"/>
+                        <TextBlock VerticalAlignment="Center" Margin="5">Json</TextBlock>
+                    </StackPanel>
+                </ListViewItem>                
             </ListView>
             <TextBlock>Filename:</TextBlock>
             <TextBox x:Name="text_filename" Margin="5" Width="200" Text="index.js"></TextBox>

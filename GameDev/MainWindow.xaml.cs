@@ -594,7 +594,18 @@ namespace GameDev
             string path = $"{path_dir}\\{dialog.filename}";
             if (!File.Exists(path))
             {
-                File.WriteAllText(path, "");
+                if (dialog.typename == "js")
+                {
+                    File.WriteAllText(path, "");
+                }
+                else if (dialog.typename == "xml")
+                {
+                    File.WriteAllText(path, "<?xml version=\"1.0\" ?>\n<document>\n\t<scene>\n\t</scene>\n</document>\n");
+                }
+                else if (dialog.typename == "json")
+                {
+                    File.WriteAllText(path, "{}");
+                }
                 update_cur_path();
             }
 
