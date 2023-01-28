@@ -22,8 +22,8 @@ class HemisphereBackground : public Background
 public:
 	HemisphereBackground();
 
-	glm::vec3 skyColor = { 1.0f, 1.0f, 1.0f };
-	glm::vec3 groundColor = { 1.0f, 1.0f, 1.0f };
+	glm::vec3 skyColor = { 0.318f, 0.318f, 0.318f };
+	glm::vec3 groundColor = { 0.01f, 0.025f, 0.025f };
 
 	GLDynBuffer m_constant;
 	void updateConstant();

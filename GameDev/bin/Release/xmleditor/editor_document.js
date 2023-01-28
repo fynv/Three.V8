@@ -122,12 +122,15 @@ const create_default_controls = (doc)=>{
 
 const create_default_sky = (doc)=>{
     let bg = new HemisphereBackground();   
-    let envLight = new HemisphereLight();
     bg.setSkyColor(0.318, 0.318, 0.318);
-    envLight.setSkyColor(0.318, 0.318, 0.318);
     bg.setGroundColor(0.01, 0.025, 0.025);
-    envLight.setGroundColor(0.01, 0.025, 0.025);
     doc.scene.background = bg;
+}
+
+const create_default_env_light = (doc) =>{
+    let envLight = new HemisphereLight();
+    envLight.setSkyColor(0.318, 0.318, 0.318);
+    envLight.setGroundColor(0.01, 0.025, 0.025);
     doc.scene.indirectLight = envLight;    
 }
 
@@ -138,6 +141,7 @@ const scene = {
     create: async (doc, props, mode, parent) => {
         doc.scene = new Scene();
         create_default_sky(doc);
+        create_default_env_light(doc);
         return doc.scene;
     }
 }
@@ -262,18 +266,15 @@ const sky = {
         create_default_sky(doc);
     },
     create: async (doc, props, mode, parent) => {
-        const type = props.type;
-        let create_env_light = true;
-        if (props.hasOwnProperty("create_env_light"))
+        let type = "hemisphere"
+        if (props.hasOwnProperty("type"))
         {
-            create_env_light = string_to_boolean(props.create_env_light);
+            type = props.type;
         }
-        
         if (type == "uniform")
         {
             let bg = new ColorBackground();
             let envLight = null;
-            if (create_env_light) envLight = new AmbientLight();
             
             if (props.hasOwnProperty('color'))
             {
@@ -282,22 +283,12 @@ const sky = {
                 const g = parseFloat(color[1]);
                 const b = parseFloat(color[2]);
                 bg.setColor(r,g,b);
-                if (create_env_light)
-                {
-                    envLight.setColor(r,g,b);
-                }
             }
             doc.scene.background = bg;
-            if (create_env_light)
-            {
-                doc.scene.indirectLight = envLight;
-            }
         }
         else if (type == "hemisphere")
         {
-            let bg = new HemisphereBackground();   
-            let envLight = null;
-            if (create_env_light) envLight = new HemisphereLight();
+            let bg = new HemisphereBackground();
             
             if (props.hasOwnProperty('skyColor'))
             {
@@ -306,10 +297,6 @@ const sky = {
                 const g = parseFloat(color[1]);
                 const b = parseFloat(color[2]);
                 bg.setSkyColor(r,g,b);
-                if (create_env_light)
-                {
-                    envLight.setSkyColor(r,g,b);
-                }
             }
             
             if (props.hasOwnProperty('groundColor'))
@@ -319,43 +306,81 @@ const sky = {
                 const g = parseFloat(color[1]);
                 const b = parseFloat(color[2]);
                 bg.setGroundColor(r,g,b);               
-                envLight.setGroundColor(r,g,b);
+                
             }
             
             doc.scene.background = bg;
-            if (create_env_light)
-            {
-                doc.scene.indirectLight = envLight;
-            }
         }
         else if (type == "cube")
         {
-            const url = props.path;
-
-            let cube_img = imageLoader.loadCubeFromFile(
-                url+"/"+props.posx, url+"/"+props.negx, 
-                url+"/"+props.posy, url+"/"+props.negy, 
-                url+"/"+props.posz, url+"/"+props.negz);
-
             let bg = new CubeBackground();
-            bg.setCubemap(cube_img);
-            doc.scene.background = bg;
             
-            if(create_env_light)
+            let url = "assets/textures";
+            let posx = "face0.jpg";
+            let negx = "face1.jpg";
+            let posy = "face2.jpg";
+            let negy = "face3.jpg";
+            let posz = "face4.jpg";
+            let negz = "face5.jpg";
+            
+            if (props.hasOwnProperty('path'))
             {
-                let envMapCreator = new EnvironmentMapCreator();
-                let envLight = envMapCreator.create(cube_img);
-                doc.scene.indirectLight = envLight;
+                url = props.path;
             }
+            if (props.hasOwnProperty('posx'))
+            {
+                posx = props.posx;
+            }
+            if (props.hasOwnProperty('negx'))
+            {
+                negx = props.negx;
+            }
+            if (props.hasOwnProperty('posy'))
+            {
+                posy = props.posy;
+            }
+            if (props.hasOwnProperty('negy'))
+            {
+                negy = props.negy;
+            }
+            if (props.hasOwnProperty('posz'))
+            {
+                posz = props.posz;
+            }
+            if (props.hasOwnProperty('negz'))
+            {
+                negz = props.negz;
+            }
+            
+            let cube_img = imageLoader.loadCubeFromFile(
+                url+"/"+posx, url+"/"+negx, 
+                url+"/"+posy, url+"/"+negy, 
+                url+"/"+posz, url+"/"+negz);
+            
+            if (cube_img!=null)
+            {
+                bg.setCubemap(cube_img);
+            }
+            doc.scene.background = bg;
         }
         
         return doc.scene.background;
+    },
+    remove: (doc, obj) => {
+        create_default_sky(doc);
     }
 }
 
 const env_light = {
+    reset: (doc) => {
+        create_default_env_light(doc);
+    },
     create: async (doc, props, mode, parent) => {
-        const type = props.type;
+        let type = "hemisphere"
+        if (props.hasOwnProperty("type"))
+        {
+            type = props.type;
+        }
         
         if (type == "uniform")
         {
@@ -407,12 +432,47 @@ const env_light = {
             doc.scene.add(proxy);
             doc.add_hitable_object(proxy);
             
-            const url = props.path;
-
+            let url = "assets/textures";
+            let posx = "face0.jpg";
+            let negx = "face1.jpg";
+            let posy = "face2.jpg";
+            let negy = "face3.jpg";
+            let posz = "face4.jpg";
+            let negz = "face5.jpg";
+            
+            if (props.hasOwnProperty('path'))
+            {
+                url = props.path;
+            }
+            if (props.hasOwnProperty('posx'))
+            {
+                posx = props.posx;
+            }
+            if (props.hasOwnProperty('negx'))
+            {
+                negx = props.negx;
+            }
+            if (props.hasOwnProperty('posy'))
+            {
+                posy = props.posy;
+            }
+            if (props.hasOwnProperty('negy'))
+            {
+                negy = props.negy;
+            }
+            if (props.hasOwnProperty('posz'))
+            {
+                posz = props.posz;
+            }
+            if (props.hasOwnProperty('negz'))
+            {
+                negz = props.negz;
+            }
+            
             let cube_img = imageLoader.loadCubeFromFile(
-                url+"/"+props.posx, url+"/"+props.negx, 
-                url+"/"+props.posy, url+"/"+props.negy, 
-                url+"/"+props.posz, url+"/"+props.negz);
+                url+"/"+posx, url+"/"+negx, 
+                url+"/"+posy, url+"/"+negy, 
+                url+"/"+posz, url+"/"+negz);
                 
             let envLight = null;
             if (cube_img!=null)
@@ -426,6 +486,9 @@ const env_light = {
         }
         
         return doc.scene.indirectLight;
+    },
+    remove: (doc, obj) => {
+        create_default_env_light(doc);
     },
     
     tuning: (doc, obj, input) => {
@@ -524,9 +587,14 @@ const group = {
 
 const plane = {
     create: async (doc, props, mode, parent) => {
-        const size = props.size.split(',');
-        const width = parseFloat(size[0]);
-        const height = parseFloat(size[1]);
+        let width = 1.0;
+        let height = 1.0;
+        if (props.hasOwnProperty('size'))
+        {
+            let size = props.size.split(',');
+            width = parseFloat(size[0]);
+            height = parseFloat(size[1]);
+        }
                 
         const plane = new SimpleModel();
         plane.createPlane(width, height);
@@ -544,10 +612,16 @@ const plane = {
 
 const box = {
     create: async (doc, props, mode, parent) => {
-        const size = props.size.split(',');
-        const width = parseFloat(size[0]);
-        const height = parseFloat(size[1]);
-        const depth = parseFloat(size[2]);
+        let width = 1.0;
+        let height = 1.0;
+        let depth = 1.0;
+        if (props.hasOwnProperty('size'))
+        {
+            let size = props.size.split(',');
+            width = parseFloat(size[0]);
+            height = parseFloat(size[1]);
+            depth = parseFloat(size[2]);
+        }
         
         const box = new SimpleModel();
         box.createBox(width, height, depth);
@@ -564,9 +638,21 @@ const box = {
 
 const sphere = {
     create: async (doc, props, mode, parent) => {
-        const radius = parseFloat(props.radius);
-        const widthSegments = parseInt(props.widthSegments);
-        const heightSegments = parseInt(props.heightSegments);
+        let radius = 1.0;
+        if (props.hasOwnProperty('size'))
+        {
+            radius = parseFloat(props.radius);
+        }
+        let widthSegments = 32;
+        if (props.hasOwnProperty('widthSegments'))
+        {
+            widthSegments = parseInt(props.widthSegments);
+        }
+        let heightSegments = 16;
+        if (props.hasOwnProperty('heightSegments'))
+        {
+            heightSegments = parseInt(props.heightSegments);
+        }
         
         const sphere = new SimpleModel();
         sphere.createSphere(radius, widthSegments, heightSegments);
@@ -583,8 +669,19 @@ const sphere = {
 
 const model = {
     create: async (doc, props, mode, parent) => {
-        const url = props.src;
-        const model = gltfLoader.loadModelFromFile(url);
+        let url = "assets/models/model.glb";
+        if (props.hasOwnProperty('src'))
+        {
+            url = props.src;
+        }
+        let model = gltfLoader.loadModelFromFile(url);
+        if (model == null)
+        {
+            model= new SimpleModel();
+            model.createBox(0.5, 1.5, 0.5);
+            model.setColor(0.7,0.0,0.7);
+        }
+        
         if (parent != null) {
             parent.add(model);
         }
