@@ -5542,6 +5542,11 @@ const camera = {
         doc.camera = new PerspectiveCamera(fov, doc.width / doc.height, near, far);
         create_default_controls(doc);
         return doc.camera;
+    },
+    
+    remove: (doc, obj) => {
+        camera.reset(doc);
+        create_default_controls(doc);
     }
 };
 
@@ -5586,7 +5591,12 @@ const control = {
             doc.controls.enableDamping = true;
             doc.controls.target.set(to_x, to_y, to_z);
         }
+        return doc.controls;
+    },
+    remove: (doc, obj) => {
+        create_default_controls(doc);
     }
+    
 };
 
 const fog = {
