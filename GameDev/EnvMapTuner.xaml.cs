@@ -20,13 +20,48 @@ namespace GameDev
             this.jobj = jobj;
 
             var att = (JObject)jobj["attributes"];
-            file_path.Text = att["path"].ToString();
-            name_posx.Text = att["posx"].ToString();
-            name_negx.Text = att["negx"].ToString();
-            name_posy.Text = att["posy"].ToString();
-            name_negy.Text = att["negy"].ToString();
-            name_posz.Text = att["posz"].ToString();
-            name_negz.Text = att["negz"].ToString();
+            
+            file_path.Text = "assets/textures";
+            if (att.ContainsKey("path"))
+            {
+                file_path.Text = att["path"].ToString();
+            }
+
+            name_posx.Text = "face0.jpg";
+            if (att.ContainsKey("posx"))
+            {
+                name_posx.Text = att["posx"].ToString();
+            }
+
+            name_negx.Text = "face1.jpg";
+            if (att.ContainsKey("negx"))
+            {
+                name_negx.Text = att["negx"].ToString();
+            }
+
+            name_posy.Text = "face2.jpg";
+            if (att.ContainsKey("posy"))
+            {
+                name_posy.Text = att["posy"].ToString();
+            }
+
+            name_negy.Text = "face3.jpg";
+            if (att.ContainsKey("negy"))
+            {
+                name_negy.Text = att["negy"].ToString();
+            }
+
+            name_posz.Text = "face4.jpg";
+            if (att.ContainsKey("posz"))
+            {
+                name_posz.Text = att["posz"].ToString();
+            }
+
+            name_negz.Text = "face5.jpg";
+            if (att.ContainsKey("negz"))
+            {
+                name_negz.Text = att["negz"].ToString();
+            }         
 
             if (att.ContainsKey("probe_position"))
             {

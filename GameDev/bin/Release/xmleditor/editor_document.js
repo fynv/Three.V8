@@ -112,16 +112,6 @@ class EnvMapGen
 }
 
 // Tags
-const scene = {
-    reset: (doc) => {
-        doc.scene = new Scene();
-    },
-    create: async (doc, props, mode, parent) => {
-        doc.scene = new Scene();
-        return doc.scene;
-    }
-}
-
 const create_default_controls = (doc)=>{
     if (doc.controls)
         doc.controls.dispose();
@@ -130,6 +120,27 @@ const create_default_controls = (doc)=>{
     doc.controls.target.set(0, 1.5, 0);
 }
 
+const create_default_sky = (doc)=>{
+    let bg = new HemisphereBackground();   
+    let envLight = new HemisphereLight();
+    bg.setSkyColor(0.318, 0.318, 0.318);
+    envLight.setSkyColor(0.318, 0.318, 0.318);
+    bg.setGroundColor(0.01, 0.025, 0.025);
+    envLight.setGroundColor(0.01, 0.025, 0.025);
+    doc.scene.background = bg;
+    doc.scene.indirectLight = envLight;    
+}
+
+const scene = {
+    reset: (doc) => {
+        doc.scene = new Scene();
+    },
+    create: async (doc, props, mode, parent) => {
+        doc.scene = new Scene();
+        create_default_sky(doc);
+        return doc.scene;
+    }
+}
 
 const camera = {
     reset: (doc) => {
@@ -138,9 +149,21 @@ const camera = {
     },
 
     create: async (doc, props, mode, parent) => {
-        const fov = parseFloat(props.fov);
-        const near = parseFloat(props.near);
-        const far = parseFloat(props.far);
+        let fov = 50.0;
+        let near = 0.1;
+        let far = 200.0;
+        if (props.hasOwnProperty("fov"))
+        {
+            fov = parseFloat(props.fov);
+        }
+        if (props.hasOwnProperty("near"))
+        {
+            near = parseFloat(props.near);
+        }
+        if (props.hasOwnProperty("far"))
+        {
+            far = parseFloat(props.far);
+        }
         doc.camera = new PerspectiveCamera(fov, doc.width / doc.height, near, far);
         create_default_controls(doc);
         return doc.camera;
@@ -152,16 +175,35 @@ const control = {
         create_default_controls(doc);
     },
     create: async (doc, props, mode, parent) =>{
-        const type = props.type;
-        if (type == 'orbit') {
-            const look_from = props.look_from.split(',');
-            const look_at = props.look_at.split(',');
-            const from_x = parseFloat(look_from[0]);
-            const from_y = parseFloat(look_from[1]);
-            const from_z = parseFloat(look_from[2]);
-            const to_x = parseFloat(look_at[0]);
-            const to_y = parseFloat(look_at[1]);
-            const to_z = parseFloat(look_at[2]);
+        let type = 'orbit';
+        if (props.hasOwnProperty("type"))
+        {
+            type = props.type;
+        }
+        if (type == 'orbit') 
+        {
+            let from_x = 0.0;
+            let from_y = 1.5;
+            let from_z = 5.0;
+            if (props.hasOwnProperty("look_from"))
+            {
+                let look_from = props.look_from.split(',');
+                from_x = parseFloat(look_from[0]);
+                from_y = parseFloat(look_from[1]);
+                from_z = parseFloat(look_from[2]);
+            }
+            
+            let to_x = 0.0;
+            let to_y = 1.5;
+            let to_z = 0.0;
+            if (props.hasOwnProperty("look_at"))
+            {
+                let look_at = props.look_at.split(',');
+                to_x = parseFloat(look_at[0]);
+                to_y = parseFloat(look_at[1]);
+                to_z = parseFloat(look_at[2]);    
+            }
+            
             doc.camera.setPosition(from_x, from_y, from_z);
             if (doc.controls != null)
                 doc.controls.dispose();
@@ -180,16 +222,34 @@ const fog = {
             doc.scene.fog.density = parseFloat(props.density);
         }
         return doc.scene.fog;
+    },
+    tuning: (doc, obj, input) =>{
+        let node = doc.internal_index[obj.uuid].xml_node;
+        let props = node.attributes;
+        if ("density" in input)
+        {
+            let density = input.density;
+            props.density = density;
+            obj.density = parseFloat(density);
+        }
+        if ("color" in input)
+        {
+            props.color = input.color;
+            const color = input.color.split(',');
+            const r = parseFloat(color[0]);
+            const g = parseFloat(color[1]);
+            const b = parseFloat(color[2]);
+            obj.setColor(r,g,b);
+        }
+    },
+    remove: (doc, fog) => {
+        doc.scene.fog = null;
     }
 }
 
-
 const sky = {
     reset: (doc) => {
-        let bg = new HemisphereBackground();   
-        bg.setSkyColor(0.318, 0.318, 0.318);
-        bg.setGroundColor(0.01, 0.025, 0.025);
-        doc.scene.background = bg;
+        create_default_sky(doc);
     },
     create: async (doc, props, mode, parent) => {
         const type = props.type;
@@ -358,8 +418,7 @@ const env_light = {
         return doc.scene.indirectLight;
     },
     
-    tuning: (doc, obj, args) => {
-        let input = JSON.parse(args);
+    tuning: (doc, obj, input) => {
         let node = doc.internal_index[obj.uuid].xml_node;
         let props = node.attributes;
         if (props.type == "cube")
@@ -672,6 +731,7 @@ export class Document
         if (obj == null) return null;
         
         obj.uuid = uuid();
+        obj.tag = tag;
         
         if (props.hasOwnProperty('name')) 
         {
@@ -721,9 +781,20 @@ export class Document
     
     remove(obj)
     {
-        obj.traverse((child) => {
-            this.remove_hitable_object(child);
-        });
+        if (obj.hasOwnProperty("traverse"))
+        {
+            obj.traverse((child) => {
+                this.remove_hitable_object(child);
+            });
+        }
+        
+        if (obj.hasOwnProperty('tag')) {
+            const tag = this.Tags[obj.tag];
+            if (tag.hasOwnProperty('remove')) {
+                tag.remove(this, obj);
+            }
+        }
+        
         if (obj.parent) 
         {
             obj.parent.remove(obj);
@@ -863,16 +934,15 @@ export class Document
         }
     }
     
-    tuning(args)
+    tuning(input)
     {
         if (this.picked_obj==null) return;
         
-        let input = JSON.parse(args);
         let node = this.internal_index[this.picked_obj.uuid].xml_node;
         let tag = node.tagName;
         
         if (!(tag in this.Tags)) return;
-        this.Tags[tag].tuning(this, this.picked_obj, args);
+        this.Tags[tag].tuning(this, this.picked_obj, input);
     }
 
     generate()
@@ -883,6 +953,76 @@ export class Document
         
         if (!(tag in this.Tags)) return;
         this.Tags[tag].generate(this, this.picked_obj);
+    }
+    
+    async req_create(base_key, tag)
+    {
+        let internal_node_base = this.internal_index[base_key];
+        let external_node_base = this.external_index.index[base_key];
+        
+        let xmlNode = internal_node_base.xml_node;
+        let parent = internal_node_base.obj;
+        
+        let child = {tagName:tag, attributes: {}, children: []};
+        xmlNode.children.push(child);
+        
+        let obj = await this.create(tag, {}, "local", parent);
+        let key = obj.uuid;
+        
+        let internal_node = {};
+        internal_node.obj = obj;
+        internal_node.xml_node = child;
+        this.internal_index[key] = internal_node;
+        
+        let external_node = {tagName:tag, attributes: {}, children: []};
+        external_node.parent = base_key;
+        external_node_base.children.push(key);
+        this.external_index.index[key] = external_node;
+        
+        let msg = {};
+        msg[key] = external_node;
+        
+        gamePlayer.message("object_created", JSON.stringify(msg));
+        
+        this.pick_obj(key);
+    }
+    
+    req_remove(key)
+    {
+        let internal_node = this.internal_index[key];
+        let external_node = this.external_index.index[key];
+        
+        let base_key = external_node.parent;
+        let internal_node_base = this.internal_index[base_key];
+        let external_node_base = this.external_index.index[base_key];
+        
+        let xmlNode = internal_node.xml_node;
+        let xmlNode_parent = internal_node_base.xml_node;
+        {
+            let idx = xmlNode_parent.children.indexOf(xmlNode);
+            if (idx>-1)
+            {
+                xmlNode_parent.children.splice(idx, 1);
+            }
+        }
+        
+        let obj = internal_node.obj;
+        this.remove(obj);
+        
+        {
+            let idx = external_node_base.children.indexOf(key);
+            if (idx>-1)
+            {
+                external_node_base.children.splice(idx,1);
+            }
+        }
+        
+        delete this.internal_index[key];
+        delete this.external_index.index[key];
+        
+        gamePlayer.message("object_removed", key);
+        
+        this.pick_obj("");
     }
 }
 

@@ -27,6 +27,7 @@ namespace GameDev
             }
         }
 
+        public bool exponential = false;
         public float step = 1.0f;
 
         public NumberTuner()
@@ -64,13 +65,27 @@ namespace GameDev
 
         private void btn_decr_Click(object sender, RoutedEventArgs e)
         {
-            value -= step;
+            if (exponential)
+            {
+                value /= step;
+            }
+            else
+            {
+                value -= step;
+            }            
             ValueChanged?.Invoke(this, null);
         }
 
         private void btn_incr_Click(object sender, RoutedEventArgs e)
         {
-            value += step;
+            if (exponential)
+            {
+                value *= step;
+            }
+            else
+            {
+                value += step;
+            }
             ValueChanged?.Invoke(this, null);
         }
     }

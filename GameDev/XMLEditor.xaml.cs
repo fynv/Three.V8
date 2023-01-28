@@ -33,6 +33,8 @@ namespace GameDev
         private JObject index = null;
         private Dictionary<string, TreeViewItem> TreeItemMap = new Dictionary<string, TreeViewItem>();
 
+        private ContextMenu ctxMenu;
+
         public XMLEditor(string file_path, string resource_root, PrintCallback print_std, PrintCallback print_err)
         {
             InitializeComponent();
@@ -55,6 +57,8 @@ namespace GameDev
             game_player.SetPrintCallbacks(print_std, print_err);
             game_player.AddUserMessageHandler("index_loaded", index_loaded);
             game_player.AddUserMessageHandler("object_picked", object_picked);
+            game_player.AddUserMessageHandler("object_created", object_created);
+            game_player.AddUserMessageHandler("object_removed", object_removed);
 
             string local_path = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
             game_player.LoadScript($"{local_path}\\xmleditor\\bundle_index.js", resource_root);
@@ -64,6 +68,12 @@ namespace GameDev
             {
                 _doc_open(file_path);
             };
+
+            ctxMenu = new ContextMenu();
+            var item_remove = new MenuItem();
+            item_remove.Header = "Remove";
+            ctxMenu.Items.Add(item_remove);
+            item_remove.Click += remove_Click;
         }
 
         public void cleanup()
@@ -439,7 +449,7 @@ namespace GameDev
             {
                 if (await TextChanged_code())
                 {
-                    if (MessageBox.Show($"Code has changed, apply it to view?", "Apply changes", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                    if (MessageBox.Show("Code has changed, apply it to view?", "Apply changes", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
                     {
                         await GetText_code();
                         SetText_gl(text_cache);
@@ -578,6 +588,7 @@ namespace GameDev
                 }
 
                 subitem.Header = create_item(name, icon_name);
+                subitem.ContextMenu = ctxMenu;
                 item.Items.Add(subitem);
                 update_index_item(subitem, child);
             }
@@ -622,11 +633,16 @@ namespace GameDev
         private string object_picked(string key)
         {
             property_area.Children.Clear();
+            grp_scene_objs.IsEnabled = false;
             if (key != "")
             {
                 var picked_obj = (JObject)index["index"][key];
                 string tag = picked_obj["tagName"].ToString();
-                if (tag == "env_light")
+                if (tag == "scene")
+                {
+                    grp_scene_objs.IsEnabled = true;
+                }
+                else if (tag == "env_light")
                 {
                     string type = picked_obj["attributes"]["type"].ToString();
                     if (type == "cube")
@@ -634,8 +650,13 @@ namespace GameDev
                         var tuner = new EnvMapTuner(game_player, picked_obj);
                         property_area.Children.Add(tuner);
                     }
-
                 }
+                else if (tag == "fog")
+                {
+                    var tuner = new FogTuner(game_player, picked_obj);
+                    property_area.Children.Add(tuner);
+                }
+
                 var treeItem = TreeItemMap[key];
                 treeItem.IsSelected = true;
             }
@@ -652,6 +673,109 @@ namespace GameDev
                 string key = (string)item.Tag;
                 game_player.SendMessageToUser("pick_obj", key);
             }
+        }
+
+        private string object_created(string json_str)
+        {
+            JObject info = JObject.Parse(json_str);
+            foreach (var item in info)
+            {
+                string key = item.Key;
+                JObject node = (JObject)item.Value;
+                string key_parent = node["parent"].ToString();
+                JObject parent = (JObject)index["index"][key_parent];
+                index["index"][key] = node;
+                JArray children = (JArray)parent["children"];
+                children.Add(key);
+            }
+            update_index();
+            return "";
+        }
+
+        private string object_removed(string key)
+        {
+            JObject node = (JObject)index["index"][key];            
+            ((JObject)index["index"]).Remove(key);
+
+            string key_parent = node["parent"].ToString();
+            JObject parent = (JObject)index["index"][key_parent];
+            JArray children = (JArray)parent["children"];
+
+            foreach (var child_key in children)
+            {
+                if ((string)child_key == key)
+                {
+                    children.Remove(child_key);
+                    break;
+                }
+            }            
+
+            update_index();
+            return "";
+        }
+
+        private void req_create_scene_obj(string tag)
+        {
+            var base_item = (TreeViewItem)scene_graph.SelectedItem;
+            string base_key = (string)base_item.Tag;
+            JObject base_obj = (JObject)index["index"][base_key];
+            JArray children = (JArray)base_obj["children"];
+
+            string key_existing = "";           
+            foreach (string key in base_obj["children"])
+            {
+                JObject child = (JObject)index["index"][key];
+                if (child["tagName"].ToString() == tag)
+                {
+                    key_existing = key;
+                    break;
+                }
+            }
+
+            if (key_existing!="")
+            {
+                game_player.SendMessageToUser("pick_obj", key_existing);
+                return;
+            }            
+
+            JObject req = new JObject();
+            req["base_key"] = base_key;
+            req["tag"] = tag;
+            game_player.SendMessageToUser("create", req.ToString());
+        }
+
+        private void btn_create_fog_Click(object sender, RoutedEventArgs e)
+        {
+            req_create_scene_obj("fog");
+        }
+
+        private void remove_Click(object sender, RoutedEventArgs e)
+        {
+            MenuItem mi = sender as MenuItem;
+            if (mi != null)
+            {
+                ContextMenu cm = (ContextMenu)mi.Parent;
+                TreeViewItem item = (TreeViewItem)cm.PlacementTarget;                
+                string key = (string)item.Tag;
+                JObject obj = (JObject)index["index"][key];
+                string tag = (string)obj["tagName"];
+                JObject att = (JObject)obj["attributes"];
+                string name;
+                if (att.ContainsKey("name"))
+                {
+                    name = (string)att["name"];
+                }
+                else
+                {
+                    name = tag;
+                }
+
+                if (MessageBox.Show($"Remove {tag} object \"{name}\" and all its children from scene?", "Remove Object", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                {
+                    game_player.SendMessageToUser("remove", key);
+                }
+            }
+            
         }
     }
 }
