@@ -30,10 +30,10 @@ inline void SHEval3(const float* pX, const float* pY, const float* pZ, float* pS
 	fC0 = fX;
 	fS0 = fY;
 
-	fTmpA = _mm_set_ps1(-0.48860251190292f);
+	fTmpA = _mm_set_ps1(0.48860251190292f);
 	_mm_store_ps(pSH + 3 * 4, _mm_mul_ps(fTmpA, fC0));
 	_mm_store_ps(pSH + 1 * 4, _mm_mul_ps(fTmpA, fS0));
-	fTmpB = _mm_mul_ps(_mm_set_ps1(-1.092548430592079f), fZ);
+	fTmpB = _mm_mul_ps(_mm_set_ps1(1.092548430592079f), fZ);
 	_mm_store_ps(pSH + 7 * 4, _mm_mul_ps(fTmpB, fC0));
 	_mm_store_ps(pSH + 5 * 4, _mm_mul_ps(fTmpB, fS0));
 	fC1 = _mm_sub_ps(_mm_mul_ps(fX, fC0), _mm_mul_ps(fY, fS0));
@@ -57,10 +57,10 @@ inline void SHEval3(const float fX, const float fY, const float fZ, float* pSH)
 	fC0 = fX;
 	fS0 = fY;
 
-	fTmpA = -0.48860251190292f;
+	fTmpA = 0.48860251190292f;
 	pSH[3] = fTmpA * fC0;
 	pSH[1] = fTmpA * fS0;
-	fTmpB = -1.092548430592079f * fZ;
+	fTmpB = 1.092548430592079f * fZ;
 	pSH[7] = fTmpB * fC0;
 	pSH[5] = fTmpB * fS0;
 	fC1 = fX * fC0 - fY * fS0;

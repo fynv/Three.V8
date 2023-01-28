@@ -98,12 +98,47 @@ class EnvMapGen
             print("Saving environemnt map.");
             let down_img = this.cube_target.getCubeImage();
             
-            const url = props.path;
+            let url = "assets/textures";
+            let posx = "face0.jpg";
+            let negx = "face1.jpg";
+            let posy = "face2.jpg";
+            let negy = "face3.jpg";
+            let posz = "face4.jpg";
+            let negz = "face5.jpg";
+            
+            if (props.hasOwnProperty('path'))
+            {
+                url = props.path;
+            }
+            if (props.hasOwnProperty('posx'))
+            {
+                posx = props.posx;
+            }
+            if (props.hasOwnProperty('negx'))
+            {
+                negx = props.negx;
+            }
+            if (props.hasOwnProperty('posy'))
+            {
+                posy = props.posy;
+            }
+            if (props.hasOwnProperty('negy'))
+            {
+                negy = props.negy;
+            }
+            if (props.hasOwnProperty('posz'))
+            {
+                posz = props.posz;
+            }
+            if (props.hasOwnProperty('negz'))
+            {
+                negz = props.negz;
+            }
                     
             imageSaver.saveCubeToFile(down_img, 
-                url+"/"+props.posx, url+"/"+props.negx, 
-                url+"/"+props.posy, url+"/"+props.negy, 
-                url+"/"+props.posz, url+"/"+props.negz);
+                url+"/"+posx, url+"/"+negx, 
+                url+"/"+posy, url+"/"+negy, 
+                url+"/"+posz, url+"/"+negz);
             
             this.doc.env_gen = null;
         }
