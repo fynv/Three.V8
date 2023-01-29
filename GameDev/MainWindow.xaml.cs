@@ -40,7 +40,7 @@ namespace GameDev
 
         public static RoutedCommand RoutedCommandProjectSettings = new RoutedCommand();
 
-        private string cur_path = "";
+        public string cur_path = "";
         private JsonData project = new JsonData();
         private HashSet<string> target_outputs = new HashSet<string>();
         private Dictionary<string, TabItem> opened_tabs = new Dictionary<string, TabItem>();
@@ -68,6 +68,21 @@ namespace GameDev
                         TreeViewItem node = (TreeViewItem)cm.PlacementTarget;
                         string dir_path = (string)node.Tag;
                         NewFile(dir_path);
+                    }
+                };
+
+                var item_add_dir = new MenuItem();
+                item_add_dir.Header = "_New Directory";
+                ctxMenu_dir.Items.Add(item_add_dir);
+                item_add_dir.Click += (sender, e) =>
+                {
+                    MenuItem mi = sender as MenuItem;
+                    if (mi != null)
+                    {
+                        ContextMenu cm = (ContextMenu)mi.Parent;
+                        TreeViewItem node = (TreeViewItem)cm.PlacementTarget;
+                        string dir_path = (string)node.Tag;
+                        NewDirectory(dir_path);
                     }
                 };
 
@@ -611,6 +626,19 @@ namespace GameDev
 
             OpenFile(dialog.filename);
 
+        }
+
+        private void NewDirectory(string path_dir)
+        {
+            var dialog = new DlgNewDir(this);
+            if (dialog.ShowDialog() != true) return;
+
+            string path = $"{path_dir}\\{dialog.filename}";
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+                update_cur_path();
+            }
         }
 
         private void CommandNewFile(object sender, ExecutedRoutedEventArgs e)

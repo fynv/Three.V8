@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Windows;
-using System.Windows.Media;
 
 namespace GameDev
 {
@@ -26,6 +25,7 @@ namespace GameDev
         private void btn_ok_Click(object sender, RoutedEventArgs e)
         {
             if (lst_types.SelectedIndex < 0) return;
+            if (text_filename.Text == "") return;
             typename = type_names[lst_types.SelectedIndex];
             filename = text_filename.Text;
             DialogResult = true;

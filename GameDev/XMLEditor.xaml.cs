@@ -630,32 +630,41 @@ namespace GameDev
             return "";
         }
 
+        private HashSet<string> tags3d = new HashSet<string>() { "scene", "group", "plane", "box", "sphere", "model", "avatar", "directional_light" };
+
         private string object_picked(string key)
         {
             property_area.Children.Clear();
             grp_scene_objs.IsEnabled = false;
+            grp_3d_objs.IsEnabled = false;
             if (key != "")
             {
                 var picked_obj = (JObject)index["index"][key];
                 string tag = picked_obj["tagName"].ToString();
+                if (tags3d.Contains(tag))
+                {
+                    grp_3d_objs.IsEnabled = true;
+                }
                 if (tag == "scene")
                 {
                     grp_scene_objs.IsEnabled = true;
-                }
-                else if (tag == "env_light")
-                {
-                    string type = picked_obj["attributes"]["type"].ToString();
-                    if (type == "cube")
-                    {
-                        var tuner = new EnvMapTuner(game_player, picked_obj);
-                        property_area.Children.Add(tuner);
-                    }
                 }
                 else if (tag == "fog")
                 {
                     var tuner = new FogTuner(game_player, picked_obj);
                     property_area.Children.Add(tuner);
                 }
+                else if (tag == "sky")
+                {
+                    var tuner = new SkyTuner(game_player, picked_obj);
+                    property_area.Children.Add(tuner);
+                }
+                else if (tag == "env_light")
+                {
+                    var tuner = new EnvLightTuner(game_player, picked_obj);
+                    property_area.Children.Add(tuner);
+                }
+                
 
                 var treeItem = TreeItemMap[key];
                 treeItem.IsSelected = true;
@@ -747,6 +756,21 @@ namespace GameDev
         private void btn_create_fog_Click(object sender, RoutedEventArgs e)
         {
             req_create_scene_obj("fog");
+        }
+
+        private void btn_create_sky_Click(object sender, RoutedEventArgs e)
+        {
+            req_create_scene_obj("sky");
+        }
+
+        private void btn_create_env_light_Click(object sender, RoutedEventArgs e)
+        {
+            req_create_scene_obj("env_light");
+        }
+
+        private void btn_create_group_Click(object sender, RoutedEventArgs e)
+        {
+            req_create_scene_obj("group");
         }
 
         private void remove_Click(object sender, RoutedEventArgs e)

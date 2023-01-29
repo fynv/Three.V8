@@ -99,12 +99,12 @@ class EnvMapGen
             let down_img = this.cube_target.getCubeImage();
             
             let url = "assets/textures";
-            let posx = "face0.jpg";
-            let negx = "face1.jpg";
-            let posy = "face2.jpg";
-            let negy = "face3.jpg";
-            let posz = "face4.jpg";
-            let negz = "face5.jpg";
+            let posx = "env_face0.jpg";
+            let negx = "env_face1.jpg";
+            let posy = "env_face2.jpg";
+            let negy = "env_face3.jpg";
+            let posz = "env_face4.jpg";
+            let negz = "env_face5.jpg";
             
             if (props.hasOwnProperty('path'))
             {
@@ -296,6 +296,198 @@ const fog = {
     }
 }
 
+const create_uniform_sky = (doc, props) => {
+    let bg = new ColorBackground();
+    let envLight = null;
+    
+    if (props.hasOwnProperty('color'))
+    {
+        const color = props.color.split(',');
+        const r = parseFloat(color[0]);
+        const g = parseFloat(color[1]);
+        const b = parseFloat(color[2]);
+        bg.setColor(r,g,b);
+    }
+    doc.scene.background = bg;
+    return bg;
+}
+
+const create_hemisphere_sky = (doc, props)=>{
+    let bg = new HemisphereBackground();
+            
+    if (props.hasOwnProperty('skyColor'))
+    {
+        const color = props.skyColor.split(',');
+        const r = parseFloat(color[0]);
+        const g = parseFloat(color[1]);
+        const b = parseFloat(color[2]);
+        bg.setSkyColor(r,g,b);
+    }
+    
+    if (props.hasOwnProperty('groundColor'))
+    {
+        const color = props.groundColor.split(',');
+        const r = parseFloat(color[0]);
+        const g = parseFloat(color[1]);
+        const b = parseFloat(color[2]);
+        bg.setGroundColor(r,g,b);               
+        
+    }
+    
+    doc.scene.background = bg;
+    return bg;
+}
+
+const create_cube_sky = (doc, props)=>{
+    let bg = new CubeBackground();
+            
+    let url = "assets/textures";
+    let posx = "face0.jpg";
+    let negx = "face1.jpg";
+    let posy = "face2.jpg";
+    let negy = "face3.jpg";
+    let posz = "face4.jpg";
+    let negz = "face5.jpg";
+    
+    if (props.hasOwnProperty('path'))
+    {
+        url = props.path;
+    }
+    if (props.hasOwnProperty('posx'))
+    {
+        posx = props.posx;
+    }
+    if (props.hasOwnProperty('negx'))
+    {
+        negx = props.negx;
+    }
+    if (props.hasOwnProperty('posy'))
+    {
+        posy = props.posy;
+    }
+    if (props.hasOwnProperty('negy'))
+    {
+        negy = props.negy;
+    }
+    if (props.hasOwnProperty('posz'))
+    {
+        posz = props.posz;
+    }
+    if (props.hasOwnProperty('negz'))
+    {
+        negz = props.negz;
+    }
+    
+    let cube_img = imageLoader.loadCubeFromFile(
+        url+"/"+posx, url+"/"+negx, 
+        url+"/"+posy, url+"/"+negy, 
+        url+"/"+posz, url+"/"+negz);
+    
+    if (cube_img!=null)
+    {
+        bg.setCubemap(cube_img);
+    }
+    doc.scene.background = bg;
+    
+    return bg;
+}
+
+const tuning_uniform_sky = (doc, obj, input) =>{
+    let node = doc.internal_index[obj.uuid].xml_node;
+    let props = node.attributes;
+    
+    if ("color" in input)
+    {
+        props.color = input.color;
+        const color = input.color.split(',');
+        const r = parseFloat(color[0]);
+        const g = parseFloat(color[1]);
+        const b = parseFloat(color[2]);
+        obj.setColor(r,g,b);
+    }
+}
+
+const tuning_hemisphere_sky = (doc, obj, input) =>{
+    let node = doc.internal_index[obj.uuid].xml_node;
+    let props = node.attributes;
+    
+    if ("skyColor" in input)
+    {
+        props.skyColor = input.skyColor;
+        const color = input.skyColor.split(',');
+        const r = parseFloat(color[0]);
+        const g = parseFloat(color[1]);
+        const b = parseFloat(color[2]);
+        obj.setSkyColor(r,g,b);
+    }
+    
+    if ("groundColor" in input)
+    {
+        props.groundColor = input.groundColor;
+        const color = input.groundColor.split(',');
+        const r = parseFloat(color[0]);
+        const g = parseFloat(color[1]);
+        const b = parseFloat(color[2]);
+        obj.setGroundColor(r,g,b);
+    }
+}
+
+const tuning_cube_sky = (doc, obj, input) =>{
+    let node = doc.internal_index[obj.uuid].xml_node;
+    let props = node.attributes;
+   
+    let reload = false;
+    if ("path" in input)
+    {
+        props.path = input.path;
+        reload = true;
+    }
+    if ("posx" in input)
+    {
+        props.posx = input.posx;
+        reload = true;
+    }
+    if ("negx" in input)
+    {
+        props.negx = input.negx;
+        reload = true;
+    }
+    if ("posy" in input)
+    {
+        props.posy = input.posy;
+        reload = true;
+    }
+    if ("negy" in input)
+    {
+        props.negy = input.negy;
+        reload = true;
+    }
+    if ("posz" in input)
+    {
+        props.posz = input.posz;
+        reload = true;
+    }
+    if ("negz" in input)
+    {
+        props.negz = input.negz;
+        reload = true;
+    }
+    if (reload)
+    {
+        const url = props.path;
+
+        let cube_img = imageLoader.loadCubeFromFile(
+            url+"/"+props.posx, url+"/"+props.negx, 
+            url+"/"+props.posy, url+"/"+props.negy, 
+            url+"/"+props.posz, url+"/"+props.negz);
+    
+        if (cube_img!=null)
+        {
+            obj.setCubemap(cube_img);
+        }
+    }
+}
+
 const sky = {
     reset: (doc) => {
         create_default_sky(doc);
@@ -308,102 +500,282 @@ const sky = {
         }
         if (type == "uniform")
         {
-            let bg = new ColorBackground();
-            let envLight = null;
-            
-            if (props.hasOwnProperty('color'))
-            {
-                const color = props.color.split(',');
-                const r = parseFloat(color[0]);
-                const g = parseFloat(color[1]);
-                const b = parseFloat(color[2]);
-                bg.setColor(r,g,b);
-            }
-            doc.scene.background = bg;
+            return create_uniform_sky(doc,props);
         }
         else if (type == "hemisphere")
         {
-            let bg = new HemisphereBackground();
-            
-            if (props.hasOwnProperty('skyColor'))
-            {
-                const color = props.skyColor.split(',');
-                const r = parseFloat(color[0]);
-                const g = parseFloat(color[1]);
-                const b = parseFloat(color[2]);
-                bg.setSkyColor(r,g,b);
-            }
-            
-            if (props.hasOwnProperty('groundColor'))
-            {
-                const color = props.groundColor.split(',');
-                const r = parseFloat(color[0]);
-                const g = parseFloat(color[1]);
-                const b = parseFloat(color[2]);
-                bg.setGroundColor(r,g,b);               
-                
-            }
-            
-            doc.scene.background = bg;
+            return create_hemisphere_sky(doc,props);
         }
         else if (type == "cube")
         {
-            let bg = new CubeBackground();
-            
-            let url = "assets/textures";
-            let posx = "face0.jpg";
-            let negx = "face1.jpg";
-            let posy = "face2.jpg";
-            let negy = "face3.jpg";
-            let posz = "face4.jpg";
-            let negz = "face5.jpg";
-            
-            if (props.hasOwnProperty('path'))
-            {
-                url = props.path;
-            }
-            if (props.hasOwnProperty('posx'))
-            {
-                posx = props.posx;
-            }
-            if (props.hasOwnProperty('negx'))
-            {
-                negx = props.negx;
-            }
-            if (props.hasOwnProperty('posy'))
-            {
-                posy = props.posy;
-            }
-            if (props.hasOwnProperty('negy'))
-            {
-                negy = props.negy;
-            }
-            if (props.hasOwnProperty('posz'))
-            {
-                posz = props.posz;
-            }
-            if (props.hasOwnProperty('negz'))
-            {
-                negz = props.negz;
-            }
-            
-            let cube_img = imageLoader.loadCubeFromFile(
-                url+"/"+posx, url+"/"+negx, 
-                url+"/"+posy, url+"/"+negy, 
-                url+"/"+posz, url+"/"+negz);
-            
-            if (cube_img!=null)
-            {
-                bg.setCubemap(cube_img);
-            }
-            doc.scene.background = bg;
+            return create_cube_sky(doc,props);
         }
-        
-        return doc.scene.background;
     },
     remove: (doc, obj) => {
         create_default_sky(doc);
+    },
+    tuning: async (doc, obj, input) => {
+        let key = obj.uuid;
+        let node = doc.internal_index[key].xml_node;
+        if (input.hasOwnProperty('type'))
+        {
+            node.attributes = {};
+            node.attributes.type = input.type;
+            doc.external_index.index[key].attributes = node.attributes;
+            let obj_new = await sky.create(doc, node.attributes, "local", doc.scene);
+            obj_new.uuid = key;
+            obj_new.tag = "sky";
+            doc.internal_index[key].obj = obj_new;
+        }
+        else
+        {
+            let props = node.attributes;
+            let type = "hemisphere";
+            if (props.hasOwnProperty("type"))
+            {
+                type = props.type;
+            }
+            if (type == "uniform")
+            {
+                tuning_uniform_sky(doc, obj, input);
+            }
+            else if (type=="hemisphere")
+            {
+                tuning_hemisphere_sky(doc, obj, input);
+            }
+            else if (type=="cube")
+            {
+                tuning_cube_sky(doc, obj, input);
+            }
+        }
     }
+}
+
+const create_uniform_env_light = (doc, props) => {
+    let envLight = new AmbientLight();          
+    if (props.hasOwnProperty('color'))
+    {
+        const color = props.color.split(',');
+        const r = parseFloat(color[0]);
+        const g = parseFloat(color[1]);
+        const b = parseFloat(color[2]);
+        envLight.setColor(r,g,b);
+    }
+    doc.scene.indirectLight = envLight;
+    return envLight;
+}
+
+const create_hemisphere_env_light = (doc, props) => {
+    let envLight = new HemisphereLight();
+            
+    if (props.hasOwnProperty('skyColor'))
+    {
+        const color = props.skyColor.split(',');
+        const r = parseFloat(color[0]);
+        const g = parseFloat(color[1]);
+        const b = parseFloat(color[2]);
+        envLight.setSkyColor(r,g,b);
+    }
+    
+    if (props.hasOwnProperty('groundColor'))
+    {
+        const color = props.groundColor.split(',');
+        const r = parseFloat(color[0]);
+        const g = parseFloat(color[1]);
+        const b = parseFloat(color[2]);
+        envLight.setGroundColor(r,g,b);
+    }           
+    doc.scene.indirectLight = envLight;
+    return envLight;
+}
+
+const create_cube_env_light = (doc, props) => {
+    const proxy = new SimpleModel();
+    proxy.createBox(0.3, 0.3, 0.3);
+    
+    if (props.hasOwnProperty('probe_position')) 
+    {
+        const position = props.probe_position.split(',');
+        proxy.setPosition(parseFloat(position[0]), parseFloat(position[1]), parseFloat(position[2]));
+    }
+    proxy.setColor(0.7,0.0,0.7);
+    doc.scene.add(proxy);
+    doc.add_hitable_object(proxy);
+    
+    let url = "assets/textures";
+    let posx = "env_face0.jpg";
+    let negx = "env_face1.jpg";
+    let posy = "env_face2.jpg";
+    let negy = "env_face3.jpg";
+    let posz = "env_face4.jpg";
+    let negz = "env_face5.jpg";
+    
+    if (props.hasOwnProperty('path'))
+    {
+        url = props.path;
+    }
+    if (props.hasOwnProperty('posx'))
+    {
+        posx = props.posx;
+    }
+    if (props.hasOwnProperty('negx'))
+    {
+        negx = props.negx;
+    }
+    if (props.hasOwnProperty('posy'))
+    {
+        posy = props.posy;
+    }
+    if (props.hasOwnProperty('negy'))
+    {
+        negy = props.negy;
+    }
+    if (props.hasOwnProperty('posz'))
+    {
+        posz = props.posz;
+    }
+    if (props.hasOwnProperty('negz'))
+    {
+        negz = props.negz;
+    }
+    
+    let cube_img = imageLoader.loadCubeFromFile(
+        url+"/"+posx, url+"/"+negx, 
+        url+"/"+posy, url+"/"+negy, 
+        url+"/"+posz, url+"/"+negz);
+        
+    let envLight = null;
+    if (cube_img!=null)
+    {
+        let envMapCreator = new EnvironmentMapCreator();
+        envLight = envMapCreator.create(cube_img);
+    }
+    doc.scene.indirectLight = envLight;
+    
+    return proxy;
+}
+
+
+const tuning_ambient_light = (doc, obj, input) =>{
+    let node = doc.internal_index[obj.uuid].xml_node;
+    let props = node.attributes;
+    
+    if ("color" in input)
+    {
+        props.color = input.color;
+        const color = input.color.split(',');
+        const r = parseFloat(color[0]);
+        const g = parseFloat(color[1]);
+        const b = parseFloat(color[2]);
+        obj.setColor(r,g,b);
+    }
+}
+
+
+const tuning_hemisphere_light = (doc, obj, input) =>{
+    let node = doc.internal_index[obj.uuid].xml_node;
+    let props = node.attributes;
+    
+    if ("skyColor" in input)
+    {
+        props.skyColor = input.skyColor;
+        const color = input.skyColor.split(',');
+        const r = parseFloat(color[0]);
+        const g = parseFloat(color[1]);
+        const b = parseFloat(color[2]);
+        obj.setSkyColor(r,g,b);
+    }
+    
+    if ("groundColor" in input)
+    {
+        props.groundColor = input.groundColor;
+        const color = input.groundColor.split(',');
+        const r = parseFloat(color[0]);
+        const g = parseFloat(color[1]);
+        const b = parseFloat(color[2]);
+        obj.setGroundColor(r,g,b);
+    }
+}
+
+const tuning_cube_env_light = (doc, obj, input) =>{
+    let node = doc.internal_index[obj.uuid].xml_node;
+    let props = node.attributes;
+    
+    if ("probe_position" in input)
+    {
+        let probe_position = input.probe_position;
+        props.probe_position = probe_position;
+        let position = probe_position.split(',');
+        obj.setPosition(parseFloat(position[0]), parseFloat(position[1]), parseFloat(position[2]));
+        doc.generate_bvh();
+    }
+    
+    let reload = false;
+    if ("path" in input)
+    {
+        props.path = input.path;
+        reload = true;
+    }
+    if ("posx" in input)
+    {
+        props.posx = input.posx;
+        reload = true;
+    }
+    if ("negx" in input)
+    {
+        props.negx = input.negx;
+        reload = true;
+    }
+    if ("posy" in input)
+    {
+        props.posy = input.posy;
+        reload = true;
+    }
+    if ("negy" in input)
+    {
+        props.negy = input.negy;
+        reload = true;
+    }
+    if ("posz" in input)
+    {
+        props.posz = input.posz;
+        reload = true;
+    }
+    if ("negz" in input)
+    {
+        props.negz = input.negz;
+        reload = true;
+    }
+    if (reload)
+    {
+        const url = props.path;
+
+        let cube_img = imageLoader.loadCubeFromFile(
+            url+"/"+props.posx, url+"/"+props.negx, 
+            url+"/"+props.posy, url+"/"+props.negy, 
+            url+"/"+props.posz, url+"/"+props.negz);
+            
+        let envLight = null;
+        if (cube_img!=null)
+        {
+            let envMapCreator = new EnvironmentMapCreator();
+            envLight = envMapCreator.create(cube_img);
+        }
+        doc.scene.indirectLight = envLight;
+    }
+}
+
+const generate_cube_env_light = (doc, obj, input) =>{
+    let node = doc.internal_index[obj.uuid].xml_node;
+    let props = node.attributes;
+    props.path = input.path;
+    props.posx = input.posx;
+    props.negx = input.negx;
+    props.posy = input.posy;
+    props.negy = input.negy;
+    props.posz = input.posz;
+    props.negz = input.negz;
+    doc.env_gen = new EnvMapGen(doc, obj, node);
 }
 
 const env_light = {
@@ -419,190 +791,65 @@ const env_light = {
         
         if (type == "uniform")
         {
-            let envLight = new AmbientLight();          
-            if (props.hasOwnProperty('color'))
-            {
-                const color = props.color.split(',');
-                const r = parseFloat(color[0]);
-                const g = parseFloat(color[1]);
-                const b = parseFloat(color[2]);
-                envLight.setColor(r,g,b);
-            }
-            doc.scene.indirectLight = envLight;
+            return create_uniform_env_light(doc,props);
         }
         else if (type == "hemisphere")
         {
-            let envLight = new HemisphereLight();
-            
-            if (props.hasOwnProperty('skyColor'))
-            {
-                const color = props.skyColor.split(',');
-                const r = parseFloat(color[0]);
-                const g = parseFloat(color[1]);
-                const b = parseFloat(color[2]);
-                envLight.setSkyColor(r,g,b);
-            }
-            
-            if (props.hasOwnProperty('groundColor'))
-            {
-                const color = props.groundColor.split(',');
-                const r = parseFloat(color[0]);
-                const g = parseFloat(color[1]);
-                const b = parseFloat(color[2]);
-                envLight.setGroundColor(r,g,b);
-            }           
-            doc.scene.indirectLight = envLight;
+            return create_hemisphere_env_light(doc,props);
         }
         else if (type == "cube")
         {
-            const proxy = new SimpleModel();
-            proxy.createBox(0.3, 0.3, 0.3);
-            
-            if (props.hasOwnProperty('probe_position')) 
-            {
-                const position = props.probe_position.split(',');
-                proxy.setPosition(parseFloat(position[0]), parseFloat(position[1]), parseFloat(position[2]));
-            }
-            proxy.setColor(0.7,0.0,0.7);
-            doc.scene.add(proxy);
-            doc.add_hitable_object(proxy);
-            
-            let url = "assets/textures";
-            let posx = "face0.jpg";
-            let negx = "face1.jpg";
-            let posy = "face2.jpg";
-            let negy = "face3.jpg";
-            let posz = "face4.jpg";
-            let negz = "face5.jpg";
-            
-            if (props.hasOwnProperty('path'))
-            {
-                url = props.path;
-            }
-            if (props.hasOwnProperty('posx'))
-            {
-                posx = props.posx;
-            }
-            if (props.hasOwnProperty('negx'))
-            {
-                negx = props.negx;
-            }
-            if (props.hasOwnProperty('posy'))
-            {
-                posy = props.posy;
-            }
-            if (props.hasOwnProperty('negy'))
-            {
-                negy = props.negy;
-            }
-            if (props.hasOwnProperty('posz'))
-            {
-                posz = props.posz;
-            }
-            if (props.hasOwnProperty('negz'))
-            {
-                negz = props.negz;
-            }
-            
-            let cube_img = imageLoader.loadCubeFromFile(
-                url+"/"+posx, url+"/"+negx, 
-                url+"/"+posy, url+"/"+negy, 
-                url+"/"+posz, url+"/"+negz);
-                
-            let envLight = null;
-            if (cube_img!=null)
-            {
-                let envMapCreator = new EnvironmentMapCreator();
-                envLight = envMapCreator.create(cube_img);
-            }
-            doc.scene.indirectLight = envLight;
-            
-            return proxy;
+            return create_cube_env_light(doc,props);
         }
-        
-        return doc.scene.indirectLight;
     },
     remove: (doc, obj) => {
         create_default_env_light(doc);
     },
     
-    tuning: (doc, obj, input) => {
-        let node = doc.internal_index[obj.uuid].xml_node;
-        let props = node.attributes;
-        if (props.type == "cube")
+    tuning: async (doc, obj, input) => {
+        let key = obj.uuid;
+        let node = doc.internal_index[key].xml_node;
+        if (input.hasOwnProperty('type'))
         {
-            if ("probe_position" in input)
+            doc.remove(obj);
+            node.attributes = {};
+            node.attributes.type = input.type;
+            doc.external_index.index[key].attributes = node.attributes;
+            let obj_new = await env_light.create(doc, node.attributes, "local", doc.scene);
+            obj_new.uuid = key;
+            obj_new.tag = "env_light";
+            doc.internal_index[key].obj = obj_new;
+        }
+        else
+        {
+            let props = node.attributes;
+            let type = "hemisphere";
+            if (props.hasOwnProperty("type"))
             {
-                let probe_position = input.probe_position;
-                props.probe_position = probe_position;
-                let position = probe_position.split(',');
-                obj.setPosition(parseFloat(position[0]), parseFloat(position[1]), parseFloat(position[2]));
-                doc.generate_bvh();
+                type = props.type;
             }
-            
-            let reload = false;
-            if ("path" in input)
+            if (type == "uniform")
             {
-                props.path = input.path;
-                reload = true;
+                tuning_ambient_light(doc, obj, input);
             }
-            if ("posx" in input)
+            else if (type=="hemisphere")
             {
-                props.posx = input.posx;
-                reload = true;
+                tuning_hemisphere_light(doc, obj, input);
             }
-            if ("negx" in input)
+            else if (type=="cube")
             {
-                props.negx = input.negx;
-                reload = true;
-            }
-            if ("posy" in input)
-            {
-                props.posy = input.posy;
-                reload = true;
-            }
-            if ("negy" in input)
-            {
-                props.negy = input.negy;
-                reload = true;
-            }
-            if ("posz" in input)
-            {
-                props.posz = input.posz;
-                reload = true;
-            }
-            if ("negz" in input)
-            {
-                props.negz = input.negz;
-                reload = true;
-            }
-            if (reload)
-            {
-                const url = props.path;
-    
-                let cube_img = imageLoader.loadCubeFromFile(
-                    url+"/"+props.posx, url+"/"+props.negx, 
-                    url+"/"+props.posy, url+"/"+props.negy, 
-                    url+"/"+props.posz, url+"/"+props.negz);
-                    
-                let envLight = null;
-                if (cube_img!=null)
-                {
-                    let envMapCreator = new EnvironmentMapCreator();
-                    envLight = envMapCreator.create(cube_img);
-                }
-                doc.scene.indirectLight = envLight;
+                tuning_cube_env_light(doc,obj,input);
             }
         }
         
     },
     
-    generate: (doc, obj) =>{
+    generate: (doc, obj, input) =>{
         let node = doc.internal_index[obj.uuid].xml_node;
         let props = node.attributes;
         if (props.type == "cube")
         {
-            doc.env_gen = new EnvMapGen(doc, obj, node);
+            generate_cube_env_light(doc,obj,input);
         }
     }
 }
@@ -785,7 +1032,8 @@ export class Document
         this.width = view.clientWidth;
         this.height = view.clientHeight;
         this.Tags = { scene, camera, fog, sky, env_light, control, group, plane, box, sphere, model, avatar, directional_light };
-        this.hitable_tags = { plane, box, sphere, model, avatar };
+        this.hitable_tags = { plane, box, sphere, model, avatar };        
+        this.picked_key = "";
         this.reset();
     }
     
@@ -806,10 +1054,10 @@ export class Document
         this.saved_text = "";
         this.hitables = [];
         
-        if (this.picked_obj!=null)
+        if (this.picked_key!="")
         {
             gamePlayer.message("object_picked", "");
-            this.picked_obj = null;
+            this.picked_key = "";
         }
         
         for (let tag in this.Tags) 
@@ -1055,12 +1303,20 @@ export class Document
         {
             obj = this.internal_index[key].obj;
         }
-        if (this.picked_obj != null && this.picked_obj.hasOwnProperty("setToonShading"))
+        
+        if (this.picked_key != "")
         {
-            this.picked_obj.setToonShading(0);
+            if (this.picked_key in this.internal_index)
+            {
+                let picked_obj = this.internal_index[this.picked_key].obj;
+                if (picked_obj.hasOwnProperty("setToonShading"))
+                {
+                    picked_obj.setToonShading(0);
+                }
+            }
         }
         
-        this.picked_obj = obj;
+        this.picked_key = key;
         
         if (obj!=null)
         {
@@ -1068,33 +1324,30 @@ export class Document
             {
                 obj.setToonShading(16, 5.0, new Vector3(1.0, 1.0, 0.2));
             }
-            gamePlayer.message("object_picked", obj.uuid);
         }
-        else
-        {
-            gamePlayer.message("object_picked", "");
-        }
+        gamePlayer.message("object_picked", key);
     }
     
     tuning(input)
     {
-        if (this.picked_obj==null) return;
-        
-        let node = this.internal_index[this.picked_obj.uuid].xml_node;
+        if (this.picked_key=="") return;
+        let picked_obj = this.internal_index[this.picked_key].obj;
+        let node = this.internal_index[this.picked_key].xml_node;
         let tag = node.tagName;
         
         if (!(tag in this.Tags)) return;
-        this.Tags[tag].tuning(this, this.picked_obj, input);
+        this.Tags[tag].tuning(this, picked_obj, input);
     }
 
-    generate()
+    generate(input)
     {
-        if (this.picked_obj==null) return;
-        let node = this.internal_index[this.picked_obj.uuid].xml_node;
+        if (this.picked_key=="") return;
+        let picked_obj = this.internal_index[this.picked_key].obj;
+        let node = this.internal_index[this.picked_key].xml_node;
         let tag = node.tagName;
         
         if (!(tag in this.Tags)) return;
-        this.Tags[tag].generate(this, this.picked_obj);
+        this.Tags[tag].generate(this, picked_obj, input);
     }
     
     async req_create(base_key, tag)

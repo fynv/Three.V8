@@ -33,7 +33,7 @@
                     </StackPanel>
                 </ListViewItem>                
             </ListView>
-            <TextBlock>Filename:</TextBlock>
+            <TextBlock>File name:</TextBlock>
             <TextBox x:Name="text_filename" Margin="5" Width="200" Text="index.js"></TextBox>
             
         </StackPanel>

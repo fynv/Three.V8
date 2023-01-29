@@ -26,9 +26,9 @@
             </TabItem>
             <TabItem Header="Scene">
                 <DockPanel>
-                    <StackPanel DockPanel.Dock="Left" Width="180">
+                    <StackPanel DockPanel.Dock="Left" Width="180">                        
                         <GroupBox Header="Scene Graph" Height="350">
-                            <DockPanel>
+                            <DockPanel>                                
                                 <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
                                     <ToggleButton x:Name="btn_picking" Padding="5" Checked="btn_picking_Checked" Unchecked="btn_picking_Unchecked">Picking</ToggleButton>
                                 </StackPanel>
@@ -38,16 +38,40 @@
                         <GroupBox Header="Create...">
                             <StackPanel>
                                 <GroupBox x:Name="grp_scene_objs" IsEnabled="False">
-                                    <Grid>
+                                    <Grid Margin="5">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="32"/>
+                                            <ColumnDefinition Width="32"/>
+                                            <ColumnDefinition Width="32"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="32"/>
+                                        </Grid.RowDefinitions>
+
+                                        <Button x:Name="btn_create_fog" Grid.Column="0" Grid.Row="0" Click="btn_create_fog_Click">
+                                            <Image Source="Icons/fog.png"/>
+                                        </Button>
+
+                                        <Button x:Name="btn_create_sky" Grid.Column="1" Grid.Row="0" Click="btn_create_sky_Click">
+                                            <Image Source="Icons/sky.png"/>
+                                        </Button>
+
+                                        <Button x:Name="btn_create_env_light" Grid.Column="2" Grid.Row="0" Click="btn_create_env_light_Click">
+                                            <Image Source="Icons/env_light.png"/>
+                                        </Button>
+                                    </Grid>
+                                </GroupBox>
+                                <GroupBox x:Name="grp_3d_objs" IsEnabled="False">
+                                    <Grid Margin="5">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="32"/>
                                         </Grid.ColumnDefinitions>
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="32"/>
                                         </Grid.RowDefinitions>
-                                        
-                                        <Button x:Name="btn_create_fog" Grid.Column="0" Grid.Row="0" Click="btn_create_fog_Click">
-                                            <Image Source="Icons/fog.png"/>
+
+                                        <Button x:Name="btn_create_group" Grid.Column="0" Grid.Row="0" Click="btn_create_group_Click">
+                                            <Image Source="Icons/group.png"/>
                                         </Button>
                                     </Grid>
                                 </GroupBox>
@@ -58,6 +82,11 @@
                 </DockPanel>
             </TabItem>
             <TabItem Header="UI">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Margin="5">Button</Button>
+                    </StackPanel>
+                </StackPanel>
             </TabItem>
         </local:HackedTabControl>
     </Grid>

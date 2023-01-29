@@ -62,8 +62,20 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="AmbientLightTuner.xaml.cs">
+      <DependentUpon>AmbientLightTuner.xaml</DependentUpon>
+    </Compile>
     <Compile Include="ColorTuner.xaml.cs">
       <DependentUpon>ColorTuner.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="CubeSkyTuner.xaml.cs">
+      <DependentUpon>CubeSkyTuner.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="DlgNewDir.xaml.cs">
+      <DependentUpon>DlgNewDir.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="EnvLightTuner.xaml.cs">
+      <DependentUpon>EnvLightTuner.xaml</DependentUpon>
     </Compile>
     <Compile Include="EnvMapTuner.xaml.cs">
       <DependentUpon>EnvMapTuner.xaml</DependentUpon>
@@ -72,8 +84,20 @@
       <DependentUpon>FogTuner.xaml</DependentUpon>
     </Compile>
     <Compile Include="HackedTabControl.cs" />
+    <Compile Include="HemisphereLightTuner.xaml.cs">
+      <DependentUpon>HemisphereLightTuner.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="HemisphereSkyTuner.xaml.cs">
+      <DependentUpon>HemisphereSkyTuner.xaml</DependentUpon>
+    </Compile>
     <Compile Include="NumberTuner.xaml.cs">
       <DependentUpon>NumberTuner.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="SkyTuner.xaml.cs">
+      <DependentUpon>SkyTuner.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="UniformSkyTuner.xaml.cs">
+      <DependentUpon>UniformSkyTuner.xaml</DependentUpon>
     </Compile>
     <Compile Include="Vec3Tuner.xaml.cs">
       <DependentUpon>Vec3Tuner.xaml</DependentUpon>
@@ -81,11 +105,23 @@
     <Compile Include="XMLEditor.xaml.cs">
       <DependentUpon>XMLEditor.xaml</DependentUpon>
     </Compile>
+    <Page Include="AmbientLightTuner.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="ColorTuner.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="CubeSkyTuner.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="DlgEditTarget.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="DlgNewDir.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -97,11 +133,23 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="EnvLightTuner.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="EnvMapTuner.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="FogTuner.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="HemisphereLightTuner.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="HemisphereSkyTuner.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -143,6 +191,14 @@
       <SubType>Code</SubType>
     </Compile>
     <Page Include="NumberTuner.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="SkyTuner.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="UniformSkyTuner.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

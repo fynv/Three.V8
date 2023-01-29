@@ -39,9 +39,10 @@ function tuning(args)
     return "";
 }
 
-function generate(x)
+function generate(args)
 {
-    doc.generate();
+    let input = JSON.parse(args);
+    doc.generate(input);
     return "";
 }
 
