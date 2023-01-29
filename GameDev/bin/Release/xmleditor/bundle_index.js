@@ -6228,6 +6228,38 @@ const env_light = {
     }
 };
 
+
+const tuning_object3d = (doc, obj, input) => {
+    let node = doc.internal_index[obj.uuid].xml_node;
+    let props = node.attributes;
+    if ("name" in input)
+    {
+        props.name = input.name;
+        obj.name = input.name;
+    }
+    if ("position" in input)
+    {
+        props.position = input.position;
+        let position = input.position.split(',');
+        obj.setPosition(parseFloat(position[0]), parseFloat(position[1]), parseFloat(position[2]));
+        doc.generate_bvh();
+    }
+    if ("rotation" in input)
+    {
+        props.rotation = input.rotation;
+        let rotation = input.rotation.split(',');
+        obj.setRotation(parseFloat(rotation[0])* Math.PI / 180.0, parseFloat(rotation[1])* Math.PI / 180.0, parseFloat(rotation[2])* Math.PI / 180.0);
+        doc.generate_bvh();
+    }
+    if ("scale" in input)
+    {
+        props.scale = input.scale;
+        let scale = input.scale.split(',');
+        obj.setScale(parseFloat(scale[0]), parseFloat(scale[1]), parseFloat(scale[2]));
+        doc.generate_bvh();
+    }
+};
+
 const group = {
     create: async (doc, props, mode, parent) => {
         const group = new Object3D();
@@ -6238,6 +6270,10 @@ const group = {
             doc.scene.add(group);
         }
         return group;
+    },
+    
+    tuning: (doc, obj, input) => {
+        tuning_object3d(doc, obj, input);
     }
 };
 
@@ -6262,6 +6298,20 @@ const plane = {
             doc.scene.add(plane);
         }
         return plane;
+    },
+    
+    tuning: (doc, obj, input) => {
+        let node = doc.internal_index[obj.uuid].xml_node;
+        let props = node.attributes;
+        if ("size" in input)
+        {
+            props.size = input.size;
+            let size = input.size.split(','); 
+            width = parseFloat(size[0]);
+            height = parseFloat(size[1]);
+            obj.createPlane(width, height);
+        }
+        tuning_object3d(doc, obj, input);
     }
 };
 

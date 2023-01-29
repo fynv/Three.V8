@@ -22,6 +22,10 @@ namespace GameDev
             this.game_player = game_player;
             this.jobj = jobj;
 
+            tuner_probe_pos.tuner_x.step = 0.5f;
+            tuner_probe_pos.tuner_y.step = 0.5f;
+            tuner_probe_pos.tuner_z.step = 0.5f;
+
             var att = (JObject)jobj["attributes"];
             
             file_path.Text = "assets/textures";

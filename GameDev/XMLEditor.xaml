@@ -65,6 +65,7 @@
                                     <Grid Margin="5">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="32"/>
+                                            <ColumnDefinition Width="32"/>
                                         </Grid.ColumnDefinitions>
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="32"/>
@@ -72,6 +73,10 @@
 
                                         <Button x:Name="btn_create_group" Grid.Column="0" Grid.Row="0" Click="btn_create_group_Click">
                                             <Image Source="Icons/group.png"/>
+                                        </Button>
+
+                                        <Button x:Name="btn_create_plane" Grid.Column="1" Grid.Row="0" Click="btn_create_plane_Click">
+                                            <Image Source="Icons/plane.png"/>
                                         </Button>
                                     </Grid>
                                 </GroupBox>

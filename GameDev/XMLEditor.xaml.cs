@@ -630,10 +630,22 @@ namespace GameDev
             return "";
         }
 
+        private void update_name(object sender, EventArgs e)
+        {
+            if (picked_key == "") return;
+            TreeViewItem item = TreeItemMap[picked_key];
+            JObject jobj = (JObject)index["index"][picked_key];
+            StackPanel panel = (StackPanel)item.Header;
+            TextBlock txt = (TextBlock)panel.Children[1];
+            txt.Text = jobj["attributes"]["name"].ToString();
+        }
+
         private HashSet<string> tags3d = new HashSet<string>() { "scene", "group", "plane", "box", "sphere", "model", "avatar", "directional_light" };
 
+        private string picked_key = "";
         private string object_picked(string key)
         {
+            picked_key = key;
             property_area.Children.Clear();
             grp_scene_objs.IsEnabled = false;
             grp_3d_objs.IsEnabled = false;
@@ -664,7 +676,18 @@ namespace GameDev
                     var tuner = new EnvLightTuner(game_player, picked_obj);
                     property_area.Children.Add(tuner);
                 }
-                
+                else if (tag == "group")
+                {
+                    var tuner = new GroupTuner(game_player, picked_obj);
+                    property_area.Children.Add(tuner);
+                    tuner.obj3d_tuner.UpdateName += update_name;
+                }
+                else if (tag == "plane")
+                {
+                    var tuner = new PlaneTuner(game_player, picked_obj);
+                    property_area.Children.Add(tuner);
+                    tuner.obj3d_tuner.UpdateName += update_name;
+                }
 
                 var treeItem = TreeItemMap[key];
                 treeItem.IsSelected = true;
@@ -724,10 +747,8 @@ namespace GameDev
         }
 
         private void req_create_scene_obj(string tag)
-        {
-            var base_item = (TreeViewItem)scene_graph.SelectedItem;
-            string base_key = (string)base_item.Tag;
-            JObject base_obj = (JObject)index["index"][base_key];
+        {           
+            JObject base_obj = (JObject)index["index"][picked_key];
             JArray children = (JArray)base_obj["children"];
 
             string key_existing = "";           
@@ -748,7 +769,15 @@ namespace GameDev
             }            
 
             JObject req = new JObject();
-            req["base_key"] = base_key;
+            req["base_key"] = picked_key;
+            req["tag"] = tag;
+            game_player.SendMessageToUser("create", req.ToString());
+        }
+
+        private void req_create_obj3d(string tag)
+        {            
+            JObject req = new JObject();
+            req["base_key"] = picked_key;
             req["tag"] = tag;
             game_player.SendMessageToUser("create", req.ToString());
         }
@@ -770,7 +799,12 @@ namespace GameDev
 
         private void btn_create_group_Click(object sender, RoutedEventArgs e)
         {
-            req_create_scene_obj("group");
+            req_create_obj3d("group");
+        }
+
+        private void btn_create_plane_Click(object sender, RoutedEventArgs e)
+        {
+            req_create_obj3d("plane");
         }
 
         private void remove_Click(object sender, RoutedEventArgs e)

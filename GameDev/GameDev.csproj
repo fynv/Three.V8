@@ -65,6 +65,9 @@
     <Compile Include="AmbientLightTuner.xaml.cs">
       <DependentUpon>AmbientLightTuner.xaml</DependentUpon>
     </Compile>
+    <Compile Include="AngleTuner.xaml.cs">
+      <DependentUpon>AngleTuner.xaml</DependentUpon>
+    </Compile>
     <Compile Include="ColorTuner.xaml.cs">
       <DependentUpon>ColorTuner.xaml</DependentUpon>
     </Compile>
@@ -83,6 +86,9 @@
     <Compile Include="FogTuner.xaml.cs">
       <DependentUpon>FogTuner.xaml</DependentUpon>
     </Compile>
+    <Compile Include="GroupTuner.xaml.cs">
+      <DependentUpon>GroupTuner.xaml</DependentUpon>
+    </Compile>
     <Compile Include="HackedTabControl.cs" />
     <Compile Include="HemisphereLightTuner.xaml.cs">
       <DependentUpon>HemisphereLightTuner.xaml</DependentUpon>
@@ -92,6 +98,18 @@
     </Compile>
     <Compile Include="NumberTuner.xaml.cs">
       <DependentUpon>NumberTuner.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Object3DTuner.xaml.cs">
+      <DependentUpon>Object3DTuner.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="PlaneTuner.xaml.cs">
+      <DependentUpon>PlaneTuner.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="RotationTuner.xaml.cs">
+      <DependentUpon>RotationTuner.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="ScaleTuner.xaml.cs">
+      <DependentUpon>ScaleTuner.xaml</DependentUpon>
     </Compile>
     <Compile Include="SkyTuner.xaml.cs">
       <DependentUpon>SkyTuner.xaml</DependentUpon>
@@ -106,6 +124,10 @@
       <DependentUpon>XMLEditor.xaml</DependentUpon>
     </Compile>
     <Page Include="AmbientLightTuner.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="AngleTuner.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -142,6 +164,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="FogTuner.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="GroupTuner.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -191,6 +217,22 @@
       <SubType>Code</SubType>
     </Compile>
     <Page Include="NumberTuner.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Object3DTuner.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="PlaneTuner.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="RotationTuner.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="ScaleTuner.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

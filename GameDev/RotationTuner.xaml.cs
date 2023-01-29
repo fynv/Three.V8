@@ -4,9 +4,9 @@ using System.Windows.Controls;
 namespace GameDev
 {
     /// <summary>
-    /// Interaction logic for Vec3Tuner.xaml
+    /// Interaction logic for RotationTuner.xaml
     /// </summary>
-    public partial class Vec3Tuner : UserControl
+    public partial class RotationTuner : UserControl
     {
         public float x
         {
@@ -51,8 +51,7 @@ namespace GameDev
             this.z = z;
         }
 
-
-        public Vec3Tuner()
+        public RotationTuner()
         {
             InitializeComponent();
         }
@@ -60,9 +59,8 @@ namespace GameDev
         public event EventHandler ValueChanged;
 
         private void tuner_ValueChanged(object sender, EventArgs e)
-        {            
+        {
             ValueChanged?.Invoke(sender, e);
         }
-       
     }
 }
