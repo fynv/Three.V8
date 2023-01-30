@@ -1110,6 +1110,54 @@ const model = {
             doc.scene.add(model);
         }
         return model;
+    },
+    
+    tuning: async (doc, obj, input) => {
+        let key = obj.uuid;
+        let node = doc.internal_index[key].xml_node;
+        let props = node.attributes;
+        if (input.hasOwnProperty('src'))
+        {
+            doc.remove(obj);
+            props.src = input.src;
+            let obj_new = await model.create(doc, props, "local", obj.parent);
+            obj_new.uuid = key;
+            obj_new.tag = "model";
+            
+            if (props.hasOwnProperty('name')) 
+            {
+                obj_new.name = props.name;
+            }
+            
+            if (props.hasOwnProperty('position')) 
+            {
+                const position = props.position.split(',');
+                obj_new.setPosition(parseFloat(position[0]), parseFloat(position[1]), parseFloat(position[2]));
+            }
+    
+            if (props.hasOwnProperty('rotation')) 
+            {
+                const rotation = props.rotation.split(',');
+                obj_new.setRotation(parseFloat(rotation[0])* Math.PI / 180.0, parseFloat(rotation[1])* Math.PI / 180.0, parseFloat(rotation[2])* Math.PI / 180.0);      
+            }
+    
+            if (props.hasOwnProperty('scale')) 
+            {
+                const scale = props.scale.split(',');
+                obj_new.setScale(parseFloat(scale[0]), parseFloat(scale[1]), parseFloat(scale[2]));
+            }
+            
+            obj_new.setToonShading(16, 5.0, new Vector3(1.0, 1.0, 0.2));
+            
+            doc.add_hitable_object(obj_new);
+            doc.generate_bvh();
+            
+            doc.internal_index[key].obj = obj_new;
+        }
+        else
+        {
+            tuning_object3d(doc, obj, input);
+        }
     }
 }
 

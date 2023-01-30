@@ -71,6 +71,7 @@
                                         </Grid.ColumnDefinitions>
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="32"/>
+                                            <RowDefinition Height="32"/>
                                         </Grid.RowDefinitions>
 
                                         <Button x:Name="btn_create_group" Grid.Column="0" Grid.Row="0" Click="btn_create_group_Click">
@@ -89,6 +90,10 @@
                                             <Image Source="Icons/sphere.png"/>
                                         </Button>
 
+                                        <Button x:Name="btn_create_model" Grid.Column="0" Grid.Row="1" Click="btn_create_model_Click">
+                                            <Image Source="Icons/model.png"/>
+                                        </Button>
+
                                     </Grid>
                                 </GroupBox>
                             </StackPanel>
@@ -98,11 +103,7 @@
                 </DockPanel>
             </TabItem>
             <TabItem Header="UI">
-                <StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <Button Margin="5">Button</Button>
-                    </StackPanel>
-                </StackPanel>
+                
             </TabItem>
         </local:HackedTabControl>
     </Grid>

@@ -99,6 +99,9 @@
     <Compile Include="HemisphereSkyTuner.xaml.cs">
       <DependentUpon>HemisphereSkyTuner.xaml</DependentUpon>
     </Compile>
+    <Compile Include="ModelTuner.xaml.cs">
+      <DependentUpon>ModelTuner.xaml</DependentUpon>
+    </Compile>
     <Compile Include="NumberTuner.xaml.cs">
       <DependentUpon>NumberTuner.xaml</DependentUpon>
     </Compile>
@@ -229,6 +232,10 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="ModelTuner.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="NumberTuner.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>

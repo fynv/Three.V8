@@ -700,6 +700,12 @@ namespace GameDev
                     property_area.Children.Add(tuner);
                     tuner.obj3d_tuner.UpdateName += update_name;
                 }
+                else if (tag == "model")
+                {
+                    var tuner = new ModelTuner(game_player, picked_obj);
+                    property_area.Children.Add(tuner);
+                    tuner.obj3d_tuner.UpdateName += update_name;
+                }
 
                 var treeItem = TreeItemMap[key];
                 treeItem.IsSelected = true;
@@ -827,6 +833,11 @@ namespace GameDev
         private void btn_create_sphere_Click(object sender, RoutedEventArgs e)
         {
             req_create_obj3d("sphere");
+        }
+
+        private void btn_create_model_Click(object sender, RoutedEventArgs e)
+        {
+            req_create_obj3d("model");
         }
 
         private void remove_Click(object sender, RoutedEventArgs e)
