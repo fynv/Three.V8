@@ -72,3 +72,35 @@ void DirectionalLight::updateConstant()
 	makeConst(c);
 	m_constant.upload(&c);
 }
+
+void DirectionalLight::lookAtTarget()
+{
+	glm::vec3 abs_dir = glm::abs(direction());
+	if (abs_dir.y < abs_dir.x)
+	{
+		if (abs_dir.z < abs_dir.y)
+		{
+			this->up = { 0.0f, 0.0f, 1.0f };
+		}
+		else
+		{
+			this->up = { 0.0f, 1.0f, 0.0f };
+		}
+	}
+	else if (abs_dir.z < abs_dir.x)
+	{
+		this->up = { 0.0f, 0.0f, 1.0f };
+	}
+	else
+	{
+		this->up = { 1.0f, 0.0f, 0.0f };
+	}
+
+	glm::vec3 pos_target = { 0.0f, 0.0f, 0.0f };
+	if (target != nullptr)
+	{
+		pos_target = target->matrixWorld[3];
+	}
+	lookAt(pos_target);
+}
+

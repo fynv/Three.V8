@@ -618,12 +618,7 @@ void GLRenderer::_pre_render(Scene& scene)
 				DirectionalLight* light = dynamic_cast<DirectionalLight*>(obj);
 				if (light)
 				{
-					glm::vec3 pos_target = { 0.0f, 0.0f, 0.0f };
-					if (light->target != nullptr)
-					{
-						pos_target = light->target->matrixWorld[3];
-					}
-					light->lookAt(pos_target);
+					light->lookAtTarget();
 					p_scene->directional_lights.push_back(light);
 					break;
 				}
