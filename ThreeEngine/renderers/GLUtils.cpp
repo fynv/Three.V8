@@ -183,6 +183,12 @@ void GLTexture2D::load_file(const char* filename, bool is_srgb)
 	load_memory_rgba(img.width(), img.height(), img.data(), is_srgb);
 }
 
+void GLTexture2D::unload()
+{
+	glDeleteTextures(1, &tex_id);
+	glGenTextures(1, &tex_id);
+}
+
 
 GLTexture3D::GLTexture3D()
 {
@@ -208,8 +214,15 @@ void GLTexture3D::load_memory(int width, int height, int depth, const uint8_t* d
 	glTexImage3D(GL_TEXTURE_3D, 0, type, width, height, depth, 0, GL_RED, GL_UNSIGNED_BYTE, data);
 	glBindTexture(GL_TEXTURE_3D, 0);
 
-
 }
+
+
+void GLTexture3D::unload()
+{
+	glDeleteTextures(1, &tex_id);
+	glGenTextures(1, &tex_id);
+}
+
 
 GLCubemap::GLCubemap()
 {
@@ -248,6 +261,13 @@ void GLCubemap::load_files(const char* fn_xp, const char* fn_xn, const char* fn_
 	ImageLoader::LoadFile(&imgs[4], fn_zp);
 	ImageLoader::LoadFile(&imgs[5], fn_zn);
 	load_memory_rgba(imgs[0].width(), imgs[0].height(), imgs[0].data(), imgs[1].data(), imgs[2].data(), imgs[3].data(), imgs[4].data(), imgs[5].data());
+}
+
+
+void GLCubemap::unload()
+{
+	glDeleteTextures(1, &tex_id);
+	glGenTextures(1, &tex_id);
 }
 
 GLBuffer::GLBuffer(size_t size, unsigned target)

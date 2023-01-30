@@ -124,9 +124,17 @@ void WrapperCubeBackground::SetCubemap(const v8::FunctionCallbackInfo<v8::Value>
 {
 	LocalContext lctx(info);
 	CubeBackground* self = lctx.self<CubeBackground>();
-	CubeImage* image = lctx.jobj_to_obj<CubeImage>(info[0]);
-	self->cubemap.load_memory_rgba(image->images[0].width(), image->images[0].height(),
-		image->images[0].data(), image->images[1].data(), image->images[2].data(), image->images[3].data(), image->images[4].data(), image->images[5].data());
+
+	if (info[0]->IsNull())
+	{
+		self->cubemap.unload();
+	}
+	else
+	{
+		CubeImage* image = lctx.jobj_to_obj<CubeImage>(info[0]);
+		self->cubemap.load_memory_rgba(image->images[0].width(), image->images[0].height(),
+			image->images[0].data(), image->images[1].data(), image->images[2].data(), image->images[3].data(), image->images[4].data(), image->images[5].data());
+	}
 }
 
 class WrapperHemisphereBackground

@@ -148,7 +148,17 @@ void WrapperSimpleModel::SetColorTexture(const v8::FunctionCallbackInfo<v8::Valu
 {
 	LocalContext lctx(info);
 	SimpleModel* self = lctx.self<SimpleModel>();
+
+	if (info[0]->IsNull())
+	{
+		glm::u8vec3 white = { 255, 255, 255 };
+		self->texture.load_memory_bgr(1, 1, (uint8_t*)&white, true);
+		self->repl_texture = nullptr;
+		return;
+	}
+
 	v8::Local<v8::Object> holder_image = info[0].As<v8::Object>();	
+
 	std::string clsname = lctx.jstr_to_str(holder_image->GetConstructorName());
 	if (clsname== "Image")
 	{
@@ -156,6 +166,7 @@ void WrapperSimpleModel::SetColorTexture(const v8::FunctionCallbackInfo<v8::Valu
 		if (image != nullptr)
 		{
 			self->texture.load_memory_rgba(image->width(), image->height(), image->data(), true);
+			self->repl_texture = nullptr;
 		}
 	}
 	else if (clsname == "GLRenderTarget")

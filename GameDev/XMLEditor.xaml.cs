@@ -688,6 +688,18 @@ namespace GameDev
                     property_area.Children.Add(tuner);
                     tuner.obj3d_tuner.UpdateName += update_name;
                 }
+                else if (tag == "box")
+                {
+                    var tuner = new BoxTuner(game_player, picked_obj);
+                    property_area.Children.Add(tuner);
+                    tuner.obj3d_tuner.UpdateName += update_name;
+                }
+                else if (tag == "sphere")
+                {
+                    var tuner = new SphereTuner(game_player, picked_obj);
+                    property_area.Children.Add(tuner);
+                    tuner.obj3d_tuner.UpdateName += update_name;
+                }
 
                 var treeItem = TreeItemMap[key];
                 treeItem.IsSelected = true;
@@ -805,6 +817,16 @@ namespace GameDev
         private void btn_create_plane_Click(object sender, RoutedEventArgs e)
         {
             req_create_obj3d("plane");
+        }
+
+        private void btn_create_box_Click(object sender, RoutedEventArgs e)
+        {
+            req_create_obj3d("box");
+        }
+
+        private void btn_create_sphere_Click(object sender, RoutedEventArgs e)
+        {
+            req_create_obj3d("sphere");
         }
 
         private void remove_Click(object sender, RoutedEventArgs e)

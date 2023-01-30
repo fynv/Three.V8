@@ -5855,10 +5855,7 @@ const tuning_cube_sky = (doc, obj, input) =>{
             url+"/"+props.posy, url+"/"+props.negy, 
             url+"/"+props.posz, url+"/"+props.negz);
     
-        if (cube_img!=null)
-        {
-            obj.setCubemap(cube_img);
-        }
+        obj.setCubemap(cube_img);
     }
 };
 
@@ -6260,6 +6257,42 @@ const tuning_object3d = (doc, obj, input) => {
     }
 };
 
+const tuning_material = (doc, obj, input) =>{
+    let node = doc.internal_index[obj.uuid].xml_node;
+    let props = node.attributes;
+    
+    if ("color" in input)
+    {
+        props.color = input.color;
+        const color = input.color.split(',');
+        const r = parseFloat(color[0]);
+        const g = parseFloat(color[1]);
+        const b = parseFloat(color[2]);
+        obj.setColor(r,g,b);
+    }
+    
+    if ("texture" in input)
+    {
+        props.texture = input.texture;
+        let img = imageLoader.loadFile(input.texture);
+        obj.setColorTexture(img);
+    }
+    
+    if ("metalness" in input)
+    {
+        let metalness = input.metalness;
+        props.metalness = metalness;
+        obj.metalness = parseFloat(metalness);
+    }
+    
+    if ("roughness" in input)
+    {
+        let roughness = input.roughness;
+        props.roughness = roughness;
+        obj.roughness = parseFloat(roughness);
+    }
+};
+
 const group = {
     create: async (doc, props, mode, parent) => {
         const group = new Object3D();
@@ -6307,11 +6340,12 @@ const plane = {
         {
             props.size = input.size;
             let size = input.size.split(','); 
-            width = parseFloat(size[0]);
-            height = parseFloat(size[1]);
+            let width = parseFloat(size[0]);
+            let height = parseFloat(size[1]);
             obj.createPlane(width, height);
         }
         tuning_object3d(doc, obj, input);
+        tuning_material(doc, obj, input);
     }
 };
 
@@ -6339,13 +6373,29 @@ const box = {
             doc.scene.add(box);
         }
         return box;
+    },
+    
+    tuning: (doc, obj, input) => {
+        let node = doc.internal_index[obj.uuid].xml_node;
+        let props = node.attributes;
+        if ("size" in input)
+        {
+            props.size = input.size;
+            let size = input.size.split(','); 
+            let width = parseFloat(size[0]);
+            let height = parseFloat(size[1]);
+            let depth =  parseFloat(size[2]);
+            obj.createBox(width, height, depth);
+        }
+        tuning_object3d(doc, obj, input);
+        tuning_material(doc, obj, input);
     }
 };
 
 const sphere = {
     create: async (doc, props, mode, parent) => {
         let radius = 1.0;
-        if (props.hasOwnProperty('size'))
+        if (props.hasOwnProperty('radius'))
         {
             radius = parseFloat(props.radius);
         }
@@ -6370,6 +6420,45 @@ const sphere = {
             doc.scene.add(sphere);
         }
         return sphere;
+    },
+    
+    tuning: (doc, obj, input) => {
+        let node = doc.internal_index[obj.uuid].xml_node;
+        let props = node.attributes;
+        
+        let to_create = false;
+        
+        let radius = 1.0;
+        if ("radius" in input)
+        {
+            props.radius = input.radius;
+            radius = parseFloat(input.radius);
+            to_create = true;
+        }
+        
+        let widthSegments = 32;
+        if ("widthSegments" in input)
+        {
+            props.widthSegments = input.widthSegments;
+            widthSegments = parseInt(input.widthSegments);
+            to_create = true;
+        }
+        
+        let heightSegments = 16;
+        if ("heightSegments" in input)
+        {
+            props.heightSegments = input.heightSegments;
+            heightSegments = parseInt(input.heightSegments);
+            to_create = true;
+        }
+        
+        if (to_create)
+        {
+            obj.createSphere(radius, widthSegments, heightSegments);
+        }
+        
+        tuning_object3d(doc, obj, input);
+        tuning_material(doc, obj, input);
     }
 };
 
@@ -6582,7 +6671,20 @@ class Document
         if (props.hasOwnProperty('texture'))
         {
             let img = imageLoader.loadFile(props.texture);
-            obj.setColorTexture(img);
+            if (img!=null)
+            {
+                obj.setColorTexture(img);
+            }
+        }
+        
+        if (props.hasOwnProperty('metalness'))
+        {
+            obj.metalness = parseFloat(props.metalness);
+        }
+        
+        if (props.hasOwnProperty('roughness'))
+        {
+            obj.roughness = parseFloat(props.roughness);
         }
         
         if (tag in this.hitable_tags)

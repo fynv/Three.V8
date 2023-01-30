@@ -68,6 +68,9 @@
     <Compile Include="AngleTuner.xaml.cs">
       <DependentUpon>AngleTuner.xaml</DependentUpon>
     </Compile>
+    <Compile Include="BoxTuner.xaml.cs">
+      <DependentUpon>BoxTuner.xaml</DependentUpon>
+    </Compile>
     <Compile Include="ColorTuner.xaml.cs">
       <DependentUpon>ColorTuner.xaml</DependentUpon>
     </Compile>
@@ -111,8 +114,14 @@
     <Compile Include="ScaleTuner.xaml.cs">
       <DependentUpon>ScaleTuner.xaml</DependentUpon>
     </Compile>
+    <Compile Include="SimpleMaterialTuner.xaml.cs">
+      <DependentUpon>SimpleMaterialTuner.xaml</DependentUpon>
+    </Compile>
     <Compile Include="SkyTuner.xaml.cs">
       <DependentUpon>SkyTuner.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="SphereTuner.xaml.cs">
+      <DependentUpon>SphereTuner.xaml</DependentUpon>
     </Compile>
     <Compile Include="UniformSkyTuner.xaml.cs">
       <DependentUpon>UniformSkyTuner.xaml</DependentUpon>
@@ -128,6 +137,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="AngleTuner.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="BoxTuner.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -236,7 +249,15 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="SimpleMaterialTuner.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="SkyTuner.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="SphereTuner.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

@@ -3,20 +3,19 @@ using System.Windows.Controls;
 using CLRBinding;
 using Newtonsoft.Json.Linq;
 
-
 namespace GameDev
 {
     /// <summary>
-    /// Interaction logic for PlaneTuner.xaml
+    /// Interaction logic for BoxTuner.xaml
     /// </summary>
-    public partial class PlaneTuner : UserControl
+    public partial class BoxTuner : UserControl
     {
         private CGamePlayer game_player = null;
         private JObject jobj = null;
 
         public Object3DTuner obj3d_tuner = null;
 
-        public PlaneTuner(CGamePlayer game_player, JObject jobj)
+        public BoxTuner(CGamePlayer game_player, JObject jobj)
         {
             InitializeComponent();
             this.game_player = game_player;
@@ -28,6 +27,8 @@ namespace GameDev
             tuner_width.value = 1.0f;
             tuner_height.step = 0.5f;
             tuner_height.value = 1.0f;
+            tuner_depth.step = 0.5f;
+            tuner_depth.value = 1.0f;
 
             if (att.ContainsKey("size"))
             {
@@ -35,6 +36,7 @@ namespace GameDev
                 string[] values = size.Split(',');
                 tuner_width.value = float.Parse(values[0]);
                 tuner_height.value = float.Parse(values[1]);
+                tuner_depth.value = float.Parse(values[2]);
             }
 
             obj3d_tuner = new Object3DTuner(game_player, jobj);
@@ -47,7 +49,7 @@ namespace GameDev
         private void tuner_size_ValueChanged(object sender, EventArgs e)
         {
             JObject tuning = new JObject();
-            tuning["size"] = $"{tuner_width.value},{tuner_height.value}";
+            tuning["size"] = $"{tuner_width.value},{tuner_height.value},{tuner_depth.value}";
 
             var att = (JObject)jobj["attributes"];
             att["size"] = tuning["size"];

@@ -66,6 +66,8 @@
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="32"/>
                                             <ColumnDefinition Width="32"/>
+                                            <ColumnDefinition Width="32"/>
+                                            <ColumnDefinition Width="32"/>
                                         </Grid.ColumnDefinitions>
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="32"/>
@@ -78,6 +80,15 @@
                                         <Button x:Name="btn_create_plane" Grid.Column="1" Grid.Row="0" Click="btn_create_plane_Click">
                                             <Image Source="Icons/plane.png"/>
                                         </Button>
+
+                                        <Button x:Name="btn_create_box" Grid.Column="2" Grid.Row="0" Click="btn_create_box_Click">
+                                            <Image Source="Icons/box.png"/>
+                                        </Button>
+
+                                        <Button x:Name="btn_create_sphere" Grid.Column="3" Grid.Row="0" Click="btn_create_sphere_Click">
+                                            <Image Source="Icons/sphere.png"/>
+                                        </Button>
+
                                     </Grid>
                                 </GroupBox>
                             </StackPanel>
