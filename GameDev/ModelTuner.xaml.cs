@@ -32,6 +32,12 @@ namespace GameDev
                 fn_source.Text = att["src"].ToString();
             }
 
+            if (att.ContainsKey("is_building"))
+            {
+                bool is_building = att["is_building"].ToObject<bool>();
+                chk_is_building.IsChecked = is_building;
+            }
+
             obj3d_tuner = new Object3DTuner(game_player, jobj);
             stack.Children.Add(obj3d_tuner);
         }
@@ -79,6 +85,17 @@ namespace GameDev
             string rel_path = path.Substring(cur_path.Length + 1);
             fn_source.Text = rel_path;
             load_model();
+        }
+
+        private void chk_is_building_Checked(object sender, System.Windows.RoutedEventArgs e)
+        {
+            JObject tuning = new JObject();
+            tuning["is_building"] = $"{chk_is_building.IsChecked == true}";
+
+            var att = (JObject)jobj["attributes"];
+            att["is_building"] = tuning["is_building"];
+
+            game_player.SendMessageToUser("tuning", tuning.ToString());
         }
     }
 }

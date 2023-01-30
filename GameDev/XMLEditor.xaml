@@ -94,6 +94,10 @@
                                             <Image Source="Icons/model.png"/>
                                         </Button>
 
+                                        <Button x:Name="btn_create_directional_light" Grid.Column="1" Grid.Row="1" Click="btn_create_directional_light_Click">
+                                            <Image Source="Icons/directional_light.png"/>
+                                        </Button>
+
                                     </Grid>
                                 </GroupBox>
                             </StackPanel>

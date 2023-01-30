@@ -37,6 +37,12 @@ namespace GameDev
                 tuner_height.value = float.Parse(values[1]);
             }
 
+            if (att.ContainsKey("is_building"))
+            {
+                bool is_building = att["is_building"].ToObject<bool>();
+                chk_is_building.IsChecked = is_building;
+            }
+
             obj3d_tuner = new Object3DTuner(game_player, jobj);
             stack.Children.Add(obj3d_tuner);
 
@@ -51,6 +57,17 @@ namespace GameDev
 
             var att = (JObject)jobj["attributes"];
             att["size"] = tuning["size"];
+
+            game_player.SendMessageToUser("tuning", tuning.ToString());
+        }
+
+        private void chk_is_building_Checked(object sender, System.Windows.RoutedEventArgs e)
+        {
+            JObject tuning = new JObject();
+            tuning["is_building"] = $"{chk_is_building.IsChecked == true}";
+
+            var att = (JObject)jobj["attributes"];
+            att["is_building"] = tuning["is_building"];
 
             game_player.SendMessageToUser("tuning", tuning.ToString());
         }

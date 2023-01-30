@@ -788,6 +788,12 @@ void WrapperObject3D::GetObjectByName(const v8::FunctionCallbackInfo<v8::Value>&
 	v8::Local<v8::Object> holder = info.Holder();
 
 	std::string name = lctx.jstr_to_str(info[0]);
+	if (name == "")
+	{
+		info.GetReturnValue().SetNull();
+		return;
+	}
+
 	std::string name2 = lctx.jstr_to_str(lctx.get_property(holder, "name"));
 
 	if (name2 == name)

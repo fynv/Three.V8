@@ -56,8 +56,15 @@ void WrapperDirectionalLight::SetTarget(v8::Local<v8::String> property, v8::Loca
 {
 	LocalContext lctx(info);
 	DirectionalLight* self = lctx.self<DirectionalLight>();
-	Object3D* target = lctx.jobj_to_obj<Object3D>(value);
-	self->target = target;
+	if (value->IsNull())
+	{
+		self->target = nullptr;
+	}
+	else
+	{
+		Object3D* target = lctx.jobj_to_obj<Object3D>(value);
+		self->target = target;
+	}
 	
 	v8::Local<v8::Object> holder = info.Holder();
 	lctx.set_property(holder, "_target", value);	

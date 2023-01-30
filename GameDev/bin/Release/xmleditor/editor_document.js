@@ -970,6 +970,10 @@ const plane = {
             let height = parseFloat(size[1]);
             obj.createPlane(width, height);
         }
+        if ("is_building" in input)
+        {
+            props.is_building = input.is_building;
+        }
         tuning_object3d(doc, obj, input);
         tuning_material(doc, obj, input);
     }
@@ -1012,6 +1016,10 @@ const box = {
             let height = parseFloat(size[1]);
             let depth =  parseFloat(size[2]);
             obj.createBox(width, height, depth);
+        }
+        if ("is_building" in input)
+        {
+            props.is_building = input.is_building;
         }
         tuning_object3d(doc, obj, input);
         tuning_material(doc, obj, input);
@@ -1081,6 +1089,11 @@ const sphere = {
         if (to_create)
         {
             obj.createSphere(radius, widthSegments, heightSegments);
+        }
+        
+        if ("is_building" in input)
+        {
+            props.is_building = input.is_building;
         }
         
         tuning_object3d(doc, obj, input);
@@ -1156,6 +1169,10 @@ const model = {
         }
         else
         {
+            if ("is_building" in input)
+            {
+                props.is_building = input.is_building;
+            }
             tuning_object3d(doc, obj, input);
         }
     }
@@ -1165,6 +1182,10 @@ const avatar = {
     create: async (doc, props, mode, parent) => {
         let avatar = await model.create(doc, { ...props}, mode, parent);
         return avatar;
+    },
+    
+    tuning: async (doc, obj, input) =>  {
+        await model.tuning(doc,obj,input);
     }
 }
 
@@ -1175,7 +1196,12 @@ const directional_light = {
         
         if (props.hasOwnProperty('intensity')) {
             light.intensity = parseFloat(props.intensity);
-        }       
+        }
+        
+        if (props.hasOwnProperty('target')){
+            let target = doc.scene.getObjectByName(props.target);
+            light.target = target;
+        }
         
         if (props.hasOwnProperty('castShadow') && string_to_boolean(props.castShadow))
         {
@@ -1198,6 +1224,12 @@ const directional_light = {
                 let far = parseFloat(area[5]);
                 light.setShadowProjection(left, right, top, bottom, near, far);
             }
+            
+            if (props.hasOwnProperty('radius'))
+            {
+                let radius = parseFloat(props.radius);
+                light.setShadowRadius(radius);
+            }
         }
 
         if (parent != null) {
@@ -1207,6 +1239,72 @@ const directional_light = {
             doc.scene.add(light);
         }
         return light;
+    },
+    tuning: (doc, obj, input) => {
+        let node = doc.internal_index[obj.uuid].xml_node;
+        let props = node.attributes;
+        
+        if ("intensity" in input)
+        {
+            let intensity = input.intensity;
+            props.intensity = intensity;
+            obj.intensity = parseFloat(intensity);
+        }
+        
+        if ("color" in input)
+        {
+            props.color = input.color;
+            const color = input.color.split(',');
+            const r = parseFloat(color[0]);
+            const g = parseFloat(color[1]);
+            const b = parseFloat(color[2]);
+            obj.setColor(r,g,b);
+        }
+        
+        if ("target" in input)
+        {
+            props.target = input.target;
+            let target = doc.scene.getObjectByName(input.target);
+            obj.target = target;
+        }
+        
+        if ("castShadow" in input)
+        {
+            props.castShadow = input.castShadow;
+            
+            let castShadow = string_to_boolean(input.castShadow);
+            let width = 512;
+            let height = 512;
+            if (input.hasOwnProperty('size')) {
+                props.size = input.size;
+                let size = input.size.split(',');
+                width = parseInt(size[0]);
+                height = parseInt(size[1]);
+            }
+            obj.setShadow(castShadow, width, height);
+        }
+        
+        if ("area" in input)
+        {
+            props.area = input.area;
+            const area = input.area.split(',');
+            let left = parseFloat(area[0]);
+            let right = parseFloat(area[1]);
+            let top = parseFloat(area[2]);
+            let bottom = parseFloat(area[3]);       
+            let near = parseFloat(area[4]);
+            let far = parseFloat(area[5]);
+            obj.setShadowProjection(left, right, top, bottom, near, far);
+        }
+        
+        if ("radius" in input)
+        {
+            props.radius = input.radius;
+            let radius = parseFloat(input.radius);
+            obj.setShadowRadius(radius);
+        }
+        
+        tuning_object3d(doc, obj, input);
     }
 }
 

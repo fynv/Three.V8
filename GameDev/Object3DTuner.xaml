@@ -9,7 +9,7 @@
     <StackPanel>
         <StackPanel Orientation="Horizontal">
             <TextBlock VerticalAlignment="Center">Name:</TextBlock>
-            <TextBox x:Name="text_name" Width="50" Margin="5" LostFocus="text_name_LostFocus" KeyDown="text_name_KeyDown"/>
+            <TextBox x:Name="text_name" Width="150" Margin="5" LostFocus="text_name_LostFocus" KeyDown="text_name_KeyDown"/>
         </StackPanel>
         <StackPanel Orientation="Horizontal">
             <TextBlock VerticalAlignment="Center">Position:</TextBlock>

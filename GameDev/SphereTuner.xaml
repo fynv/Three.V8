@@ -11,6 +11,7 @@
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="Radius:" VerticalAlignment="Center"/>
                 <local:NumberTuner x:Name="tuner_radius" Margin="5" ValueChanged="tuner_raidus_ValueChanged"></local:NumberTuner>
+                <CheckBox x:Name="chk_is_building" VerticalAlignment="Center" Content="is building" Checked="chk_is_building_Checked" Unchecked="chk_is_building_Checked"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="Width segments:" VerticalAlignment="Center"/>

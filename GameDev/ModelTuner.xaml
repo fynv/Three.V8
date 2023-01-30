@@ -13,6 +13,7 @@
                 <TextBox x:Name="fn_source" Width="300" Margin="5" LostFocus="text_LostFocus" KeyDown="text_KeyDown"/>
                 <Button x:Name="btn_browse" Content="Browse" Margin="5" Padding="5" Click="btn_browse_Click"/>
             </StackPanel>
+            <CheckBox x:Name="chk_is_building" VerticalAlignment="Center" Content="is building" Checked="chk_is_building_Checked" Unchecked="chk_is_building_Checked"/>
         </StackPanel>
     </GroupBox>
 </UserControl>
