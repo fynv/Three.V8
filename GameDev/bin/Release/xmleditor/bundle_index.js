@@ -6239,21 +6239,30 @@ const tuning_object3d = (doc, obj, input) => {
         props.position = input.position;
         let position = input.position.split(',');
         obj.setPosition(parseFloat(position[0]), parseFloat(position[1]), parseFloat(position[2]));
-        doc.generate_bvh();
+        if (node.tagName in doc.hitable_tags)
+        {
+            doc.generate_bvh();
+        }
     }
     if ("rotation" in input)
     {
         props.rotation = input.rotation;
         let rotation = input.rotation.split(',');
         obj.setRotation(parseFloat(rotation[0])* Math.PI / 180.0, parseFloat(rotation[1])* Math.PI / 180.0, parseFloat(rotation[2])* Math.PI / 180.0);
-        doc.generate_bvh();
+        if (node.tagName in doc.hitable_tags)
+        {
+            doc.generate_bvh();
+        }
     }
     if ("scale" in input)
     {
         props.scale = input.scale;
         let scale = input.scale.split(',');
         obj.setScale(parseFloat(scale[0]), parseFloat(scale[1]), parseFloat(scale[2]));
-        doc.generate_bvh();
+        if (node.tagName in doc.hitable_tags)
+        {
+            doc.generate_bvh();
+        }
     }
 };
 
