@@ -80,6 +80,10 @@ void GamePlayer::Idle()
 void GamePlayer::Draw(int width, int height)
 {	
 	bool size_changed =  m_render_target.update_framebuffers(width, height);
+	if (size_changed && m_pick_target != nullptr)
+	{
+		m_pick_target->update_framebuffers(width, height);
+	}
 
 	if (m_context != nullptr)
 	{
@@ -268,6 +272,20 @@ std::string GamePlayer::SendMessageToUser(const char* name, const char* msg)
 		}
 	}
 	return "";
+}
+
+void GamePlayer::SetPicking(bool picking)
+{
+	if (picking)
+	{
+		m_pick_target = std::unique_ptr<GLPickingTarget>(new GLPickingTarget);
+		m_pick_target->update_framebuffers(m_render_target.m_width, m_render_target.m_height);
+	}
+	else
+	{
+		m_pick_target = nullptr;
+	}
+
 }
 
 void GamePlayer::SetPrintCallbacks(void* ptr, GameContext::PrintCallback print_callback, GameContext::PrintCallback error_callback)

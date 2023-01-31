@@ -72,6 +72,11 @@ void WrapperGLRenderer::Render(const v8::FunctionCallbackInfo<v8::Value>& info)
 	{		
 		GamePlayer* player = lctx.player();	
 		self->render(*scene, *camera, player->renderTarget());
+
+		if (player->Picking())
+		{
+			self->render_picking(*scene, *camera, *player->pickingTarget());
+		}
 	}
 	else
 	{

@@ -597,7 +597,6 @@ const create_cube_env_light = (doc, props) => {
     }
     proxy.setColor(0.7,0.0,0.7);
     doc.scene.add(proxy);
-    doc.add_hitable_object(proxy);
     
     let url = "assets/textures";
     let posx = "env_face0.jpg";
@@ -704,7 +703,6 @@ const tuning_cube_env_light = (doc, obj, input) =>{
         props.probe_position = probe_position;
         let position = probe_position.split(',');
         obj.setPosition(parseFloat(position[0]), parseFloat(position[1]), parseFloat(position[2]));
-        doc.update_hitable_object(obj);
     }
     
     let reload = false;
@@ -865,30 +863,18 @@ const tuning_object3d = (doc, obj, input) => {
         props.position = input.position;
         let position = input.position.split(',');
         obj.setPosition(parseFloat(position[0]), parseFloat(position[1]), parseFloat(position[2]));
-        if (node.tagName in doc.hitable_tags)
-        {
-            doc.update_hitable_object(obj);
-        }
     }
     if ("rotation" in input)
     {
         props.rotation = input.rotation;
         let rotation = input.rotation.split(',');
         obj.setRotation(parseFloat(rotation[0])* Math.PI / 180.0, parseFloat(rotation[1])* Math.PI / 180.0, parseFloat(rotation[2])* Math.PI / 180.0);
-        if (node.tagName in doc.hitable_tags)
-        {
-            doc.update_hitable_object(obj);
-        }
     }
     if ("scale" in input)
     {
         props.scale = input.scale;
         let scale = input.scale.split(',');
         obj.setScale(parseFloat(scale[0]), parseFloat(scale[1]), parseFloat(scale[2]));
-        if (node.tagName in doc.hitable_tags)
-        {
-            doc.update_hitable_object(obj);
-        }
     }
 }
 
@@ -978,7 +964,6 @@ const plane = {
             let width = parseFloat(size[0]);
             let height = parseFloat(size[1]);
             obj.createPlane(width, height);
-            doc.update_hitable_object(obj);
         }
         if ("is_building" in input)
         {
@@ -1026,7 +1011,6 @@ const box = {
             let height = parseFloat(size[1]);
             let depth =  parseFloat(size[2]);
             obj.createBox(width, height, depth);
-            doc.update_hitable_object(obj);
         }
         if ("is_building" in input)
         {
@@ -1100,7 +1084,6 @@ const sphere = {
         if (to_create)
         {
             obj.createSphere(radius, widthSegments, heightSegments);
-            doc.update_hitable_object(obj);
         }
         
         if ("is_building" in input)
@@ -1173,8 +1156,6 @@ const model = {
             }
             
             obj_new.setToonShading(16, 5.0, new Vector3(1.0, 1.0, 0.2));
-            
-            doc.update_hitable_object(obj_new);
             
             doc.internal_index[key].obj = obj_new;
         }
@@ -1328,7 +1309,6 @@ export class Document
         this.width = view.clientWidth;
         this.height = view.clientHeight;
         this.Tags = { scene, camera, fog, sky, env_light, control, group, plane, box, sphere, model, avatar, directional_light };
-        this.hitable_tags = { plane, box, sphere, model, avatar };        
         this.picked_key = "";
         this.reset();
     }
@@ -1348,7 +1328,6 @@ export class Document
     reset() 
     {
         this.saved_text = "";
-        this.hitables = [];
         
         if (this.picked_key!="")
         {
@@ -1394,53 +1373,6 @@ export class Document
             renderer.render(this.scene, this.camera);
         }
     }
-    
-    add_hitable_object(obj) {
-        if(this.hitables.indexOf(obj) < 0)
-        {
-            this.hitables.push(obj);
-        }
-    }
-    
-    update_hitable_object(obj) {
-        if(this.hitables.indexOf(obj) < 0)
-        {
-             this.hitables.push(obj);
-        }
-        
-        if (this.hitables!=null)
-        {
-            this.bvh.update(obj);
-        }
-        else
-        {
-            this.bvh = new BoundingVolumeHierarchy(this.hitables);
-        }
-       
-    }
-
-    remove_hitable_object(obj) {
-        let idx = this.hitables.indexOf(obj);
-        if (idx>-1)
-        {
-            this.hitables.splice(idx, 1);
-            if (this.hitables.length==0)
-            {
-                this.bvh = null;
-            }
-            else
-            {
-                this.bvh.remove(obj);
-            }
-        }
-    }
-    
-    intersect(ray)
-    {
-        if (this.bvh==null) return null;
-        return this.bvh.intersect(ray);
-    }
-    
     
     async create(tag, props, mode, parent = null) 
     {
@@ -1503,23 +1435,11 @@ export class Document
             obj.roughness = parseFloat(props.roughness);
         }
         
-        if (tag in this.hitable_tags)
-        {
-            this.add_hitable_object(obj);
-        }
-        
         return obj;
     }
     
     remove(obj)
     {
-        if (obj.hasOwnProperty("traverse"))
-        {
-            obj.traverse((child) => {
-                this.remove_hitable_object(child);
-            });
-        }
-        
         if (obj.hasOwnProperty('tag')) {
             const tag = this.Tags[obj.tag];
             if (tag.hasOwnProperty('remove')) {
@@ -1592,11 +1512,6 @@ export class Document
         if (root)
         {
             await this.load_xml_node(root, mode);
-        }
-        
-        if (this.hitables.length>0)
-        { 
-            this.bvh = new BoundingVolumeHierarchy(this.hitables);
         }
         
         this.saved_text = genXML(this.xml_nodes);
@@ -1695,12 +1610,7 @@ export class Document
         let child = {tagName:tag, attributes: {}, children: []};
         xmlNode.children.push(child);
         
-        let length_before = this.hitables.length;
         let obj = await this.create(tag, {}, "local", parent);
-        if (this.hitables.length > length_before)
-        {
-            this.update_hitable_object(obj);
-        }
         let key = obj.uuid;
         
         let internal_node = {};
@@ -1762,30 +1672,10 @@ export class Document
 
 function picking_pointerdown(event)
 {
-    if (doc.bvh == null) return;
-    
     let x = event.clientX;
     let y = event.clientY;
     
-    let clipX = (x/doc.width)*2.0 -1.0;
-    let clipY = 1.0 - (y/doc.height)*2.0;
-    
-    let pos0 = new Vector4(clipX, clipY, -1.0, 1.0);
-    let pos1 = new Vector4(clipX, clipY, 0.0, 1.0);
-    
-    let matProjInv = doc.camera.getProjectionMatrixInverse(new Matrix4());
-    let matViewInv = doc.camera.getMatrixWorld(new Matrix4());
-    pos0.applyMatrix4(matProjInv);
-    pos0.applyMatrix4(matViewInv);
-    pos1.applyMatrix4(matProjInv);
-    pos1.applyMatrix4(matViewInv);
-    
-    let origin = new Vector3(pos0.x/pos0.w, pos0.y/pos0.w, pos0.z/pos0.w);
-    let dir = new Vector3(pos1.x/pos1.w, pos1.y/pos1.w, pos1.z/pos1.w);
-    dir.sub(origin);
-    dir.normalize();
-
-    let intersect = doc.intersect({origin: origin, direction: dir});
+    let intersect = gamePlayer.pickObject(x,y);
     if (intersect!=null)
     {
         doc.pick_obj(intersect.uuid);
@@ -1798,7 +1688,6 @@ function picking_pointerdown(event)
     {
         doc.pick_obj(doc.scene.uuid);
     }
-    
 }
 
 

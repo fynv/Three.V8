@@ -700,7 +700,7 @@ namespace GameDev
                     property_area.Children.Add(tuner);
                     tuner.obj3d_tuner.UpdateName += update_name;
                 }
-                else if (tag == "model")
+                else if (tag == "model" || tag == "avatar")
                 {
                     var tuner = new ModelTuner(game_player, picked_obj);
                     property_area.Children.Add(tuner);

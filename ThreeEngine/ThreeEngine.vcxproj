@@ -169,6 +169,7 @@
     <ClCompile Include="network\HttpClient.cpp" />
     <ClCompile Include="network\WSClient.cpp" />
     <ClCompile Include="renderers\CubeRenderTarget.cpp" />
+    <ClCompile Include="renderers\GLPickingTarget.cpp" />
     <ClCompile Include="renderers\GLRenderer.cpp" />
     <ClCompile Include="renderers\GLRenderTarget.cpp" />
     <ClCompile Include="renderers\GLUIRenderer.cpp" />
@@ -184,6 +185,7 @@
     <ClCompile Include="renderers\routines\FogRayMarching.cpp" />
     <ClCompile Include="renderers\routines\LightingRoutine.cpp" />
     <ClCompile Include="renderers\routines\MorphUpdate.cpp" />
+    <ClCompile Include="renderers\routines\Picking.cpp" />
     <ClCompile Include="renderers\routines\SkinUpdate.cpp" />
     <ClCompile Include="renderers\routines\StandardRoutine.cpp" />
     <ClCompile Include="renderers\routines\WeightedOIT.cpp" />
@@ -247,6 +249,7 @@
     <ClInclude Include="network\root_certificates.hpp" />
     <ClInclude Include="network\WSClient.h" />
     <ClInclude Include="renderers\CubeRenderTarget.h" />
+    <ClInclude Include="renderers\GLPickingTarget.h" />
     <ClInclude Include="renderers\GLRenderer.h" />
     <ClInclude Include="renderers\GLRenderTarget.h" />
     <ClInclude Include="renderers\GLUIRenderer.h" />
@@ -262,6 +265,7 @@
     <ClInclude Include="renderers\routines\FogRayMarching.h" />
     <ClInclude Include="renderers\routines\LightingRoutine.h" />
     <ClInclude Include="renderers\routines\MorphUpdate.h" />
+    <ClInclude Include="renderers\routines\Picking.h" />
     <ClInclude Include="renderers\routines\SkinUpdate.h" />
     <ClInclude Include="renderers\routines\StandardRoutine.h" />
     <ClInclude Include="renderers\routines\WeightedOIT.h" />

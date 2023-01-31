@@ -115,10 +115,10 @@ void WrappeBoundingVolumeHierarchy::Intersect(const v8::FunctionCallbackInfo<v8:
 	};
 
 	auto intersection = self->intersect(bvh_ray);
-
-	v8::Local<v8::Object> ret = v8::Object::New(lctx.isolate);
+	
 	if (intersection.has_value())
 	{	
+		v8::Local<v8::Object> ret = v8::Object::New(lctx.isolate);
 		v8::Local<v8::String> name = lctx.str_to_jstr(intersection->object->name.c_str());
 		v8::Local<v8::String> uuid = lctx.str_to_jstr(intersection->object->uuid.c_str());
 		lctx.set_property(ret, "name", name);

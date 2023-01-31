@@ -20,10 +20,13 @@
 #include "volume/routines/DrawIsosurface.h"
 #include "volume/routines/IsosurfaceDirectionalShadow.h"
 
+#include "renderers/routines/Picking.h"
+
 class Scene;
 class Fog;
 class Camera;
 class GLRenderTarget;
+class GLPickingTarget;
 class CubeRenderTarget;
 class SimpleModel;
 class GLTFModel;
@@ -51,7 +54,10 @@ public:
 
 	GLRenderer();
 	~GLRenderer();
+
 	void render(Scene& scene, Camera& camera, GLRenderTarget& target);	
+	void render_picking(Scene& scene, Camera& camera, GLPickingTarget& target);
+
 	void renderCube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar);
 	
 	void renderLayers(size_t num_layers, Layer* layers, GLRenderTarget& target);
@@ -110,14 +116,20 @@ private:
 	void _render_scene(Scene& scene, Camera& camera, GLRenderTarget& target);
 	void _render(Scene& scene, Camera& camera, GLRenderTarget& target);
 	void _render_scene_to_cube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar);
-	void _render_cube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar);
-	
+	void _render_cube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar);	
+
+	std::unordered_map<uint64_t, std::unique_ptr<Picking>> picking_map;
+	Picking* get_picking(const Picking::Options& options);
+
+	void render_picking_primitive(const Picking::RenderParams& params);
+	void render_picking_model(Camera* p_camera, SimpleModel* model, GLPickingTarget& target);
+	void render_picking_model(Camera* p_camera, GLTFModel* model, GLPickingTarget& target);
 	
 	std::unordered_map<uint64_t, std::unique_ptr<DrawFog>> fog_draw_map;
 	std::unique_ptr<FogRayMarching> fog_ray_march[2];
 	
 	void _render_fog(const Camera& camera, const Lights& lights, const Fog& fog, GLRenderTarget& target);
-	void _render_fog_rm(const Camera& camera, DirectionalLight& light, const Fog& fog, GLRenderTarget& target);
+	void _render_fog_rm(const Camera& camera, DirectionalLight& light, const Fog& fog, GLRenderTarget& target);	
 
 	std::unordered_map<uint64_t, std::unique_ptr<BaseColorRoutine>> base_routine_map;
 	void render_primitive_base(const BaseColorRoutine::RenderParams& params);

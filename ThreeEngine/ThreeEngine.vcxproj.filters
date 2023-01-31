@@ -324,6 +324,12 @@
     <ClCompile Include="models\AnimationMixer.cpp">
       <Filter>Source Files\models</Filter>
     </ClCompile>
+    <ClCompile Include="renderers\GLPickingTarget.cpp">
+      <Filter>Source Files\renderers</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\routines\Picking.cpp">
+      <Filter>Source Files\renderers\routines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -562,6 +568,12 @@
     </ClInclude>
     <ClInclude Include="models\AnimationMixer.h">
       <Filter>Header Files\models</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\GLPickingTarget.h">
+      <Filter>Header Files\renderers</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\routines\Picking.h">
+      <Filter>Header Files\renderers\routines</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -3,6 +3,7 @@
 #include "GLUtils.h"
 #include "GLRenderer.h"
 #include "GLRenderTarget.h"
+#include "GLPickingTarget.h"
 #include "CubeRenderTarget.h"
 #include "cameras/Camera.h"
 #include "cameras/PerspectiveCamera.h"
@@ -527,6 +528,117 @@ void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, VolumeIsosu
 	shadow_caster->render(params);
 }
 
+Picking* GLRenderer::get_picking(const Picking::Options& options)
+{
+	uint64_t hash = crc64(0, (const unsigned char*)&options, sizeof(Picking::Options));
+	auto iter = picking_map.find(hash);
+	if (iter == picking_map.end())
+	{
+		picking_map[hash] = std::unique_ptr<Picking>(new Picking(options));
+	}
+	return picking_map[hash].get();
+}
+
+void GLRenderer::render_picking_primitive(const Picking::RenderParams& params)
+{
+	const MeshStandardMaterial* material = params.material_list[params.primitive->material_idx];
+
+	Picking::Options options;
+	options.alpha_mode = material->alphaMode;
+	options.has_color = params.primitive->color_buf != nullptr;
+	options.has_color_texture = material->tex_idx_map >= 0;
+	Picking* picking_renderer = get_picking(options);
+	picking_renderer->render(params);
+}
+
+void GLRenderer::render_picking_model(Camera* p_camera, SimpleModel* model, GLPickingTarget& target)
+{
+	glm::mat4 view_matrix = p_camera->matrixWorldInverse;
+	if (!visible(view_matrix * model->matrixWorld, p_camera->projectionMatrix, model->geometry.min_pos, model->geometry.max_pos)) return;
+
+	const GLTexture2D* tex = &model->texture;
+	if (model->repl_texture != nullptr)
+	{
+		tex = model->repl_texture;
+	}
+
+	const MeshStandardMaterial* material = &model->material;
+
+	GLPickingTarget::IdxInfo idx_info;
+	idx_info.obj = model;
+	idx_info.primitive_idx = 0;
+	int idx = (int)target.m_idx_info.size();
+	target.m_idx_info.push_back(idx_info);
+
+	Picking::RenderParams params;
+	params.tex_list = &tex;
+	params.material_list = &material;
+	params.constant_camera = &p_camera->m_constant;
+	params.constant_model = &model->m_constant;
+	params.primitive = &model->geometry;
+	params.idx = idx;
+	render_picking_primitive(params);
+}
+
+void GLRenderer::render_picking_model(Camera* p_camera, GLTFModel* model, GLPickingTarget& target)
+{
+	glm::mat4 view_matrix = p_camera->matrixWorldInverse;
+
+	std::vector<const GLTexture2D*> tex_lst(model->m_textures.size());
+	for (size_t i = 0; i < tex_lst.size(); i++)
+	{
+		auto iter = model->m_repl_textures.find(i);
+		if (iter != model->m_repl_textures.end())
+		{
+			tex_lst[i] = iter->second;
+		}
+		else
+		{
+			tex_lst[i] = model->m_textures[i].get();
+		}
+	}
+
+	std::vector<const MeshStandardMaterial*> material_lst(model->m_materials.size());
+	for (size_t i = 0; i < material_lst.size(); i++)
+		material_lst[i] = model->m_materials[i].get();
+
+	int primitive_idx = 0;
+	for (size_t i = 0; i < model->m_meshs.size(); i++)
+	{
+		Mesh& mesh = model->m_meshs[i];
+		glm::mat4 matrix = model->matrixWorld;
+		if (mesh.node_id >= 0 && mesh.skin_id < 0)
+		{
+			Node& node = model->m_nodes[mesh.node_id];
+			matrix *= node.g_trans;
+		}
+		glm::mat4 MV = view_matrix * matrix;
+
+		for (size_t j = 0; j < mesh.primitives.size(); j++, primitive_idx++)
+		{
+			Primitive& primitive = mesh.primitives[j];
+			if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos)) continue;
+
+			const MeshStandardMaterial* material = material_lst[primitive.material_idx];
+
+			GLPickingTarget::IdxInfo idx_info;
+			idx_info.obj = model;
+			idx_info.primitive_idx = primitive_idx;
+			int idx = (int)target.m_idx_info.size();
+			target.m_idx_info.push_back(idx_info);
+
+			Picking::RenderParams params;
+			params.tex_list = tex_lst.data();
+			params.material_list = material_lst.data();
+			params.constant_camera = &p_camera->m_constant;
+			params.constant_model = mesh.model_constant.get();
+			params.primitive = &primitive;
+			params.idx = idx;
+			render_picking_primitive(params);
+		}
+	}
+}
+
 void GLRenderer::_render_fog(const Camera& camera, const Lights& lights, const Fog& fog, GLRenderTarget& target)
 {
 	DrawFog::Options options;
@@ -799,7 +911,7 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 	std::vector<VolumeIsosurfaceModel*> volume_isosurface_models = scene.volume_isosurface_models;
 
 	bool has_alpha = false;
-	bool has_opaque = true;
+	bool has_opaque = false;
 
 	for (size_t i = 0; i < simple_models.size(); i++)
 	{
@@ -1135,10 +1247,45 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 	_render(scene, camera, target);	
 }
 
+void GLRenderer::render_picking(Scene& scene, Camera& camera, GLPickingTarget& target)
+{
+	std::vector<SimpleModel*> simple_models = scene.simple_models;
+	std::vector<GLTFModel*> gltf_models = scene.gltf_models;
+	std::vector<VolumeIsosurfaceModel*> volume_isosurface_models = scene.volume_isosurface_models;
+
+	target.bind_buffer();
+	glViewport(0, 0, target.m_width, target.m_height);
+
+	glDepthMask(GL_TRUE);
+	glClearDepth(1.0f);
+	glClearColorIuiEXT(0, 0, 0, 0);
+	glClear(GL_COLOR_BUFFER_BIT| GL_DEPTH_BUFFER_BIT);
+
+	target.m_idx_info.clear();
+
+	GLPickingTarget::IdxInfo bg_info;
+	bg_info.obj = nullptr;
+	bg_info.primitive_idx = 0;
+	target.m_idx_info.push_back(bg_info);
+
+	for (size_t j = 0; j < scene.simple_models.size(); j++)
+	{
+		SimpleModel* model = scene.simple_models[j];
+		render_picking_model(&camera, model, target);
+	}
+
+	for (size_t j = 0; j < scene.gltf_models.size(); j++)
+	{
+		GLTFModel* model = scene.gltf_models[j];
+		render_picking_model(&camera, model, target);
+	}
+}
+
 void GLRenderer::renderCube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar)
 {
 	_pre_render(scene);
 	_render_cube(scene, target, position, zNear, zFar);
+	
 }
 
 

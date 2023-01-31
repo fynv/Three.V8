@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 #include <renderers/GLRenderTarget.h>
+#include <renderers/GLPickingTarget.h>
 #include <renderers/GLUIRenderer.h>
 #include "binding.h"
 
@@ -48,6 +49,14 @@ public:
 		return m_render_target;
 	}
 
+	void SetPicking(bool picking);
+	bool Picking() { return m_pick_target != nullptr; }
+
+	GLPickingTarget* pickingTarget()
+	{
+		return m_pick_target.get();
+	}
+
 	void SetPrintCallbacks(void* ptr, GameContext::PrintCallback print_callback, GameContext::PrintCallback error_callback);
 
 private:
@@ -55,6 +64,7 @@ private:
 	V8VM& m_v8vm;
 
 	GLRenderTarget m_render_target;
+	std::unique_ptr<GLPickingTarget> m_pick_target;
 	GLUIRenderer m_ui_renderer;
 	
 	void* m_print_callback_data = nullptr;

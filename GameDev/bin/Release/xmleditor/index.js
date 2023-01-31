@@ -63,6 +63,7 @@ function remove(key)
 
 function init(width, height)
 {
+    gamePlayer.picking = true;
     renderer = new GLRenderer();
     doc = new Document(view);
     clock = new Clock();
