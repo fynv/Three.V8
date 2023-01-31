@@ -14,6 +14,8 @@ public:
 
 private:
 	static void dtor(void* ptr, GameContext* ctx);
+	static void Update(const v8::FunctionCallbackInfo<v8::Value>& info);
+	static void Remove(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void Intersect(const v8::FunctionCallbackInfo<v8::Value>& info);
 	
 #if ENABLE_TEST
@@ -27,6 +29,8 @@ v8::Local<v8::FunctionTemplate> WrappeBoundingVolumeHierarchy::create_template(v
 	v8::Local<v8::FunctionTemplate> templ = v8::FunctionTemplate::New(isolate, constructor);
 	templ->InstanceTemplate()->SetInternalFieldCount(2);
 	templ->InstanceTemplate()->Set(isolate, "dispose", v8::FunctionTemplate::New(isolate, GeneralDispose));
+	templ->InstanceTemplate()->Set(isolate, "update", v8::FunctionTemplate::New(isolate, Update));
+	templ->InstanceTemplate()->Set(isolate, "remove", v8::FunctionTemplate::New(isolate, Remove));
 	templ->InstanceTemplate()->Set(isolate, "intersect", v8::FunctionTemplate::New(isolate, Intersect));
 
 #if ENABLE_TEST
@@ -61,6 +65,25 @@ void WrappeBoundingVolumeHierarchy::New(const v8::FunctionCallbackInfo<v8::Value
 	lctx.ctx()->regiter_object(info.This(), dtor);
 }
 
+void WrappeBoundingVolumeHierarchy::Update(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	BoundingVolumeHierarchy* self = lctx.self<BoundingVolumeHierarchy>();
+
+	v8::Local<v8::Value> holder_obj = info[0];
+	Object3D* obj = lctx.jobj_to_obj<Object3D>(holder_obj);
+	self->update(obj);
+}
+
+void WrappeBoundingVolumeHierarchy::Remove(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	BoundingVolumeHierarchy* self = lctx.self<BoundingVolumeHierarchy>();
+
+	v8::Local<v8::Value> holder_obj = info[0];
+	Object3D* obj = lctx.jobj_to_obj<Object3D>(holder_obj);
+	self->remove(obj);
+}
 
 void WrappeBoundingVolumeHierarchy::Intersect(const v8::FunctionCallbackInfo<v8::Value>& info)
 {

@@ -8,6 +8,8 @@
 class Object3D
 {
 public:
+	int id;
+
 	Object3D();
 	virtual ~Object3D();
 
@@ -76,4 +78,7 @@ public:
 			children[i]->traverse(callback);
 		}
 	}
+
+private:
+	static int s_last_id;
 };

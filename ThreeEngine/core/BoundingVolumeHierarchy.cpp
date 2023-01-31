@@ -120,11 +120,23 @@ std::optional<BoundingVolumeHierarchy::BLAS::Intersection> BoundingVolumeHierarc
 	return std::nullopt;		
 }
 
+union Signature
+{
+	struct {
+		int id_model;
+		int primitive_idx;
+	} data;
+	uint64_t key;
+};
+
 
 void BoundingVolumeHierarchy::_add_primitive(const Primitive* primitive, const glm::mat4& model_matrix, Object3D* obj, int primitive_idx)
-{
+{	
 	m_primitive_map.push_back({ obj, primitive_idx });
 	m_primitives.emplace_back(BLAS(primitive, model_matrix));
+
+	Signature s = { obj->id, primitive_idx };
+	m_primitive_index_map[s.key] = (int)(m_primitive_map.size()-1);
 }
 
 void BoundingVolumeHierarchy::_add_model(SimpleModel* model)
@@ -153,6 +165,116 @@ void BoundingVolumeHierarchy::_add_model(GLTFModel* model)
 			_add_primitive(primitive, matrix, model, count_primitive);
 		}
 	}
+}
+
+void BoundingVolumeHierarchy::_update_primitive(const Primitive* primitive, const glm::mat4& model_matrix, Object3D* obj, int primitive_idx)
+{
+	PrimitiveInfo info = { obj, primitive_idx };
+	Signature s = { obj->id, primitive_idx };		
+
+	auto iter = m_primitive_index_map.find(s.key);
+	if (iter != m_primitive_index_map.end())
+	{
+		int idx = iter->second;
+		m_primitives[idx] = BLAS(primitive, model_matrix);
+	}
+	else
+	{
+		m_primitive_map.push_back(info);
+		m_primitives.emplace_back(BLAS(primitive, model_matrix));
+		m_primitive_index_map[s.key] = (int)(m_primitive_map.size() - 1);
+	}
+}
+
+void BoundingVolumeHierarchy::_update_model(SimpleModel* model)
+{
+	Primitive* primitive = &model->geometry;
+	_update_primitive(primitive, model->matrixWorld, model, 0);
+
+}
+
+void BoundingVolumeHierarchy::_update_model(GLTFModel* model)
+{
+	int count_primitive = 0;
+	size_t num_mesh = model->m_meshs.size();
+	for (size_t i = 0; i < num_mesh; i++)
+	{
+		Mesh& mesh = model->m_meshs[i];
+		glm::mat4 matrix = model->matrixWorld;
+		if (mesh.node_id >= 0 && mesh.skin_id < 0)
+		{
+			Node& node = model->m_nodes[mesh.node_id];
+			matrix *= node.g_trans;
+		}
+		size_t num_primitives = mesh.primitives.size();
+		for (size_t j = 0; j < num_primitives; j++, count_primitive++)
+		{
+			Primitive* primitive = &mesh.primitives[j];
+			_update_primitive(primitive, matrix, model, count_primitive);
+		}
+	}
+}
+
+void BoundingVolumeHierarchy::_remove_primitive(const Primitive* primitive, const glm::mat4& model_matrix, Object3D* obj, int primitive_idx)
+{
+	PrimitiveInfo info = { obj, primitive_idx };
+	Signature s = { obj->id, primitive_idx };
+
+	auto iter = m_primitive_index_map.find(s.key);
+	if (iter != m_primitive_index_map.end())
+	{
+		int idx = iter->second;
+		m_primitive_map.erase(m_primitive_map.begin() + idx);
+		m_primitives.erase(m_primitives.begin() + idx);
+		m_primitive_index_map.erase(iter);
+		for (size_t i = (size_t)idx; i < m_primitives.size(); i++)
+		{
+			const PrimitiveInfo& info2 = m_primitive_map[i];
+			Signature s2 = { info2.obj->id, info2.primitive_idx };
+			m_primitive_index_map[s2.key] = i;
+		}		
+	}	
+}
+
+void BoundingVolumeHierarchy::_remove_model(SimpleModel* model)
+{
+	Primitive* primitive = &model->geometry;
+	_remove_primitive(primitive, model->matrixWorld, model, 0);
+}
+
+void BoundingVolumeHierarchy::_remove_model(GLTFModel* model)
+{
+	int count_primitive = 0;
+	size_t num_mesh = model->m_meshs.size();
+	for (size_t i = 0; i < num_mesh; i++)
+	{
+		Mesh& mesh = model->m_meshs[i];
+		glm::mat4 matrix = model->matrixWorld;
+		if (mesh.node_id >= 0 && mesh.skin_id < 0)
+		{
+			Node& node = model->m_nodes[mesh.node_id];
+			matrix *= node.g_trans;
+		}
+		size_t num_primitives = mesh.primitives.size();
+		for (size_t j = 0; j < num_primitives; j++, count_primitive++)
+		{
+			Primitive* primitive = &mesh.primitives[j];
+			_remove_primitive(primitive, matrix, model, count_primitive);
+		}
+	}
+}
+
+void BoundingVolumeHierarchy::_build_bvh()
+{	
+	auto [bboxes, centers] = bvh::compute_bounding_boxes_and_centers(m_primitives.data(), m_primitives.size());
+	bvh::BoundingBox<float> global_bbox = bvh::compute_bounding_boxes_union(bboxes.get(), m_primitives.size());
+
+	m_bvh = std::unique_ptr<bvh::Bvh<float>>(new bvh::Bvh<float>);
+	bvh::SweepSahBuilder<bvh::Bvh<float>> builder(*m_bvh);
+	builder.build(global_bbox, bboxes.get(), centers.get(), m_primitives.size());
+
+	m_intersector = std::unique_ptr<IntersectorType>(new IntersectorType(*m_bvh, m_primitives.data()));
+	m_traverser = std::unique_ptr<TraversorType>(new TraversorType(*m_bvh));
 }
 
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(const std::vector<Object3D*>& objects)
@@ -191,18 +313,9 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(const std::vector<Object3D*>& o
 			}
 
 		} while (false);
-	}
+	}	
 
-	auto [bboxes, centers] = bvh::compute_bounding_boxes_and_centers(m_primitives.data(), m_primitives.size());
-	bvh::BoundingBox<float> global_bbox = bvh::compute_bounding_boxes_union(bboxes.get(), m_primitives.size());
-
-	m_bvh = std::unique_ptr<bvh::Bvh<float>>(new bvh::Bvh<float>);
-	bvh::SweepSahBuilder<bvh::Bvh<float>> builder(*m_bvh);
-	builder.build(global_bbox, bboxes.get(), centers.get(), m_primitives.size());
-
-	m_intersector = std::unique_ptr<IntersectorType>(new IntersectorType(*m_bvh, m_primitives.data()));
-	m_traverser = std::unique_ptr<TraversorType>(new TraversorType(*m_bvh));
-
+	_build_bvh();
 }
 
 BoundingVolumeHierarchy::~BoundingVolumeHierarchy()
@@ -210,14 +323,88 @@ BoundingVolumeHierarchy::~BoundingVolumeHierarchy()
 
 }
 
-std::optional<BoundingVolumeHierarchy::Intersection> BoundingVolumeHierarchy::intersect(const bvh::Ray<float>& ray) const
-{
-	auto hit = m_traverser->traverse(ray, *m_intersector);
-	
-	if (hit.has_value())
+void BoundingVolumeHierarchy::update(Object3D* obj)
+{	
+	std::unordered_set<Object3D*> object_set;
+	std::unordered_set<Object3D*>* p_objects = &object_set;
+
+	obj->updateWorldMatrix(true, false);
+	obj->traverse([p_objects](Object3D* child) {
+		child->updateWorldMatrix(false, false);
+		p_objects->insert(child);
+	});
+
+	size_t map_size = m_primitive_map.size();
+
+	for (auto iter = object_set.begin(); iter != object_set.end(); iter++)
 	{
-		auto intersection = hit->intersection;
-		const PrimitiveInfo& info = m_primitive_map[hit->primitive_index];		
+		do
+		{
+			{
+				SimpleModel* model = dynamic_cast<SimpleModel*>(*iter);
+				if (model)
+				{
+					_update_model(model);
+					break;
+				}
+			}
+			{
+				GLTFModel* model = dynamic_cast<GLTFModel*>(*iter);
+				if (model)
+				{
+					_update_model(model);
+					break;
+				}
+			}
+
+		} while (false);
+	}
+
+	_build_bvh();
+}
+
+void BoundingVolumeHierarchy::remove(Object3D* obj)
+{
+	std::unordered_set<Object3D*> object_set;
+	std::unordered_set<Object3D*>* p_objects = &object_set;
+	
+	obj->traverse([p_objects](Object3D* child) {		
+		p_objects->insert(child);
+	});
+
+	for (auto iter = object_set.begin(); iter != object_set.end(); iter++)
+	{
+		do
+		{
+			{
+				SimpleModel* model = dynamic_cast<SimpleModel*>(*iter);
+				if (model)
+				{
+					_remove_model(model);
+					break;
+				}
+			}
+			{
+				GLTFModel* model = dynamic_cast<GLTFModel*>(*iter);
+				if (model)
+				{
+					_remove_model(model);
+					break;
+				}
+			}
+
+		} while (false);
+	}
+	_build_bvh();
+}
+
+std::optional<BoundingVolumeHierarchy::Intersection> BoundingVolumeHierarchy::intersect(const bvh::Ray<float>& ray) const
+{	
+	auto hit = m_traverser->traverse(ray, *m_intersector);	
+	if (hit.has_value())
+	{		
+		auto intersection = hit->intersection;		
+		const PrimitiveInfo& info = m_primitive_map[hit->primitive_index];				
 		Intersection ret;
 		ret.object = info.obj;
 		ret.primitive_index = info.primitive_idx;
@@ -229,4 +416,3 @@ std::optional<BoundingVolumeHierarchy::Intersection> BoundingVolumeHierarchy::in
 	}	
 	return std::nullopt;	
 }
-

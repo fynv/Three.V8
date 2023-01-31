@@ -704,7 +704,7 @@ const tuning_cube_env_light = (doc, obj, input) =>{
         props.probe_position = probe_position;
         let position = probe_position.split(',');
         obj.setPosition(parseFloat(position[0]), parseFloat(position[1]), parseFloat(position[2]));
-        doc.generate_bvh();
+        doc.update_hitable_object(obj);
     }
     
     let reload = false;
@@ -867,7 +867,7 @@ const tuning_object3d = (doc, obj, input) => {
         obj.setPosition(parseFloat(position[0]), parseFloat(position[1]), parseFloat(position[2]));
         if (node.tagName in doc.hitable_tags)
         {
-            doc.generate_bvh();
+            doc.update_hitable_object(obj);
         }
     }
     if ("rotation" in input)
@@ -877,7 +877,7 @@ const tuning_object3d = (doc, obj, input) => {
         obj.setRotation(parseFloat(rotation[0])* Math.PI / 180.0, parseFloat(rotation[1])* Math.PI / 180.0, parseFloat(rotation[2])* Math.PI / 180.0);
         if (node.tagName in doc.hitable_tags)
         {
-            doc.generate_bvh();
+            doc.update_hitable_object(obj);
         }
     }
     if ("scale" in input)
@@ -887,7 +887,7 @@ const tuning_object3d = (doc, obj, input) => {
         obj.setScale(parseFloat(scale[0]), parseFloat(scale[1]), parseFloat(scale[2]));
         if (node.tagName in doc.hitable_tags)
         {
-            doc.generate_bvh();
+            doc.update_hitable_object(obj);
         }
     }
 }
@@ -978,6 +978,7 @@ const plane = {
             let width = parseFloat(size[0]);
             let height = parseFloat(size[1]);
             obj.createPlane(width, height);
+            doc.update_hitable_object(obj);
         }
         if ("is_building" in input)
         {
@@ -1025,6 +1026,7 @@ const box = {
             let height = parseFloat(size[1]);
             let depth =  parseFloat(size[2]);
             obj.createBox(width, height, depth);
+            doc.update_hitable_object(obj);
         }
         if ("is_building" in input)
         {
@@ -1098,6 +1100,7 @@ const sphere = {
         if (to_create)
         {
             obj.createSphere(radius, widthSegments, heightSegments);
+            doc.update_hitable_object(obj);
         }
         
         if ("is_building" in input)
@@ -1171,8 +1174,7 @@ const model = {
             
             obj_new.setToonShading(16, 5.0, new Vector3(1.0, 1.0, 0.2));
             
-            doc.add_hitable_object(obj_new);
-            doc.generate_bvh();
+            doc.update_hitable_object(obj_new);
             
             doc.internal_index[key].obj = obj_new;
         }
@@ -1394,16 +1396,49 @@ export class Document
     }
     
     add_hitable_object(obj) {
-        this.hitables.push(obj);
+        if(this.hitables.indexOf(obj) < 0)
+        {
+            this.hitables.push(obj);
+        }
+    }
+    
+    update_hitable_object(obj) {
+        if(this.hitables.indexOf(obj) < 0)
+        {
+             this.hitables.push(obj);
+        }
+        
+        if (this.hitables!=null)
+        {
+            this.bvh.update(obj);
+        }
+        else
+        {
+            this.bvh = new BoundingVolumeHierarchy(this.hitables);
+        }
+       
     }
 
     remove_hitable_object(obj) {
-        for (let i = 0; i < this.hitables.length; i++) {
-            if (this.hitables[i] == obj) {
-                this.hitables.splice(i, 1);
-                i--;
+        let idx = this.hitables.indexOf(obj);
+        if (idx>-1)
+        {
+            this.hitables.splice(idx, 1);
+            if (this.hitables.length==0)
+            {
+                this.bvh = null;
+            }
+            else
+            {
+                this.bvh.remove(obj);
             }
         }
+    }
+    
+    intersect(ray)
+    {
+        if (this.bvh==null) return null;
+        return this.bvh.intersect(ray);
     }
     
     
@@ -1540,18 +1575,7 @@ export class Document
             await this.load_xml_node(child, mode, obj);
         }
     }
-    
-    generate_bvh()
-    {
-        if (this.hitables.length>0)
-        { 
-            this.bvh = new BoundingVolumeHierarchy(this.hitables);
-        }
-        else
-        {
-            this.bvh = null;
-        }
-    }
+   
     
     async load_xml(xmlText, mode)
     {
@@ -1570,7 +1594,10 @@ export class Document
             await this.load_xml_node(root, mode);
         }
         
-        this.generate_bvh();
+        if (this.hitables.length>0)
+        { 
+            this.bvh = new BoundingVolumeHierarchy(this.hitables);
+        }
         
         this.saved_text = genXML(this.xml_nodes);
         
@@ -1668,7 +1695,12 @@ export class Document
         let child = {tagName:tag, attributes: {}, children: []};
         xmlNode.children.push(child);
         
+        let length_before = this.hitables.length;
         let obj = await this.create(tag, {}, "local", parent);
+        if (this.hitables.length > length_before)
+        {
+            this.update_hitable_object(obj);
+        }
         let key = obj.uuid;
         
         let internal_node = {};
@@ -1732,26 +1764,28 @@ function picking_pointerdown(event)
 {
     if (doc.bvh == null) return;
     
-    let origin = doc.camera.getWorldPosition(new Vector3());
-    
     let x = event.clientX;
     let y = event.clientY;
     
     let clipX = (x/doc.width)*2.0 -1.0;
     let clipY = 1.0 - (y/doc.height)*2.0;
     
-    let pos = new Vector4(clipX, clipY, 0.0, 1.0);
+    let pos0 = new Vector4(clipX, clipY, -1.0, 1.0);
+    let pos1 = new Vector4(clipX, clipY, 0.0, 1.0);
     
     let matProjInv = doc.camera.getProjectionMatrixInverse(new Matrix4());
     let matViewInv = doc.camera.getMatrixWorld(new Matrix4());
-    pos.applyMatrix4(matProjInv);
-    pos.applyMatrix4(matViewInv);
+    pos0.applyMatrix4(matProjInv);
+    pos0.applyMatrix4(matViewInv);
+    pos1.applyMatrix4(matProjInv);
+    pos1.applyMatrix4(matViewInv);
     
-    let dir = new Vector3(pos.x/pos.w, pos.y/pos.w, pos.z/pos.w);
+    let origin = new Vector3(pos0.x/pos0.w, pos0.y/pos0.w, pos0.z/pos0.w);
+    let dir = new Vector3(pos1.x/pos1.w, pos1.y/pos1.w, pos1.z/pos1.w);
     dir.sub(origin);
     dir.normalize();
 
-    let intersect = doc.bvh.intersect({origin: origin, direction: dir});
+    let intersect = doc.intersect({origin: origin, direction: dir});
     if (intersect!=null)
     {
         doc.pick_obj(intersect.uuid);

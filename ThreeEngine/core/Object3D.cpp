@@ -3,6 +3,8 @@
 #include <gtx/matrix_decompose.hpp>
 #include <algorithm>
 
+int Object3D::s_last_id = 0;
+
 Object3D::Object3D()
 	: position({ 0.0f, 0.0f, 0.0f })
 	, rotation({ 0.0f, 0.0f, 0.0f })
@@ -11,7 +13,7 @@ Object3D::Object3D()
 	, matrix(glm::identity<glm::mat4>())
 	, matrixWorld(glm::identity<glm::mat4>())
 {
-
+	id = ++s_last_id;
 }
 
 Object3D::~Object3D()

@@ -1,8 +1,10 @@
 #pragma once
 
 #include <glm.hpp>
+#include <cstdint>
 #include <memory>
 #include <vector>
+#include <unordered_map>
 
 #include <bvh/bvh.hpp>
 #include <bvh/vector.hpp>
@@ -43,6 +45,8 @@ public:
 		bvh::BoundingBox<float> bounding_box() const;
 		std::optional<Intersection> intersect(const bvh::Ray<float>& ray) const;
 
+		BLAS& operator =(BLAS&&) = default;
+
 	private:
 		typedef bvh::Triangle<float, true, true> PrimitiveType;
 		typedef bvh::ClosestPrimitiveIntersector<bvh::Bvh<float>, PrimitiveType> IntersectorType;
@@ -68,6 +72,9 @@ public:
 	BoundingVolumeHierarchy(const std::vector<Object3D*>& objects);
 	~BoundingVolumeHierarchy();
 
+	void update(Object3D* obj);
+	void remove(Object3D* obj);
+
 	std::optional<Intersection> intersect(const bvh::Ray<float>& ray) const;
 	
 private:
@@ -82,6 +89,9 @@ private:
 
 	std::vector<PrimitiveInfo> m_primitive_map;
 	std::vector<BLAS> m_primitives;
+
+	std::unordered_map<uint64_t, int> m_primitive_index_map;	
+
 	std::unique_ptr<bvh::Bvh<float>> m_bvh;
 	std::unique_ptr<IntersectorType> m_intersector;
 	std::unique_ptr<TraversorType> m_traverser;
@@ -90,4 +100,16 @@ private:
 	void _add_model(SimpleModel* model);
 	void _add_model(GLTFModel* model);
 
+	void _update_primitive(const Primitive* primitive, const glm::mat4& model_matrix, Object3D* obj, int primitive_idx);
+	void _update_model(SimpleModel* model);
+	void _update_model(GLTFModel* model);
+
+	void _remove_primitive(const Primitive* primitive, const glm::mat4& model_matrix, Object3D* obj, int primitive_idx);
+	void _remove_model(SimpleModel* model);
+	void _remove_model(GLTFModel* model);
+
+	void _build_bvh();
+
 };
+
+
