@@ -17,7 +17,7 @@ public:
 	std::unique_ptr<GLTexture2D> m_tex_idx;
 	std::unique_ptr<GLTexture2D> m_tex_depth;
 
-	unsigned m_fbo = 0;
+	unsigned m_fbo = -1;
 	bool update_framebuffers(int width, int height);
 
 	void bind_buffer();

@@ -1248,11 +1248,7 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 }
 
 void GLRenderer::render_picking(Scene& scene, Camera& camera, GLPickingTarget& target)
-{
-	std::vector<SimpleModel*> simple_models = scene.simple_models;
-	std::vector<GLTFModel*> gltf_models = scene.gltf_models;
-	std::vector<VolumeIsosurfaceModel*> volume_isosurface_models = scene.volume_isosurface_models;
-
+{	
 	target.bind_buffer();
 	glViewport(0, 0, target.m_width, target.m_height);
 
