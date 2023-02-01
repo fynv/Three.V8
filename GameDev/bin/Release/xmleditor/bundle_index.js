@@ -6488,6 +6488,7 @@ function getXML(x)
 function picking(state)
 {
     let bstate = state=="on";
+    gamePlayer.picking = bstate;
     doc.picking(bstate);
     return "";
 }
@@ -6529,7 +6530,6 @@ function remove(key)
 
 function init(width, height)
 {
-    gamePlayer.picking = true;
     renderer = new GLRenderer();
     doc = new Document(view);
     clock = new Clock();
