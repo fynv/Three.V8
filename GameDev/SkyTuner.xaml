@@ -14,6 +14,7 @@
                     <ComboBoxItem Tag="uniform">Uniform</ComboBoxItem>
                     <ComboBoxItem Tag="hemisphere" IsSelected="True">Hemisphere</ComboBoxItem>
                     <ComboBoxItem Tag="cube">Cube</ComboBoxItem>
+                    <ComboBoxItem Tag="scene">Scene</ComboBoxItem>
                 </ComboBox>
             </StackPanel>
             <StackPanel x:Name="property_area"></StackPanel>

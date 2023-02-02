@@ -910,7 +910,7 @@ void GLRenderer::_pre_render(Scene& scene)
 	}
 }
 
-void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& target)
+void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& target, bool widgets)
 {
 	camera.updateMatrixWorld(false);
 	camera.updateConstant();
@@ -1062,6 +1062,38 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 		}
 	}
 
+	if (widgets)
+	{
+		for (size_t i = 0; i < scene.widgets.size(); i++)
+		{
+			Object3D* obj = scene.widgets[i];
+			obj->updateWorldMatrix(false, false);
+			do
+			{
+				{
+					SimpleModel* model = dynamic_cast<SimpleModel*>(obj);					
+					if (model != nullptr &&
+						visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->geometry.min_pos, model->geometry.max_pos))
+					{
+						update_model(model);
+						render_model(&camera, lights, fog, model, Pass::Opaque);
+						break;
+					}
+				}
+				{
+					DirectionalLight* light = dynamic_cast<DirectionalLight*>(obj);
+					if (light != nullptr)
+					{
+
+
+						break;
+					}
+				}
+
+			} while (false);
+		}
+	}
+
 	if (has_alpha)
 	{
 		glEnable(GL_BLEND);
@@ -1124,9 +1156,9 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 
 }
 
-void GLRenderer::_render(Scene& scene, Camera& camera, GLRenderTarget& target)
+void GLRenderer::_render(Scene& scene, Camera& camera, GLRenderTarget& target, bool widgets)
 {
-	_render_scene(scene, camera, target);
+	_render_scene(scene, camera, target, widgets);
 
 	Lights& lights = scene.lights;
 
@@ -1158,57 +1190,6 @@ void GLRenderer::_render(Scene& scene, Camera& camera, GLRenderTarget& target)
 			DirectionalLight* light = scene.directional_lights[i];
 			_render_fog_rm(camera, *light, *fog, target);
 		}
-	}
-}
-
-void GLRenderer::_render_scene_to_cube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar)
-{
-	{
-		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
-		camera.position = position;
-		camera.up = { 0.0f, -1.0f, 0.0f };
-		camera.lookAt(position + glm::vec3(1.0f, 0.0f, 0.0f));
-		_render_scene(scene, camera, *target.m_faces[0]);
-	}
-
-	{
-		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
-		camera.position = position;
-		camera.up = { 0.0f, -1.0f, 0.0f };
-		camera.lookAt(position + glm::vec3(-1.0f, 0.0f, 0.0f));
-		_render_scene(scene, camera, *target.m_faces[1]);
-	}
-
-	{
-		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
-		camera.position = position;
-		camera.up = { 0.0f, 0.0f, 1.0f };
-		camera.lookAt(position + glm::vec3(0.0f, 1.0f, 0.0f));
-		_render_scene(scene, camera, *target.m_faces[2]);
-	}
-
-	{
-		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
-		camera.position = position;
-		camera.up = { 0.0f, 0.0f, -1.0f };
-		camera.lookAt(position + glm::vec3(0.0f, -1.0f, 0.0f));
-		_render_scene(scene, camera, *target.m_faces[3]);
-	}
-
-	{
-		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
-		camera.position = position;
-		camera.up = { 0.0f, -1.0f, 0.0f };
-		camera.lookAt(position + glm::vec3(0.0f, 0.0f, 1.0f));
-		_render_scene(scene, camera, *target.m_faces[4]);
-	}
-
-	{
-		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
-		camera.position = position;
-		camera.up = { 0.0f, -1.0f, 0.0f };
-		camera.lookAt(position + glm::vec3(0.0f, 0.0f, -1.0f));
-		_render_scene(scene, camera, *target.m_faces[5]);
 	}
 }
 
@@ -1266,7 +1247,7 @@ void GLRenderer::_render_cube(Scene& scene, CubeRenderTarget& target, glm::vec3&
 void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 {
 	_pre_render(scene);
-	_render(scene, camera, target);	
+	_render(scene, camera, target, true);
 }
 
 void GLRenderer::render_picking(Scene& scene, Camera& camera, GLPickingTarget& target)
@@ -1296,6 +1277,17 @@ void GLRenderer::render_picking(Scene& scene, Camera& camera, GLPickingTarget& t
 	{
 		GLTFModel* model = scene.gltf_models[j];
 		render_picking_model(&camera, model, target);
+	}
+
+	for (size_t i = 0; i < scene.widgets.size(); i++)
+	{
+		Object3D* obj = scene.widgets[i];
+		SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
+		if (model != nullptr &&
+			visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->geometry.min_pos, model->geometry.max_pos))
+		{
+			render_picking_model(&camera, model, target);			
+		}		
 	}
 }
 

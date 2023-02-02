@@ -23,6 +23,11 @@ private:
 	static void GetFog(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void SetFog(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
 
+	static void AddWidget(const v8::FunctionCallbackInfo<v8::Value>& info);
+	static void RemoveWidget(const v8::FunctionCallbackInfo<v8::Value>& info);	
+	static void ClearWidgets(const v8::FunctionCallbackInfo<v8::Value>& info);
+
+
 };
 
 v8::Local<v8::FunctionTemplate> WrapperScene::create_template(v8::Isolate* isolate, v8::FunctionCallback constructor)
@@ -31,6 +36,11 @@ v8::Local<v8::FunctionTemplate> WrapperScene::create_template(v8::Isolate* isola
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "background").ToLocalChecked(), GetBackground, SetBackground);
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "indirectLight").ToLocalChecked(), GetIndirectLight, SetIndirectLight);
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "fog").ToLocalChecked(), GetFog, SetFog);
+
+	templ->InstanceTemplate()->Set(isolate, "addWidget", v8::FunctionTemplate::New(isolate, AddWidget));
+	templ->InstanceTemplate()->Set(isolate, "removeWidget", v8::FunctionTemplate::New(isolate, RemoveWidget));
+	templ->InstanceTemplate()->Set(isolate, "clearWidget", v8::FunctionTemplate::New(isolate, ClearWidgets));
+
 	return templ;
 }
 
@@ -116,4 +126,29 @@ void WrapperScene::SetFog(v8::Local<v8::String> property, v8::Local<v8::Value> v
 	}
 	lctx.set_property(info.Holder(), "_fog", value);
 }
+
+void WrapperScene::AddWidget(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	Scene* self = lctx.self<Scene>();
+	Object3D* object = lctx.jobj_to_obj<Object3D>(info[0]);
+	self->add_widget(object);
+}
+
+void WrapperScene::RemoveWidget(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	Scene* self = lctx.self<Scene>();
+	Object3D* object = lctx.jobj_to_obj<Object3D>(info[0]);
+	self->remove_widget(object);
+}
+
+
+void WrapperScene::ClearWidgets(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	Scene* self = lctx.self<Scene>();	
+	self->clear_widgets();
+}
+
 

@@ -40,6 +40,10 @@ namespace GameDev
             {
                 lst_types.SelectedIndex = 2;
             }
+            else if (type == "scene")
+            {
+                lst_types.SelectedIndex = 3;
+            }
             load_type(type);
             initialized = true;
         }
@@ -60,6 +64,11 @@ namespace GameDev
             else if (type == "cube")
             {
                 var tuner = new CubeSkyTuner(game_player, jobj);
+                property_area.Children.Add(tuner);
+            }
+            else if (type == "scene")
+            {
+                var tuner = new BackgroundSceneTuner(game_player, jobj);
                 property_area.Children.Add(tuner);
             }
         }

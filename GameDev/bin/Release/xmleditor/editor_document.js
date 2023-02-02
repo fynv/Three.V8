@@ -59,7 +59,6 @@ class EnvMapGen
     constructor(doc, proxy, xml_node)
     {
         this.doc = doc;
-        this.proxy = proxy;
         this.xml_node = xml_node;
         
         this.cube_target = new CubeRenderTarget(128,128);
@@ -84,10 +83,7 @@ class EnvMapGen
             z = parseFloat(position[2]);
         }
         
-        let in_scene = this.proxy.parent == this.doc.scene;
-        if (in_scene) this.doc.scene.remove(this.proxy);
         renderer.renderCube(this.doc.scene, this.cube_target, new Vector3(x, y,z));
-        if (in_scene) this.doc.scene.add(this.proxy);
         
         let envLight = this.envMapCreator.create(this.cube_target);
         this.doc.scene.indirectLight = envLight;
@@ -392,6 +388,31 @@ const create_cube_sky = (doc, props)=>{
     return bg;
 }
 
+const create_background_scene = async (doc, props)=>{
+    let path_scene = "terrain.xml";
+    if (props.hasOwnProperty('scene'))
+    {
+        path_scene = props.scene;
+    }
+    
+    let near = 10.0;
+    let far = 10000.0;
+    if (props.hasOwnProperty('near'))
+    {
+        near = parseFloat(props.near);
+    }
+    if (props.hasOwnProperty('far'))
+    {
+        far = parseFloat(props.far);
+    }
+    
+    let bg_doc = new BackgroundDocument(near, far);
+    await bg_doc.load_local_xml(path_scene);
+    doc.scene.background = bg_doc;
+    
+    return bg_doc;
+}
+
 const tuning_uniform_sky = (doc, obj, input) =>{
     let node = doc.internal_index[obj.uuid].xml_node;
     let props = node.attributes;
@@ -485,6 +506,26 @@ const tuning_cube_sky = (doc, obj, input) =>{
     }
 }
 
+const tuning_background_scene = (doc, obj, input) =>{
+    let node = doc.internal_index[obj.uuid].xml_node;
+    let props = node.attributes;
+    if ("scene" in input)
+    {
+        props.scene = input.scene;
+        obj.load_local_xml(input.scene);
+    }
+    if ("near" in input)
+    {
+        props.near = input.near;
+        obj.near = parseFloat(input.near);
+    }
+    if ("far" in input)
+    {
+        props.far = input.far;
+        obj.far = parseFloat(input.far);
+    }
+}
+
 const sky = {
     reset: (doc) => {
         create_default_sky(doc);
@@ -506,6 +547,10 @@ const sky = {
         else if (type == "cube")
         {
             return create_cube_sky(doc,props);
+        }
+        else if (type == "scene")
+        {
+            return create_background_scene(doc,props);
         }
     },
     remove: (doc, obj) => {
@@ -543,6 +588,10 @@ const sky = {
             else if (type=="cube")
             {
                 tuning_cube_sky(doc, obj, input);
+            }
+            else if (type=="scene")
+            {
+                tuning_background_scene(doc, obj, input);
             }
         }
     }
@@ -596,7 +645,7 @@ const create_cube_env_light = (doc, props) => {
         proxy.setPosition(parseFloat(position[0]), parseFloat(position[1]), parseFloat(position[2]));
     }
     proxy.setColor(0.7,0.0,0.7);
-    doc.scene.add(proxy);
+    doc.scene.addWidget(proxy);
     
     let url = "assets/textures";
     let posx = "env_face0.jpg";
@@ -794,11 +843,26 @@ const env_light = {
         }
         else if (type == "cube")
         {
-            return create_cube_env_light(doc,props);
+            return await create_cube_env_light(doc,props);
         }
     },
     remove: (doc, obj) => {
         create_default_env_light(doc);
+        
+        let key = obj.uuid;
+        let node = doc.internal_index[key].xml_node;
+        let props = node.attributes;
+        let type = "hemisphere"
+        if (props.hasOwnProperty("type"))
+        {
+            type = props.type;
+        }
+        
+        if (type == "cube")
+        {
+            doc.scene.removeWidget(obj);
+        }
+        
     },
     
     tuning: async (doc, obj, input) => {
@@ -1300,6 +1364,133 @@ const directional_light = {
     }
 }
 
+class BackgroundDocument extends BackgroundScene
+{
+    constructor(near, far)
+    {
+        super(null, near, far);
+        
+        this.Tags = { scene, sky, env_light, group, plane, box, sphere, model, directional_light };
+        this.reset();
+    }
+    
+    reset() 
+    {
+        for (let tag in this.Tags) 
+        {
+            if (this.Tags[tag].hasOwnProperty('reset')) 
+            {
+                this.Tags[tag].reset(this);
+            }
+        }
+    }
+    
+    async create(tag, props, mode, parent = null) 
+    {
+        if (!(tag in this.Tags)) return null;
+        
+        const obj = await this.Tags[tag].create(this, props, mode, parent);
+        if (obj == null) return null;
+        
+        if (Object.isExtensible(obj)) 
+        {
+            obj.tag = tag;
+        }
+        
+        if (props.hasOwnProperty('name')) 
+        {
+            obj.name = props.name;
+        }
+        
+        if (props.hasOwnProperty('position')) 
+        {
+            const position = props.position.split(',');
+            obj.setPosition(parseFloat(position[0]), parseFloat(position[1]), parseFloat(position[2]));
+        }
+
+        if (props.hasOwnProperty('rotation')) 
+        {
+            const rotation = props.rotation.split(',');
+            obj.setRotation(parseFloat(rotation[0])* Math.PI / 180.0, parseFloat(rotation[1])* Math.PI / 180.0, parseFloat(rotation[2])* Math.PI / 180.0);      
+        }
+
+        if (props.hasOwnProperty('scale')) 
+        {
+            const scale = props.scale.split(',');
+            obj.setScale(parseFloat(scale[0]), parseFloat(scale[1]), parseFloat(scale[2]));
+        }
+
+        if (props.hasOwnProperty('color')) 
+        {
+            const color = props.color.split(',');
+            const r = parseFloat(color[0]);
+            const g = parseFloat(color[1]);
+            const b = parseFloat(color[2]);
+            obj.setColor(r,g,b);
+        }
+        
+        if (props.hasOwnProperty('texture'))
+        {
+            let img = imageLoader.loadFile(props.texture);
+            if (img!=null)
+            {
+                obj.setColorTexture(img);
+            }
+        }
+        
+        if (props.hasOwnProperty('metalness'))
+        {
+            obj.metalness = parseFloat(props.metalness);
+        }
+        
+        if (props.hasOwnProperty('roughness'))
+        {
+            obj.roughness = parseFloat(props.roughness);
+        }
+        
+        return obj;
+    }
+ 
+    async load_xml_node(xmlNode, mode, parent = null)
+    {
+        if (parent == null) {
+            parent = this;
+        }
+        for (let child of xmlNode.children) {           
+            const obj = await this.create(child.tagName, child.attributes, mode, parent);
+            if (obj===null) continue;
+            await this.load_xml_node(child, mode, obj);
+        }
+        
+    }
+    
+    async load_xml(xmlText, mode)
+    {
+        const parsed = txml.parse(xmlText); 
+        let root = null;
+        for (let top of parsed)
+        {
+            if (top.tagName == 'document')
+            {
+                root = top;
+                break;
+            }
+        }
+        if (root)
+        {
+            await this.load_xml_node(root, mode);
+        }
+    }
+    
+    async load_local_xml(filename)
+    {
+        const xmlText = fileLoader.loadTextFile(filename);
+        if (xmlText!=null)
+        {
+            await this.load_xml(xmlText, "local");
+        }
+    }
+}
 
 export class Document
 {

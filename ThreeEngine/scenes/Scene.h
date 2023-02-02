@@ -30,7 +30,11 @@ public:
 		gltf_models.clear();
 		volume_isosurface_models.clear();
 		directional_lights.clear();
-	}
-	
+	}	
+
+	std::vector<Object3D*> widgets; // for editor visualization
+	void add_widget(Object3D* object);
+	void remove_widget(Object3D* object);
+	void clear_widgets();
 };
 

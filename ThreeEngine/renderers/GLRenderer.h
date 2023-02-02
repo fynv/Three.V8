@@ -96,9 +96,8 @@ private:
 	std::unique_ptr<DrawHemisphere> HemisphereDraw;
 
 	void _pre_render(Scene& scene);
-	void _render_scene(Scene& scene, Camera& camera, GLRenderTarget& target);
-	void _render(Scene& scene, Camera& camera, GLRenderTarget& target);
-	void _render_scene_to_cube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar);
+	void _render_scene(Scene& scene, Camera& camera, GLRenderTarget& target, bool widgets = false);
+	void _render(Scene& scene, Camera& camera, GLRenderTarget& target, bool widgets = false);
 	void _render_cube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar);	
 
 	std::unordered_map<uint64_t, std::unique_ptr<Picking>> picking_map;

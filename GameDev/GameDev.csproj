@@ -68,6 +68,9 @@
     <Compile Include="AngleTuner.xaml.cs">
       <DependentUpon>AngleTuner.xaml</DependentUpon>
     </Compile>
+    <Compile Include="BackgroundSceneTuner.xaml.cs">
+      <DependentUpon>BackgroundSceneTuner.xaml</DependentUpon>
+    </Compile>
     <Compile Include="BoxTuner.xaml.cs">
       <DependentUpon>BoxTuner.xaml</DependentUpon>
     </Compile>
@@ -143,6 +146,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="AngleTuner.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="BackgroundSceneTuner.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
