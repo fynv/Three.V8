@@ -70,8 +70,8 @@ namespace GameDev
 
             tuner_left.value = -1.0f;
             tuner_right.value = 1.0f;
-            tuner_top.value = -1.0f;
-            tuner_bottom.value = 1.0f;
+            tuner_bottom.value = -1.0f;
+            tuner_top.value = 1.0f;            
             tuner_near.value = 0.0f;
             tuner_far.value = 10.0f;
             if (att.ContainsKey("area"))
@@ -80,8 +80,8 @@ namespace GameDev
                 string[] values = area.Split(',');
                 tuner_left.value = float.Parse(values[0]);
                 tuner_right.value = float.Parse(values[1]);
-                tuner_top.value = float.Parse(values[2]);
-                tuner_bottom.value = float.Parse(values[3]);
+                tuner_bottom.value = float.Parse(values[2]);
+                tuner_top.value = float.Parse(values[3]);                
                 tuner_near.value = float.Parse(values[4]);
                 tuner_far.value = float.Parse(values[5]);
             }
@@ -161,7 +161,7 @@ namespace GameDev
 
             if (chk_cast_shadow.IsChecked == true)
             {
-                tuning["area"] = $"{tuner_left.value}, {tuner_right.value}, {tuner_top.value}, {tuner_bottom.value}, {tuner_near.value}, {tuner_far.value}";
+                tuning["area"] = $"{tuner_left.value}, {tuner_right.value}, {tuner_bottom.value}, {tuner_top.value}, {tuner_near.value}, {tuner_far.value}";
                 tuning["radius"] = $"{tuner_radius.value}";
 
                 att["area"] = tuning["area"];
@@ -192,7 +192,7 @@ namespace GameDev
             JObject tuning = new JObject();
             var att = (JObject)jobj["attributes"];
 
-            tuning["area"] = $"{tuner_left.value}, {tuner_right.value}, {tuner_top.value}, {tuner_bottom.value}, {tuner_near.value}, {tuner_far.value}";
+            tuning["area"] = $"{tuner_left.value}, {tuner_right.value}, {tuner_bottom.value}, {tuner_top.value}, {tuner_near.value}, {tuner_far.value}";
             att["area"] = tuning["area"];
 
             game_player.SendMessageToUser("tuning", tuning.ToString());

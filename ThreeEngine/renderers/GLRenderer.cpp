@@ -419,6 +419,65 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 	draw->render(params);
 }
 
+void GLRenderer::render_widget(Camera* p_camera, DirectionalLight* light)
+{	
+	if (light->shadow != nullptr)
+	{
+		DirectionalLightShadow* shadow = light->shadow.get();
+
+		glm::mat4 mat_proj = p_camera->projectionMatrix;
+		glm::mat4 mat_camera = p_camera->matrixWorldInverse;
+		glm::mat4 mat_model = light->matrixWorld;
+		glm::mat4 model_view = mat_camera * mat_model;
+		glMatrixLoadfEXT(GL_PROJECTION, (float*)&mat_proj);
+		glMatrixLoadfEXT(GL_MODELVIEW, (float*)&model_view);
+
+		glEnable(GL_DEPTH_TEST);		
+
+		glLineWidth(2.0f);
+
+		glBegin(GL_LINES);
+		glColor3f(1.0f, 0.0f, 0.0f);
+		glVertex3f(shadow->m_left, 0.0, 0.0f);
+		glVertex3f(shadow->m_right, 0.0, 0.0f);
+
+		glColor3f(0.0f, 1.0f, 0.0f);
+		glVertex3f(0.0, shadow->m_bottom, 0.0f);
+		glVertex3f(0.0, shadow->m_top, 0.0f);
+
+		glColor3f(0.0f, 0.0f, 1.0f);
+		glVertex3f(shadow->m_left, shadow->m_bottom, -shadow->m_near);
+		glVertex3f(shadow->m_left, shadow->m_bottom, -shadow->m_far);
+		glVertex3f(shadow->m_left, shadow->m_top, -shadow->m_near);
+		glVertex3f(shadow->m_left, shadow->m_top, -shadow->m_far);
+		glVertex3f(shadow->m_right, shadow->m_bottom, -shadow->m_near);
+		glVertex3f(shadow->m_right, shadow->m_bottom, -shadow->m_far);
+		glVertex3f(shadow->m_right, shadow->m_top, -shadow->m_near);
+		glVertex3f(shadow->m_right, shadow->m_top, -shadow->m_far);
+
+		glVertex3f(shadow->m_left, shadow->m_bottom, -shadow->m_near);
+		glVertex3f(shadow->m_right, shadow->m_bottom, -shadow->m_near);
+		glVertex3f(shadow->m_left, shadow->m_top, -shadow->m_near);
+		glVertex3f(shadow->m_right, shadow->m_top, -shadow->m_near);
+		glVertex3f(shadow->m_left, shadow->m_top, -shadow->m_near);
+		glVertex3f(shadow->m_left, shadow->m_bottom, -shadow->m_near);
+		glVertex3f(shadow->m_right, shadow->m_top, -shadow->m_near);
+		glVertex3f(shadow->m_right, shadow->m_bottom, -shadow->m_near);
+
+		glVertex3f(shadow->m_left, shadow->m_bottom, -shadow->m_far);
+		glVertex3f(shadow->m_right, shadow->m_bottom, -shadow->m_far);
+		glVertex3f(shadow->m_left, shadow->m_top, -shadow->m_far);
+		glVertex3f(shadow->m_right, shadow->m_top, -shadow->m_far);
+		glVertex3f(shadow->m_left, shadow->m_top, -shadow->m_far);
+		glVertex3f(shadow->m_left, shadow->m_bottom, -shadow->m_far);
+		glVertex3f(shadow->m_right, shadow->m_top, -shadow->m_far);
+		glVertex3f(shadow->m_right, shadow->m_bottom, -shadow->m_far);
+
+		glEnd();
+
+	}
+}
+
 DirectionalShadowCast* GLRenderer::get_shadow_caster(const DirectionalShadowCast::Options& options)
 {
 	uint64_t hash = crc64(0, (const unsigned char*)&options, sizeof(DirectionalShadowCast::Options));
@@ -1084,8 +1143,7 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 					DirectionalLight* light = dynamic_cast<DirectionalLight*>(obj);
 					if (light != nullptr)
 					{
-
-
+						render_widget(&camera, light);
 						break;
 					}
 				}

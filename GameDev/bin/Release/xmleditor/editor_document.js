@@ -1274,11 +1274,11 @@ const directional_light = {
                 const area = props.area.split(',');
                 let left = parseFloat(area[0]);
                 let right = parseFloat(area[1]);
-                let top = parseFloat(area[2]);
-                let bottom = parseFloat(area[3]);       
+                let bottom = parseFloat(area[2]);
+                let top = parseFloat(area[3]);       
                 let near = parseFloat(area[4]);
                 let far = parseFloat(area[5]);
-                light.setShadowProjection(left, right, top, bottom, near, far);
+                light.setShadowProjection(left, right, bottom, top, near, far);
             }
             
             if (props.hasOwnProperty('radius'))
@@ -1294,7 +1294,11 @@ const directional_light = {
         else {
             doc.scene.add(light);
         }
+        doc.scene.addWidget(light);
         return light;
+    },
+    remove: (doc, obj) => {
+        doc.scene.removeWidget(obj);
     },
     tuning: (doc, obj, input) => {
         let node = doc.internal_index[obj.uuid].xml_node;
@@ -1346,11 +1350,11 @@ const directional_light = {
             const area = input.area.split(',');
             let left = parseFloat(area[0]);
             let right = parseFloat(area[1]);
-            let top = parseFloat(area[2]);
-            let bottom = parseFloat(area[3]);       
+            let bottom = parseFloat(area[2]);
+            let top = parseFloat(area[3]);       
             let near = parseFloat(area[4]);
             let far = parseFloat(area[5]);
-            obj.setShadowProjection(left, right, top, bottom, near, far);
+            obj.setShadowProjection(left, right, bottom, top, near, far);
         }
         
         if ("radius" in input)

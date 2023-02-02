@@ -33,10 +33,10 @@
                         <local:NumberTuner x:Name="tuner_right" Margin="5" ValueChanged="tuner_area_ValueChanged"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Top:" VerticalAlignment="Center"/>
-                        <local:NumberTuner x:Name="tuner_top" Margin="5" ValueChanged="tuner_area_ValueChanged"/>
                         <TextBlock Text="Bottom:" VerticalAlignment="Center"/>
                         <local:NumberTuner x:Name="tuner_bottom" Margin="5" ValueChanged="tuner_area_ValueChanged"/>
+                        <TextBlock Text="Top:" VerticalAlignment="Center"/>
+                        <local:NumberTuner x:Name="tuner_top" Margin="5" ValueChanged="tuner_area_ValueChanged"/>                        
                     </StackPanel>
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="Near:" VerticalAlignment="Center"/>
