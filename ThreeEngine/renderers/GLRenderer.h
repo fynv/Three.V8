@@ -38,20 +38,6 @@ class VolumeIsosurfaceModel;
 class GLRenderer
 {
 public:
-	struct Layer
-	{
-		Scene* scene;
-		Camera* camera;
-	};
-
-	struct CubeLayer
-	{
-		Scene* scene;
-		glm::vec3 position;
-		float zNear, zFar;
-	};
-
-
 	GLRenderer();
 	~GLRenderer();
 
@@ -59,9 +45,6 @@ public:
 	void render_picking(Scene& scene, Camera& camera, GLPickingTarget& target);
 
 	void renderCube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar);
-	
-	void renderLayers(size_t num_layers, Layer* layers, GLRenderTarget& target);
-	void renderLayersToCube(size_t num_layers, CubeLayer* layers, CubeRenderTarget& target);
 
 	void renderCelluloid(Scene& scene, Camera& camera, GLRenderTarget* layer_base, GLRenderTarget* layer_light, GLRenderTarget* layer_alpha);
 

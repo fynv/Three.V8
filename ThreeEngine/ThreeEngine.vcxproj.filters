@@ -330,6 +330,9 @@
     <ClCompile Include="renderers\routines\Picking.cpp">
       <Filter>Source Files\renderers\routines</Filter>
     </ClCompile>
+    <ClCompile Include="backgrounds\BackgroundScene.cpp">
+      <Filter>Source Files\backgrounds</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -574,6 +577,9 @@
     </ClInclude>
     <ClInclude Include="renderers\routines\Picking.h">
       <Filter>Header Files\renderers\routines</Filter>
+    </ClInclude>
+    <ClInclude Include="backgrounds\BackgroundScene.h">
+      <Filter>Header Files\backgrounds</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -9,6 +9,7 @@
 #include "cameras/PerspectiveCamera.h"
 #include "scenes/Scene.h"
 #include "backgrounds/Background.h"
+#include "backgrounds/BackgroundScene.h"
 #include "models/ModelComponents.h"
 #include "models/SimpleModel.h"
 #include "models/GLTFModel.h"
@@ -759,6 +760,16 @@ void GLRenderer::_pre_render(Scene& scene)
 		update_model(model);
 	}
 
+	// pre-render background-scene
+	if (scene.background != nullptr)
+	{
+		BackgroundScene* bg = dynamic_cast<BackgroundScene*>(scene.background);
+		if (bg != nullptr)
+		{
+			_pre_render(*bg->scene);
+		}
+	}
+
 	// update lights
 	for (size_t i = 0; i < scene.directional_lights.size(); i++)
 	{
@@ -999,7 +1010,18 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 					HemisphereDraw = std::unique_ptr<DrawHemisphere>(new DrawHemisphere);
 				}
 				HemisphereDraw->render(&camera.m_constant, &bg->m_constant);
+				break;
 			}
+		}
+		{
+			BackgroundScene* bg = dynamic_cast<BackgroundScene*>(scene.background);
+			PerspectiveCamera* ref_cam =  dynamic_cast<PerspectiveCamera*>(&camera);
+			if (bg != nullptr && ref_cam != nullptr)
+			{
+				BackgroundScene::Camera cam(bg, ref_cam);
+				_render_scene(*bg->scene, cam, target);
+			}
+			
 		}
 		break;
 	}
@@ -1283,43 +1305,6 @@ void GLRenderer::renderCube(Scene& scene, CubeRenderTarget& target, glm::vec3& p
 	_render_cube(scene, target, position, zNear, zFar);
 	
 }
-
-
-void GLRenderer::renderLayers(size_t num_layers, Layer* layers, GLRenderTarget& target)
-{
-	for (size_t i = 0; i < num_layers; i++)
-	{
-		Layer& layer = layers[i];
-		_pre_render(*layer.scene);
-		if (i < num_layers - 1)
-		{
-			_render_scene(*layer.scene, *layer.camera, target);
-		}
-		else
-		{
-			_render(*layer.scene, *layer.camera, target);
-		}
-	}
-}
-
-void GLRenderer::renderLayersToCube(size_t num_layers, CubeLayer* layers, CubeRenderTarget& target)
-{
-	for (size_t i = 0; i < num_layers; i++)
-	{
-		CubeLayer& layer = layers[i];
-		_pre_render(*layer.scene);
-		if (i < num_layers - 1)
-		{
-			_render_scene_to_cube(*layer.scene, target, layer.position, layer.zNear, layer.zFar);
-		}
-		else
-		{
-			_render_cube(*layer.scene, target, layer.position, layer.zNear, layer.zFar);
-		}
-	}
-
-}
-
 
 
 void GLRenderer::render_primitive_base(const BaseColorRoutine::RenderParams& params)

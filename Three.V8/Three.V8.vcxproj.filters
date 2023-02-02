@@ -225,6 +225,9 @@
     <ClInclude Include="multimedia\AVCPlayer.hpp">
       <Filter>Header Files\multimedia</Filter>
     </ClInclude>
+    <ClInclude Include="backgrounds\BackgroundScene.hpp">
+      <Filter>Header Files\backgrounds</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="binding.cpp">

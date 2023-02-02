@@ -37,6 +37,7 @@ V8VM::~V8VM()
 #include "cameras/PerspectiveCamera.hpp"
 
 #include "backgrounds/Background.hpp"
+#include "backgrounds/BackgroundScene.hpp"
 #include "lights/DirectionalLight.hpp"
 #include "lights/EnvironmentMap.hpp"
 #include "lights/EnvironmentMapCreator.hpp"
@@ -114,6 +115,7 @@ GlobalDefinitions GameContext::s_globals =
 		{ "ColorBackground", WrapperColorBackground::New,  WrapperColorBackground::create_template },
 		{ "CubeBackground", WrapperCubeBackground::New,  WrapperCubeBackground::create_template },
 		{ "HemisphereBackground", WrapperHemisphereBackground::New,  WrapperHemisphereBackground::create_template },
+		{ "BackgroundScene", WrapperBackgroundScene::New,  WrapperBackgroundScene::create_template },
 		{ "Scene", WrapperScene::New,  WrapperScene::create_template },
 		{ "Fog", WrapperFog::New,  WrapperFog::create_template },
 		{ "GLRenderer", WrapperGLRenderer::New,  WrapperGLRenderer::create_template },

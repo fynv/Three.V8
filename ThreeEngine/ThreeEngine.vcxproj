@@ -131,6 +131,7 @@
     <ClCompile Include="..\thirdparty\crc64\crc64.cpp" />
     <ClCompile Include="..\thirdparty\nanovg\nanovg.c" />
     <ClCompile Include="backgrounds\Background.cpp" />
+    <ClCompile Include="backgrounds\BackgroundScene.cpp" />
     <ClCompile Include="cameras\Camera.cpp" />
     <ClCompile Include="cameras\PerspectiveCamera.cpp" />
     <ClCompile Include="core\BoundingVolumeHierarchy.cpp" />
@@ -207,6 +208,7 @@
     <ClInclude Include="..\thirdparty\nanovg\nanovg_gl.h" />
     <ClInclude Include="..\thirdparty\nanovg\nanovg_gl_utils.h" />
     <ClInclude Include="backgrounds\Background.h" />
+    <ClInclude Include="backgrounds\BackgroundScene.h" />
     <ClInclude Include="cameras\Camera.h" />
     <ClInclude Include="cameras\PerspectiveCamera.h" />
     <ClInclude Include="core\BoundingVolumeHierarchy.h" />

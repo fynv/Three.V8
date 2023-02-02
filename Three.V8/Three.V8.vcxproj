@@ -129,6 +129,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="backgrounds\Background.hpp" />
+    <ClInclude Include="backgrounds\BackgroundScene.hpp" />
     <ClInclude Include="binding.h" />
     <ClInclude Include="cameras\Camera.hpp" />
     <ClInclude Include="cameras\PerspectiveCamera.hpp" />
