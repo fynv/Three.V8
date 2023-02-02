@@ -764,7 +764,7 @@ void GLRenderer::_pre_render(Scene& scene)
 	if (scene.background != nullptr)
 	{
 		BackgroundScene* bg = dynamic_cast<BackgroundScene*>(scene.background);
-		if (bg != nullptr)
+		if (bg != nullptr && bg->scene!=nullptr)
 		{
 			_pre_render(*bg->scene);
 		}
@@ -1016,7 +1016,7 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 		{
 			BackgroundScene* bg = dynamic_cast<BackgroundScene*>(scene.background);
 			PerspectiveCamera* ref_cam =  dynamic_cast<PerspectiveCamera*>(&camera);
-			if (bg != nullptr && ref_cam != nullptr)
+			if (bg != nullptr && bg->scene!=nullptr &&  ref_cam != nullptr)
 			{
 				BackgroundScene::Camera cam(bg, ref_cam);
 				_render_scene(*bg->scene, cam, target);

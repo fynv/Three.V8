@@ -45,6 +45,11 @@ namespace GameDev
             }
             tuner_color.set_color(r, g, b);
 
+            if (att.ContainsKey("target"))
+            {
+                text_target.Text = att["target"].ToString();
+            }
+
             if (att.ContainsKey("castShadow"))
             {
                 bool cast_shadow = att["castShadow"].ToObject<bool>();
