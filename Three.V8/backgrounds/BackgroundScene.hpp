@@ -49,6 +49,9 @@ void WrapperBackgroundScene::New(const v8::FunctionCallbackInfo<v8::Value>& info
 
 	if (info.Length() > 0)
 	{
+		LocalContext lctx(info);
+		lctx.set_property(info.This(), "_scene", info[0]);
+
 		if (!info[0]->IsNull())
 		{
 			scene = lctx.jobj_to_obj<Scene>(info[0]);
@@ -84,7 +87,7 @@ void WrapperBackgroundScene::SetScene(v8::Local<v8::String> property, v8::Local<
 	Scene* scene = nullptr;
 	if (!value->IsNull())
 	{
-		lctx.jobj_to_obj<Scene>(value);
+		scene = lctx.jobj_to_obj<Scene>(value);
 	}
 	self->scene = scene;
 }
