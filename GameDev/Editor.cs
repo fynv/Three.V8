@@ -3,13 +3,16 @@ using System.Threading.Tasks;
 
 namespace GameDev
 {
-    internal interface Editor
+    internal interface EditorBase
     {
         void cleanup();
-
-        Task<string> doc_save_as();
-        Task doc_save();        
         Task<bool> doc_close();
+    }
+
+    internal interface Editor : EditorBase
+    {
+        Task<string> doc_save_as();
+        Task doc_save();                
         Task doc_fresh();
 
         void undo();

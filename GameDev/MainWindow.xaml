@@ -36,8 +36,11 @@
 
 
         <CommandBinding Command="{x:Static local:MainWindow.RoutedCommandProjectSettings}" Executed="CommandProjectSettings"/>
-        
-        
+
+        <CommandBinding Command="Help" Executed="CommandHelp"/>
+        <CommandBinding Command="{x:Static local:MainWindow.RoutedCommandAPI}" Executed="CommandAPIDoc"/>
+
+
     </Window.CommandBindings>
 
     <Window.InputBindings>
@@ -50,6 +53,9 @@
         <KeyBinding Key="F4" Modifiers="Alt" Command="Close"/>
 
         <KeyBinding Key="F7" Modifiers="Alt" Command="{x:Static local:MainWindow.RoutedCommandProjectSettings}"/>
+        
+        <KeyBinding Key="F1" Modifiers="Control" Command="Help"/>
+        
     </Window.InputBindings>
     
     <DockPanel>
@@ -100,6 +106,10 @@
             </MenuItem>
             <MenuItem Header="_Project">
                 <MenuItem Header="Settings" InputGestureText="Alt+F7" Command="{x:Static local:MainWindow.RoutedCommandProjectSettings}"/>
+            </MenuItem>
+            <MenuItem Header="_Help">
+                <MenuItem Header="_View Help" InputGestureText="Ctrl+F1" Command="Help"/>
+                <MenuItem Header="Three.V8 API" Command="{x:Static local:MainWindow.RoutedCommandAPI}"/>
             </MenuItem>
         </Menu>
         <Grid>

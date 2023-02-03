@@ -39,6 +39,7 @@ namespace GameDev
         public static RoutedCommand RoutedCommandGoto = new RoutedCommand();
 
         public static RoutedCommand RoutedCommandProjectSettings = new RoutedCommand();
+        public static RoutedCommand RoutedCommandAPI = new RoutedCommand();
 
         public string cur_path = "";
         private JsonData project = new JsonData();
@@ -656,7 +657,7 @@ namespace GameDev
 
         private async Task<bool> CloseTab(TabItem tabItem)
         {
-            var editor = tabItem.Content as Editor;
+            var editor = tabItem.Content as EditorBase;
             if (editor != null)
             {
                 bool closed = await editor.doc_close();
@@ -955,6 +956,48 @@ namespace GameDev
             {
                 project.Save();
                 update_cur_path();
+            }
+        }
+
+        private void CommandHelp(object sender, ExecutedRoutedEventArgs e)
+        {
+            string local_path = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
+            string help_path = $"{local_path}/help/index.html";
+           
+            TabItem item = NewTabItem(help_path, "Help");
+            if (item.Content == null)
+            {
+                HelpPage help_page = new HelpPage(help_path);
+                item.Content = help_page;
+            }
+            else
+            {
+                HelpPage help_page = item.Content as HelpPage;
+                if (help_page != null)
+                {
+                    help_page.Goto(help_path);
+                }
+            }
+        }
+
+        private void CommandAPIDoc(object sender, ExecutedRoutedEventArgs e)
+        {
+            string local_path = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
+            string help_path = $"{local_path}/help/api/index.html";
+
+            TabItem item = NewTabItem(help_path, "Help");
+            if (item.Content == null)
+            {
+                HelpPage help_page = new HelpPage(help_path);
+                item.Content = help_page;
+            }
+            else
+            {
+                HelpPage help_page = item.Content as HelpPage;
+                if (help_page != null)
+                {
+                    help_page.Goto(help_path);
+                }
             }
         }
 

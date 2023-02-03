@@ -99,6 +99,9 @@
       <DependentUpon>GroupTuner.xaml</DependentUpon>
     </Compile>
     <Compile Include="HackedTabControl.cs" />
+    <Compile Include="HelpPage.xaml.cs">
+      <DependentUpon>HelpPage.xaml</DependentUpon>
+    </Compile>
     <Compile Include="HemisphereLightTuner.xaml.cs">
       <DependentUpon>HemisphereLightTuner.xaml</DependentUpon>
     </Compile>
@@ -198,6 +201,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="GroupTuner.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="HelpPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
