@@ -4798,6 +4798,10 @@ class EnvMapGen
         renderer.renderCube(this.doc.scene, this.cube_target, new Vector3(x, y,z));
         
         let envLight = this.envMapCreator.create(this.cube_target);
+        if (props.hasOwnProperty('dynamic_map'))
+        {
+            envLight.dynamicMap = string_to_boolean(props.dynamic_map);
+        }
         this.doc.scene.indirectLight = envLight;
         
         this.iter++;
@@ -5406,6 +5410,10 @@ const create_cube_env_light = (doc, props) => {
         let envMapCreator = new EnvironmentMapCreator();
         envLight = envMapCreator.create(cube_img);
     }
+    else
+    {
+        envLight = new EnvironmentMap();
+    }
     doc.scene.indirectLight = envLight;
     
     return proxy;
@@ -5516,6 +5524,16 @@ const tuning_cube_env_light = (doc, obj, input) =>{
             let envMapCreator = new EnvironmentMapCreator();
             envLight = envMapCreator.create(cube_img);
         }
+        else
+        {
+            envLight = new EnvironmentMap();
+        }
+        
+        if (props.hasOwnProperty('dynamic_map'))
+        {
+            envLight.dynamicMap = string_to_boolean(props.dynamic_map);
+        }
+        
         doc.scene.indirectLight = envLight;
     }
 };
@@ -5544,18 +5562,26 @@ const env_light = {
             type = props.type;
         }
         
+        let ret = null;
+        
         if (type == "uniform")
         {
-            return create_uniform_env_light(doc,props);
+            ret = create_uniform_env_light(doc,props);
         }
         else if (type == "hemisphere")
         {
-            return create_hemisphere_env_light(doc,props);
+            ret =  create_hemisphere_env_light(doc,props);
         }
         else if (type == "cube")
         {
-            return await create_cube_env_light(doc,props);
+            ret = await create_cube_env_light(doc,props);
         }
+        
+        if (props.hasOwnProperty('dynamic_map'))
+        {
+            doc.scene.indirectLight.dynamicMap = string_to_boolean(props.dynamic_map);
+        }
+        return ret;
     },
     remove: (doc, obj) => {
         create_default_env_light(doc);
@@ -5593,6 +5619,13 @@ const env_light = {
         else
         {
             let props = node.attributes;
+            
+            if (input.hasOwnProperty('dynamic_map'))
+            {
+                props.dynamic_map = input.dynamic_map;
+                doc.scene.indirectLight.dynamicMap = string_to_boolean(input.dynamic_map);
+            }
+            
             let type = "hemisphere";
             if (props.hasOwnProperty("type"))
             {

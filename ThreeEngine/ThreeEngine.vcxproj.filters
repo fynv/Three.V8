@@ -333,6 +333,15 @@
     <ClCompile Include="backgrounds\BackgroundScene.cpp">
       <Filter>Source Files\backgrounds</Filter>
     </ClCompile>
+    <ClCompile Include="renderers\GLSpaceProbeTarget.cpp">
+      <Filter>Source Files\renderers</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\routines\DepthOnly.cpp">
+      <Filter>Source Files\renderers\routines</Filter>
+    </ClCompile>
+    <ClCompile Include="lights\IndirectLight.cpp">
+      <Filter>Source Files\lights</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -580,6 +589,12 @@
     </ClInclude>
     <ClInclude Include="backgrounds\BackgroundScene.h">
       <Filter>Header Files\backgrounds</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\GLSpaceProbeTarget.h">
+      <Filter>Header Files\renderers</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\routines\DepthOnly.h">
+      <Filter>Header Files\renderers\routines</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

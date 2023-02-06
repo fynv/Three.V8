@@ -48,6 +48,7 @@ void WrapperEnvironmentMapCreator::Create(const v8::FunctionCallbackInfo<v8::Val
 
 	v8::Local<v8::Object> holder = lctx.instantiate("EnvironmentMap");
 	EnvironmentMap* self = lctx.jobj_to_obj<EnvironmentMap>(holder);
+	self->allocate();
 
 	v8::Local<v8::Object> holder_image = info[0].As<v8::Object>();
 	

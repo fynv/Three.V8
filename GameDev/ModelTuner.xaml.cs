@@ -17,6 +17,7 @@ namespace GameDev
         private JObject jobj = null;
 
         public Object3DTuner obj3d_tuner = null;
+        private bool initialized = false;
 
         public ModelTuner(CGamePlayer game_player, JObject jobj)
         {
@@ -40,6 +41,8 @@ namespace GameDev
 
             obj3d_tuner = new Object3DTuner(game_player, jobj);
             stack.Children.Add(obj3d_tuner);
+
+            initialized = true;
         }
 
         private void load_model()
@@ -89,13 +92,16 @@ namespace GameDev
 
         private void chk_is_building_Checked(object sender, System.Windows.RoutedEventArgs e)
         {
-            JObject tuning = new JObject();
-            tuning["is_building"] = $"{chk_is_building.IsChecked == true}";
+            if (initialized)
+            {
+                JObject tuning = new JObject();
+                tuning["is_building"] = $"{chk_is_building.IsChecked == true}";
 
-            var att = (JObject)jobj["attributes"];
-            att["is_building"] = tuning["is_building"];
+                var att = (JObject)jobj["attributes"];
+                att["is_building"] = tuning["is_building"];
 
-            game_player.SendMessageToUser("tuning", tuning.ToString());
+                game_player.SendMessageToUser("tuning", tuning.ToString());
+            }
         }
     }
 }

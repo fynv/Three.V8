@@ -15,6 +15,7 @@
                     <ComboBoxItem Tag="hemisphere" IsSelected="True">Hemisphere</ComboBoxItem>
                     <ComboBoxItem Tag="cube">Cube</ComboBoxItem>
                 </ComboBox>
+                <CheckBox x:Name="chk_dynamic" VerticalAlignment="Center" Content="Dynamic map" Checked="chk_dynamic_Checked" Unchecked="chk_dynamic_Checked" />
             </StackPanel>
             <StackPanel x:Name="property_area"></StackPanel>
         </StackPanel>

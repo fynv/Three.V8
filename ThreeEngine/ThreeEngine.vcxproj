@@ -155,6 +155,7 @@
     <ClCompile Include="lights\EnvironmentMap.cpp" />
     <ClCompile Include="lights\EnvironmentMapCreator.cpp" />
     <ClCompile Include="lights\HemisphereLight.cpp" />
+    <ClCompile Include="lights\IndirectLight.cpp" />
     <ClCompile Include="lights\Light.cpp" />
     <ClCompile Include="loaders\FileLoader.cpp" />
     <ClCompile Include="loaders\GLTFLoader.cpp" />
@@ -173,10 +174,12 @@
     <ClCompile Include="renderers\GLPickingTarget.cpp" />
     <ClCompile Include="renderers\GLRenderer.cpp" />
     <ClCompile Include="renderers\GLRenderTarget.cpp" />
+    <ClCompile Include="renderers\GLSpaceProbeTarget.cpp" />
     <ClCompile Include="renderers\GLUIRenderer.cpp" />
     <ClCompile Include="renderers\GLUtils.cpp" />
     <ClCompile Include="renderers\routines\AlphaDem.cpp" />
     <ClCompile Include="renderers\routines\BaseColorRoutine.cpp" />
+    <ClCompile Include="renderers\routines\DepthOnly.cpp" />
     <ClCompile Include="renderers\routines\DirectionalShadowCast.cpp" />
     <ClCompile Include="renderers\routines\DrawFog.cpp" />
     <ClCompile Include="renderers\routines\DrawHemisphere.cpp" />
@@ -254,10 +257,12 @@
     <ClInclude Include="renderers\GLPickingTarget.h" />
     <ClInclude Include="renderers\GLRenderer.h" />
     <ClInclude Include="renderers\GLRenderTarget.h" />
+    <ClInclude Include="renderers\GLSpaceProbeTarget.h" />
     <ClInclude Include="renderers\GLUIRenderer.h" />
     <ClInclude Include="renderers\GLUtils.h" />
     <ClInclude Include="renderers\routines\AlphaDem.h" />
     <ClInclude Include="renderers\routines\BaseColorRoutine.h" />
+    <ClInclude Include="renderers\routines\DepthOnly.h" />
     <ClInclude Include="renderers\routines\DirectionalShadowCast.h" />
     <ClInclude Include="renderers\routines\DrawFog.h" />
     <ClInclude Include="renderers\routines\DrawHemisphere.h" />

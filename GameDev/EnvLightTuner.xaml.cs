@@ -22,6 +22,12 @@ namespace GameDev
 
             var att = (JObject)jobj["attributes"];
 
+            if (att.ContainsKey("dynamic_map"))
+            {
+                bool dynamic_map = att["dynamic_map"].ToObject<bool>();
+                chk_dynamic.IsChecked = dynamic_map;
+            }
+
             string type = "hemisphere";
             if (att.ContainsKey("type"))
             {
@@ -41,6 +47,7 @@ namespace GameDev
                 lst_types.SelectedIndex = 2;
             }
             load_type(type);
+
             initialized = true;
         }
 
@@ -79,6 +86,20 @@ namespace GameDev
 
             load_type(type);
 
+        }
+
+        private void chk_dynamic_Checked(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (initialized)
+            {
+                JObject tuning = new JObject();
+                tuning["dynamic_map"] = $"{chk_dynamic.IsChecked == true}";
+
+                var att = (JObject)jobj["attributes"];
+                att["dynamic_map"] = tuning["dynamic_map"];
+
+                game_player.SendMessageToUser("tuning", tuning.ToString());
+            }
         }
     }
 }

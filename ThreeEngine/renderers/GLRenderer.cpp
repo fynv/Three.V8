@@ -4,6 +4,7 @@
 #include "GLRenderer.h"
 #include "GLRenderTarget.h"
 #include "GLPickingTarget.h"
+#include "GLSpaceProbeTarget.h"
 #include "CubeRenderTarget.h"
 #include "cameras/Camera.h"
 #include "cameras/PerspectiveCamera.h"
@@ -969,8 +970,185 @@ void GLRenderer::_pre_render(Scene& scene)
 	}
 }
 
-void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& target, bool widgets)
+
+void GLRenderer::render_space_probe_primitive(const DepthOnly::RenderParams& params)
 {
+	if (SpaceProbe == nullptr)
+	{
+		SpaceProbe = std::unique_ptr<DepthOnly>(new DepthOnly);
+	}
+	SpaceProbe->render(params);
+}
+
+void GLRenderer::render_space_probe_model(Camera* p_camera, SimpleModel* model, GLSpaceProbeTarget& target)
+{
+	glm::mat4 view_matrix = p_camera->matrixWorldInverse;
+	if (!visible(view_matrix * model->matrixWorld, p_camera->projectionMatrix, model->geometry.min_pos, model->geometry.max_pos)) return;
+
+	const MeshStandardMaterial* material = &model->material;
+	if (material->alphaMode != AlphaMode::Opaque) return;
+
+	DepthOnly::RenderParams params;
+	params.material_list = &material;
+	params.constant_camera = &p_camera->m_constant;
+	params.constant_model = &model->m_constant;
+	params.primitive = &model->geometry;	
+	render_space_probe_primitive(params);
+}
+
+void GLRenderer::render_space_probe_model(Camera* p_camera, GLTFModel* model, GLSpaceProbeTarget& target)
+{
+	glm::mat4 view_matrix = p_camera->matrixWorldInverse;
+
+	std::vector<const MeshStandardMaterial*> material_lst(model->m_materials.size());
+	for (size_t i = 0; i < material_lst.size(); i++)
+		material_lst[i] = model->m_materials[i].get();
+
+	int primitive_idx = 0;
+	for (size_t i = 0; i < model->m_meshs.size(); i++)
+	{
+		Mesh& mesh = model->m_meshs[i];
+		glm::mat4 matrix = model->matrixWorld;
+		if (mesh.node_id >= 0 && mesh.skin_id < 0)
+		{
+			Node& node = model->m_nodes[mesh.node_id];
+			matrix *= node.g_trans;
+		}
+		glm::mat4 MV = view_matrix * matrix;
+
+		for (size_t j = 0; j < mesh.primitives.size(); j++, primitive_idx++)
+		{
+			Primitive& primitive = mesh.primitives[j];
+			if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos)) continue;
+
+			const MeshStandardMaterial* material = material_lst[primitive.material_idx];			
+
+			DepthOnly::RenderParams params;
+			params.material_list = material_lst.data();
+			params.constant_camera = &p_camera->m_constant;
+			params.constant_model = mesh.model_constant.get();
+			params.primitive = &primitive;		
+			render_space_probe_primitive(params);
+		}
+	}
+}
+
+void GLRenderer::probe_space_center(Scene& scene, Camera& camera, GLSpaceProbeTarget& target, int width, int height, glm::vec3& sum, float& sum_weight)
+{
+	if (width < 2 || height < 2) return;
+
+	camera.updateMatrixWorld(false);
+	camera.updateConstant();
+
+	target.update_framebuffers(width, height);
+	target.bind_buffer();
+	glViewport(0, 0, target.m_width, target.m_height);
+
+	glDepthMask(GL_TRUE);
+	glClearDepth(1.0f);	
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	for (size_t j = 0; j < scene.simple_models.size(); j++)
+	{
+		SimpleModel* model = scene.simple_models[j];
+		render_space_probe_model(&camera, model, target);
+	}
+
+	for (size_t j = 0; j < scene.gltf_models.size(); j++)
+	{
+		GLTFModel* model = scene.gltf_models[j];
+		render_space_probe_model(&camera, model, target);
+	}
+
+	std::vector<float> buf(target.m_width * target.m_height);
+	glReadPixels(0, 0, target.m_width, target.m_height, GL_DEPTH_COMPONENT, GL_FLOAT, buf.data());
+
+	glm::vec3 view_sum(0.0f);
+	float view_sum_weight = 0.0f;
+	for (int j = 0; j < target.m_height; j++)
+	{
+		for (int i = 0; i < target.m_width; i++)
+		{
+			float depth = buf[(size_t)target.m_width * (size_t)j + (size_t)i];
+			glm::vec4 pos_clip;
+			pos_clip.x = ((float)i + 0.5f) / (float)target.m_width * 2.0f - 1.0f;
+			pos_clip.y = ((float)j + 0.5f) / (float)target.m_height * 2.0f - 1.0f;
+			pos_clip.z = depth * 2.0f - 1.0f;
+			pos_clip.w = 1.0f;
+
+			glm::vec4 pos_view = camera.projectionMatrixInverse* pos_clip;
+			pos_view /= pos_view.w;			
+
+			float dis = glm::length(glm::vec3(pos_view));
+			view_sum += glm::vec3(pos_view)* 0.5f * dis;
+			view_sum_weight += dis;
+		}
+	}
+
+	glm::vec3 view_ave = view_sum / view_sum_weight;
+	sum += glm::vec3(camera.matrixWorld * glm::vec4(view_ave, 1.0f)) * view_sum_weight;
+	sum_weight += view_sum_weight;
+}
+
+glm::vec3 GLRenderer::probe_space_center_cube(Scene& scene, const glm::vec3& position, float zNear, float zFar, IndirectLight& light)
+{
+	GLSpaceProbeTarget& target = *light.probe_target;
+	PerspectiveCamera& camera = *light.probe_camera;
+	camera.fov = 90.0f;
+	camera.aspect = 1.0f;
+	camera.z_near = zNear;
+	camera.z_far = zFar;
+	camera.updateProjectionMatrix();
+
+	glm::vec3 sum = glm::vec3(0.0f);
+	float sum_weight = 0.0f;
+	{
+		camera.position = position;
+		camera.up = { 0.0f, -1.0f, 0.0f };
+		camera.lookAt(position + glm::vec3(1.0f, 0.0f, 0.0f));
+		probe_space_center(scene, camera, target, 128, 128, sum, sum_weight);
+	}
+
+	{
+		camera.position = position;
+		camera.up = { 0.0f, -1.0f, 0.0f };
+		camera.lookAt(position + glm::vec3(-1.0f, 0.0f, 0.0f));
+		probe_space_center(scene, camera, target, 128, 128, sum, sum_weight);
+	}
+
+	{		
+		camera.position = position;
+		camera.up = { 0.0f, 0.0f, 1.0f };
+		camera.lookAt(position + glm::vec3(0.0f, 1.0f, 0.0f));
+		probe_space_center(scene, camera, target, 128, 128, sum, sum_weight);
+	}
+
+	{		
+		camera.position = position;
+		camera.up = { 0.0f, 0.0f, -1.0f };
+		camera.lookAt(position + glm::vec3(0.0f, -1.0f, 0.0f));
+		probe_space_center(scene, camera, target, 128, 128, sum, sum_weight);
+	}
+
+	{		
+		camera.position = position;
+		camera.up = { 0.0f, -1.0f, 0.0f };
+		camera.lookAt(position + glm::vec3(0.0f, 0.0f, 1.0f));
+		probe_space_center(scene, camera, target, 128, 128, sum, sum_weight);
+	}
+
+	{		
+		camera.position = position;
+		camera.up = { 0.0f, -1.0f, 0.0f };
+		camera.lookAt(position + glm::vec3(0.0f, 0.0f, -1.0f));
+		probe_space_center(scene, camera, target, 128, 128, sum, sum_weight);
+	}
+
+	return sum / sum_weight;
+}
+
+void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& target, bool widgets)
+{	
 	camera.updateMatrixWorld(false);
 	camera.updateConstant();
 
@@ -1215,7 +1393,7 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 }
 
 void GLRenderer::_render(Scene& scene, Camera& camera, GLRenderTarget& target, bool widgets)
-{
+{	
 	_render_scene(scene, camera, target, widgets);
 
 	Lights& lights = scene.lights;
@@ -1251,7 +1429,7 @@ void GLRenderer::_render(Scene& scene, Camera& camera, GLRenderTarget& target, b
 	}
 }
 
-void GLRenderer::_render_cube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar)
+void GLRenderer::_render_cube(Scene& scene, CubeRenderTarget& target, const glm::vec3& position, float zNear, float zFar)
 {
 	{
 		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
@@ -1305,7 +1483,39 @@ void GLRenderer::_render_cube(Scene& scene, CubeRenderTarget& target, glm::vec3&
 void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 {
 	_pre_render(scene);
+
+	if (scene.indirectLight != nullptr && scene.indirectLight->dynamic_map)
+	{
+		IndirectLight* light = scene.indirectLight;
+		PerspectiveCamera* p_cam = (PerspectiveCamera*)(&camera);
+
+		camera.updateMatrixWorld(false);
+		glm::vec3 cam_pos = camera.getWorldPosition();
+		glm::vec3 pos = probe_space_center_cube(scene, camera.getWorldPosition(), p_cam->z_near, p_cam->z_far, *light);
+		pos.x = 0.5f * pos.x + 0.5f * cam_pos.x;		
+		pos.y = cam_pos.y;
+		pos.z = 0.5f * pos.z + 0.5f * cam_pos.z;
+		light->probe_position = 0.8f * light->probe_position + 0.2f * pos;
+
+		EnvironmentMap* env_map = light->env_map.get();
+
+		_render_cube(scene, *light->cube_target, light->probe_position, p_cam->z_near, p_cam->z_far);
+
+		if (EnvCreator == nullptr)
+		{
+			EnvCreator = std::unique_ptr<EnvironmentMapCreator>(new EnvironmentMapCreator);
+		}
+		EnvCreator->Create(light->cube_target.get(), env_map);
+		env_map->updateConstant();
+
+		Lights& lights = scene.lights;
+		lights.environment_map = env_map;
+		lights.ambient_light = nullptr;
+		lights.hemisphere_light = nullptr;
+	
+	}
 	_render(scene, camera, target, true);
+	
 }
 
 void GLRenderer::render_picking(Scene& scene, Camera& camera, GLPickingTarget& target)
@@ -1349,7 +1559,7 @@ void GLRenderer::render_picking(Scene& scene, Camera& camera, GLPickingTarget& t
 	}
 }
 
-void GLRenderer::renderCube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar)
+void GLRenderer::renderCube(Scene& scene, CubeRenderTarget& target, const glm::vec3& position, float zNear, float zFar)
 {
 	_pre_render(scene);
 	_render_cube(scene, target, position, zNear, zFar);

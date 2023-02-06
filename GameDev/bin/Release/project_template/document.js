@@ -517,7 +517,17 @@ const env_light = {
                 let envMapCreator = new EnvironmentMapCreator();
                 envLight = envMapCreator.create(cube_img);
             }
+            else
+            {
+                envLight = new EnvironmentMap();
+            }
+            
             doc.scene.indirectLight = envLight;
+        }
+        
+        if (props.hasOwnProperty('dynamic_map'))
+        {
+            doc.scene.indirectLight.dynamicMap = string_to_boolean(props.dynamic_map);
         }
         
         return doc.scene.indirectLight;

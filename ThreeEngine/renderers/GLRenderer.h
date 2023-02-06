@@ -22,11 +22,15 @@
 
 #include "renderers/routines/Picking.h"
 
+#include "lights/EnvironmentMapCreator.h"
+#include "renderers/routines/DepthOnly.h"
+
 class Scene;
 class Fog;
 class Camera;
 class GLRenderTarget;
 class GLPickingTarget;
+class GLSpaceProbeTarget;
 class CubeRenderTarget;
 class SimpleModel;
 class GLTFModel;
@@ -44,7 +48,7 @@ public:
 	void render(Scene& scene, Camera& camera, GLRenderTarget& target);	
 	void render_picking(Scene& scene, Camera& camera, GLPickingTarget& target);
 
-	void renderCube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar);
+	void renderCube(Scene& scene, CubeRenderTarget& target, const glm::vec3& position, float zNear, float zFar);
 
 	void renderCelluloid(Scene& scene, Camera& camera, GLRenderTarget* layer_base, GLRenderTarget* layer_light, GLRenderTarget* layer_alpha);
 
@@ -92,14 +96,22 @@ private:
 	void render_shadow_model(DirectionalLightShadow* shadow, SimpleModel* model);
 	void render_shadow_model(DirectionalLightShadow* shadow, GLTFModel* model);
 	void render_shadow_model(DirectionalLightShadow* shadow, VolumeIsosurfaceModel* model);
+	
 
 	std::unique_ptr<DrawSkyBox> SkyBoxDraw;
 	std::unique_ptr<DrawHemisphere> HemisphereDraw;
 
+	std::unique_ptr<DepthOnly> SpaceProbe;
+	void render_space_probe_primitive(const DepthOnly::RenderParams& params);
+	void render_space_probe_model(Camera* p_camera, SimpleModel* model, GLSpaceProbeTarget& target);
+	void render_space_probe_model(Camera* p_camera, GLTFModel* model, GLSpaceProbeTarget& target);
+
 	void _pre_render(Scene& scene);
+	void probe_space_center(Scene& scene, Camera& camera, GLSpaceProbeTarget& target, int width, int height, glm::vec3& ave, float& sum_weight);
+	glm::vec3 probe_space_center_cube(Scene& scene, const glm::vec3& position, float zNear, float zFar, IndirectLight& light);
 	void _render_scene(Scene& scene, Camera& camera, GLRenderTarget& target, bool widgets = false);
 	void _render(Scene& scene, Camera& camera, GLRenderTarget& target, bool widgets = false);
-	void _render_cube(Scene& scene, CubeRenderTarget& target, glm::vec3& position, float zNear, float zFar);	
+	void _render_cube(Scene& scene, CubeRenderTarget& target, const glm::vec3& position, float zNear, float zFar);
 
 	std::unordered_map<uint64_t, std::unique_ptr<Picking>> picking_map;
 	Picking* get_picking(const Picking::Options& options);
@@ -127,6 +139,8 @@ private:
 	std::unique_ptr<AlphaDem> alpha_demodulate;
 
 	std::unique_ptr<DrawTexture> TextureDraw;
+
+	std::unique_ptr<EnvironmentMapCreator> EnvCreator;
 
 };
 

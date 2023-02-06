@@ -28,6 +28,9 @@ private:
 
 	static void GetSpecularLow(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void SetSpecularLow(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
+
+	static void GetDynamicMap(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void SetDynamicMap(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
 };
 
 v8::Local<v8::FunctionTemplate> WrapperIndirectLight::create_template(v8::Isolate* isolate, v8::FunctionCallback constructor)
@@ -41,6 +44,7 @@ v8::Local<v8::FunctionTemplate> WrapperIndirectLight::create_template(v8::Isolat
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "specularThresh").ToLocalChecked(), GetSpecularThresh, SetSpecularThresh);
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "specularHigh").ToLocalChecked(), GetSpecularHigh, SetSpecularHigh);
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "specularLow").ToLocalChecked(), GetSpecularLow, SetSpecularLow);
+	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "dynamicMap").ToLocalChecked(), GetDynamicMap, SetDynamicMap);
 	return templ;
 }
 
@@ -132,4 +136,18 @@ void WrapperIndirectLight::SetSpecularLow(v8::Local<v8::String> property, v8::Lo
 	LocalContext lctx(info);
 	IndirectLight* self = lctx.self<IndirectLight>();
 	info.GetReturnValue().Set(lctx.num_to_jnum(self->specular_low));
+}
+
+void WrapperIndirectLight::GetDynamicMap(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	IndirectLight* self = lctx.self<IndirectLight>();
+	info.GetReturnValue().Set(v8::Boolean::New(lctx.isolate, self->dynamic_map));
+}
+
+void WrapperIndirectLight::SetDynamicMap(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
+{
+	LocalContext lctx(info);
+	IndirectLight* self = lctx.self<IndirectLight>();
+	self->set_dynamic_map(value.As<v8::Boolean>()->Value());
 }
