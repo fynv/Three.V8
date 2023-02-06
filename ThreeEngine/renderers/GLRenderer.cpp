@@ -1070,6 +1070,7 @@ void GLRenderer::probe_space_center(Scene& scene, Camera& camera, GLSpaceProbeTa
 		for (int i = 0; i < target.m_width; i++)
 		{
 			float depth = buf[(size_t)target.m_width * (size_t)j + (size_t)i];
+			if (depth == 1.0f) continue;
 			glm::vec4 pos_clip;
 			pos_clip.x = ((float)i + 0.5f) / (float)target.m_width * 2.0f - 1.0f;
 			pos_clip.y = ((float)j + 0.5f) / (float)target.m_height * 2.0f - 1.0f;
@@ -1085,9 +1086,12 @@ void GLRenderer::probe_space_center(Scene& scene, Camera& camera, GLSpaceProbeTa
 		}
 	}
 
-	glm::vec3 view_ave = view_sum / view_sum_weight;
-	sum += glm::vec3(camera.matrixWorld * glm::vec4(view_ave, 1.0f)) * view_sum_weight;
-	sum_weight += view_sum_weight;
+	if (view_sum_weight > 0.0f)
+	{
+		glm::vec3 view_ave = view_sum / view_sum_weight;
+		sum += glm::vec3(camera.matrixWorld * glm::vec4(view_ave, 1.0f)) * view_sum_weight;
+		sum_weight += view_sum_weight;
+	}
 }
 
 glm::vec3 GLRenderer::probe_space_center_cube(Scene& scene, const glm::vec3& position, float zNear, float zFar, IndirectLight& light)
