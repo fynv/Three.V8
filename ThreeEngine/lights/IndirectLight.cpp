@@ -24,8 +24,7 @@ void IndirectLight::set_dynamic_map(bool on)
 		this->cube_target->update_framebuffers(128, 128);
 		this->probe_target = std::unique_ptr<GLSpaceProbeTarget>(new GLSpaceProbeTarget);
 		this->probe_camera = std::unique_ptr<PerspectiveCamera>(new PerspectiveCamera(90.0f, 1.0f, 0.1f, 100.0f));
-		this->env_map = std::unique_ptr<EnvironmentMap>(new EnvironmentMap);
-		this->env_map->allocate();
+		this->env_map = std::unique_ptr<EnvironmentMap>(new EnvironmentMap);		
 	}
 	else
 	{

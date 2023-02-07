@@ -10,13 +10,10 @@ public:
 	EnvironmentMap();
 	~EnvironmentMap();
 
-	bool allocated = false;
-	void allocate();
-
 	glm::vec4 shCoefficients[9];
+	ReflectionMap reflection;
 
 	GLDynBuffer m_constant;
 	void updateConstant();
-
-	unsigned id_cube_reflection; // 128*128*7	
+	
 };

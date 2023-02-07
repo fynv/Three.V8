@@ -1467,7 +1467,7 @@ void StandardRoutine::render(const RenderParams& params)
 	if (m_options.has_environment_map)
 	{
 		glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_reflection_map);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, params.lights->environment_map->id_cube_reflection);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, params.lights->environment_map->reflection.tex_id);
 		glUniform1i(m_bindings.location_tex_reflection_map, m_bindings.location_tex_reflection_map);
 	}
 

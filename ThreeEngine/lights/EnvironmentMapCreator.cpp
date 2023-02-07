@@ -553,90 +553,26 @@ EnvironmentMapCreator::~EnvironmentMapCreator()
 	glDeleteTextures(1, &m_tex_src);
 }
 
-void EnvironmentMapCreator::Create(const GLCubemap * cubemap, EnvironmentMap * envMap)
+void EnvironmentMapCreator::CreateSH(glm::vec4 shCoefficients[9], unsigned tex_id, int tex_dim)
 {
-	int width, height;
-	glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap->tex_id);
-	glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_TEXTURE_WIDTH, &width);
-	glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_TEXTURE_HEIGHT, &height);
-
-	// downsample pass
-	glUseProgram(m_prog_downsample->m_id);
-
-	{
-		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap->tex_id);
-		glUniform1i(0, 0);
-
-		glBindImageTexture(0, m_tex_src, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
-
-		glUniform1f(1, 0.0f);
-
-		glDispatchCompute(128 / 8, 128 / 8, 6);
-	}
-
-	for (int level = 0; level < 7; level++)
-	{ 
-		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-		
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex_src);
-		glUniform1i(0, 0);
-
-		glBindImageTexture(0, m_tex_src, level + 1, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
-
-		glUniform1f(1, (float)level);
-
-		int w, h;		
-		glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, level + 1, GL_TEXTURE_WIDTH, &w);
-		glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, level + 1, GL_TEXTURE_HEIGHT, &h);		
-		glDispatchCompute((w+7)/8, (h+7)/8, 6);
-	}
-
-	// filter pass
-	glUseProgram(m_prog_filter->m_id);
-
-	{
-		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex_src);
-		glUniform1i(0, 0);
-
-		glBindImageTexture(0, envMap->id_cube_reflection, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
-		glBindImageTexture(1, envMap->id_cube_reflection, 1, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
-		glBindImageTexture(2, envMap->id_cube_reflection, 2, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
-		glBindImageTexture(3, envMap->id_cube_reflection, 3, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
-		glBindImageTexture(4, envMap->id_cube_reflection, 4, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
-		glBindImageTexture(5, envMap->id_cube_reflection, 5, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
-		glBindImageTexture(6, envMap->id_cube_reflection, 6, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
-
-		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_buf_coeffs.m_id);
-
-		glDispatchCompute((128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2 + 63) / 64, 6, 1);
-	}
-
-	glUseProgram(0);
-
-	glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex_src);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, tex_id);
 
 	std::vector<uint8_t> faces[6];
 	for (int i = 0; i < 6; i++)
 	{
-		faces[i].resize(128 * 128 * 4);
+		faces[i].resize(tex_dim * tex_dim * 4);
 		glGetTexImage(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, GL_UNSIGNED_BYTE, faces[i].data());
 	}
 
-	float pixelSize = 2.0f / 128.0f;
+	float pixelSize = 2.0f / tex_dim;
 	float totalWeight = 0.0f;
-	memset(envMap->shCoefficients, 0, sizeof(glm::vec4) * 9);	
+	memset(shCoefficients, 0, sizeof(glm::vec4) * 9);
 
 	for (int i = 0; i < 6; i++)
 	{
 		std::vector<uint8_t>& face = faces[i];
 
-		for (int j = 0; j < 128 * 128; j += 4)
+		for (int j = 0; j < tex_dim * tex_dim; j += 4)
 		{
 			float dir_x[4];
 			float dir_y[4];
@@ -648,8 +584,8 @@ void EnvironmentMapCreator::Create(const GLCubemap * cubemap, EnvironmentMap * e
 			{
 				int pixelIndex = j + k;
 
-				float col = -1.0f + ((float)(pixelIndex % 128) + 0.5f) * pixelSize;
-				float row = -1.0f + ((float)(pixelIndex / 128) + 0.5f) * pixelSize;
+				float col = -1.0f + ((float)(pixelIndex % tex_dim) + 0.5f) * pixelSize;
+				float row = -1.0f + ((float)(pixelIndex / tex_dim) + 0.5f) * pixelSize;
 				glm::vec3 coord;
 				switch (i)
 				{
@@ -692,7 +628,7 @@ void EnvironmentMapCreator::Create(const GLCubemap * cubemap, EnvironmentMap * e
 			{
 				int idx_col = k % 4;
 				int idx_coeff = k / 4;
-				envMap->shCoefficients[idx_coeff] += glm::vec4(shBasis[k] * weight[idx_col] * color[idx_col], 0.0f);
+				shCoefficients[idx_coeff] += glm::vec4(shBasis[k] * weight[idx_col] * color[idx_col], 0.0f);
 			}
 #else
 			for (int k = 0; k < 4; k++)
@@ -702,7 +638,7 @@ void EnvironmentMapCreator::Create(const GLCubemap * cubemap, EnvironmentMap * e
 
 				for (int l = 0; l < 9; l++)
 				{
-					envMap->shCoefficients[l] += glm::vec4(shBasis[l] * weight[k] * color[k], 0.0f);
+					shCoefficients[l] += glm::vec4(shBasis[l] * weight[k] * color[k], 0.0f);
 				}
 			}
 #endif
@@ -713,70 +649,79 @@ void EnvironmentMapCreator::Create(const GLCubemap * cubemap, EnvironmentMap * e
 
 	for (int k = 0; k < 9; k++)
 	{
-		envMap->shCoefficients[k] *= norm;
+		shCoefficients[k] *= norm;
 	}
-	
-	// average check
-	/*totalWeight = 0.0f;
-	glm::vec4 ave1(0.0f);
-	glm::vec4 ave2(0.0f);
-	for (int i = 0; i < 6; i++)
+}
+
+void EnvironmentMapCreator::CreateReflection(ReflectionMap& reflection, const GLCubemap* cubemap)
+{
+	// downsample pass
+	glUseProgram(m_prog_downsample->m_id);
+
 	{
-		std::vector<uint8_t>& face = faces[i];
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-		for (int j = 0; j < 128 * 128; j ++)
-		{
-			int pixelIndex = j;
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap->tex_id);
+		glUniform1i(0, 0);
 
-			float col = -1.0f + ((float)(pixelIndex % 128) + 0.5f) * pixelSize;
-			float row = -1.0f + ((float)(pixelIndex / 128) + 0.5f) * pixelSize;
-			glm::vec3 coord;
-			switch (i)
-			{
-			case 0:
-				coord = { 1.0f, -row, -col };
-				break;
-			case 1:
-				coord = { -1.0f, -row, col };
-				break;
-			case 2:
-				coord = { col, 1, row };
-				break;
-			case 3:
-				coord = { col, -1, -row };
-				break;
-			case 4:
-				coord = { col, -row, 1 };
-				break;
-			case 5:
-				coord = { -col, -row, -1 };
-				break;
-			}
-			float lengthSq = glm::dot(coord, coord);
-			float weight = 4.0f / (sqrtf(lengthSq) * lengthSq);
-			totalWeight += weight;
-			glm::vec3 dir = glm::normalize(coord);
+		glBindImageTexture(0, m_tex_src, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
 
-			const uint8_t* pixel = &face[(size_t)pixelIndex * 4];
-			glm::vec4 color1 = { (float)pixel[0] / 255.0f, (float)pixel[1] / 255.0f, (float)pixel[2] / 255.0f, 0.0f };
-			ave1 += color1 * weight;
+		glUniform1f(1, 0.0f);
 
-			glm::vec4 color2 = shGetIrradianceAt(dir, envMap->shCoefficients);
-			ave2 += color2 * weight;
-
-		
-		}
+		glDispatchCompute(128 / 8, 128 / 8, 6);
 	}
 
-	ave1 /= totalWeight;
-	ave2 /= totalWeight;
+	for (int level = 0; level < 7; level++)
+	{
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-	printf("%f %f %f\n", ave1[0], ave1[1], ave1[2]);
-	printf("%f %f %f\n", ave2[0], ave2[1], ave2[2]);
-	printf("%f %f %f\n", ave2[0]/ave1[0], ave2[1]/ave1[1], ave2[2]/ave1[2]);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex_src);
+		glUniform1i(0, 0);
 
-	glm::vec4 ave3 = envMap->shCoefficients[0] / (0.2820947917738781f * (4.0f * (float)PI));
-	printf("%f %f %f\n", ave3[0], ave3[1], ave3[2]);*/
+		glBindImageTexture(0, m_tex_src, level + 1, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
+
+		glUniform1f(1, (float)level);
+
+		int w, h;
+		glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, level + 1, GL_TEXTURE_WIDTH, &w);
+		glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, level + 1, GL_TEXTURE_HEIGHT, &h);
+		glDispatchCompute((w + 7) / 8, (h + 7) / 8, 6);
+	}
+
+	reflection.allocate();
+
+	// filter pass
+	glUseProgram(m_prog_filter->m_id);
+
+	{
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex_src);
+		glUniform1i(0, 0);
+
+		glBindImageTexture(0, reflection.tex_id, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(1, reflection.tex_id, 1, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(2, reflection.tex_id, 2, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(3, reflection.tex_id, 3, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(4, reflection.tex_id, 4, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(5, reflection.tex_id, 5, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(6, reflection.tex_id, 6, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
+
+		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_buf_coeffs.m_id);
+
+		glDispatchCompute((128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2 + 63) / 64, 6, 1);
+	}
+
+	glUseProgram(0);
+
+}
+
+void EnvironmentMapCreator::Create(const GLCubemap * cubemap, EnvironmentMap * envMap)
+{	
+	CreateReflection(envMap->reflection, cubemap);
+	CreateSH(envMap->shCoefficients, m_tex_src);
 
 }
 

@@ -74,6 +74,17 @@ private:
 	GLCubemap(const GLCubemap&);
 };
 
+class ReflectionMap
+{
+public:
+	unsigned tex_id;
+	ReflectionMap();
+	~ReflectionMap();
+
+	bool allocated = false;
+	void allocate();
+
+};
 
 class GLBuffer
 {

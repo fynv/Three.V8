@@ -18,6 +18,10 @@ class EnvironmentMapCreator
 public:
 	EnvironmentMapCreator();
 	~EnvironmentMapCreator();
+
+	static void CreateSH(glm::vec4 shCoefficients[9], unsigned tex_id, int tex_dim = 128);
+	void CreateReflection(ReflectionMap& reflection, const GLCubemap* cubemap);
+
 	void Create(const GLCubemap* cubemap, EnvironmentMap* envMap);
 	void Create(const CubeImage* image, EnvironmentMap* envMap);
 	void Create(const CubeBackground* background, EnvironmentMap* envMap);

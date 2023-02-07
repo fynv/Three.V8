@@ -270,6 +270,32 @@ void GLCubemap::unload()
 	glGenTextures(1, &tex_id);
 }
 
+ReflectionMap::ReflectionMap()
+{
+	glGenTextures(1, &tex_id);
+}
+
+ReflectionMap::~ReflectionMap()
+{
+	glDeleteTextures(1, &tex_id);
+}
+
+void ReflectionMap::allocate()
+{
+	if (!allocated)
+	{
+		glBindTexture(GL_TEXTURE_CUBE_MAP, tex_id);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+		glTexStorage2D(GL_TEXTURE_CUBE_MAP, 7, GL_RGBA8, 128, 128);
+		allocated = true;
+	}
+
+}
+
 GLBuffer::GLBuffer(size_t size, unsigned target)
 {
 	m_target = target;
