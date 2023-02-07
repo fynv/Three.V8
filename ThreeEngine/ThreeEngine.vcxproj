@@ -157,9 +157,11 @@
     <ClCompile Include="lights\HemisphereLight.cpp" />
     <ClCompile Include="lights\IndirectLight.cpp" />
     <ClCompile Include="lights\Light.cpp" />
+    <ClCompile Include="lights\ProbeGrid.cpp" />
     <ClCompile Include="loaders\FileLoader.cpp" />
     <ClCompile Include="loaders\GLTFLoader.cpp" />
     <ClCompile Include="loaders\ImageLoader.cpp" />
+    <ClCompile Include="loaders\ProbeGridLoader.cpp" />
     <ClCompile Include="materials\Material.cpp" />
     <ClCompile Include="materials\MeshStandardMaterial.cpp" />
     <ClCompile Include="models\Animation.cpp" />
@@ -187,6 +189,7 @@
     <ClCompile Include="renderers\routines\DrawTexture.cpp" />
     <ClCompile Include="renderers\routines\DrawWire.cpp" />
     <ClCompile Include="renderers\routines\FogRayMarching.cpp" />
+    <ClCompile Include="renderers\routines\FogRayMarchingEnv.cpp" />
     <ClCompile Include="renderers\routines\LightingRoutine.cpp" />
     <ClCompile Include="renderers\routines\MorphUpdate.cpp" />
     <ClCompile Include="renderers\routines\Picking.cpp" />
@@ -194,6 +197,7 @@
     <ClCompile Include="renderers\routines\StandardRoutine.cpp" />
     <ClCompile Include="renderers\routines\WeightedOIT.cpp" />
     <ClCompile Include="savers\ImageSaver.cpp" />
+    <ClCompile Include="savers\ProbeGridSaver.cpp" />
     <ClCompile Include="scenes\Fog.cpp" />
     <ClCompile Include="scenes\Scene.cpp" />
     <ClCompile Include="utils\Image.cpp" />
@@ -239,9 +243,11 @@
     <ClInclude Include="lights\IndirectLight.h" />
     <ClInclude Include="lights\Light.h" />
     <ClInclude Include="lights\Lights.h" />
+    <ClInclude Include="lights\ProbeGrid.h" />
     <ClInclude Include="loaders\FileLoader.h" />
     <ClInclude Include="loaders\GLTFLoader.h" />
     <ClInclude Include="loaders\ImageLoader.h" />
+    <ClInclude Include="loaders\ProbeGridLoader.h" />
     <ClInclude Include="materials\Material.h" />
     <ClInclude Include="materials\MeshStandardMaterial.h" />
     <ClInclude Include="models\Animation.h" />
@@ -270,6 +276,7 @@
     <ClInclude Include="renderers\routines\DrawTexture.h" />
     <ClInclude Include="renderers\routines\DrawWire.h" />
     <ClInclude Include="renderers\routines\FogRayMarching.h" />
+    <ClInclude Include="renderers\routines\FogRayMarchingEnv.h" />
     <ClInclude Include="renderers\routines\LightingRoutine.h" />
     <ClInclude Include="renderers\routines\MorphUpdate.h" />
     <ClInclude Include="renderers\routines\Picking.h" />
@@ -277,6 +284,7 @@
     <ClInclude Include="renderers\routines\StandardRoutine.h" />
     <ClInclude Include="renderers\routines\WeightedOIT.h" />
     <ClInclude Include="savers\ImageSaver.h" />
+    <ClInclude Include="savers\ProbeGridSaver.h" />
     <ClInclude Include="scenes\Fog.h" />
     <ClInclude Include="scenes\Scene.h" />
     <ClInclude Include="utils\Image.h" />

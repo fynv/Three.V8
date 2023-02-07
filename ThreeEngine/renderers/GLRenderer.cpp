@@ -230,6 +230,7 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 	options.num_directional_lights = lights->num_directional_lights;
 	options.num_directional_shadows = lights->num_directional_shadows;
 	options.has_environment_map = lights->environment_map != nullptr;
+	options.has_probe_grid = lights->probe_grid != nullptr;
 	options.has_ambient_light = lights->ambient_light != nullptr;
 	options.has_hemisphere_light = lights->hemisphere_light != nullptr;
 	options.has_fog = params.constant_fog != nullptr;
@@ -397,6 +398,7 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 	options.num_directional_lights = lights.num_directional_lights;
 	options.num_directional_shadows = lights.num_directional_shadows;
 	options.has_environment_map = lights.environment_map != nullptr;
+	options.has_probe_grid = lights.probe_grid != nullptr;
 	options.has_ambient_light = lights.ambient_light != nullptr;
 	options.has_hemisphere_light = lights.hemisphere_light != nullptr;
 	options.has_fog = fog != nullptr;	
@@ -754,6 +756,29 @@ void GLRenderer::_render_fog_rm(const Camera& camera, DirectionalLight& light, c
 	fog_rm->render(params);
 }
 
+void GLRenderer::_render_fog_rm_env(const Camera& camera, const Lights& lights, const Fog& fog, GLRenderTarget& target)
+{
+	FogRayMarchingEnv::Options options;
+	options.msaa = target.msaa();
+	options.has_probe_grid = lights.probe_grid != nullptr;
+
+	uint64_t hash = crc64(0, (const unsigned char*)&options, sizeof(FogRayMarchingEnv::Options));
+	auto iter = fog_ray_march_map.find(hash);
+	if (iter == fog_ray_march_map.end())
+	{
+		fog_ray_march_map[hash] = std::unique_ptr<FogRayMarchingEnv>(new FogRayMarchingEnv(options));
+	}
+	FogRayMarchingEnv* fog_draw = fog_ray_march_map[hash].get();
+
+	FogRayMarchingEnv::RenderParams params;
+	params.tex_depth = target.m_tex_depth.get();
+	params.constant_camera = &camera.m_constant;
+	params.constant_fog = &fog.m_constant;
+	params.lights = &lights;
+
+	fog_draw->render(params);
+
+}
 
 void GLRenderer::_pre_render(Scene& scene)
 {
@@ -932,6 +957,7 @@ void GLRenderer::_pre_render(Scene& scene)
 	}
 
 	lights.environment_map = nullptr;
+	lights.probe_grid = nullptr;
 	lights.ambient_light = nullptr;
 	lights.hemisphere_light = nullptr;
 
@@ -945,6 +971,16 @@ void GLRenderer::_pre_render(Scene& scene)
 				lights.environment_map = envMap;
 				break;
 			}
+		}
+		{
+			ProbeGrid* probeGrid = dynamic_cast<ProbeGrid*>(scene.indirectLight);
+			if (probeGrid != nullptr)
+			{
+				probeGrid->updateConstant();
+				lights.probe_grid = probeGrid;
+				break;
+			}
+
 		}
 
 		{
@@ -1430,6 +1466,11 @@ void GLRenderer::_render(Scene& scene, Camera& camera, GLRenderTarget& target, b
 			DirectionalLight* light = scene.directional_lights[i];
 			_render_fog_rm(camera, *light, *fog, target);
 		}
+
+		if (lights.probe_grid != nullptr)
+		{
+			_render_fog_rm_env(camera, lights, *fog, target);
+		}
 	}
 }
 
@@ -1501,21 +1542,30 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 		pos.z = 0.5f * pos.z + 0.5f * cam_pos.z;
 		light->probe_position = 0.8f * light->probe_position + 0.2f * pos;
 
-		EnvironmentMap* env_map = light->env_map.get();
-
-		_render_cube(scene, *light->cube_target, light->probe_position, p_cam->z_near, p_cam->z_far);
+		_render_cube(scene, *light->cube_target, light->probe_position, p_cam->z_near, p_cam->z_far);		
 
 		if (EnvCreator == nullptr)
 		{
 			EnvCreator = std::unique_ptr<EnvironmentMapCreator>(new EnvironmentMapCreator);
 		}
-		EnvCreator->Create(light->cube_target.get(), env_map);
-		env_map->updateConstant();
 
 		Lights& lights = scene.lights;
-		lights.environment_map = env_map;
-		lights.ambient_light = nullptr;
-		lights.hemisphere_light = nullptr;
+
+		if (lights.probe_grid == nullptr)
+		{
+			EnvironmentMap* env_map = light->env_map.get();
+			EnvCreator->Create(light->cube_target.get(), env_map);
+			env_map->updateConstant();
+
+			lights.environment_map = env_map;
+			lights.ambient_light = nullptr;
+			lights.hemisphere_light = nullptr;
+		}
+		else
+		{
+			ProbeGrid* probe_grid = (ProbeGrid*)light;
+			EnvCreator->CreateReflection(probe_grid->reflection, light->cube_target->m_cube_map.get());
+		}
 	
 	}
 	_render(scene, camera, target, true);
@@ -1566,8 +1616,24 @@ void GLRenderer::render_picking(Scene& scene, Camera& camera, GLPickingTarget& t
 void GLRenderer::renderCube(Scene& scene, CubeRenderTarget& target, const glm::vec3& position, float zNear, float zFar)
 {
 	_pre_render(scene);
-	_render_cube(scene, target, position, zNear, zFar);
-	
+	_render_cube(scene, target, position, zNear, zFar);	
+}
+
+void GLRenderer::updateProbe(Scene& scene, CubeRenderTarget& target, ProbeGrid& probe_grid, glm::ivec3 idx, float zNear, float zFar)
+{
+	glm::vec3 size_grid = probe_grid.coverage_max - probe_grid.coverage_min;
+	glm::vec3 pos = probe_grid.coverage_min + (glm::vec3(idx) + 0.5f) / glm::vec3(probe_grid.divisions) * size_grid;	
+	renderCube(scene, target, pos, zNear, zFar);
+
+	glm::vec4 coeffs[9];
+	EnvironmentMapCreator::CreateSH(coeffs, target.m_cube_map->tex_id, target.m_width);	
+
+	int index = idx.x + (idx.y + (idx.z * probe_grid.divisions.y)) * probe_grid.divisions.x;
+	memcpy(probe_grid.m_probe_data.data() + index * 9, coeffs, sizeof(glm::vec4) * 9);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, probe_grid.m_probe_buf->m_id);
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, index * sizeof(glm::vec4)*9, sizeof(glm::vec4) * 9, coeffs);	
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 
@@ -1703,6 +1769,7 @@ void GLRenderer::render_primitive_lighting(const LightingRoutine::RenderParams& 
 	options.num_directional_lights = lights->num_directional_lights;
 	options.num_directional_shadows = lights->num_directional_shadows;
 	options.has_environment_map = lights->environment_map != nullptr;
+	options.has_probe_grid = lights->probe_grid != nullptr;
 	options.has_ambient_light = lights->ambient_light != nullptr;
 	options.has_hemisphere_light = lights->hemisphere_light != nullptr;
 	options.has_fog = params.constant_fog != nullptr;
@@ -2031,6 +2098,11 @@ void GLRenderer::renderCelluloid(Scene& scene, Camera& camera, GLRenderTarget* l
 			{
 				DirectionalLight* light = scene.directional_lights[i];
 				_render_fog_rm(camera, *light, *fog, t_alpha);
+			}
+
+			if (lights.probe_grid != nullptr)
+			{
+				_render_fog_rm_env(camera, lights, *fog, t_alpha);
 			}
 		}
 

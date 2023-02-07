@@ -22,6 +22,7 @@ private:
 	static void dtor(void* ptr, GameContext* ctx);
 	static void Render(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void RenderCube(const v8::FunctionCallbackInfo<v8::Value>& info);	
+	static void UpdateProbe(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void RenderCelluloid(const v8::FunctionCallbackInfo<v8::Value>& info);
 #if THREE_MM
 	static void RenderTexture(const v8::FunctionCallbackInfo<v8::Value>& info);
@@ -35,6 +36,7 @@ v8::Local<v8::FunctionTemplate> WrapperGLRenderer::create_template(v8::Isolate* 
 	templ->InstanceTemplate()->Set(isolate, "dispose", v8::FunctionTemplate::New(isolate, GeneralDispose));
 	templ->InstanceTemplate()->Set(isolate, "render", v8::FunctionTemplate::New(isolate, Render));
 	templ->InstanceTemplate()->Set(isolate, "renderCube", v8::FunctionTemplate::New(isolate, RenderCube));
+	templ->InstanceTemplate()->Set(isolate, "updateProbe", v8::FunctionTemplate::New(isolate, UpdateProbe));
 
 	templ->InstanceTemplate()->Set(isolate, "renderCelluloid", v8::FunctionTemplate::New(isolate, RenderCelluloid));
 #if THREE_MM
@@ -109,6 +111,29 @@ void WrapperGLRenderer::RenderCube(const v8::FunctionCallbackInfo<v8::Value>& in
 	}
 
 	self->renderCube(*scene, *target, position, zNear, zFar);
+
+}
+
+
+void WrapperGLRenderer::UpdateProbe(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	GLRenderer* self = lctx.self<GLRenderer>();
+	Scene* scene = lctx.jobj_to_obj<Scene>(info[0]);
+	CubeRenderTarget* target = lctx.jobj_to_obj<CubeRenderTarget>(info[1]);
+	ProbeGrid* probe_grid = lctx.jobj_to_obj<ProbeGrid>(info[2]);
+	glm::ivec3 idx;
+	lctx.jvec3_to_ivec3(info[3], idx);
+
+	float zNear = 0.1f;
+	float zFar = 100.0f;
+	if (info.Length() > 4)
+	{
+		lctx.jnum_to_num(info[4], zNear);
+		lctx.jnum_to_num(info[5], zFar);
+	}
+
+	self->updateProbe(*scene, *target, *probe_grid, idx, zNear, zFar);
 
 }
 

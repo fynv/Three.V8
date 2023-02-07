@@ -445,17 +445,9 @@ float computePCSSShadowCoef(in DirectionalShadow shadow, sampler2D shadowTex)
 
 static std::string g_frag_part2 =
 R"(
-#if HAS_ENVIRONMENT_MAP
-layout (std140, binding = BINDING_ENVIRONMEN_MAP) uniform EnvironmentMap
-{
-	vec4 uSHCoefficients[9];
-	float uDiffuseThresh;
-	float uDiffuseHigh;
-	float uDiffuseLow;
-	float uSpecularThresh;
-	float uSpecularHigh;
-	float uSpecularLow;
-};
+#if HAS_ENVIRONMENT_MAP || HAS_PROBE_GRID
+
+layout (location = LOCATION_TEX_REFLECTION_MAP) uniform samplerCube uReflectionMap;
 
 vec3 shGetIrradianceAt( in vec3 normal, in vec4 shCoefficients[ 9 ] ) {
 
@@ -481,8 +473,6 @@ vec3 shGetIrradianceAt( in vec3 normal, in vec4 shCoefficients[ 9 ] ) {
 	return result;
 }
 
-layout (location = LOCATION_TEX_REFLECTION_MAP) uniform samplerCube uReflectionMap;
-
 vec3 GetReflectionAt(in vec3 reflectVec, in samplerCube reflectMap, float roughness)
 {
 	float gloss;
@@ -501,6 +491,106 @@ vec3 GetReflectionAt(in vec3 reflectVec, in samplerCube reflectMap, float roughn
 	return textureLod(reflectMap, reflectVec, mip).xyz;
 }
 
+vec3 getRadiance(in vec3 reflectVec, float roughness)
+{
+	return GetReflectionAt(reflectVec, uReflectionMap, roughness);
+}
+
+#endif
+
+#if HAS_ENVIRONMENT_MAP
+layout (std140, binding = BINDING_ENVIRONMEN_MAP) uniform EnvironmentMap
+{
+	vec4 uSHCoefficients[9];
+	float uDiffuseThresh;
+	float uDiffuseHigh;
+	float uDiffuseLow;
+	float uSpecularThresh;
+	float uSpecularHigh;
+	float uSpecularLow;
+};
+
+vec3 getIrradiance(in vec3 normal)
+{
+	return shGetIrradianceAt(normal, uSHCoefficients);
+}
+
+#endif
+
+
+#if HAS_PROBE_GRID
+layout (std140, binding = BINDING_PROBE_GRID) uniform EnvironmentMap
+{
+	vec4 uCoverageMin;
+	vec4 uCoverageMax;
+	ivec4 uDivisions;		
+	float uDiffuseThresh;
+	float uDiffuseHigh;
+	float uDiffuseLow;
+	float uSpecularThresh;
+	float uSpecularHigh;
+	float uSpecularLow;
+};
+
+layout (std430, binding = BINDING_PROBES) buffer Probes
+{
+	vec4 bSHCoefficients[];
+};
+
+void acc_coeffs(inout vec4 coeffs[9], in ivec3 vert, in float weight)
+{
+	int idx = vert.x + (vert.y + vert.z*uDivisions.y)*uDivisions.x;
+	int offset = idx*9;
+	for (int i=0;i<9;i++)
+	{
+		coeffs[i]+=bSHCoefficients[offset+i]*weight;
+	}
+}
+
+vec3 getIrradiance(in vec3 normal)
+{
+	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
+	vec3 pos_grid = vWorldPos - uCoverageMin.xyz;
+	vec3 pos_voxel = (pos_grid / size_grid) * vec3(uDivisions) - vec3(0.5);
+	pos_voxel = clamp(pos_voxel, vec3(0.0), vec3(uDivisions) - vec3(1.0));
+	
+	ivec3 i_voxel = ivec3(pos_voxel);
+	vec3 frac_voxel = pos_voxel - vec3(i_voxel);
+
+	float sum_weight = 0.0;
+	vec4 coeffs[9];
+	for (int i=0; i<9; i++) coeffs[i] = vec4(0.0);
+
+	for (int z=0;z<2;z++)
+	{
+		for (int y=0;y<2;y++)
+		{
+			for (int x=0;x<2;x++)
+			{
+				vec3 t = vec3(x,y,z);
+				vec3 dir = normalize(t - frac_voxel);		
+				if (dot(dir, normal)>0.0f)
+				{
+					vec3 w = vec3(1.0) - abs(t - frac_voxel);
+					float weight = w.x * w.y * w.z;
+					sum_weight += weight;
+
+					ivec3 vert = i_voxel + ivec3(x,y,z);
+					acc_coeffs(coeffs, vert, weight);			
+				}
+			}
+		}
+	}
+
+	if (sum_weight>0)
+	{
+		for (int i=0; i<9; i++) coeffs[i]/=sum_weight;
+		return shGetIrradianceAt(normal, coeffs);
+	}
+
+	return vec3(0.0);
+}
+
 #endif
 
 #if HAS_AMBIENT_LIGHT
@@ -514,6 +604,17 @@ layout (std140, binding = BINDING_AMBIENT_LIGHT) uniform AmbientLight
 	float uSpecularHigh;
 	float uSpecularLow;
 };
+
+vec3 getIrradiance(in vec3 normal)
+{
+	return uAmbientColor.xyz * PI;
+}
+
+vec3 getRadiance(in vec3 reflectVec, float roughness)
+{
+	return uAmbientColor.xyz;
+}
+
 #endif
 
 #if HAS_HEMISPHERE_LIGHT
@@ -533,6 +634,16 @@ vec3 HemisphereColor(in vec3 dir)
 {
 	float k = dir.y * 0.5 + 0.5;
 	return mix( uHemisphereGroundColor.xyz, uHemisphereSkyColor.xyz, k);
+}
+
+vec3 getIrradiance(in vec3 normal)
+{
+	return HemisphereColor(normal) * PI;
+}
+
+vec3 getRadiance(in vec3 reflectVec, float roughness)
+{
+	return HemisphereColor(reflectVec);
 }
 #endif
 
@@ -704,16 +815,8 @@ void main()
 	{
 		vec3 reflectVec = reflect(-viewDir, norm);
 		reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );
-#if HAS_ENVIRONMENT_MAP
-		vec3 irradiance = shGetIrradianceAt(norm, uSHCoefficients);		
-		vec3 radiance = GetReflectionAt(reflectVec, uReflectionMap, material.roughness);
-#elif HAS_AMBIENT_LIGHT
-		vec3 irradiance = uAmbientColor.xyz * PI;
-		vec3 radiance = uAmbientColor.xyz;
-#elif HAS_HEMISPHERE_LIGHT
-		vec3 irradiance = HemisphereColor(norm) * PI;
-		vec3 radiance = HemisphereColor(reflectVec);
-#endif
+		vec3 irradiance = getIrradiance(norm);
+		vec3 radiance = getRadiance(reflectVec, material.roughness);
 
 #if (TONE_SHADING & 4) == 0
 		diffuse += material.diffuseColor * irradiance * RECIPROCAL_PI;
@@ -1069,7 +1172,7 @@ void LightingRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 		bindings.binding_directional_shadows = bindings.binding_directional_lights;
 	}
 
-	bool has_indirect_light = options.has_environment_map || options.has_ambient_light || options.has_hemisphere_light;
+	bool has_indirect_light = options.has_environment_map || options.has_probe_grid || options.has_ambient_light || options.has_hemisphere_light;
 	if (has_indirect_light)
 	{
 		defines += "#define HAS_INDIRECT_LIGHT 1\n";
@@ -1079,16 +1182,9 @@ void LightingRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 		defines += "#define HAS_INDIRECT_LIGHT 0\n";
 	}
 
-	if (options.has_environment_map)
+	if (options.has_environment_map || options.has_probe_grid)
 	{
-		defines += "#define HAS_ENVIRONMENT_MAP 1\n";
-		bindings.binding_environment_map = bindings.binding_directional_shadows + 1;
 		bindings.location_tex_reflection_map = bindings.location_tex_directional_shadow + 1;
-		{
-			char line[64];
-			sprintf(line, "#define BINDING_ENVIRONMEN_MAP %d\n", bindings.binding_environment_map);
-			defines += line;
-		}
 		{
 			char line[64];
 			sprintf(line, "#define LOCATION_TEX_REFLECTION_MAP %d\n", bindings.location_tex_reflection_map);
@@ -1097,15 +1193,57 @@ void LightingRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	}
 	else
 	{
-		defines += "#define HAS_ENVIRONMENT_MAP 0\n";
-		bindings.binding_environment_map = bindings.binding_directional_shadows;
 		bindings.location_tex_reflection_map = bindings.location_tex_directional_shadow;
 	}
+
+	if (options.has_environment_map)
+	{
+		defines += "#define HAS_ENVIRONMENT_MAP 1\n";
+		bindings.binding_environment_map = bindings.binding_directional_shadows + 1;
+
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_ENVIRONMEN_MAP %d\n", bindings.binding_environment_map);
+			defines += line;
+		}
+
+	}
+	else
+	{
+		defines += "#define HAS_ENVIRONMENT_MAP 0\n";
+		bindings.binding_environment_map = bindings.binding_directional_shadows;
+	}
+
+	if (options.has_probe_grid)
+	{
+		defines += "#define HAS_PROBE_GRID 1\n";
+		bindings.binding_probe_grid = bindings.binding_environment_map + 1;
+		bindings.binding_probes = bindings.binding_probe_grid + 1;
+
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_PROBE_GRID %d\n", bindings.binding_probe_grid);
+			defines += line;
+		}
+
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_PROBES %d\n", bindings.binding_probes);
+			defines += line;
+		}
+	}
+	else
+	{
+		defines += "#define HAS_PROBE_GRID 0\n";
+		bindings.binding_probe_grid = bindings.binding_environment_map;
+		bindings.binding_probes = bindings.binding_environment_map;
+	}
+
 
 	if (options.has_ambient_light)
 	{
 		defines += "#define HAS_AMBIENT_LIGHT 1\n";
-		bindings.binding_ambient_light = bindings.binding_environment_map + 1;
+		bindings.binding_ambient_light = bindings.binding_probes + 1;
 		{
 			char line[64];
 			sprintf(line, "#define BINDING_AMBIENT_LIGHT %d\n", bindings.binding_ambient_light);
@@ -1115,7 +1253,7 @@ void LightingRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	else
 	{
 		defines += "#define HAS_AMBIENT_LIGHT 0\n";
-		bindings.binding_ambient_light = bindings.binding_environment_map;
+		bindings.binding_ambient_light = bindings.binding_probes;
 	}
 
 	if (options.has_hemisphere_light)
@@ -1205,6 +1343,15 @@ void LightingRoutine::render(const RenderParams& params)
 	if (m_options.has_environment_map)
 	{
 		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_environment_map, params.lights->environment_map->m_constant.m_id);
+	}
+
+	if (m_options.has_probe_grid)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_probe_grid, params.lights->probe_grid->m_constant.m_id);
+		if (params.lights->probe_grid->m_probe_buf != nullptr)
+		{
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, m_bindings.binding_probes, params.lights->probe_grid->m_probe_buf->m_id);
+		}
 	}
 
 	if (m_options.has_ambient_light)
@@ -1305,6 +1452,13 @@ void LightingRoutine::render(const RenderParams& params)
 	{
 		glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_reflection_map);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, params.lights->environment_map->reflection.tex_id);
+		glUniform1i(m_bindings.location_tex_reflection_map, m_bindings.location_tex_reflection_map);
+	}
+
+	if (m_options.has_probe_grid)
+	{
+		glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_reflection_map);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, params.lights->probe_grid->reflection.tex_id);
 		glUniform1i(m_bindings.location_tex_reflection_map, m_bindings.location_tex_reflection_map);
 	}
 

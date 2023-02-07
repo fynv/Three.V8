@@ -157,9 +157,11 @@
     <ClInclude Include="lights\HemisphereLight.hpp" />
     <ClInclude Include="lights\IndirectLight.hpp" />
     <ClInclude Include="lights\Light.hpp" />
+    <ClInclude Include="lights\ProbeGrid.hpp" />
     <ClInclude Include="loaders\FileLoader.hpp" />
     <ClInclude Include="loaders\GLTFLoader.hpp" />
     <ClInclude Include="loaders\ImageLoader.hpp" />
+    <ClInclude Include="loaders\ProbeGridLoader.hpp" />
     <ClInclude Include="models\AnimationMixer.hpp" />
     <ClInclude Include="models\GLTFModel.hpp" />
     <ClInclude Include="models\SimpleModel.hpp" />
@@ -177,6 +179,7 @@
     <ClInclude Include="renderers\GLRenderer.hpp" />
     <ClInclude Include="renderers\GLRenderTarget.hpp" />
     <ClInclude Include="savers\ImageSaver.hpp" />
+    <ClInclude Include="savers\ProbeGridSaver.hpp" />
     <ClInclude Include="scenes\Fog.hpp" />
     <ClInclude Include="scenes\Scene.hpp" />
     <ClInclude Include="utils\Image.hpp" />

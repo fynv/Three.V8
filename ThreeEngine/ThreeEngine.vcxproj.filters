@@ -342,6 +342,18 @@
     <ClCompile Include="lights\IndirectLight.cpp">
       <Filter>Source Files\lights</Filter>
     </ClCompile>
+    <ClCompile Include="lights\ProbeGrid.cpp">
+      <Filter>Source Files\lights</Filter>
+    </ClCompile>
+    <ClCompile Include="savers\ProbeGridSaver.cpp">
+      <Filter>Source Files\savers</Filter>
+    </ClCompile>
+    <ClCompile Include="loaders\ProbeGridLoader.cpp">
+      <Filter>Source Files\loaders</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\routines\FogRayMarchingEnv.cpp">
+      <Filter>Source Files\renderers\routines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -594,6 +606,18 @@
       <Filter>Header Files\renderers</Filter>
     </ClInclude>
     <ClInclude Include="renderers\routines\DepthOnly.h">
+      <Filter>Header Files\renderers\routines</Filter>
+    </ClInclude>
+    <ClInclude Include="lights\ProbeGrid.h">
+      <Filter>Header Files\lights</Filter>
+    </ClInclude>
+    <ClInclude Include="savers\ProbeGridSaver.h">
+      <Filter>Header Files\savers</Filter>
+    </ClInclude>
+    <ClInclude Include="loaders\ProbeGridLoader.h">
+      <Filter>Header Files\loaders</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\routines\FogRayMarchingEnv.h">
       <Filter>Header Files\renderers\routines</Filter>
     </ClInclude>
   </ItemGroup>

@@ -3,7 +3,6 @@
 #include "WrapperUtils.hpp"
 #include "IndirectLight.hpp"
 #include <lights/EnvironmentMap.h>
-#include <utils/Image.h>
 
 class WrapperEnvironmentMap
 {

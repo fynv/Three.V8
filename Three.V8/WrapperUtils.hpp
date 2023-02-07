@@ -143,8 +143,23 @@ public:
 		set_property(obj, "z", num_to_jnum(vec.z));
 	}
 
+	inline void ivec3_to_jvec3(const glm::ivec3& vec, v8::Local<v8::Value> jvec)
+	{
+		v8::Local<v8::Object> obj = jvec.As<v8::Object>();
+		set_property(obj, "x", num_to_jnum(vec.x));
+		set_property(obj, "y", num_to_jnum(vec.y));
+		set_property(obj, "z", num_to_jnum(vec.z));
+	}
 
 	inline void jvec3_to_vec3(v8::Local<v8::Value> jvec, glm::vec3& vec)
+	{
+		v8::Local<v8::Object> obj = jvec.As<v8::Object>();
+		jnum_to_num(get_property(obj, "x"), vec.x);
+		jnum_to_num(get_property(obj, "y"), vec.y);
+		jnum_to_num(get_property(obj, "z"), vec.z);
+	}
+
+	inline void jvec3_to_ivec3(v8::Local<v8::Value> jvec, glm::ivec3& vec)
 	{
 		v8::Local<v8::Object> obj = jvec.As<v8::Object>();
 		jnum_to_num(get_property(obj, "x"), vec.x);

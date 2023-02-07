@@ -40,6 +40,7 @@ V8VM::~V8VM()
 #include "backgrounds/BackgroundScene.hpp"
 #include "lights/DirectionalLight.hpp"
 #include "lights/EnvironmentMap.hpp"
+#include "lights/ProbeGrid.hpp"
 #include "lights/EnvironmentMapCreator.hpp"
 #include "lights/AmbientLight.hpp"
 #include "lights/HemisphereLight.hpp"
@@ -63,7 +64,9 @@ V8VM::~V8VM()
 #include "loaders/FileLoader.hpp"
 #include "loaders/ImageLoader.hpp"
 #include "loaders/GLTFLoader.hpp"
+#include "loaders/ProbeGridLoader.hpp"
 #include "savers/ImageSaver.hpp"
+#include "savers/ProbeGridSaver.hpp"
 
 #include "gui/UIManager.hpp"
 #include "gui/UIArea.hpp"
@@ -128,6 +131,7 @@ GlobalDefinitions GameContext::s_globals =
 		{ "CubeImage", WrapperCubeImage::New,  WrapperCubeImage::create_template },
 		{ "DirectionalLight", WrapperDirectionalLight::New, WrapperDirectionalLight::create_template },
 		{ "EnvironmentMap", WrapperEnvironmentMap::New, WrapperEnvironmentMap::create_template },
+		{ "ProbeGrid", WrapperProbeGrid::New, WrapperProbeGrid::create_template },
 		{ "EnvironmentMapCreator", WrapperEnvironmentMapCreator::New, WrapperEnvironmentMapCreator::create_template},
 		{ "AmbientLight", WrapperAmbientLight::New, WrapperAmbientLight::create_template},
 		{ "HemisphereLight", WrapperHemisphereLight::New, WrapperHemisphereLight::create_template},
@@ -164,7 +168,9 @@ GlobalDefinitions GameContext::s_globals =
 		{ "fileLoader", WrapperFileLoader::create_template },
 		{ "imageLoader", WrapperImageLoader::create_template},
 		{ "gltfLoader", WrapperGLTFLoader::create_template},	
+		{ "probeGridLoader", WrapperProbeGridLoader::create_template},
 		{ "imageSaver", WrapperImageSaver::create_template},
+		{ "probeGridSaver", WrapperProbeGridSaver::create_template},
 
 		{ "volumeDataLoader", WrapperVolumeDataLoader::create_template},
 

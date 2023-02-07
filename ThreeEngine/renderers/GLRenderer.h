@@ -13,6 +13,7 @@
 #include "renderers/routines/DrawHemisphere.h"
 #include "renderers/routines/DrawFog.h"
 #include "renderers/routines/FogRayMarching.h"
+#include "renderers/routines/FogRayMarchingEnv.h"
 #include "renderers/routines/BaseColorRoutine.h"
 #include "renderers/routines/LightingRoutine.h"
 #include "renderers/routines/AlphaDem.h"
@@ -36,6 +37,7 @@ class SimpleModel;
 class GLTFModel;
 class DirectionalLight;
 class DirectionalLightShadow;
+class ProbeGrid;
 
 class VolumeIsosurfaceModel;
 
@@ -49,6 +51,8 @@ public:
 	void render_picking(Scene& scene, Camera& camera, GLPickingTarget& target);
 
 	void renderCube(Scene& scene, CubeRenderTarget& target, const glm::vec3& position, float zNear, float zFar);
+
+	void updateProbe(Scene& scene, CubeRenderTarget& target, ProbeGrid& probe_grid, glm::ivec3 idx, float zNear, float zFar);
 
 	void renderCelluloid(Scene& scene, Camera& camera, GLRenderTarget* layer_base, GLRenderTarget* layer_light, GLRenderTarget* layer_alpha);
 
@@ -122,9 +126,11 @@ private:
 	
 	std::unordered_map<uint64_t, std::unique_ptr<DrawFog>> fog_draw_map;
 	std::unique_ptr<FogRayMarching> fog_ray_march[2];
+	std::unordered_map<uint64_t, std::unique_ptr<FogRayMarchingEnv>> fog_ray_march_map;
 	
 	void _render_fog(const Camera& camera, const Lights& lights, const Fog& fog, GLRenderTarget& target);
 	void _render_fog_rm(const Camera& camera, DirectionalLight& light, const Fog& fog, GLRenderTarget& target);	
+	void _render_fog_rm_env(const Camera& camera, const Lights& lights, const Fog& fog, GLRenderTarget& target);
 
 	std::unordered_map<uint64_t, std::unique_ptr<BaseColorRoutine>> base_routine_map;
 	void render_primitive_base(const BaseColorRoutine::RenderParams& params);

@@ -5,6 +5,7 @@
 #include <vector>
 #include "renderers/GLUtils.h"
 #include "lights/EnvironmentMap.h"
+#include "lights/ProbeGrid.h"
 #include "lights/AmbientLight.h"
 #include "lights/HemisphereLight.h"
 
@@ -21,6 +22,7 @@ struct Lights
 	std::vector<unsigned> directional_shadow_texs;
 
 	const EnvironmentMap* environment_map = nullptr;
+	const ProbeGrid* probe_grid = nullptr;
 	const AmbientLight* ambient_light = nullptr;
 	const HemisphereLight* hemisphere_light = nullptr;
 };

@@ -15,6 +15,7 @@ public:
 		int num_directional_lights = 0;
 		int num_directional_shadows = 0;
 		bool has_environment_map = false;
+		bool has_probe_grid = false;
 		bool has_ambient_light = false;
 		bool has_hemisphere_light = false;		
 		bool has_fog = false;
@@ -42,6 +43,8 @@ private:
 		int binding_directional_shadows;
 		int location_tex_directional_shadow;
 		int binding_environment_map;
+		int binding_probe_grid;
+		int binding_probes;
 		int location_tex_reflection_map;
 		int binding_ambient_light;
 		int binding_hemisphere_light;

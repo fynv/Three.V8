@@ -228,6 +228,15 @@
     <ClInclude Include="backgrounds\BackgroundScene.hpp">
       <Filter>Header Files\backgrounds</Filter>
     </ClInclude>
+    <ClInclude Include="lights\ProbeGrid.hpp">
+      <Filter>Header Files\lights</Filter>
+    </ClInclude>
+    <ClInclude Include="loaders\ProbeGridLoader.hpp">
+      <Filter>Header Files\loaders</Filter>
+    </ClInclude>
+    <ClInclude Include="savers\ProbeGridSaver.hpp">
+      <Filter>Header Files\savers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="binding.cpp">
