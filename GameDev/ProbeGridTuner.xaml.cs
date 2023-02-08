@@ -63,6 +63,11 @@ namespace GameDev
                 tuner_coverage_max.set_value(x, y, z);
             }
 
+            tuner_ypower.value = 1.0f;
+            if (att.ContainsKey("ypower"))
+            {
+                tuner_ypower.value = float.Parse(att["ypower"].ToString());
+            }
             tuner_iterations.value = 6;
         }
 
@@ -107,6 +112,12 @@ namespace GameDev
                 float y = float.Parse(values[1]);
                 float z = float.Parse(values[2]);
                 tuner_coverage_max.set_value(x, y, z);
+            }
+
+            if (res.ContainsKey("y_power"))
+            {
+                att["ypower"] = res["ypower"];
+                tuner_ypower.value = float.Parse(res["ypower"].ToString());
             }
 
         }
@@ -179,11 +190,24 @@ namespace GameDev
             game_player.SendMessageToUser("tuning", tuning.ToString());
         }
 
+        private void tuner_ypower_ValueChanged(object sender, EventArgs e)
+        {
+            JObject tuning = new JObject();
+            tuning["ypower"] = $"{tuner_ypower.value}";
+
+            var att = (JObject)jobj["attributes"];
+            att["ypower"] = tuning["ypower"];
+
+            game_player.SendMessageToUser("tuning", tuning.ToString());
+        }
+
         private void btn_start_Click(object sender, RoutedEventArgs e)
         {
             JObject tuning = new JObject();
             tuning["iterations"] = tuner_iterations.value;
             game_player.SendMessageToUser("generate", tuning.ToString());
         }
+
+       
     }
 }
