@@ -164,15 +164,23 @@ class ProbeGridBaker
         this.iter = 0;
         this.iterations = iterations;
         
+        this.check_time = now();
+        
     }
     
     render(renderer)
     {
-        let idx = this.probe_idx.x + (this.probe_idx.y +this.probe_idx.z* this.probe_grid.divisions.y)* this.probe_grid.divisions.x;
-        let total =  this.probe_grid.divisions.x * this.probe_grid.divisions.y * this.probe_grid.divisions.z;
-        print(`Building probe-grid, iteration: ${this.iter}/${this.iterations}, probe: ${idx}/${total}`);
+        let frame_time = now();
         
-        for (let i=0; i<300; i++)
+        if (frame_time -  this.check_time>=500)
+        {
+            let idx = this.probe_idx.x + (this.probe_idx.y +this.probe_idx.z* this.probe_grid.divisions.y)* this.probe_grid.divisions.x;
+            let total =  this.probe_grid.divisions.x * this.probe_grid.divisions.y * this.probe_grid.divisions.z;
+            print(`Building probe-grid, iteration: ${this.iter+1}/${this.iterations}, probe: ${idx+1}/${total}`);
+            this.check_time = frame_time;
+        }
+        
+        while(now()-frame_time<10)
         {
             if (this.doc.probe_grid_bake == null) break;
             renderer.updateProbe(this.doc.scene, this.cube_target, this.probe_grid, this.probe_idx);
