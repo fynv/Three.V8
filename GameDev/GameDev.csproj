@@ -120,6 +120,9 @@
     <Compile Include="PlaneTuner.xaml.cs">
       <DependentUpon>PlaneTuner.xaml</DependentUpon>
     </Compile>
+    <Compile Include="ProbeGridTuner.xaml.cs">
+      <DependentUpon>ProbeGridTuner.xaml</DependentUpon>
+    </Compile>
     <Compile Include="RotationTuner.xaml.cs">
       <DependentUpon>RotationTuner.xaml</DependentUpon>
     </Compile>
@@ -266,6 +269,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="PlaneTuner.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="ProbeGridTuner.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

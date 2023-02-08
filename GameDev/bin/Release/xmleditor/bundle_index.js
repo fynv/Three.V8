@@ -4858,6 +4858,69 @@ class EnvMapGen
     
 }
 
+class ProbeGridBaker
+{
+    constructor(doc, proxy, xml_node, iterations)
+    {
+        this.doc = doc;
+        this.xml_node = xml_node;
+        
+        this.cube_target = new CubeRenderTarget(64,64);
+        this.probe_grid = new ProbeGrid();
+        this.probe_grid.setDivisions(proxy.divisions);
+        this.probe_grid.setCoverageMin(proxy.coverageMin);
+        this.probe_grid.setCoverageMax(proxy.coverageMax);
+        this.doc.scene.indirectLight = this.probe_grid;
+        
+        this.probe_idx = new Vector3(0,0,0);
+        this.iter = 0;
+        this.iterations = iterations;
+        
+    }
+    
+    render(renderer)
+    {
+        let idx = this.probe_idx.x + (this.probe_idx.y +this.probe_idx.z* this.probe_grid.divisions.y)* this.probe_grid.divisions.x;
+        let total =  this.probe_grid.divisions.x * this.probe_grid.divisions.y * this.probe_grid.divisions.z;
+        print(`Building probe-grid, iteration: ${this.iter}/${this.iterations}, probe: ${idx}/${total}`);
+        
+        for (let i=0; i<300; i++)
+        {
+            if (this.doc.probe_grid_bake == null) break;
+            renderer.updateProbe(this.doc.scene, this.cube_target, this.probe_grid, this.probe_idx);
+            this.probe_idx.x++;
+            if (this.probe_idx.x>=this.probe_grid.divisions.x)
+            {
+                this.probe_idx.x =0;
+                this.probe_idx.y++;
+                if (this.probe_idx.y>=this.probe_grid.divisions.y)
+                {
+                    this.probe_idx.y =0;
+                    this.probe_idx.z++;
+                    if (this.probe_idx.z>=this.probe_grid.divisions.z)
+                    {
+                        this.probe_idx.z =0;
+                        this.iter++;
+                        if (this.iter >= this.iterations)
+                        {
+                            print("Saving probe-grid.");
+                            let props = this.xml_node.attributes;
+                            let probe_data = "assets/probes.dat";
+                            if (props.hasOwnProperty('probe_data')) 
+                            {
+                                probe_data = props.probe_data;
+                            }
+                            probeGridSaver.saveFile(this.probe_grid, probe_data);
+                            this.doc.probe_grid_bake = null;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+}
+
 // Tags
 const create_default_controls = (doc)=>{
     if (doc.controls)
@@ -4885,7 +4948,7 @@ const scene = {
     reset: (doc) => {
         doc.scene = new Scene();
     },
-    create: async (doc, props, mode, parent) => {
+    create: (doc, props, mode, parent) => {
         doc.scene = new Scene();
         create_default_sky(doc);
         create_default_env_light(doc);
@@ -4899,7 +4962,7 @@ const camera = {
         doc.camera.setPosition(0, 1.5, 5.0);
     },
 
-    create: async (doc, props, mode, parent) => {
+    create: (doc, props, mode, parent) => {
         let fov = 50.0;
         let near = 0.1;
         let far = 200.0;
@@ -4930,7 +4993,7 @@ const control = {
     reset: (doc) => {
         create_default_controls(doc);
     },
-    create: async (doc, props, mode, parent) =>{
+    create: (doc, props, mode, parent) =>{
         let type = 'orbit';
         if (props.hasOwnProperty("type"))
         {
@@ -4976,7 +5039,7 @@ const control = {
 };
 
 const fog = {
-    create: async (doc, props, mode, parent) =>{        
+    create: (doc, props, mode, parent) =>{        
         doc.scene.fog = new Fog();
         if (props.hasOwnProperty("density"))
         {
@@ -5002,6 +5065,7 @@ const fog = {
             const b = parseFloat(color[2]);
             obj.setColor(r,g,b);
         }
+        return "";
     },
     remove: (doc, fog) => {
         doc.scene.fog = null;
@@ -5103,7 +5167,7 @@ const create_cube_sky = (doc, props)=>{
     return bg;
 };
 
-const create_background_scene = async (doc, props)=>{
+const create_background_scene = (doc, props)=>{
     let path_scene = "terrain.xml";
     if (props.hasOwnProperty('scene'))
     {
@@ -5122,7 +5186,7 @@ const create_background_scene = async (doc, props)=>{
     }
     
     let bg_doc = new BackgroundDocument(near, far);
-    await bg_doc.load_local_xml(path_scene);
+    bg_doc.load_local_xml(path_scene);
     doc.scene.background = bg_doc;
     
     return bg_doc;
@@ -5245,7 +5309,7 @@ const sky = {
     reset: (doc) => {
         create_default_sky(doc);
     },
-    create: async (doc, props, mode, parent) => {
+    create: (doc, props, mode, parent) => {
         let type = "hemisphere";
         if (props.hasOwnProperty("type"))
         {
@@ -5271,7 +5335,7 @@ const sky = {
     remove: (doc, obj) => {
         create_default_sky(doc);
     },
-    tuning: async (doc, obj, input) => {
+    tuning: (doc, obj, input) => {
         let key = obj.uuid;
         let node = doc.internal_index[key].xml_node;
         if (input.hasOwnProperty('type'))
@@ -5279,7 +5343,7 @@ const sky = {
             node.attributes = {};
             node.attributes.type = input.type;
             doc.external_index.index[key].attributes = node.attributes;
-            let obj_new = await sky.create(doc, node.attributes, "local", doc.scene);
+            let obj_new = sky.create(doc, node.attributes, "local", doc.scene);
             obj_new.uuid = key;
             obj_new.tag = "sky";
             doc.internal_index[key].obj = obj_new;
@@ -5309,6 +5373,7 @@ const sky = {
                 tuning_background_scene(doc, obj, input);
             }
         }
+        return ""
     }
 };
 
@@ -5419,6 +5484,54 @@ const create_cube_env_light = (doc, props) => {
     return proxy;
 };
 
+const create_probe_grid = (doc, props) => {
+    const proxy = new ProbeGridWidget();
+    if (props.hasOwnProperty('divisions')) 
+    {
+        const divisions = props.divisions.split(',');
+        proxy.setDivisions(parseInt(divisions[0]), parseInt(divisions[1]), parseInt(divisions[2]));
+    }
+    if (props.hasOwnProperty('coverage_min')) 
+    {
+        const coverage_min = props.coverage_min.split(',');
+        proxy.setCoverageMin(parseFloat(coverage_min[0]), parseFloat(coverage_min[1]), parseFloat(coverage_min[2]));
+    }
+    if (props.hasOwnProperty('coverage_max')) 
+    {
+        const coverage_max = props.coverage_max.split(',');
+        proxy.setCoverageMax(parseFloat(coverage_max[0]), parseFloat(coverage_max[1]), parseFloat(coverage_max[2]));
+    }
+    doc.scene.addWidget(proxy);
+    
+    let probe_data = "assets/probes.dat";
+    if (props.hasOwnProperty('probe_data')) 
+    {
+        probe_data = props.probe_data;
+    }
+    
+    let probe_grid = probeGridLoader.loadFile(probe_data);
+    if (probe_grid == null)
+    {
+        probe_grid = new ProbeGrid();
+        probe_grid.setDivisions(proxy.divisions);
+        probe_grid.setCoverageMin(proxy.coverageMin);
+        probe_grid.setCoverageMax(proxy.coverageMax);
+    }
+    else
+    {
+        proxy.setDivisions(probe_grid.divisions);
+        proxy.setCoverageMin(probe_grid.coverageMin);
+        proxy.setCoverageMax(probe_grid.coverageMax);
+        
+        props.divisions = `${probe_grid.divisions.x}, ${probe_grid.divisions.y}, ${probe_grid.divisions.z}`;
+        props.coverage_min = `${probe_grid.coverageMin.x}, ${probe_grid.coverageMin.y}, ${probe_grid.coverageMin.z}`;
+        props.coverage_max = `${probe_grid.coverageMax.x}, ${probe_grid.coverageMax.y}, ${probe_grid.coverageMax.z}`;
+    }
+    doc.scene.indirectLight = probe_grid;
+    
+    return proxy;
+};
+
 
 const tuning_ambient_light = (doc, obj, input) =>{
     let node = doc.internal_index[obj.uuid].xml_node;
@@ -5433,6 +5546,8 @@ const tuning_ambient_light = (doc, obj, input) =>{
         const b = parseFloat(color[2]);
         obj.setColor(r,g,b);
     }
+    
+    return "";
 };
 
 
@@ -5459,6 +5574,8 @@ const tuning_hemisphere_light = (doc, obj, input) =>{
         const b = parseFloat(color[2]);
         obj.setGroundColor(r,g,b);
     }
+    
+    return ""
 };
 
 const tuning_cube_env_light = (doc, obj, input) =>{
@@ -5536,6 +5653,69 @@ const tuning_cube_env_light = (doc, obj, input) =>{
         
         doc.scene.indirectLight = envLight;
     }
+    return "";
+};
+
+const tuning_probe_grid =  (doc, obj, input) =>{
+    let node = doc.internal_index[obj.uuid].xml_node;
+    let props = node.attributes;
+    
+    if ("probe_data" in input)
+    {
+        props.probe_data = input.probe_data;
+        
+        let probe_grid = probeGridLoader.loadFile(input.probe_data);
+        if (probe_grid == null)
+        {
+            probe_grid = new ProbeGrid();
+            probe_grid.setDivisions(obj.divisions);
+            probe_grid.setCoverageMin(obj.coverageMin);
+            probe_grid.setCoverageMax(obj.coverageMax);
+        }
+        else
+        {
+            obj.setDivisions(probe_grid.divisions);
+            obj.setCoverageMin(probe_grid.coverageMin);
+            obj.setCoverageMax(probe_grid.coverageMax);
+            
+            props.divisions = `${probe_grid.divisions.x}, ${probe_grid.divisions.y}, ${probe_grid.divisions.z}`;
+            props.coverage_min = `${probe_grid.coverageMin.x}, ${probe_grid.coverageMin.y}, ${probe_grid.coverageMin.z}`;
+            props.coverage_max = `${probe_grid.coverageMax.x}, ${probe_grid.coverageMax.y}, ${probe_grid.coverageMax.z}`;
+        }
+        
+        if (props.hasOwnProperty('dynamic_map'))
+        {
+            probe_grid.dynamicMap = string_to_boolean(props.dynamic_map);
+        }
+        
+        doc.scene.indirectLight = probe_grid;
+        
+        return JSON.stringify(props);
+    }
+    
+    if ("divisions" in input)
+    {
+        props.divisions = input.divisions;
+        let divisions = input.divisions.split(',');
+        obj.setDivisions(parseInt(divisions[0]), parseInt(divisions[1]), parseInt(divisions[2]));
+    }
+    
+    if ("coverage_min" in input)
+    {
+        props.coverage_min = input.coverage_min;
+        let coverage_min = input.coverage_min.split(',');
+        obj.setCoverageMin(parseFloat(coverage_min[0]), parseFloat(coverage_min[1]), parseFloat(coverage_min[2]));
+    }
+    
+    if ("coverage_max" in input)
+    {
+        props.coverage_max = input.coverage_max;
+        let coverage_max = input.coverage_max.split(',');
+        obj.setCoverageMax(parseFloat(coverage_max[0]), parseFloat(coverage_max[1]), parseFloat(coverage_max[2]));
+    }
+    
+    return "";
+    
 };
 
 const generate_cube_env_light = (doc, obj, input) =>{
@@ -5551,17 +5731,23 @@ const generate_cube_env_light = (doc, obj, input) =>{
     doc.env_gen = new EnvMapGen(doc, obj, node);
 };
 
+const generate_probe_grid = (doc, obj, input) =>{
+    let node = doc.internal_index[obj.uuid].xml_node;
+    let iterations = parseInt(input.iterations);
+    doc.probe_grid_bake = new ProbeGridBaker(doc, obj, node, iterations);
+};
+
 const env_light = {
     reset: (doc) => {
         create_default_env_light(doc);
     },
-    create: async (doc, props, mode, parent) => {
+    create: (doc, props, mode, parent) => {
         let type = "hemisphere";
         if (props.hasOwnProperty("type"))
         {
             type = props.type;
         }
-        
+
         let ret = null;
         
         if (type == "uniform")
@@ -5574,7 +5760,11 @@ const env_light = {
         }
         else if (type == "cube")
         {
-            ret = await create_cube_env_light(doc,props);
+            ret = create_cube_env_light(doc,props);
+        }
+        else if (type == "probe_grid")
+        {
+            ret = create_probe_grid(doc, props);
         }
         
         if (props.hasOwnProperty('dynamic_map'))
@@ -5595,14 +5785,14 @@ const env_light = {
             type = props.type;
         }
         
-        if (type == "cube")
+        if (type == "cube" || type =="probe_grid")
         {
             doc.scene.removeWidget(obj);
         }
         
     },
     
-    tuning: async (doc, obj, input) => {
+    tuning: (doc, obj, input) => {
         let key = obj.uuid;
         let node = doc.internal_index[key].xml_node;
         if (input.hasOwnProperty('type'))
@@ -5611,10 +5801,11 @@ const env_light = {
             node.attributes = {};
             node.attributes.type = input.type;
             doc.external_index.index[key].attributes = node.attributes;
-            let obj_new = await env_light.create(doc, node.attributes, "local", doc.scene);
+            let obj_new = env_light.create(doc, node.attributes, "local", doc.scene);
             obj_new.uuid = key;
             obj_new.tag = "env_light";
             doc.internal_index[key].obj = obj_new;
+            return "";
         }
         else
         {
@@ -5624,6 +5815,7 @@ const env_light = {
             {
                 props.dynamic_map = input.dynamic_map;
                 doc.scene.indirectLight.dynamicMap = string_to_boolean(input.dynamic_map);
+                return ""
             }
             
             let type = "hemisphere";
@@ -5633,15 +5825,19 @@ const env_light = {
             }
             if (type == "uniform")
             {
-                tuning_ambient_light(doc, obj, input);
+                return tuning_ambient_light(doc, obj, input);
             }
             else if (type=="hemisphere")
             {
-                tuning_hemisphere_light(doc, obj, input);
+                return tuning_hemisphere_light(doc, obj, input);
             }
             else if (type=="cube")
             {
-                tuning_cube_env_light(doc,obj,input);
+                return tuning_cube_env_light(doc,obj,input);
+            }
+            else if (type == "probe_grid")
+            {
+                return tuning_probe_grid(doc,obj,input);
             }
         }
         
@@ -5653,6 +5849,10 @@ const env_light = {
         if (props.type == "cube")
         {
             generate_cube_env_light(doc,obj,input);
+        }
+        if (props.type == "probe_grid")
+        {
+            generate_probe_grid(doc,obj,input);
         }
     }
 };
@@ -5723,7 +5923,7 @@ const tuning_material = (doc, obj, input) =>{
 };
 
 const group = {
-    create: async (doc, props, mode, parent) => {
+    create: (doc, props, mode, parent) => {
         const group = new Object3D();
         if (parent != null) {
             parent.add(group);
@@ -5736,11 +5936,12 @@ const group = {
     
     tuning: (doc, obj, input) => {
         tuning_object3d(doc, obj, input);
+        return "";
     }
 };
 
 const plane = {
-    create: async (doc, props, mode, parent) => {
+    create: (doc, props, mode, parent) => {
         let width = 1.0;
         let height = 1.0;
         if (props.hasOwnProperty('size'))
@@ -5779,12 +5980,13 @@ const plane = {
         }
         tuning_object3d(doc, obj, input);
         tuning_material(doc, obj, input);
+        return "";
     }
 };
 
 
 const box = {
-    create: async (doc, props, mode, parent) => {
+    create: (doc, props, mode, parent) => {
         let width = 1.0;
         let height = 1.0;
         let depth = 1.0;
@@ -5826,11 +6028,12 @@ const box = {
         }
         tuning_object3d(doc, obj, input);
         tuning_material(doc, obj, input);
+        return "";
     }
 };
 
 const sphere = {
-    create: async (doc, props, mode, parent) => {
+    create: (doc, props, mode, parent) => {
         let radius = 1.0;
         if (props.hasOwnProperty('radius'))
         {
@@ -5901,11 +6104,12 @@ const sphere = {
         
         tuning_object3d(doc, obj, input);
         tuning_material(doc, obj, input);
+        return "";
     }
 };
 
 const model = {
-    create: async (doc, props, mode, parent) => {
+    create: (doc, props, mode, parent) => {
         let url = "assets/models/model.glb";
         if (props.hasOwnProperty('src'))
         {
@@ -5928,7 +6132,7 @@ const model = {
         return model;
     },
     
-    tuning: async (doc, obj, input) => {
+    tuning: (doc, obj, input) => {
         let key = obj.uuid;
         let node = doc.internal_index[key].xml_node;
         let props = node.attributes;
@@ -5936,7 +6140,7 @@ const model = {
         {
             doc.remove(obj);
             props.src = input.src;
-            let obj_new = await model.create(doc, props, "local", obj.parent);
+            let obj_new = model.create(doc, props, "local", obj.parent);
             obj_new.uuid = key;
             obj_new.tag = "model";
             
@@ -5975,23 +6179,25 @@ const model = {
             }
             tuning_object3d(doc, obj, input);
         }
+        return "";
     }
 };
 
 const avatar = {
-    create: async (doc, props, mode, parent) => {
-        let avatar = await model.create(doc, { ...props}, mode, parent);
+    create: (doc, props, mode, parent) => {
+        let avatar = model.create(doc, { ...props}, mode, parent);
         return avatar;
     },
     
-    tuning: async (doc, obj, input) =>  {
-        await model.tuning(doc,obj,input);
+    tuning: (doc, obj, input) =>  {
+        model.tuning(doc,obj,input);
+        return "";
     }
 };
 
 
 const directional_light = {
-    create: async (doc, props, mode, parent) => {
+    create: (doc, props, mode, parent) => {
         const light = new DirectionalLight();           
         
         if (props.hasOwnProperty('intensity')) {
@@ -6109,6 +6315,8 @@ const directional_light = {
         }
         
         tuning_object3d(doc, obj, input);
+        
+        return "";
     }
 };
 
@@ -6133,11 +6341,11 @@ class BackgroundDocument extends BackgroundScene
         }
     }
     
-    async create(tag, props, mode, parent = null) 
+    create(tag, props, mode, parent = null) 
     {
         if (!(tag in this.Tags)) return null;
         
-        const obj = await this.Tags[tag].create(this, props, mode, parent);
+        const obj = this.Tags[tag].create(this, props, mode, parent);
         if (obj == null) return null;
         
         if (Object.isExtensible(obj)) 
@@ -6199,20 +6407,20 @@ class BackgroundDocument extends BackgroundScene
         return obj;
     }
  
-    async load_xml_node(xmlNode, mode, parent = null)
+    load_xml_node(xmlNode, mode, parent = null)
     {
         if (parent == null) {
             parent = this;
         }
         for (let child of xmlNode.children) {           
-            const obj = await this.create(child.tagName, child.attributes, mode, parent);
+            const obj = this.create(child.tagName, child.attributes, mode, parent);
             if (obj===null) continue;
-            await this.load_xml_node(child, mode, obj);
+            this.load_xml_node(child, mode, obj);
         }
         
     }
     
-    async load_xml(xmlText, mode)
+    load_xml(xmlText, mode)
     {
         const parsed = parse(xmlText); 
         let root = null;
@@ -6226,16 +6434,16 @@ class BackgroundDocument extends BackgroundScene
         }
         if (root)
         {
-            await this.load_xml_node(root, mode);
+            this.load_xml_node(root, mode);
         }
     }
     
-    async load_local_xml(filename)
+    load_local_xml(filename)
     {
         const xmlText = fileLoader.loadTextFile(filename);
         if (xmlText!=null)
         {
-            await this.load_xml(xmlText, "local");
+            this.load_xml(xmlText, "local");
         }
     }
 }
@@ -6287,6 +6495,7 @@ class Document
         this.external_index.index = {};
         
         this.env_gen = null;
+        this.probe_grid_bake = null;
     }
     
     tick(delta)
@@ -6307,17 +6516,22 @@ class Document
             this.env_gen.render(renderer);
         }
         
+        if (this.probe_grid_bake!=null)
+        {
+            this.probe_grid_bake.render(renderer);
+        }
+        
         if (this.scene && this.camera) 
         {
             renderer.render(this.scene, this.camera);
         }
     }
     
-    async create(tag, props, mode, parent = null) 
+    create(tag, props, mode, parent = null) 
     {
         if (!(tag in this.Tags)) return null;
         
-        const obj = await this.Tags[tag].create(this, props, mode, parent);
+        const obj = this.Tags[tag].create(this, props, mode, parent);
         if (obj == null) return null;
         
         obj.uuid = uuid();
@@ -6392,17 +6606,17 @@ class Document
         }
     }
     
-    async load_xml_node(xmlNode, mode, parent = null)
+    load_xml_node(xmlNode, mode, parent = null)
     {
         for (let child of xmlNode.children) {           
             let obj = null;
             if (parent == null)
             {
-                obj = await this.create(child.tagName, child.attributes, mode, this);
+                obj = this.create(child.tagName, child.attributes, mode, this);
             }
             else
             {
-                obj = await this.create(child.tagName, child.attributes, mode, parent);
+                obj = this.create(child.tagName, child.attributes, mode, parent);
             }
             if (obj===null) continue;
             
@@ -6431,14 +6645,16 @@ class Document
             }
             this.external_index.index[key] = external_node;
             
-            await this.load_xml_node(child, mode, obj);
+            this.load_xml_node(child, mode, obj);
         }
     }
    
     
-    async load_xml(xmlText, mode)
+    load_xml(xmlText, mode)
     {
         this.xml_nodes = parse(xmlText, {keepComments: true});
+        this.saved_text = genXML(this.xml_nodes);
+        
         let root = null;
         for (let top of this.xml_nodes)
         {
@@ -6450,10 +6666,8 @@ class Document
         }
         if (root)
         {
-            await this.load_xml_node(root, mode);
+            this.load_xml_node(root, mode);
         }
-        
-        this.saved_text = genXML(this.xml_nodes);
         
         gamePlayer.message("index_loaded", JSON.stringify(this.external_index));
     }
@@ -6524,7 +6738,7 @@ class Document
         let tag = node.tagName;
         
         if (!(tag in this.Tags)) return;
-        this.Tags[tag].tuning(this, picked_obj, input);
+        return this.Tags[tag].tuning(this, picked_obj, input);
     }
 
     generate(input)
@@ -6538,7 +6752,7 @@ class Document
         this.Tags[tag].generate(this, picked_obj, input);
     }
     
-    async req_create(base_key, tag)
+    req_create(base_key, tag)
     {
         let internal_node_base = this.internal_index[base_key];
         let external_node_base = this.external_index.index[base_key];
@@ -6549,7 +6763,7 @@ class Document
         let child = {tagName:tag, attributes: {}, children: []};
         xmlNode.children.push(child);
         
-        let obj = await this.create(tag, {}, "local", parent);
+        let obj = this.create(tag, {}, "local", parent);
         let key = obj.uuid;
         
         let internal_node = {};
@@ -6730,8 +6944,7 @@ function pick_obj(key)
 function tuning(args)
 {
     let input = JSON.parse(args);
-    doc.tuning(input);
-    return "";
+    return doc.tuning(input);
 }
 
 function generate(args)

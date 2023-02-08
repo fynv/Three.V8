@@ -509,7 +509,6 @@ const env_light = {
                 url+"/"+posx, url+"/"+negx, 
                 url+"/"+posy, url+"/"+negy, 
                 url+"/"+posz, url+"/"+negz);
-
             
             let envLight = null;
             if (cube_img!=null)
@@ -523,6 +522,23 @@ const env_light = {
             }
             
             doc.scene.indirectLight = envLight;
+        }
+        else if (type == "probe_grid")
+        {
+            let probe_data = "assets/probes.dat";
+            if (props.hasOwnProperty('probe_data')) 
+            {
+                probe_data = props.probe_data;
+            }
+            let probe_grid = probeGridLoader.loadFile(probe_data);
+            if (probe_grid == null)
+            {
+                probe_grid = new ProbeGrid();
+                probe_grid.setDivisions(proxy.divisions);
+                probe_grid.setCoverageMin(proxy.coverageMin);
+                probe_grid.setCoverageMax(proxy.coverageMax);
+            }
+            doc.scene.indirectLight = probe_grid;
         }
         
         if (props.hasOwnProperty('dynamic_map'))

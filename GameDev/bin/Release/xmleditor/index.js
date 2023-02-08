@@ -36,8 +36,7 @@ function pick_obj(key)
 function tuning(args)
 {
     let input = JSON.parse(args);
-    doc.tuning(input);
-    return "";
+    return doc.tuning(input);
 }
 
 function generate(args)
