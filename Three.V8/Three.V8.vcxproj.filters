@@ -237,6 +237,9 @@
     <ClInclude Include="savers\ProbeGridSaver.hpp">
       <Filter>Header Files\savers</Filter>
     </ClInclude>
+    <ClInclude Include="lights\ProbeGridWidget.hpp">
+      <Filter>Header Files\lights</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="binding.cpp">

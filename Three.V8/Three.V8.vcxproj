@@ -158,6 +158,7 @@
     <ClInclude Include="lights\IndirectLight.hpp" />
     <ClInclude Include="lights\Light.hpp" />
     <ClInclude Include="lights\ProbeGrid.hpp" />
+    <ClInclude Include="lights\ProbeGridWidget.hpp" />
     <ClInclude Include="loaders\FileLoader.hpp" />
     <ClInclude Include="loaders\GLTFLoader.hpp" />
     <ClInclude Include="loaders\ImageLoader.hpp" />

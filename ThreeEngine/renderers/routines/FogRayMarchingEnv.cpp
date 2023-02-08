@@ -119,12 +119,10 @@ vec3 getIrradiance(vec3 pos_world)
 		for (int y=0;y<2;y++)
 		{
 			for (int x=0;x<2;x++)
-			{
-				vec3 t = vec3(x,y,z);
-				vec3 w = vec3(1.0) - abs(t - frac_voxel);
+			{				
+				vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
 				float weight = w.x * w.y * w.z;
 				sum_weight += weight;
-
 				ivec3 vert = i_voxel + ivec3(x,y,z);
 				acc_coeffs(coeffs0, vert, weight);
 			}

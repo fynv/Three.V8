@@ -16,7 +16,7 @@ struct ProbeGridConst
 
 ProbeGrid::ProbeGrid() : m_constant(sizeof(ProbeGridConst), GL_UNIFORM_BUFFER)
 {
-	this->set_dynamic_map(true);
+	
 }
 
 

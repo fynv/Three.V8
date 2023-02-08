@@ -158,6 +158,7 @@
     <ClCompile Include="lights\IndirectLight.cpp" />
     <ClCompile Include="lights\Light.cpp" />
     <ClCompile Include="lights\ProbeGrid.cpp" />
+    <ClCompile Include="lights\ProbeGridWidget.cpp" />
     <ClCompile Include="loaders\FileLoader.cpp" />
     <ClCompile Include="loaders\GLTFLoader.cpp" />
     <ClCompile Include="loaders\ImageLoader.cpp" />
@@ -244,6 +245,7 @@
     <ClInclude Include="lights\Light.h" />
     <ClInclude Include="lights\Lights.h" />
     <ClInclude Include="lights\ProbeGrid.h" />
+    <ClInclude Include="lights\ProbeGridWidget.h" />
     <ClInclude Include="loaders\FileLoader.h" />
     <ClInclude Include="loaders\GLTFLoader.h" />
     <ClInclude Include="loaders\ImageLoader.h" />

@@ -38,6 +38,7 @@ class GLTFModel;
 class DirectionalLight;
 class DirectionalLightShadow;
 class ProbeGrid;
+class ProbeGridWidget;
 
 class VolumeIsosurfaceModel;
 
@@ -86,6 +87,7 @@ private:
 	void render_model(Camera* p_camera, const Lights& lights, const Fog* fog, GLTFModel* model, Pass pass);
 	void render_model(Camera* p_camera, const Lights& lights, const Fog* fog, VolumeIsosurfaceModel* model, GLRenderTarget& target, Pass pass);
 	void render_widget(Camera* p_camera, DirectionalLight* light);
+	void render_widget(Camera* p_camera, ProbeGridWidget* widget);
 
 	std::unique_ptr<MorphUpdate> morphers[4];
 	std::unique_ptr<SkinUpdate> skinners[2];

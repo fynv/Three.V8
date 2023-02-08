@@ -354,6 +354,9 @@
     <ClCompile Include="renderers\routines\FogRayMarchingEnv.cpp">
       <Filter>Source Files\renderers\routines</Filter>
     </ClCompile>
+    <ClCompile Include="lights\ProbeGridWidget.cpp">
+      <Filter>Source Files\lights</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -619,6 +622,9 @@
     </ClInclude>
     <ClInclude Include="renderers\routines\FogRayMarchingEnv.h">
       <Filter>Header Files\renderers\routines</Filter>
+    </ClInclude>
+    <ClInclude Include="lights\ProbeGridWidget.h">
+      <Filter>Header Files\lights</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

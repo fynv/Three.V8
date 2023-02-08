@@ -345,15 +345,14 @@ vec3 getIrradiance(in vec3 world_pos, in vec3 normal)
 		{
 			for (int x=0;x<2;x++)
 			{
-				vec3 t = vec3(x,y,z);
-				vec3 dir = normalize(t - frac_voxel);		
-				if (dot(dir, normal)>0.0f)
+				ivec3 vert = i_voxel + ivec3(x,y,z);
+				vec3 vert_world = (vec3(vert) + vec3(0.5))/vec3(uDivisions)*size_grid + uCoverageMin.xyz;
+				vec3 dir = normalize(vert_world - vWorldPos);
+				if (dot(dir, normal)>=0.0)
 				{
-					vec3 w = vec3(1.0) - abs(t - frac_voxel);
+					vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
 					float weight = w.x * w.y * w.z;
 					sum_weight += weight;
-
-					ivec3 vert = i_voxel + ivec3(x,y,z);
 					acc_coeffs(coeffs, vert, weight);			
 				}
 			}

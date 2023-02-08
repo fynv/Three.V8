@@ -19,6 +19,7 @@
 #include "lights/DirectionalLight.h"
 #include "lights/DirectionalLightShadow.h"
 #include "scenes/Fog.h"
+#include "lights/ProbeGridWidget.h"
 
 //#include <gtx/string_cast.hpp>
 
@@ -479,6 +480,92 @@ void GLRenderer::render_widget(Camera* p_camera, DirectionalLight* light)
 		glEnd();
 
 	}
+}
+
+inline void draw_round(glm::vec3 center, float radius, Camera* p_camera)
+{
+	glBegin(GL_TRIANGLE_FAN);
+	glVertex3f(center.x, center.y, center.z);
+
+	glm::vec3 axis_x = p_camera->matrixWorld * glm::vec4(radius, 0.0f, 0.0f, 0.0f);
+	glm::vec3 axis_y = p_camera->matrixWorld * glm::vec4(0.0f, radius, 0.0f, 0.0f);
+
+	int divs = 32;
+	float delta = 3.14159265f * 2.0f / (float)divs;
+	for (int i = 0; i <= divs; i++)
+	{
+		float rad = delta * (float)i;
+		glm::vec3 pos = center + axis_x * cosf(rad) + axis_y * sinf(rad);
+		glVertex3f(pos.x, pos.y, pos.z);
+	}
+
+	glEnd();
+}
+
+void GLRenderer::render_widget(Camera* p_camera, ProbeGridWidget* widget)
+{
+	glm::mat4 mat_proj = p_camera->projectionMatrix;
+	glm::mat4 mat_camera = p_camera->matrixWorldInverse;
+	glm::mat4 mat_model = widget->matrixWorld;
+	glm::mat4 model_view = mat_camera * mat_model;
+	glMatrixLoadfEXT(GL_PROJECTION, (float*)&mat_proj);
+	glMatrixLoadfEXT(GL_MODELVIEW, (float*)&model_view);
+
+	glEnable(GL_DEPTH_TEST);
+
+	glLineWidth(1.0f);
+
+	glBegin(GL_LINES);
+
+	glColor3f(1.0f, 0.0f, 0.0f);
+	glVertex3f(widget->coverage_min.x, widget->coverage_min.y, widget->coverage_min.z);
+	glVertex3f(widget->coverage_max.x, widget->coverage_min.y, widget->coverage_min.z);
+	glVertex3f(widget->coverage_min.x, widget->coverage_max.y, widget->coverage_min.z);
+	glVertex3f(widget->coverage_max.x, widget->coverage_max.y, widget->coverage_min.z);
+	glVertex3f(widget->coverage_min.x, widget->coverage_min.y, widget->coverage_max.z);
+	glVertex3f(widget->coverage_max.x, widget->coverage_min.y, widget->coverage_max.z);
+	glVertex3f(widget->coverage_min.x, widget->coverage_max.y, widget->coverage_max.z);
+	glVertex3f(widget->coverage_max.x, widget->coverage_max.y, widget->coverage_max.z);
+
+	glColor3f(0.0f, 1.0f, 0.0f);
+	glVertex3f(widget->coverage_min.x, widget->coverage_min.y, widget->coverage_min.z);
+	glVertex3f(widget->coverage_min.x, widget->coverage_max.y, widget->coverage_min.z);
+	glVertex3f(widget->coverage_max.x, widget->coverage_min.y, widget->coverage_min.z);
+	glVertex3f(widget->coverage_max.x, widget->coverage_max.y, widget->coverage_min.z);
+	glVertex3f(widget->coverage_min.x, widget->coverage_min.y, widget->coverage_max.z);
+	glVertex3f(widget->coverage_min.x, widget->coverage_max.y, widget->coverage_max.z);
+	glVertex3f(widget->coverage_max.x, widget->coverage_min.y, widget->coverage_max.z);
+	glVertex3f(widget->coverage_max.x, widget->coverage_max.y, widget->coverage_max.z);
+	
+	glColor3f(0.0f, 0.0f, 1.0f);
+	glVertex3f(widget->coverage_min.x, widget->coverage_min.y, widget->coverage_min.z);
+	glVertex3f(widget->coverage_min.x, widget->coverage_min.y, widget->coverage_max.z);
+	glVertex3f(widget->coverage_max.x, widget->coverage_min.y, widget->coverage_min.z);
+	glVertex3f(widget->coverage_max.x, widget->coverage_min.y, widget->coverage_max.z);
+	glVertex3f(widget->coverage_min.x, widget->coverage_max.y, widget->coverage_min.z);
+	glVertex3f(widget->coverage_min.x, widget->coverage_max.y, widget->coverage_max.z);
+	glVertex3f(widget->coverage_max.x, widget->coverage_max.y, widget->coverage_min.z);
+	glVertex3f(widget->coverage_max.x, widget->coverage_max.y, widget->coverage_max.z);
+
+	glEnd();
+
+	glColor3f(1.0f, 0.2f, 1.0f);
+
+	glm::vec3 size = widget->coverage_max - widget->coverage_min;
+	for (int z = 0; z < widget->divisions.z; z++)
+	{
+		for (int y = 0; y < widget->divisions.y; y++)
+		{
+			for (int x = 0; x < widget->divisions.x; x++)
+			{
+				glm::vec3 center = widget->coverage_min + size * (glm::vec3(x, y, z) + glm::vec3(0.5)) / glm::vec3(widget->divisions);
+				draw_round(center, 0.05, p_camera);
+			}
+		}
+
+	}
+
+
 }
 
 DirectionalShadowCast* GLRenderer::get_shadow_caster(const DirectionalShadowCast::Options& options)
@@ -1362,6 +1449,14 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 					if (light != nullptr)
 					{
 						render_widget(&camera, light);
+						break;
+					}
+				}
+				{
+					ProbeGridWidget* widget = dynamic_cast<ProbeGridWidget*>(obj);
+					if (widget != nullptr)
+					{
+						render_widget(&camera, widget);
 						break;
 					}
 				}

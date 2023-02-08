@@ -44,6 +44,7 @@ V8VM::~V8VM()
 #include "lights/EnvironmentMapCreator.hpp"
 #include "lights/AmbientLight.hpp"
 #include "lights/HemisphereLight.hpp"
+#include "lights/ProbeGridWidget.hpp"
 
 #include "models/SimpleModel.hpp"
 #include "models/GLTFModel.hpp"
@@ -135,6 +136,7 @@ GlobalDefinitions GameContext::s_globals =
 		{ "EnvironmentMapCreator", WrapperEnvironmentMapCreator::New, WrapperEnvironmentMapCreator::create_template},
 		{ "AmbientLight", WrapperAmbientLight::New, WrapperAmbientLight::create_template},
 		{ "HemisphereLight", WrapperHemisphereLight::New, WrapperHemisphereLight::create_template},
+		{ "ProbeGridWidget", WrapperProbeGridWidget::New, WrapperProbeGridWidget::create_template},
 		{ "BoundingVolumeHierarchy", WrappeBoundingVolumeHierarchy::New, WrappeBoundingVolumeHierarchy::create_template},
 
 		{ "UIArea", WrapperUIArea::New, WrapperUIArea::create_template},
