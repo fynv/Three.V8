@@ -5,7 +5,8 @@ struct ProbeGridConst
 {
 	glm::vec4 coverageMin;
 	glm::vec4 coverageMax;
-	glm::ivec4 divisions;	
+	glm::ivec4 divisions;
+	float ypower;
 	float diffuseThresh;
 	float diffuseHigh;
 	float diffuseLow;
@@ -40,6 +41,7 @@ void ProbeGrid::updateConstant()
 	c.coverageMin = glm::vec4(coverage_min, 0.0f);
 	c.coverageMax = glm::vec4(coverage_max, 0.0f);
 	c.divisions = glm::ivec4(divisions, 0);
+	c.ypower = ypower;
 	c.diffuseThresh = diffuse_thresh;
 	c.diffuseHigh = diffuse_high;
 	c.diffuseLow = diffuse_low;

@@ -533,10 +533,7 @@ const env_light = {
             let probe_grid = probeGridLoader.loadFile(probe_data);
             if (probe_grid == null)
             {
-                probe_grid = new ProbeGrid();
-                probe_grid.setDivisions(proxy.divisions);
-                probe_grid.setCoverageMin(proxy.coverageMin);
-                probe_grid.setCoverageMax(proxy.coverageMax);
+                probe_grid = new ProbeGrid();                
             }
             doc.scene.indirectLight = probe_grid;
         }

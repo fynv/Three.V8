@@ -558,7 +558,9 @@ void GLRenderer::render_widget(Camera* p_camera, ProbeGridWidget* widget)
 		{
 			for (int x = 0; x < widget->divisions.x; x++)
 			{
-				glm::vec3 center = widget->coverage_min + size * (glm::vec3(x, y, z) + glm::vec3(0.5)) / glm::vec3(widget->divisions);
+				glm::vec3 pos_normalized = (glm::vec3(x, y, z) + glm::vec3(0.5)) / glm::vec3(widget->divisions);
+				pos_normalized.y = powf(pos_normalized.y, widget->ypower);
+				glm::vec3 center = widget->coverage_min + size * pos_normalized;
 				draw_round(center, 0.05, p_camera);
 			}
 		}
@@ -1717,7 +1719,9 @@ void GLRenderer::renderCube(Scene& scene, CubeRenderTarget& target, const glm::v
 void GLRenderer::updateProbe(Scene& scene, CubeRenderTarget& target, ProbeGrid& probe_grid, glm::ivec3 idx, float zNear, float zFar)
 {
 	glm::vec3 size_grid = probe_grid.coverage_max - probe_grid.coverage_min;
-	glm::vec3 pos = probe_grid.coverage_min + (glm::vec3(idx) + 0.5f) / glm::vec3(probe_grid.divisions) * size_grid;	
+	glm::vec3 pos_normalized = (glm::vec3(idx) + 0.5f) / glm::vec3(probe_grid.divisions);
+	pos_normalized.y = powf(pos_normalized.y, probe_grid.ypower);
+	glm::vec3 pos = probe_grid.coverage_min + pos_normalized * size_grid;
 	renderCube(scene, target, pos, zNear, zFar);
 
 	glm::vec4 coeffs[9];

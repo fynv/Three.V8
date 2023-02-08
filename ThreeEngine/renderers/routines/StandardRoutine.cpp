@@ -531,11 +531,12 @@ vec3 getIrradiance(in vec3 normal)
 #endif
 
 #if HAS_PROBE_GRID
-layout (std140, binding = BINDING_PROBE_GRID) uniform EnvironmentMap
+layout (std140, binding = BINDING_PROBE_GRID) uniform ProbeGrid
 {
 	vec4 uCoverageMin;
 	vec4 uCoverageMax;
-	ivec4 uDivisions;		
+	ivec4 uDivisions;	
+	float uYpower;
 	float uDiffuseThresh;
 	float uDiffuseHigh;
 	float uDiffuseLow;
@@ -562,8 +563,9 @@ void acc_coeffs(inout vec4 coeffs[9], in ivec3 vert, in float weight)
 vec3 getIrradiance(in vec3 normal)
 {
 	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
-	vec3 pos_grid = vWorldPos - uCoverageMin.xyz;
-	vec3 pos_voxel = (pos_grid / size_grid) * vec3(uDivisions) - vec3(0.5);
+	vec3 pos_normalized = (vWorldPos - uCoverageMin.xyz)/size_grid;
+	pos_normalized.y = pow(pos_normalized.y, 1.0/uYpower);	
+	vec3 pos_voxel = pos_normalized * vec3(uDivisions) - vec3(0.5);
 	pos_voxel = clamp(pos_voxel, vec3(0.0), vec3(uDivisions) - vec3(1.0));
 	
 	ivec3 i_voxel = ivec3(pos_voxel);
@@ -580,7 +582,9 @@ vec3 getIrradiance(in vec3 normal)
 			for (int x=0;x<2;x++)
 			{				
 				ivec3 vert = i_voxel + ivec3(x,y,z);
-				vec3 vert_world = (vec3(vert) + vec3(0.5))/vec3(uDivisions)*size_grid + uCoverageMin.xyz;
+				vec3 vert_normalized = (vec3(vert) + vec3(0.5))/vec3(uDivisions);
+				vert_normalized.y = pow(vert_normalized.y, uYpower); 
+				vec3 vert_world = vert_normalized * size_grid + uCoverageMin.xyz;
 				vec3 dir = normalize(vert_world - vWorldPos);
 				if (dot(dir, normal)>=0.0)
 				{

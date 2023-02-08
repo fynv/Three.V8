@@ -74,11 +74,12 @@ float RandomFloat(inout uint seed)
 }
 
 #if HAS_PROBE_GRID
-layout (std140, binding = 2) uniform EnvironmentMap
+layout (std140, binding = 2) uniform ProbeGrid
 {
 	vec4 uCoverageMin;
 	vec4 uCoverageMax;
-	ivec4 uDivisions;		
+	ivec4 uDivisions;
+	float uYpower;
 	float uDiffuseThresh;
 	float uDiffuseHigh;
 	float uDiffuseLow;
@@ -104,8 +105,9 @@ void acc_coeffs(inout vec4 coeffs0, in ivec3 vert, in float weight)
 vec3 getIrradiance(vec3 pos_world)
 {
 	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
-	vec3 pos_grid = pos_world - uCoverageMin.xyz;
-	vec3 pos_voxel = (pos_grid / size_grid) * vec3(uDivisions) - vec3(0.5);
+	vec3 pos_normalized = (pos_world - uCoverageMin.xyz)/size_grid;
+	pos_normalized.y = pow(pos_normalized.y, 1.0/uYpower);	
+	vec3 pos_voxel = pos_normalized * vec3(uDivisions) - vec3(0.5);
 	pos_voxel = clamp(pos_voxel, vec3(0.0), vec3(uDivisions) - vec3(1.0));
 	
 	ivec3 i_voxel = ivec3(pos_voxel);

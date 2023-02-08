@@ -22,6 +22,9 @@ private:
 	static void GetDivisions(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void GetDivisions(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void SetDivisions(const v8::FunctionCallbackInfo<v8::Value>& info);
+
+	static void GetYpower(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void SetYpower(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
 };
 
 
@@ -39,6 +42,9 @@ v8::Local<v8::FunctionTemplate> WrapperProbeGridWidget::create_template(v8::Isol
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "divisions").ToLocalChecked(), GetDivisions, 0);
 	templ->InstanceTemplate()->Set(isolate, "getDivisions", v8::FunctionTemplate::New(isolate, GetDivisions));
 	templ->InstanceTemplate()->Set(isolate, "setDivisions", v8::FunctionTemplate::New(isolate, SetDivisions));
+
+	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "ypower").ToLocalChecked(), GetYpower, SetYpower);
+
 	return templ;
 }
 
@@ -151,4 +157,19 @@ void WrapperProbeGridWidget::SetDivisions(const v8::FunctionCallbackInfo<v8::Val
 		lctx.jvec3_to_ivec3(info[0], self->divisions);
 	}
 
+}
+
+void WrapperProbeGridWidget::GetYpower(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	ProbeGridWidget* self = lctx.self<ProbeGridWidget>();
+	info.GetReturnValue().Set(lctx.num_to_jnum(self->ypower));
+}
+
+void WrapperProbeGridWidget::SetYpower(v8::Local<v8::String> property, v8::Local<v8::Value> value,
+	const v8::PropertyCallbackInfo<void>& info)
+{
+	LocalContext lctx(info);
+	ProbeGridWidget* self = lctx.self<ProbeGridWidget>();
+	lctx.jnum_to_num(value, self->ypower);
 }

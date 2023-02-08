@@ -158,6 +158,7 @@ class ProbeGridBaker
         this.probe_grid.setDivisions(proxy.divisions);
         this.probe_grid.setCoverageMin(proxy.coverageMin);
         this.probe_grid.setCoverageMax(proxy.coverageMax);
+        this.probe_grid.ypower = proxy.ypower;
         this.doc.scene.indirectLight = this.probe_grid;
         
         this.probe_idx = new Vector3(0,0,0);
@@ -798,6 +799,10 @@ const create_probe_grid = (doc, props) => {
         const coverage_max = props.coverage_max.split(',');
         proxy.setCoverageMax(parseFloat(coverage_max[0]), parseFloat(coverage_max[1]), parseFloat(coverage_max[2]));
     }
+    if (props.hasOwnProperty('ypower'))
+    {
+        proxy.ypower = parseFloat(props.ypower);
+    }
     doc.scene.addWidget(proxy);
     
     let probe_data = "assets/probes.dat";
@@ -813,16 +818,19 @@ const create_probe_grid = (doc, props) => {
         probe_grid.setDivisions(proxy.divisions);
         probe_grid.setCoverageMin(proxy.coverageMin);
         probe_grid.setCoverageMax(proxy.coverageMax);
+        probe_grid.ypower = proxy.ypower;
     }
     else
     {
         proxy.setDivisions(probe_grid.divisions);
         proxy.setCoverageMin(probe_grid.coverageMin);
         proxy.setCoverageMax(probe_grid.coverageMax);
+        proxy.ypower = probe_grid.ypower;
         
         props.divisions = `${probe_grid.divisions.x}, ${probe_grid.divisions.y}, ${probe_grid.divisions.z}`;
         props.coverage_min = `${probe_grid.coverageMin.x}, ${probe_grid.coverageMin.y}, ${probe_grid.coverageMin.z}`;
         props.coverage_max = `${probe_grid.coverageMax.x}, ${probe_grid.coverageMax.y}, ${probe_grid.coverageMax.z}`;
+        props.ypower = `${probe_grid.ypower}`;
     }
     doc.scene.indirectLight = probe_grid;
     
@@ -968,16 +976,19 @@ const tuning_probe_grid =  (doc, obj, input) =>{
             probe_grid.setDivisions(obj.divisions);
             probe_grid.setCoverageMin(obj.coverageMin);
             probe_grid.setCoverageMax(obj.coverageMax);
+            probe_grid.ypower = obj.ypower;
         }
         else
         {
             obj.setDivisions(probe_grid.divisions);
             obj.setCoverageMin(probe_grid.coverageMin);
             obj.setCoverageMax(probe_grid.coverageMax);
+            obj.ypower = probe_grid.ypower;
             
             props.divisions = `${probe_grid.divisions.x}, ${probe_grid.divisions.y}, ${probe_grid.divisions.z}`;
             props.coverage_min = `${probe_grid.coverageMin.x}, ${probe_grid.coverageMin.y}, ${probe_grid.coverageMin.z}`;
             props.coverage_max = `${probe_grid.coverageMax.x}, ${probe_grid.coverageMax.y}, ${probe_grid.coverageMax.z}`;
+            props.ypower = `${probe_grid.ypower}`;
         }
         
         if (props.hasOwnProperty('dynamic_map'))
@@ -1009,6 +1020,12 @@ const tuning_probe_grid =  (doc, obj, input) =>{
         props.coverage_max = input.coverage_max;
         let coverage_max = input.coverage_max.split(',');
         obj.setCoverageMax(parseFloat(coverage_max[0]), parseFloat(coverage_max[1]), parseFloat(coverage_max[2]));
+    }
+
+    if ("ypower" in input)
+    {
+        props.ypower = input.ypower;
+        obj.ypower = parseFloat(input.ypower);
     }
     
     return "";
