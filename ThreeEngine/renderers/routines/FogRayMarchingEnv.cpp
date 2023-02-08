@@ -164,8 +164,8 @@ void main()
 	float dis = length(pos_view.xyz);
 
 	vec3 dir = (uInvViewMat * vec4(pos_view.xyz/dis, 0.0)).xyz;		
-	float step = dis/float(max_num_steps);
-	if (step<min_step) step = min_step;
+	float step = dis/float(max_num_steps)*4.0;
+	if (step<min_step*4.0) step = min_step*4.0;
 
 	float step_alpha =  1.0 - pow(1.0 - fog_rgba.w, step);
 
