@@ -84,7 +84,7 @@ namespace GameDev
             att.RemoveAll();
             att["type"] = type;
 
-            game_player.SendMessageToUser("tuning", att.ToString());
+            jobj["attributes"] = JObject.Parse(game_player.SendMessageToUser("tuning", att.ToString()));
 
             load_type(type);
 

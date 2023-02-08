@@ -5356,6 +5356,7 @@ const sky = {
             obj_new.uuid = key;
             obj_new.tag = "sky";
             doc.internal_index[key].obj = obj_new;
+            return JSON.stringify(node.attributes);
         }
         else
         {
@@ -5830,7 +5831,7 @@ const env_light = {
             obj_new.uuid = key;
             obj_new.tag = "env_light";
             doc.internal_index[key].obj = obj_new;
-            return "";
+            return JSON.stringify(node.attributes);
         }
         else
         {
