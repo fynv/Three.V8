@@ -625,7 +625,7 @@ namespace GameDev
                 update_cur_path();
             }
 
-            OpenFile(dialog.filename);
+            OpenFile(path);
 
         }
 
