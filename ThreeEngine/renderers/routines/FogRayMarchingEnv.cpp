@@ -110,7 +110,7 @@ vec3 getIrradiance(vec3 pos_world)
 	vec3 pos_voxel = pos_normalized * vec3(uDivisions) - vec3(0.5);
 	pos_voxel = clamp(pos_voxel, vec3(0.0), vec3(uDivisions) - vec3(1.0));
 	
-	ivec3 i_voxel = ivec3(pos_voxel);
+	ivec3 i_voxel = clamp(ivec3(pos_voxel), ivec3(0), ivec3(uDivisions) - ivec3(2));
 	vec3 frac_voxel = pos_voxel - vec3(i_voxel);
 
 	float sum_weight = 0.0;
