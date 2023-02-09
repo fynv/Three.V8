@@ -6,11 +6,11 @@
 class DrawTexture
 {
 public:
-	DrawTexture(bool premult=false, bool flipY = false);
-
+	DrawTexture(bool premult=false, bool flipY = false, bool auto_contrast = false);
 	void render(unsigned tex_id, int x, int y, int width, int height, bool blending = false);
 
 private:
+	bool m_auto_contrast = false;
 	std::unique_ptr<GLProgram> m_prog;
 
 };
