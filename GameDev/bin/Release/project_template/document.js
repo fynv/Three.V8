@@ -468,60 +468,86 @@ const env_light = {
         }
         else if (type == "cube")
         {
-            let url = "assets/textures";
-            let posx = "env_face0.jpg";
-            let negx = "env_face1.jpg";
-            let posy = "env_face2.jpg";
-            let negy = "env_face3.jpg";
-            let posz = "env_face4.jpg";
-            let negz = "env_face5.jpg";
-            
-            if (props.hasOwnProperty('path'))
+            let irradiance_only = false;
+            if (props.hasOwnProperty('irradiance_only'))
             {
-                url = props.path;
-            }
-            if (props.hasOwnProperty('posx'))
-            {
-                posx = props.posx;
-            }
-            if (props.hasOwnProperty('negx'))
-            {
-                negx = props.negx;
-            }
-            if (props.hasOwnProperty('posy'))
-            {
-                posy = props.posy;
-            }
-            if (props.hasOwnProperty('negy'))
-            {
-                negy = props.negy;
-            }
-            if (props.hasOwnProperty('posz'))
-            {
-                posz = props.posz;
-            }
-            if (props.hasOwnProperty('negz'))
-            {
-                negz = props.negz;
+                irradiance_only = string_to_boolean(props.irradiance_only);
             }
             
-            let cube_img = imageLoader.loadCubeFromFile(
-                url+"/"+posx, url+"/"+negx, 
-                url+"/"+posy, url+"/"+negy, 
-                url+"/"+posz, url+"/"+negz);
-            
-            let envLight = null;
-            if (cube_img!=null)
+            if (irradiance_only)
             {
-                let envMapCreator = new EnvironmentMapCreator();
-                envLight = envMapCreator.create(cube_img);
+                let path_sh = "assets/sh.json";
+                if (props.hasOwnProperty('path_sh'))
+                {
+                    path_sh = props.path_sh;
+                }
+                
+                let envLight = new EnvironmentMap();
+                let text = fileLoader.loadTextFile(path_sh);
+                if (text!=null)
+                {
+                    envLight.shCoefficients = JSON.parse(text);
+                }
+                doc.scene.indirectLight = envLight;
             }
             else
             {
-                envLight = new EnvironmentMap();
+                let url = "assets/textures";
+                let posx = "env_face0.jpg";
+                let negx = "env_face1.jpg";
+                let posy = "env_face2.jpg";
+                let negy = "env_face3.jpg";
+                let posz = "env_face4.jpg";
+                let negz = "env_face5.jpg";
+                
+                if (props.hasOwnProperty('path'))
+                {
+                    url = props.path;
+                }
+                if (props.hasOwnProperty('posx'))
+                {
+                    posx = props.posx;
+                }
+                if (props.hasOwnProperty('negx'))
+                {
+                    negx = props.negx;
+                }
+                if (props.hasOwnProperty('posy'))
+                {
+                    posy = props.posy;
+                }
+                if (props.hasOwnProperty('negy'))
+                {
+                    negy = props.negy;
+                }
+                if (props.hasOwnProperty('posz'))
+                {
+                    posz = props.posz;
+                }
+                if (props.hasOwnProperty('negz'))
+                {
+                    negz = props.negz;
+                }
+                
+                let cube_img = imageLoader.loadCubeFromFile(
+                    url+"/"+posx, url+"/"+negx, 
+                    url+"/"+posy, url+"/"+negy, 
+                    url+"/"+posz, url+"/"+negz);
+                
+                let envLight = null;
+                if (cube_img!=null)
+                {
+                    let envMapCreator = new EnvironmentMapCreator();
+                    envLight = envMapCreator.create(cube_img);
+                    print(JSON.stringify(envLight.shCoefficients));
+                }
+                else
+                {
+                    envLight = new EnvironmentMap();
+                }
+                
+                doc.scene.indirectLight = envLight;
             }
-            
-            doc.scene.indirectLight = envLight;
         }
         else if (type == "probe_grid")
         {
