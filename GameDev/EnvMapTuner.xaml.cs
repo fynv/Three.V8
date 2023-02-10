@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using CLRBinding;
 using Newtonsoft.Json.Linq;
 using Microsoft.Win32;
+using System.Windows.Input;
 
 namespace GameDev
 {
@@ -15,6 +16,7 @@ namespace GameDev
     {
         private CGamePlayer game_player = null;
         private JObject jobj = null;
+        private bool initialized = false;
 
         public EnvMapTuner(CGamePlayer game_player, JObject jobj)
         {
@@ -27,7 +29,15 @@ namespace GameDev
             tuner_probe_pos.tuner_z.step = 0.5f;
 
             var att = (JObject)jobj["attributes"];
-            
+
+            if (att.ContainsKey("dynamic_map"))
+            {
+                bool irradiance_only = att["irradiance_only"].ToObject<bool>();
+                chk_irr_only.IsChecked = irradiance_only;
+                grp_cubemap.IsEnabled = !irradiance_only;
+                grp_sh.IsEnabled = irradiance_only;
+            }
+
             file_path.Text = "assets/textures";
             if (att.ContainsKey("path"))
             {
@@ -70,6 +80,12 @@ namespace GameDev
                 name_negz.Text = att["negz"].ToString();
             }
 
+            fn_sh.Text = "assets/sh.json";
+            if (att.ContainsKey("path_sh"))
+            {
+                fn_sh.Text = att["path_sh"].ToString();
+            }
+
             if (att.ContainsKey("probe_position"))
             {
                 string probe_position = att["probe_position"].ToString();
@@ -79,7 +95,7 @@ namespace GameDev
                 float z = float.Parse(values[2]);
                 tuner_probe_pos.set_value(x, y, z);
             }
-
+            initialized = true;
         }
 
         private void tuner_probe_pos_ValueChanged(object sender, EventArgs e)
@@ -177,6 +193,68 @@ namespace GameDev
 
             reload();
 
+        }
+
+        private void load_sh()
+        {
+            JObject tuning = new JObject();
+            tuning["path_sh"] = fn_sh.Text;
+
+            var att = (JObject)jobj["attributes"];
+            att["path_sh"] = tuning["path_sh"];
+
+            game_player.SendMessageToUser("tuning", tuning.ToString());
+        }
+
+        private void text_LostFocus(object sender, System.Windows.RoutedEventArgs e)
+        {
+            load_sh();
+        }
+
+        private void text_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Return)
+            {
+                load_sh();
+            }
+        }
+
+        private void btn_browse_sh_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog();
+            dialog.Filter = "JSON(*.json)";
+            if (dialog.ShowDialog() != true) return;
+
+            var mainwnd = Window.GetWindow(Application.Current.MainWindow) as MainWindow;
+            string cur_path = mainwnd.cur_path;
+
+            string path = dialog.FileName;
+            if (!path.StartsWith(cur_path))
+            {
+                MessageBox.Show("Failed to parse path");
+                return;
+            }
+
+            string rel_path = path.Substring(cur_path.Length + 1);
+            fn_sh.Text = rel_path;
+            load_sh();
+        }
+
+        private void chk_irr_only_Checked(object sender, RoutedEventArgs e)
+        {
+            if (!initialized) return;
+
+            bool irradiance_only = chk_irr_only.IsChecked== true;
+            grp_cubemap.IsEnabled = !irradiance_only;
+            grp_sh.IsEnabled = irradiance_only;
+
+            JObject tuning = new JObject();
+            tuning["irradiance_only"] = $"{irradiance_only}";           
+
+            var att = (JObject)jobj["attributes"];
+            att["irradiance_only"] = tuning["irradiance_only"];            
+
+            game_player.SendMessageToUser("tuning", tuning.ToString());
         }
     }
 }

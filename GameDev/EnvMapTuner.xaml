@@ -9,38 +9,52 @@
     <GroupBox Header="Environment-Map Tuning">
         <StackPanel>
             <StackPanel Orientation="Horizontal">
+                <CheckBox x:Name="chk_irr_only" VerticalAlignment="Center" Content="Irradiance only" Checked="chk_irr_only_Checked" Unchecked="chk_irr_only_Checked" />
+            </StackPanel>
+            <GroupBox x:Name="grp_cubemap" Header="Cubemap">
+                <StackPanel Orientation="Horizontal">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center">File Path:</TextBlock>
+                            <TextBox x:Name="file_path" Width="300" Margin="5"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center">File Name(+x):</TextBlock>
+                            <TextBox x:Name="name_posx" Width="300" Margin="5"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center">File Name(-x):</TextBlock>
+                            <TextBox x:Name="name_negx" Width="300" Margin="5"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center">File Name(+y):</TextBlock>
+                            <TextBox x:Name="name_posy" Width="300" Margin="5"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center">File Name(-y):</TextBlock>
+                            <TextBox x:Name="name_negy" Width="300" Margin="5"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center">File Name(+z):</TextBlock>
+                            <TextBox x:Name="name_posz" Width="300" Margin="5"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center">File Name(-z):</TextBlock>
+                            <TextBox x:Name="name_negz" Width="300" Margin="5"/>
+                        </StackPanel>
+                    </StackPanel>
+                    <Button x:Name="btn_browse" VerticalAlignment="Bottom" Content="Browse" Margin="5" Padding="5" Click="btn_browse_Click"/>
+                </StackPanel>
+            </GroupBox>
+            <GroupBox x:Name="grp_sh" Header="SH-Coefficients" IsEnabled="False">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock VerticalAlignment="Center">File Path:</TextBlock>
-                        <TextBox x:Name="file_path" Width="300" Margin="5"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock VerticalAlignment="Center">File Name(+x):</TextBlock>
-                        <TextBox x:Name="name_posx" Width="300" Margin="5"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock VerticalAlignment="Center">File Name(-x):</TextBlock>
-                        <TextBox x:Name="name_negx" Width="300" Margin="5"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock VerticalAlignment="Center">File Name(+y):</TextBlock>
-                        <TextBox x:Name="name_posy" Width="300" Margin="5"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock VerticalAlignment="Center">File Name(-y):</TextBlock>
-                        <TextBox x:Name="name_negy" Width="300" Margin="5"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock VerticalAlignment="Center">File Name(+z):</TextBlock>
-                        <TextBox x:Name="name_posz" Width="300" Margin="5"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock VerticalAlignment="Center">File Name(-z):</TextBlock>
-                        <TextBox x:Name="name_negz" Width="300" Margin="5"/>
+                        <TextBlock Text="File Path:" VerticalAlignment="Center"/>
+                        <TextBox x:Name="fn_sh" Width="300" Margin="5" LostFocus="text_LostFocus" KeyDown="text_KeyDown"/>
+                        <Button x:Name="btn_browse_sh" Content="Browse" Margin="5" Padding="5" Click="btn_browse_sh_Click"/>
                     </StackPanel>
                 </StackPanel>
-                <Button x:Name="btn_browse" VerticalAlignment="Bottom" Content="Browse" Margin="5" Padding="5" Click="btn_browse_Click"/>
-            </StackPanel>
+            </GroupBox>
             <StackPanel Orientation="Horizontal">
                 <TextBlock VerticalAlignment="Center">Probe Position:</TextBlock>
                 <local:Vec3Tuner x:Name="tuner_probe_pos" ValueChanged="tuner_probe_pos_ValueChanged"/>

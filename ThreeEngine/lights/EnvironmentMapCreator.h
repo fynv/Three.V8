@@ -22,10 +22,10 @@ public:
 	static void CreateSH(glm::vec4 shCoefficients[9], unsigned tex_id, int tex_dim = 128);
 	void CreateReflection(ReflectionMap& reflection, const GLCubemap* cubemap);
 
-	void Create(const GLCubemap* cubemap, EnvironmentMap* envMap);
-	void Create(const CubeImage* image, EnvironmentMap* envMap);
-	void Create(const CubeBackground* background, EnvironmentMap* envMap);
-	void Create(const CubeRenderTarget* target, EnvironmentMap* envMap);
+	void Create(const GLCubemap* cubemap, EnvironmentMap* envMap, bool irradiance_only);
+	void Create(const CubeImage* image, EnvironmentMap* envMap, bool irradiance_only);
+	void Create(const CubeBackground* background, EnvironmentMap* envMap, bool irradiance_only);
+	void Create(const CubeRenderTarget* target, EnvironmentMap* envMap, bool irradiance_only);
 
 private:	
 	std::unique_ptr<GLProgram> m_prog_downsample;	

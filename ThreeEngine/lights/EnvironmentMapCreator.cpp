@@ -718,31 +718,38 @@ void EnvironmentMapCreator::CreateReflection(ReflectionMap& reflection, const GL
 
 }
 
-void EnvironmentMapCreator::Create(const GLCubemap * cubemap, EnvironmentMap * envMap)
+void EnvironmentMapCreator::Create(const GLCubemap * cubemap, EnvironmentMap * envMap, bool irradiance_only)
 {	
-	if (envMap->reflection == nullptr)
+	if (irradiance_only)
 	{
-		envMap->reflection = std::unique_ptr<ReflectionMap>(new ReflectionMap);
+		CreateSH(envMap->shCoefficients, cubemap->tex_id);
 	}
-	CreateReflection(*envMap->reflection, cubemap);
-	CreateSH(envMap->shCoefficients, m_tex_src);
+	else
+	{
+		if (envMap->reflection == nullptr)
+		{
+			envMap->reflection = std::unique_ptr<ReflectionMap>(new ReflectionMap);
+		}
+		CreateReflection(*envMap->reflection, cubemap);
+		CreateSH(envMap->shCoefficients, m_tex_src);
+	}
 
 }
 
-void EnvironmentMapCreator::Create(const CubeImage* image, EnvironmentMap* envMap)
+void EnvironmentMapCreator::Create(const CubeImage* image, EnvironmentMap* envMap, bool irradiance_only)
 {
 	GLCubemap cubemap;
 	cubemap.load_memory_rgba(image->images[0].width(), image->images[0].height(),
 		image->images[0].data(), image->images[1].data(), image->images[2].data(), image->images[3].data(), image->images[4].data(), image->images[5].data());
-	Create(&cubemap, envMap);
+	Create(&cubemap, envMap, irradiance_only);
 }
 
-void EnvironmentMapCreator::Create(const CubeBackground* background, EnvironmentMap* envMap)
+void EnvironmentMapCreator::Create(const CubeBackground* background, EnvironmentMap* envMap, bool irradiance_only)
 {
-	Create(&background->cubemap, envMap);
+	Create(&background->cubemap, envMap, irradiance_only);
 }
 
-void EnvironmentMapCreator::Create(const CubeRenderTarget* target, EnvironmentMap* envMap)
+void EnvironmentMapCreator::Create(const CubeRenderTarget* target, EnvironmentMap* envMap, bool irradiance_only)
 {
-	Create(target->m_cube_map.get(), envMap);
+	Create(target->m_cube_map.get(), envMap, irradiance_only);
 }

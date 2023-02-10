@@ -4768,10 +4768,11 @@ function string_to_boolean(string) {
 
 class EnvMapGen
 {
-    constructor(doc, proxy, xml_node)
+    constructor(doc, proxy, xml_node, irradiance_only = false)
     {
         this.doc = doc;
         this.xml_node = xml_node;
+        this.irradiance_only = irradiance_only;
         
         this.cube_target = new CubeRenderTarget(128,128);
         this.envMapCreator = new EnvironmentMapCreator();
@@ -4797,7 +4798,7 @@ class EnvMapGen
         
         renderer.renderCube(this.doc.scene, this.cube_target, new Vector3(x, y,z));
         
-        let envLight = this.envMapCreator.create(this.cube_target);
+        let envLight = this.envMapCreator.create(this.cube_target, this.irradiance_only);
         if (props.hasOwnProperty('dynamic_map'))
         {
             envLight.dynamicMap = string_to_boolean(props.dynamic_map);
@@ -4808,49 +4809,63 @@ class EnvMapGen
         if (this.iter > 5)
         {
             print("Saving environemnt map.");
-            let down_img = this.cube_target.getCubeImage();
-            
-            let url = "assets/textures";
-            let posx = "env_face0.jpg";
-            let negx = "env_face1.jpg";
-            let posy = "env_face2.jpg";
-            let negy = "env_face3.jpg";
-            let posz = "env_face4.jpg";
-            let negz = "env_face5.jpg";
-            
-            if (props.hasOwnProperty('path'))
+            if (this.irradiance_only)
             {
-                url = props.path;
+                let path_sh = "assets/sh.json";
+                if (props.hasOwnProperty('path_sh'))
+                {
+                    path_sh = props.path_sh;
+                }
+        
+                let text = JSON.stringify(envLight.shCoefficients);
+                fileSaver.saveTextFile(path_sh, text);
             }
-            if (props.hasOwnProperty('posx'))
+            else
             {
-                posx = props.posx;
+                let down_img = this.cube_target.getCubeImage();
+                
+                let url = "assets/textures";
+                let posx = "env_face0.jpg";
+                let negx = "env_face1.jpg";
+                let posy = "env_face2.jpg";
+                let negy = "env_face3.jpg";
+                let posz = "env_face4.jpg";
+                let negz = "env_face5.jpg";
+                
+                if (props.hasOwnProperty('path'))
+                {
+                    url = props.path;
+                }
+                if (props.hasOwnProperty('posx'))
+                {
+                    posx = props.posx;
+                }
+                if (props.hasOwnProperty('negx'))
+                {
+                    negx = props.negx;
+                }
+                if (props.hasOwnProperty('posy'))
+                {
+                    posy = props.posy;
+                }
+                if (props.hasOwnProperty('negy'))
+                {
+                    negy = props.negy;
+                }
+                if (props.hasOwnProperty('posz'))
+                {
+                    posz = props.posz;
+                }
+                if (props.hasOwnProperty('negz'))
+                {
+                    negz = props.negz;
+                }
+                        
+                imageSaver.saveCubeToFile(down_img, 
+                    url+"/"+posx, url+"/"+negx, 
+                    url+"/"+posy, url+"/"+negy, 
+                    url+"/"+posz, url+"/"+negz);
             }
-            if (props.hasOwnProperty('negx'))
-            {
-                negx = props.negx;
-            }
-            if (props.hasOwnProperty('posy'))
-            {
-                posy = props.posy;
-            }
-            if (props.hasOwnProperty('negy'))
-            {
-                negy = props.negy;
-            }
-            if (props.hasOwnProperty('posz'))
-            {
-                posz = props.posz;
-            }
-            if (props.hasOwnProperty('negz'))
-            {
-                negz = props.negz;
-            }
-                    
-            imageSaver.saveCubeToFile(down_img, 
-                url+"/"+posx, url+"/"+negx, 
-                url+"/"+posy, url+"/"+negy, 
-                url+"/"+posz, url+"/"+negz);
             
             this.doc.env_gen = null;
         }
@@ -5443,59 +5458,84 @@ const create_cube_env_light = (doc, props) => {
     proxy.setColor(0.7,0.0,0.7);
     doc.scene.addWidget(proxy);
     
-    let url = "assets/textures";
-    let posx = "env_face0.jpg";
-    let negx = "env_face1.jpg";
-    let posy = "env_face2.jpg";
-    let negy = "env_face3.jpg";
-    let posz = "env_face4.jpg";
-    let negz = "env_face5.jpg";
-    
-    if (props.hasOwnProperty('path'))
+    let irradiance_only = false;
+    if (props.hasOwnProperty('irradiance_only'))
     {
-        url = props.path;
-    }
-    if (props.hasOwnProperty('posx'))
-    {
-        posx = props.posx;
-    }
-    if (props.hasOwnProperty('negx'))
-    {
-        negx = props.negx;
-    }
-    if (props.hasOwnProperty('posy'))
-    {
-        posy = props.posy;
-    }
-    if (props.hasOwnProperty('negy'))
-    {
-        negy = props.negy;
-    }
-    if (props.hasOwnProperty('posz'))
-    {
-        posz = props.posz;
-    }
-    if (props.hasOwnProperty('negz'))
-    {
-        negz = props.negz;
+        irradiance_only = string_to_boolean(props.irradiance_only);
     }
     
-    let cube_img = imageLoader.loadCubeFromFile(
-        url+"/"+posx, url+"/"+negx, 
-        url+"/"+posy, url+"/"+negy, 
-        url+"/"+posz, url+"/"+negz);
+    if (irradiance_only)
+    {
+        let path_sh = "assets/sh.json";
+        if (props.hasOwnProperty('path_sh'))
+        {
+            path_sh = props.path_sh;
+        }
         
-    let envLight = null;
-    if (cube_img!=null)
-    {
-        let envMapCreator = new EnvironmentMapCreator();
-        envLight = envMapCreator.create(cube_img);
+        let envLight = new EnvironmentMap();
+        let text = fileLoader.loadTextFile(path_sh);
+        if (text!=null)
+        {
+            envLight.shCoefficients = JSON.parse(text);
+        }
+        doc.scene.indirectLight = envLight;
     }
     else
     {
-        envLight = new EnvironmentMap();
+        let url = "assets/textures";
+        let posx = "env_face0.jpg";
+        let negx = "env_face1.jpg";
+        let posy = "env_face2.jpg";
+        let negy = "env_face3.jpg";
+        let posz = "env_face4.jpg";
+        let negz = "env_face5.jpg";
+        
+        if (props.hasOwnProperty('path'))
+        {
+            url = props.path;
+        }
+        if (props.hasOwnProperty('posx'))
+        {
+            posx = props.posx;
+        }
+        if (props.hasOwnProperty('negx'))
+        {
+            negx = props.negx;
+        }
+        if (props.hasOwnProperty('posy'))
+        {
+            posy = props.posy;
+        }
+        if (props.hasOwnProperty('negy'))
+        {
+            negy = props.negy;
+        }
+        if (props.hasOwnProperty('posz'))
+        {
+            posz = props.posz;
+        }
+        if (props.hasOwnProperty('negz'))
+        {
+            negz = props.negz;
+        }
+        
+        let cube_img = imageLoader.loadCubeFromFile(
+            url+"/"+posx, url+"/"+negx, 
+            url+"/"+posy, url+"/"+negy, 
+            url+"/"+posz, url+"/"+negz);
+            
+        let envLight = null;
+        if (cube_img!=null)
+        {
+            let envMapCreator = new EnvironmentMapCreator();
+            envLight = envMapCreator.create(cube_img);
+        }
+        else
+        {
+            envLight = new EnvironmentMap();
+        }
+        doc.scene.indirectLight = envLight;
     }
-    doc.scene.indirectLight = envLight;
     
     return proxy;
 };
@@ -5614,6 +5654,13 @@ const tuning_cube_env_light = (doc, obj, input) =>{
     }
     
     let reload = false;
+    
+    if ("irradiance_only" in input)
+    {
+        props.irradiance_only = input.irradiance_only;
+        reload = true;
+    }
+    
     if ("path" in input)
     {
         props.path = input.path;
@@ -5649,32 +5696,99 @@ const tuning_cube_env_light = (doc, obj, input) =>{
         props.negz = input.negz;
         reload = true;
     }
+    
+    if ("path_sh" in input)
+    {
+        props.path_sh = input.path_sh;
+        reload = true;
+    }
+    
     if (reload)
     {
-        const url = props.path;
-
-        let cube_img = imageLoader.loadCubeFromFile(
-            url+"/"+props.posx, url+"/"+props.negx, 
-            url+"/"+props.posy, url+"/"+props.negy, 
-            url+"/"+props.posz, url+"/"+props.negz);
-            
-        let envLight = null;
-        if (cube_img!=null)
+        let irradiance_only = false;
+        if (props.hasOwnProperty('irradiance_only'))
         {
-            let envMapCreator = new EnvironmentMapCreator();
-            envLight = envMapCreator.create(cube_img);
+            irradiance_only = string_to_boolean(props.irradiance_only);
+        }
+        
+        if (irradiance_only )
+        {
+            let path_sh = "assets/sh.json";
+            if (props.hasOwnProperty('path_sh'))
+            {
+                path_sh = props.path_sh;
+            }
+            
+            let envLight = new EnvironmentMap();
+            let text = fileLoader.loadTextFile(path_sh);
+            if (text!=null)
+            {
+                envLight.shCoefficients = JSON.parse(text);
+            }
+            doc.scene.indirectLight = envLight;
         }
         else
         {
-            envLight = new EnvironmentMap();
+            let url = "assets/textures";
+            let posx = "env_face0.jpg";
+            let negx = "env_face1.jpg";
+            let posy = "env_face2.jpg";
+            let negy = "env_face3.jpg";
+            let posz = "env_face4.jpg";
+            let negz = "env_face5.jpg";
+            
+            if (props.hasOwnProperty('path'))
+            {
+                url = props.path;
+            }
+            if (props.hasOwnProperty('posx'))
+            {
+                posx = props.posx;
+            }
+            if (props.hasOwnProperty('negx'))
+            {
+                negx = props.negx;
+            }
+            if (props.hasOwnProperty('posy'))
+            {
+                posy = props.posy;
+            }
+            if (props.hasOwnProperty('negy'))
+            {
+                negy = props.negy;
+            }
+            if (props.hasOwnProperty('posz'))
+            {
+                posz = props.posz;
+            }
+            if (props.hasOwnProperty('negz'))
+            {
+                negz = props.negz;
+            }
+            
+            let cube_img = imageLoader.loadCubeFromFile(
+                url+"/"+posx, url+"/"+negx, 
+                url+"/"+posy, url+"/"+negy, 
+                url+"/"+posz, url+"/"+negz);
+                
+            let envLight = null;
+            if (cube_img!=null)
+            {
+                let envMapCreator = new EnvironmentMapCreator();
+                envLight = envMapCreator.create(cube_img);
+            }
+            else
+            {
+                envLight = new EnvironmentMap();
+            }
+            
+            if (props.hasOwnProperty('dynamic_map'))
+            {
+                envLight.dynamicMap = string_to_boolean(props.dynamic_map);
+            }
+            
+            doc.scene.indirectLight = envLight;
         }
-        
-        if (props.hasOwnProperty('dynamic_map'))
-        {
-            envLight.dynamicMap = string_to_boolean(props.dynamic_map);
-        }
-        
-        doc.scene.indirectLight = envLight;
     }
     return "";
 };
@@ -5753,14 +5867,23 @@ const tuning_probe_grid =  (doc, obj, input) =>{
 const generate_cube_env_light = (doc, obj, input) =>{
     let node = doc.internal_index[obj.uuid].xml_node;
     let props = node.attributes;
-    props.path = input.path;
-    props.posx = input.posx;
-    props.negx = input.negx;
-    props.posy = input.posy;
-    props.negy = input.negy;
-    props.posz = input.posz;
-    props.negz = input.negz;
-    doc.env_gen = new EnvMapGen(doc, obj, node);
+    let irradiance_only = false;
+    if (props.hasOwnProperty('irradiance_only'))
+    {
+        irradiance_only = string_to_boolean(props.irradiance_only);
+    }
+    
+    if (!irradiance_only)
+    {
+        props.path = input.path;
+        props.posx = input.posx;
+        props.negx = input.negx;
+        props.posy = input.posy;
+        props.negy = input.negy;
+        props.posz = input.posz;
+        props.negz = input.negz;
+    }
+    doc.env_gen = new EnvMapGen(doc, obj, node, irradiance_only);
 };
 
 const generate_probe_grid = (doc, obj, input) =>{

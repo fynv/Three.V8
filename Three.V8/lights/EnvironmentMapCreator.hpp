@@ -50,22 +50,28 @@ void WrapperEnvironmentMapCreator::Create(const v8::FunctionCallbackInfo<v8::Val
 	EnvironmentMap* self = lctx.jobj_to_obj<EnvironmentMap>(holder);	
 
 	v8::Local<v8::Object> holder_image = info[0].As<v8::Object>();
+
+	bool irradiance_only = false;
+	if (info.Length() > 1)
+	{
+		irradiance_only = info[1].As<v8::Boolean>()->Value();
+	}
 	
 	std::string clsname = lctx.jstr_to_str(holder_image->GetConstructorName());
 	if (clsname == "CubeImage")
 	{
 		CubeImage* image = lctx.jobj_to_obj<CubeImage>(holder_image);
-		creator->Create(image, self);
+		creator->Create(image, self, irradiance_only);
 	}
 	else if (clsname == "CubeBackground")
 	{
 		CubeBackground* background = lctx.jobj_to_obj<CubeBackground>(holder_image);
-		creator->Create(background, self);
+		creator->Create(background, self, irradiance_only);
 	}
 	else  if (clsname == "CubeRenderTarget")
 	{
 		CubeRenderTarget* target = lctx.jobj_to_obj<CubeRenderTarget>(holder_image);		
-		creator->Create(target, self);
+		creator->Create(target, self, irradiance_only);
 	}
 
 	info.GetReturnValue().Set(holder);
