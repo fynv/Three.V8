@@ -197,6 +197,7 @@
     <ClCompile Include="renderers\routines\SkinUpdate.cpp" />
     <ClCompile Include="renderers\routines\StandardRoutine.cpp" />
     <ClCompile Include="renderers\routines\WeightedOIT.cpp" />
+    <ClCompile Include="savers\FileSaver.cpp" />
     <ClCompile Include="savers\ImageSaver.cpp" />
     <ClCompile Include="savers\ProbeGridSaver.cpp" />
     <ClCompile Include="scenes\Fog.cpp" />
@@ -285,6 +286,7 @@
     <ClInclude Include="renderers\routines\SkinUpdate.h" />
     <ClInclude Include="renderers\routines\StandardRoutine.h" />
     <ClInclude Include="renderers\routines\WeightedOIT.h" />
+    <ClInclude Include="savers\FileSaver.h" />
     <ClInclude Include="savers\ImageSaver.h" />
     <ClInclude Include="savers\ProbeGridSaver.h" />
     <ClInclude Include="scenes\Fog.h" />

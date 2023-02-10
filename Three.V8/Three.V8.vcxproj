@@ -179,6 +179,7 @@
     <ClInclude Include="renderers\CubeRenderTarget.hpp" />
     <ClInclude Include="renderers\GLRenderer.hpp" />
     <ClInclude Include="renderers\GLRenderTarget.hpp" />
+    <ClInclude Include="savers\FileSaver.hpp" />
     <ClInclude Include="savers\ImageSaver.hpp" />
     <ClInclude Include="savers\ProbeGridSaver.hpp" />
     <ClInclude Include="scenes\Fog.hpp" />

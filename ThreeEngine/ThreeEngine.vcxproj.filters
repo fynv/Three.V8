@@ -357,6 +357,9 @@
     <ClCompile Include="lights\ProbeGridWidget.cpp">
       <Filter>Source Files\lights</Filter>
     </ClCompile>
+    <ClCompile Include="savers\FileSaver.cpp">
+      <Filter>Source Files\savers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -625,6 +628,9 @@
     </ClInclude>
     <ClInclude Include="lights\ProbeGridWidget.h">
       <Filter>Header Files\lights</Filter>
+    </ClInclude>
+    <ClInclude Include="savers\FileSaver.h">
+      <Filter>Header Files\savers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

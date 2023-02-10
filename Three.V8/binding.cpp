@@ -66,6 +66,7 @@ V8VM::~V8VM()
 #include "loaders/ImageLoader.hpp"
 #include "loaders/GLTFLoader.hpp"
 #include "loaders/ProbeGridLoader.hpp"
+#include "savers/FileSaver.hpp"
 #include "savers/ImageSaver.hpp"
 #include "savers/ProbeGridSaver.hpp"
 
@@ -171,6 +172,7 @@ GlobalDefinitions GameContext::s_globals =
 		{ "imageLoader", WrapperImageLoader::create_template},
 		{ "gltfLoader", WrapperGLTFLoader::create_template},	
 		{ "probeGridLoader", WrapperProbeGridLoader::create_template},
+		{ "fileSaver", WrapperFileSaver::create_template},
 		{ "imageSaver", WrapperImageSaver::create_template},
 		{ "probeGridSaver", WrapperProbeGridSaver::create_template},
 
