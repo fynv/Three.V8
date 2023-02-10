@@ -11,7 +11,6 @@ public:
 	~EnvironmentMap();
 
 	glm::vec4 shCoefficients[9];
-	ReflectionMap reflection;
 
 	GLDynBuffer m_constant;
 	void updateConstant();

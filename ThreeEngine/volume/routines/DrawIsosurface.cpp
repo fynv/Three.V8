@@ -224,9 +224,6 @@ float computeShadowCoef(in mat4 VPSB, sampler2D shadowTex, in vec3 world_pos)
 #endif
 
 
-#if HAS_ENVIRONMENT_MAP || HAS_PROBE_GRID
-layout (location = LOCATION_TEX_REFLECTION_MAP) uniform samplerCube uReflectionMap;
-
 vec3 shGetIrradianceAt( in vec3 normal, in vec4 shCoefficients[ 9 ] ) {
 
 	// normal is assumed to have unit length
@@ -251,6 +248,9 @@ vec3 shGetIrradianceAt( in vec3 normal, in vec4 shCoefficients[ 9 ] ) {
 	return result;
 }
 
+#if HAS_REFLECTION_MAP
+layout (location = LOCATION_TEX_REFLECTION_MAP) uniform samplerCube uReflectionMap;
+
 vec3 GetReflectionAt(in vec3 reflectVec, in samplerCube reflectMap, float roughness)
 {
 	float gloss;
@@ -269,7 +269,7 @@ vec3 GetReflectionAt(in vec3 reflectVec, in samplerCube reflectMap, float roughn
 	return textureLod(reflectMap, reflectVec, mip).xyz;
 }
 
-vec3 getRadiance(in vec3 reflectVec, float roughness)
+vec3 getRadiance(in vec3 world_pos, in vec3 reflectVec, float roughness)
 {
 	return GetReflectionAt(reflectVec, uReflectionMap, roughness);
 }
@@ -292,6 +292,13 @@ vec3 getIrradiance(in vec3 world_pos, in vec3 normal)
 {
 	return shGetIrradianceAt(normal, uSHCoefficients);
 }
+
+#if !HAS_REFLECTION_MAP
+vec3 getRadiance(in vec3 world_pos, in vec3 reflectVec, float roughness)
+{
+	return shGetIrradianceAt(reflectVec, uSHCoefficients) * RECIPROCAL_PI;
+}
+#endif
 
 #endif
 
@@ -372,6 +379,14 @@ vec3 getIrradiance(in vec3 world_pos, in vec3 normal)
 	return vec3(0.0);
 }
 
+
+#if !HAS_REFLECTION_MAP
+vec3 getRadiance(in vec3 world_pos, in vec3 reflectVec, float roughness)
+{
+	return getIrradiance(world_pos, reflectVec) * RECIPROCAL_PI;
+}
+#endif
+
 #endif
 
 #if HAS_AMBIENT_LIGHT
@@ -391,10 +406,12 @@ vec3 getIrradiance(in vec3 world_pos, in vec3 normal)
 	return uAmbientColor.xyz * PI;
 }
 
-vec3 getRadiance(in vec3 reflectVec, float roughness)
+#if !HAS_REFLECTION_MAP
+vec3 getRadiance(in vec3 world_pos, in vec3 reflectVec, float roughness)
 {
 	return uAmbientColor.xyz;
 }
+#endif
 
 #endif
 
@@ -422,10 +439,12 @@ vec3 getIrradiance(in vec3 world_pos, in vec3 normal)
 	return HemisphereColor(normal) * PI;
 }
 
-vec3 getRadiance(in vec3 reflectVec, float roughness)
+#if !HAS_REFLECTION_MAP
+vec3 getRadiance(in vec3 world_pos, in vec3 reflectVec, float roughness)
 {
 	return HemisphereColor(reflectVec);
 }
+#endif
 
 #endif
 
@@ -536,7 +555,7 @@ vec3 get_shading(in vec3 pos)
 		reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );
 
 		vec3 irradiance = getIrradiance(pos_world.xyz, norm);
-		vec3 radiance = getRadiance(reflectVec, material.roughness);
+		vec3 radiance = getRadiance(pos_world.xyz, reflectVec, material.roughness);
 
 		diffuse += material.diffuseColor * irradiance * RECIPROCAL_PI;
 		specular +=  material.specularColor * radiance;
@@ -845,8 +864,9 @@ DrawIsosurface::DrawIsosurface(const Options& options) : m_options(options)
 		defines += "#define HAS_INDIRECT_LIGHT 0\n";
 	}
 
-	if (options.has_environment_map || options.has_probe_grid)
+	if (options.has_reflection_map)
 	{
+		defines += "#define HAS_REFLECTION_MAP 1\n";
 		m_bindings.location_tex_reflection_map = m_bindings.location_tex_directional_shadow + 1;
 		{
 			char line[64];
@@ -856,6 +876,7 @@ DrawIsosurface::DrawIsosurface(const Options& options) : m_options(options)
 	}
 	else
 	{
+		defines += "#define HAS_REFLECTION_MAP 0\n";
 		m_bindings.location_tex_reflection_map = m_bindings.location_tex_directional_shadow;
 	}
 
@@ -1147,17 +1168,10 @@ void DrawIsosurface::render(const RenderParams& params)
 		glUniform1iv(start_idx, m_options.num_directional_shadows, values.data());
 	}
 
-	if (m_options.has_environment_map)
+	if (m_options.has_reflection_map)
 	{
 		glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_reflection_map);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, params.lights->environment_map->reflection.tex_id);
-		glUniform1i(m_bindings.location_tex_reflection_map, m_bindings.location_tex_reflection_map);
-	}
-
-	if (m_options.has_probe_grid)
-	{
-		glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_reflection_map);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, params.lights->probe_grid->reflection.tex_id);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, params.lights->reflection_map->tex_id);
 		glUniform1i(m_bindings.location_tex_reflection_map, m_bindings.location_tex_reflection_map);
 	}
 

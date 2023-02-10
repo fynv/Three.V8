@@ -159,6 +159,12 @@ class ProbeGridBaker
         this.probe_grid.setCoverageMin(proxy.coverageMin);
         this.probe_grid.setCoverageMax(proxy.coverageMax);
         this.probe_grid.ypower = proxy.ypower;
+        
+        let props = this.xml_node.attributes;
+        if (props.hasOwnProperty('dynamic_map'))
+        {
+            this.probe_grid.dynamicMap = string_to_boolean(props.dynamic_map);
+        }
         this.doc.scene.indirectLight = this.probe_grid;
         
         this.probe_idx = new Vector3(0,0,0);

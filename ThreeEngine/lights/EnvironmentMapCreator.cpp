@@ -720,7 +720,11 @@ void EnvironmentMapCreator::CreateReflection(ReflectionMap& reflection, const GL
 
 void EnvironmentMapCreator::Create(const GLCubemap * cubemap, EnvironmentMap * envMap)
 {	
-	CreateReflection(envMap->reflection, cubemap);
+	if (envMap->reflection == nullptr)
+	{
+		envMap->reflection = std::unique_ptr<ReflectionMap>(new ReflectionMap);
+	}
+	CreateReflection(*envMap->reflection, cubemap);
 	CreateSH(envMap->shCoefficients, m_tex_src);
 
 }

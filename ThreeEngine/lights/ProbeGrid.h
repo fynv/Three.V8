@@ -22,6 +22,4 @@ public:
 
 	GLDynBuffer m_constant;
 	void updateConstant();
-	
-	ReflectionMap reflection;
 };

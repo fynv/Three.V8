@@ -21,6 +21,7 @@ struct Lights
 
 	std::vector<unsigned> directional_shadow_texs;
 
+	const ReflectionMap* reflection_map = nullptr;
 	const EnvironmentMap* environment_map = nullptr;
 	const ProbeGrid* probe_grid = nullptr;
 	const AmbientLight* ambient_light = nullptr;

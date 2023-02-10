@@ -6,7 +6,7 @@
 class CubeRenderTarget;
 class PerspectiveCamera;
 class GLSpaceProbeTarget;
-class EnvironmentMap;
+class ReflectionMap;
 class IndirectLight
 {
 public:
@@ -27,7 +27,7 @@ public:
 	std::unique_ptr<GLSpaceProbeTarget> probe_target;
 	std::unique_ptr<PerspectiveCamera> probe_camera;
 	std::unique_ptr<CubeRenderTarget> cube_target;
-	std::unique_ptr<EnvironmentMap> env_map;
+	std::unique_ptr<ReflectionMap> reflection;
 
 	void set_dynamic_map(bool on);
 };

@@ -457,10 +457,6 @@ float computePCSSShadowCoef(in DirectionalShadow shadow, sampler2D shadowTex)
 
 static std::string g_frag_part2 =
 R"(
-#if HAS_ENVIRONMENT_MAP || HAS_PROBE_GRID
-
-layout (location = LOCATION_TEX_REFLECTION_MAP) uniform samplerCube uReflectionMap;
-
 vec3 shGetIrradianceAt( in vec3 normal, in vec4 shCoefficients[ 9 ] ) {
 
 	// normal is assumed to have unit length
@@ -485,6 +481,9 @@ vec3 shGetIrradianceAt( in vec3 normal, in vec4 shCoefficients[ 9 ] ) {
 	return result;
 }
 
+#if HAS_REFLECTION_MAP
+
+layout (location = LOCATION_TEX_REFLECTION_MAP) uniform samplerCube uReflectionMap;
 
 vec3 GetReflectionAt(in vec3 reflectVec, in samplerCube reflectMap, float roughness)
 {
@@ -527,6 +526,13 @@ vec3 getIrradiance(in vec3 normal)
 {
 	return shGetIrradianceAt(normal, uSHCoefficients);
 }
+
+#if !HAS_REFLECTION_MAP
+vec3 getRadiance(in vec3 reflectVec, float roughness)
+{
+	return shGetIrradianceAt(reflectVec, uSHCoefficients) * RECIPROCAL_PI;
+}
+#endif
 
 #endif
 
@@ -606,6 +612,14 @@ vec3 getIrradiance(in vec3 normal)
 	return vec3(0.0);
 }
 
+#if !HAS_REFLECTION_MAP
+vec3 getRadiance(in vec3 reflectVec, float roughness)
+{
+	return getIrradiance(reflectVec) * RECIPROCAL_PI;
+}
+#endif
+
+
 #endif
 
 #if HAS_AMBIENT_LIGHT
@@ -625,10 +639,12 @@ vec3 getIrradiance(in vec3 normal)
 	return uAmbientColor.xyz * PI;
 }
 
+#if !HAS_REFLECTION_MAP
 vec3 getRadiance(in vec3 reflectVec, float roughness)
 {
 	return uAmbientColor.xyz;
 }
+#endif
 
 #endif
 
@@ -656,10 +672,13 @@ vec3 getIrradiance(in vec3 normal)
 	return HemisphereColor(normal) * PI;
 }
 
+#if !HAS_REFLECTION_MAP
 vec3 getRadiance(in vec3 reflectVec, float roughness)
 {
 	return HemisphereColor(reflectVec);
 }
+#endif
+
 #endif
 
 #if HAS_FOG
@@ -1323,8 +1342,9 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 		defines += "#define HAS_INDIRECT_LIGHT 0\n";
 	}
 
-	if (options.has_environment_map || options.has_probe_grid)
+	if (options.has_reflection_map)
 	{
+		defines += "#define HAS_REFLECTION_MAP 1\n";
 		bindings.location_tex_reflection_map = bindings.location_tex_directional_shadow + 1;
 		{
 			char line[64];
@@ -1334,6 +1354,7 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	}
 	else
 	{
+		defines += "#define HAS_REFLECTION_MAP 0\n";
 		bindings.location_tex_reflection_map = bindings.location_tex_directional_shadow;
 	}
 
@@ -1613,18 +1634,12 @@ void StandardRoutine::render(const RenderParams& params)
 		glUniform1iv(start_idx, m_options.num_directional_shadows, values.data());
 	}	
 
-	if (m_options.has_environment_map)
+	if (m_options.has_reflection_map)
 	{
 		glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_reflection_map);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, params.lights->environment_map->reflection.tex_id);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, params.lights->reflection_map->tex_id);
 		glUniform1i(m_bindings.location_tex_reflection_map, m_bindings.location_tex_reflection_map);
-	}
 
-	if (m_options.has_probe_grid)
-	{
-		glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_reflection_map);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, params.lights->probe_grid->reflection.tex_id);
-		glUniform1i(m_bindings.location_tex_reflection_map, m_bindings.location_tex_reflection_map);
 	}
 
 	if (params.primitive->index_buf != nullptr)

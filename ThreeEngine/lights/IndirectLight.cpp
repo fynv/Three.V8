@@ -25,22 +25,11 @@ void IndirectLight::set_dynamic_map(bool on)
 		this->cube_target = std::unique_ptr<CubeRenderTarget>(new CubeRenderTarget);
 		this->cube_target->update_framebuffers(128, 128);
 		this->probe_target = std::unique_ptr<GLSpaceProbeTarget>(new GLSpaceProbeTarget);
-		this->probe_camera = std::unique_ptr<PerspectiveCamera>(new PerspectiveCamera(90.0f, 1.0f, 0.1f, 100.0f));
-
-		ProbeGrid* probe_grid = dynamic_cast<ProbeGrid*>(this);
-		if (probe_grid == nullptr)
-		{
-			this->env_map = std::unique_ptr<EnvironmentMap>(new EnvironmentMap);
-		}
-		else
-		{
-			this->env_map = nullptr;
-		}
+		this->probe_camera = std::unique_ptr<PerspectiveCamera>(new PerspectiveCamera(90.0f, 1.0f, 0.1f, 100.0f));	
 	}
 	else
 	{
 		this->cube_target = nullptr;
 		this->probe_target = nullptr;
-		this->env_map = nullptr;
 	}
 }

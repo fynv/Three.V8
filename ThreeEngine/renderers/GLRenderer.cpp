@@ -230,6 +230,7 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 	options.has_glossiness_map = material->tex_idx_glossinessMap >= 0;
 	options.num_directional_lights = lights->num_directional_lights;
 	options.num_directional_shadows = lights->num_directional_shadows;
+	options.has_reflection_map = lights->reflection_map != nullptr;
 	options.has_environment_map = lights->environment_map != nullptr;
 	options.has_probe_grid = lights->probe_grid != nullptr;
 	options.has_ambient_light = lights->ambient_light != nullptr;
@@ -398,6 +399,7 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 	options.msaa = target.msaa();
 	options.num_directional_lights = lights.num_directional_lights;
 	options.num_directional_shadows = lights.num_directional_shadows;
+	options.has_reflection_map = lights.reflection_map != nullptr;
 	options.has_environment_map = lights.environment_map != nullptr;
 	options.has_probe_grid = lights.probe_grid != nullptr;
 	options.has_ambient_light = lights.ambient_light != nullptr;
@@ -1045,6 +1047,7 @@ void GLRenderer::_pre_render(Scene& scene)
 		}
 	}
 
+	lights.reflection_map = nullptr;
 	lights.environment_map = nullptr;
 	lights.probe_grid = nullptr;
 	lights.ambient_light = nullptr;
@@ -1052,6 +1055,7 @@ void GLRenderer::_pre_render(Scene& scene)
 
 	while (scene.indirectLight)
 	{
+		lights.reflection_map = scene.indirectLight->reflection.get();
 		{
 			EnvironmentMap* envMap = dynamic_cast<EnvironmentMap*>(scene.indirectLight);
 			if (envMap != nullptr)
@@ -1624,6 +1628,15 @@ void GLRenderer::_render_cube(Scene& scene, CubeRenderTarget& target, const glm:
 
 void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 {
+	if (scene.indirectLight != nullptr && scene.indirectLight->dynamic_map)
+	{
+		IndirectLight* light = scene.indirectLight;
+		if (light->reflection == nullptr)
+		{
+			light->reflection = std::unique_ptr<ReflectionMap>(new ReflectionMap);
+		}
+
+	}
 	_pre_render(scene);
 
 	if (scene.indirectLight != nullptr && scene.indirectLight->dynamic_map)
@@ -1645,24 +1658,8 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 		{
 			EnvCreator = std::unique_ptr<EnvironmentMapCreator>(new EnvironmentMapCreator);
 		}
-
-		Lights& lights = scene.lights;
-
-		if (lights.probe_grid == nullptr)
-		{
-			EnvironmentMap* env_map = light->env_map.get();
-			EnvCreator->Create(light->cube_target.get(), env_map);
-			env_map->updateConstant();
-
-			lights.environment_map = env_map;
-			lights.ambient_light = nullptr;
-			lights.hemisphere_light = nullptr;
-		}
-		else
-		{
-			ProbeGrid* probe_grid = (ProbeGrid*)light;
-			EnvCreator->CreateReflection(probe_grid->reflection, light->cube_target->m_cube_map.get());
-		}
+		
+		EnvCreator->CreateReflection(*light->reflection, light->cube_target->m_cube_map.get());
 	
 	}
 	_render(scene, camera, target, true);
@@ -1867,6 +1864,7 @@ void GLRenderer::render_primitive_lighting(const LightingRoutine::RenderParams& 
 	options.has_normal_map = material->tex_idx_normalMap >= 0;
 	options.num_directional_lights = lights->num_directional_lights;
 	options.num_directional_shadows = lights->num_directional_shadows;
+	options.has_reflection_map = lights->reflection_map != nullptr;
 	options.has_environment_map = lights->environment_map != nullptr;
 	options.has_probe_grid = lights->probe_grid != nullptr;
 	options.has_ambient_light = lights->ambient_light != nullptr;
