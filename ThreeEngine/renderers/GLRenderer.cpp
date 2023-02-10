@@ -1210,8 +1210,18 @@ void GLRenderer::probe_space_center(Scene& scene, Camera& camera, GLSpaceProbeTa
 			pos_view /= pos_view.w;			
 
 			float dis = glm::length(glm::vec3(pos_view));
-			view_sum += glm::vec3(pos_view)* 0.5f * dis;
-			view_sum_weight += dis;
+			glm::vec3 abs_dir = glm::abs(pos_view);
+			{
+				float max_comp = abs_dir.x;
+				if (abs_dir.y > max_comp); max_comp = abs_dir.y;
+				if (abs_dir.z > max_comp); max_comp = abs_dir.z;
+				abs_dir /= max_comp;
+			}
+			float lengthSq = glm::dot(abs_dir, abs_dir);
+			float weight = (dis *dis*dis)/ (sqrtf(lengthSq));
+
+			view_sum += glm::vec3(pos_view) * 3.0f/4.0f * weight;
+			view_sum_weight += weight;
 		}
 	}
 
@@ -1646,9 +1656,16 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 
 		camera.updateMatrixWorld(false);
 		glm::vec3 cam_pos = camera.getWorldPosition();
-		glm::vec3 pos = probe_space_center_cube(scene, camera.getWorldPosition(), p_cam->z_near, p_cam->z_far, *light);
-		pos.x = 0.5f * pos.x + 0.5f * cam_pos.x;		
+		// glm::vec3 pos = probe_space_center_cube(scene, camera.getWorldPosition(), p_cam->z_near, p_cam->z_far, *light);
+
+		glm::vec3 sum = glm::vec3(0.0f);
+		float sum_weight = 0.0f;
+		probe_space_center(scene, camera, *light->probe_target, target.m_width, target.m_height, sum, sum_weight);
+		glm::vec3 pos = sum / sum_weight;
+		
+		pos.x = 0.5f * pos.x + 0.5f * cam_pos.x;
 		pos.y = cam_pos.y;
+		//pos.y = 0.5f * pos.y + 0.5f * cam_pos.y;
 		pos.z = 0.5f * pos.z + 0.5f * cam_pos.z;
 		light->probe_position = 0.8f * light->probe_position + 0.2f * pos;
 
