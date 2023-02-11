@@ -30,7 +30,7 @@ namespace GameDev
 
             var att = (JObject)jobj["attributes"];
 
-            if (att.ContainsKey("dynamic_map"))
+            if (att.ContainsKey("irradiance_only"))
             {
                 bool irradiance_only = att["irradiance_only"].ToObject<bool>();
                 chk_irr_only.IsChecked = irradiance_only;
