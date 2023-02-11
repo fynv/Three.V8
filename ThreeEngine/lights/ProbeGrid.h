@@ -22,4 +22,9 @@ public:
 
 	GLDynBuffer m_constant;
 	void updateConstant();
+
+	bool record_references = false;
+	std::unique_ptr<GLBuffer> m_ref_buf;
+	void set_record_references(bool record);	
+	void get_references(std::vector<unsigned>& references);
 };

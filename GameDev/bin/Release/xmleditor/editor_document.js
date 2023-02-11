@@ -182,10 +182,21 @@ class ProbeGridBaker
         }
         this.doc.scene.indirectLight = this.probe_grid;
         
-        this.probe_idx = new Vector3(0,0,0);
-        this.iter = 0;
-        this.iterations = iterations;
+        let divisions = this.probe_grid.divisions;
+        this.probe_count = divisions.x*divisions.y*divisions.z;
         
+        this.update_lst = [];
+        this.diff_stack = [];
+        
+        for (let i=0; i< this.probe_count; i++)
+        {
+            this.update_lst.push(i);
+        }
+        this.update_count = this.update_lst.length;
+        this.probe_idx = 0;
+        
+        this.iterations = iterations;
+        this.iter = 0;
         this.check_time = now();
         
     }
@@ -196,45 +207,78 @@ class ProbeGridBaker
         
         if (frame_time -  this.check_time>=500)
         {
-            let idx = this.probe_idx.x + (this.probe_idx.y +this.probe_idx.z* this.probe_grid.divisions.y)* this.probe_grid.divisions.x;
-            let total =  this.probe_grid.divisions.x * this.probe_grid.divisions.y * this.probe_grid.divisions.z;
-            print(`Building probe-grid, iteration: ${this.iter+1}/${this.iterations}, probe: ${idx+1}/${total}`);
+            print(`Building probe-grid, iteration: ${this.iter+1}/${this.iterations}, probe: ${this.probe_idx +1}/${this.update_count}`);
             this.check_time = frame_time;
         }
-        
+         
+        let divisions = this.probe_grid.divisions;
+        this.probe_grid.recordReferences = true;
         while(now()-frame_time<10)
         {
             if (this.doc.probe_grid_bake == null) break;
-            renderer.updateProbe(this.doc.scene, this.cube_target, this.probe_grid, this.probe_idx);
-            this.probe_idx.x++;
-            if (this.probe_idx.x>=this.probe_grid.divisions.x)
+            
+            let x = this.update_lst[this.probe_idx];
+            let y = x / divisions.x;
+            let z = y / divisions.y;
+            y = y % divisions.y;
+            x = x % divisions.x;
+            let v_idx = new Vector3(x,y,z);
+            
+            renderer.updateProbe(this.doc.scene, this.cube_target, this.probe_grid, v_idx);
+            this.probe_idx++;
+            if (this.probe_idx>=this.update_count)
             {
-                this.probe_idx.x =0;
-                this.probe_idx.y++;
-                if (this.probe_idx.y>=this.probe_grid.divisions.y)
+                this.probe_idx = 0;
+                this.iter++;
+                
+                if (this.iter < this.iterations)
                 {
-                    this.probe_idx.y =0;
-                    this.probe_idx.z++;
-                    if (this.probe_idx.z>=this.probe_grid.divisions.z)
+                    let ref_arr = this.probe_grid.getReferences();
+                    let new_lst = [];
+                    let diff_lst = [];
+                    for (let i of this.update_lst)
                     {
-                        this.probe_idx.z =0;
-                        this.iter++;
-                        if (this.iter >= this.iterations)
+                        if (ref_arr[i])
                         {
-                            print("Saving probe-grid.");
-                            let props = this.xml_node.attributes;
-                            let probe_data = "assets/probes.dat";
-                            if (props.hasOwnProperty('probe_data')) 
-                            {
-                                probe_data = props.probe_data;
-                            }
-                            probeGridSaver.saveFile(this.probe_grid, probe_data);
-                            this.doc.probe_grid_bake = null;
+                            new_lst.push(i);
+                        }
+                        else
+                        {
+                            diff_lst.push(i);
                         }
                     }
+                    
+                    if (diff_lst.length>0)
+                    {
+                        this.diff_stack.push(diff_lst);
+                    }
+                    
+                    if (this.iter == this.iterations -1)
+                    {
+                        for(let j = this.diff_stack.length-1; j>=0; j--)
+                        {
+                            new_lst = new_lst.concat(this.diff_stack[j]);
+                        }
+                    }
+                    
+                    this.update_lst = new_lst;
+                    this.update_count = this.update_lst.length;
+                }
+                else
+                {
+                    print("Saving probe-grid.");
+                    let props = this.xml_node.attributes;
+                    let probe_data = "assets/probes.dat";
+                    if (props.hasOwnProperty('probe_data')) 
+                    {
+                        probe_data = props.probe_data;
+                    }
+                    probeGridSaver.saveFile(this.probe_grid, probe_data);
+                    this.doc.probe_grid_bake = null;
                 }
             }
         }
+        this.probe_grid.recordReferences = false;
     }
     
 }

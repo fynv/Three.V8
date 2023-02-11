@@ -93,12 +93,21 @@ layout (std430, binding = 3) buffer Probes
 	vec4 bSHCoefficients[];
 };
 
+#if PROBE_REFERENCE_RECORDED
+layout (std430, binding = 4) buffer ProbeReferences
+{
+	uint bReferenced[];
+};
+#endif
 
 void acc_coeffs(inout vec4 coeffs0, in ivec3 vert, in float weight)
 {
 	int idx = vert.x + (vert.y + vert.z*uDivisions.y)*uDivisions.x;
 	int offset = idx*9;
 	coeffs0 += bSHCoefficients[offset]*weight;
+#if PROBE_REFERENCE_RECORDED
+	bReferenced[idx] = 1;
+#endif
 }
 
 
@@ -124,9 +133,12 @@ vec3 getIrradiance(vec3 pos_world)
 			{				
 				vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
 				float weight = w.x * w.y * w.z;
-				sum_weight += weight;
-				ivec3 vert = i_voxel + ivec3(x,y,z);
-				acc_coeffs(coeffs0, vert, weight);
+				if (weight>0.0)
+				{
+					sum_weight += weight;
+					ivec3 vert = i_voxel + ivec3(x,y,z);
+					acc_coeffs(coeffs0, vert, weight);
+				}
 			}
 		}
 	}
@@ -232,6 +244,15 @@ FogRayMarchingEnv::FogRayMarchingEnv(const Options& options) : m_options(options
 		defines += "#define HAS_PROBE_GRID 0\n";
 	}	
 
+	if (options.probe_reference_recorded)
+	{
+		defines += "#define PROBE_REFERENCE_RECORDED 1\n";
+	}
+	else
+	{
+		defines += "#define PROBE_REFERENCE_RECORDED 0\n";		
+	}
+
 	replace(s_frag, "#DEFINES#", defines.c_str());
 
 	GLShader vert_shader(GL_VERTEX_SHADER, g_vertex.c_str());
@@ -245,10 +266,17 @@ void FogRayMarchingEnv::render(const RenderParams& params)
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.constant_camera->m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.constant_fog->m_id);	
 
-	glBindBufferBase(GL_UNIFORM_BUFFER, 2, params.lights->probe_grid->m_constant.m_id);
-	if (params.lights->probe_grid->m_probe_buf != nullptr)
+	if (m_options.has_probe_grid)
 	{
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, params.lights->probe_grid->m_probe_buf->m_id);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 2, params.lights->probe_grid->m_constant.m_id);
+		if (params.lights->probe_grid->m_probe_buf != nullptr)
+		{
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, params.lights->probe_grid->m_probe_buf->m_id);
+		}
+		if (m_options.probe_reference_recorded)
+		{
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, params.lights->probe_grid->m_ref_buf->m_id);
+		}
 	}
 
 	glActiveTexture(GL_TEXTURE0);

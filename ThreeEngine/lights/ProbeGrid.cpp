@@ -33,6 +33,7 @@ void ProbeGrid::allocate_probes()
 	m_probe_buf = std::unique_ptr<GLBuffer>(new GLBuffer(size, GL_SHADER_STORAGE_BUFFER));
 	m_probe_data.resize(9 * num, glm::vec4(0.0f));
 	m_probe_buf->upload(m_probe_data.data());
+	m_ref_buf = nullptr;
 }
 
 void ProbeGrid::updateConstant()
@@ -49,4 +50,30 @@ void ProbeGrid::updateConstant()
 	c.specularHigh = specular_high;
 	c.specularLow = specular_low;
 	m_constant.upload(&c);
+}
+
+
+void ProbeGrid::set_record_references(bool record)
+{
+	if (record == record_references) return;
+	record_references = record;
+	if (record && m_ref_buf == nullptr)
+	{
+		size_t num = divisions.x * divisions.y * divisions.z;		
+		m_ref_buf = std::unique_ptr<GLBuffer>(new GLBuffer(num*sizeof(unsigned), GL_SHADER_STORAGE_BUFFER));
+	}
+}
+
+void ProbeGrid::get_references(std::vector<unsigned>& references)
+{
+	if (m_ref_buf == nullptr) return;
+	size_t num = divisions.x * divisions.y * divisions.z;
+	references.resize(num);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_ref_buf->m_id);
+	glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, num * sizeof(unsigned), references.data());
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	std::vector<unsigned> zeros(num, 0);
+	m_ref_buf->upload(zeros.data());
+
 }

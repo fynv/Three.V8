@@ -556,6 +556,13 @@ layout (std430, binding = BINDING_PROBES) buffer Probes
 	vec4 bSHCoefficients[];
 };
 
+#if PROBE_REFERENCE_RECORDED
+layout (std430, binding = BINDING_PROBE_REFERENCES) buffer ProbeReferences
+{
+	uint bReferenced[];
+};
+#endif
+
 void acc_coeffs(inout vec4 coeffs[9], in ivec3 vert, in float weight)
 {
 	int idx = vert.x + (vert.y + vert.z*uDivisions.y)*uDivisions.x;
@@ -564,6 +571,9 @@ void acc_coeffs(inout vec4 coeffs[9], in ivec3 vert, in float weight)
 	{
 		coeffs[i]+=bSHCoefficients[offset+i]*weight;
 	}
+#if PROBE_REFERENCE_RECORDED
+	bReferenced[idx] = 1;
+#endif
 }
 
 vec3 getIrradiance(in vec3 normal)
@@ -596,8 +606,11 @@ vec3 getIrradiance(in vec3 normal)
 				{
 					vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
 					float weight = w.x * w.y * w.z;
-					sum_weight += weight;
-					acc_coeffs(coeffs, vert, weight);			
+					if (weight>0.0)
+					{
+						sum_weight += weight;
+						acc_coeffs(coeffs, vert, weight);
+					}
 				}
 			}
 		}
@@ -1401,10 +1414,27 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 		bindings.binding_probes = bindings.binding_environment_map;
 	}
 
+	if (options.probe_reference_recorded)
+	{
+		defines += "#define PROBE_REFERENCE_RECORDED 1\n";
+		bindings.binding_probe_references = bindings.binding_probes + 1;
+
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_PROBE_REFERENCES %d\n", bindings.binding_probe_references);
+			defines += line;
+		}
+	}
+	else
+	{
+		defines += "#define PROBE_REFERENCE_RECORDED 0\n";
+		bindings.binding_probe_references = bindings.binding_probes;
+	}
+
 	if (options.has_ambient_light)
 	{
 		defines += "#define HAS_AMBIENT_LIGHT 1\n";
-		bindings.binding_ambient_light = bindings.binding_probes + 1;
+		bindings.binding_ambient_light = bindings.binding_probe_references + 1;
 		{
 			char line[64];
 			sprintf(line, "#define BINDING_AMBIENT_LIGHT %d\n", bindings.binding_ambient_light);
@@ -1414,7 +1444,7 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	else
 	{
 		defines += "#define HAS_AMBIENT_LIGHT 0\n";
-		bindings.binding_ambient_light = bindings.binding_probes;
+		bindings.binding_ambient_light = bindings.binding_probe_references;
 	}
 
 	if (options.has_hemisphere_light)
@@ -1512,6 +1542,10 @@ void StandardRoutine::render(const RenderParams& params)
 		if (params.lights->probe_grid->m_probe_buf != nullptr)
 		{
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, m_bindings.binding_probes, params.lights->probe_grid->m_probe_buf->m_id);
+		}
+		if (m_options.probe_reference_recorded)
+		{
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, m_bindings.binding_probe_references, params.lights->probe_grid->m_ref_buf->m_id);
 		}
 	}
 

@@ -166,6 +166,55 @@ class AnimCrossFader
     }
 }
 
+class ProbeUpdater
+{
+    constructor(doc, probe_grid)
+    {
+        this.doc = doc;
+        
+        probe_grid.recordReferences = true;
+        this.probe_grid = probe_grid;
+        this.cube_target = new CubeRenderTarget(64,64);
+        
+        this.update_set = new Set();
+        this.update_queue = [];
+    }
+    
+    render(renderer)
+    {
+        let ref_arr = this.probe_grid.getReferences();
+        for (let i=0; i<ref_arr.length; i++)
+        {
+            if (ref_arr[i])
+            {
+                if (!this.update_set.has(i))
+                {
+                    this.update_set.add(i);
+                    this.update_queue.push(i);
+                }
+            }
+        }
+        
+        let frame_time = now();
+        let divisions = this.probe_grid.divisions;
+        while(now()-frame_time<10 && this.update_queue.length>0)
+        {
+            let idx = this.update_queue.shift();
+            this.update_set.delete(idx);
+            
+            let x = idx;
+            let y = x / divisions.x;
+            let z = y / divisions.y;
+            y = y % divisions.y;
+            x = x % divisions.x;
+            let v_idx = new Vector3(x,y,z);
+            
+            renderer.updateProbe(this.doc.scene, this.cube_target, this.probe_grid, v_idx);
+        }
+    }
+    
+}
+
 
 // Tags
 const create_default_controls = (doc)=>{
@@ -422,6 +471,7 @@ const sky = {
 const env_light = {
     reset: (doc) => {
         create_default_env_light(doc);
+        doc.probeUpdater = null;
     },
     create: async (doc, props, mode, parent) => {
         let type = "hemisphere"
@@ -559,8 +609,34 @@ const env_light = {
             let probe_grid = probeGridLoader.loadFile(probe_data);
             if (probe_grid == null)
             {
-                probe_grid = new ProbeGrid();                
+                probe_grid = new ProbeGrid();       
+                
+                if (props.hasOwnProperty('divisions')) 
+                {
+                    const divisions = props.divisions.split(',');
+                    probe_grid.setDivisions(parseInt(divisions[0]), parseInt(divisions[1]), parseInt(divisions[2]));
+                }
+                if (props.hasOwnProperty('coverage_min')) 
+                {
+                    const coverage_min = props.coverage_min.split(',');
+                    probe_grid.setCoverageMin(parseFloat(coverage_min[0]), parseFloat(coverage_min[1]), parseFloat(coverage_min[2]));
+                }
+                if (props.hasOwnProperty('coverage_max')) 
+                {
+                    const coverage_max = props.coverage_max.split(',');
+                    probe_grid.setCoverageMax(parseFloat(coverage_max[0]), parseFloat(coverage_max[1]), parseFloat(coverage_max[2]));
+                }
+                if (props.hasOwnProperty('ypower'))
+                {
+                    probe_grid.ypower = parseFloat(props.ypower);
+                }
             }
+            
+            if (props.hasOwnProperty('auto_update') )
+            {
+                doc.probeUpdater = new ProbeUpdater(doc, probe_grid);
+            }
+            
             doc.scene.indirectLight = probe_grid;
         }
         
@@ -573,6 +649,7 @@ const env_light = {
     },
     remove: (doc, obj) => {
         create_default_env_light(doc);
+        doc.probeUpdater = null;
     },
 }
 
@@ -1259,6 +1336,11 @@ export class Document
         if (this.scene && this.camera) 
         {
             renderer.render(this.scene, this.camera);
+        }
+        
+        if (this.probeUpdater!=null)
+        {
+            this.probeUpdater.render(renderer);
         }
     }
     

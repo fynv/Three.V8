@@ -233,6 +233,10 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 	options.has_reflection_map = lights->reflection_map != nullptr;
 	options.has_environment_map = lights->environment_map != nullptr;
 	options.has_probe_grid = lights->probe_grid != nullptr;
+	if (options.has_probe_grid)
+	{
+		options.probe_reference_recorded = lights->probe_grid->record_references;
+	}
 	options.has_ambient_light = lights->ambient_light != nullptr;
 	options.has_hemisphere_light = lights->hemisphere_light != nullptr;
 	options.has_fog = params.constant_fog != nullptr;
@@ -402,6 +406,10 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 	options.has_reflection_map = lights.reflection_map != nullptr;
 	options.has_environment_map = lights.environment_map != nullptr;
 	options.has_probe_grid = lights.probe_grid != nullptr;
+	if (options.has_probe_grid)
+	{
+		options.probe_reference_recorded = lights.probe_grid->record_references;
+	}
 	options.has_ambient_light = lights.ambient_light != nullptr;
 	options.has_hemisphere_light = lights.hemisphere_light != nullptr;
 	options.has_fog = fog != nullptr;	
@@ -852,6 +860,10 @@ void GLRenderer::_render_fog_rm_env(const Camera& camera, const Lights& lights, 
 	FogRayMarchingEnv::Options options;
 	options.msaa = target.msaa();
 	options.has_probe_grid = lights.probe_grid != nullptr;
+	if (options.has_probe_grid)
+	{
+		options.probe_reference_recorded = lights.probe_grid->record_references;
+	}
 
 	uint64_t hash = crc64(0, (const unsigned char*)&options, sizeof(FogRayMarchingEnv::Options));
 	auto iter = fog_ray_march_map.find(hash);
@@ -1884,6 +1896,10 @@ void GLRenderer::render_primitive_lighting(const LightingRoutine::RenderParams& 
 	options.has_reflection_map = lights->reflection_map != nullptr;
 	options.has_environment_map = lights->environment_map != nullptr;
 	options.has_probe_grid = lights->probe_grid != nullptr;
+	if (options.has_probe_grid)
+	{
+		options.probe_reference_recorded = lights->probe_grid->record_references;
+	}
 	options.has_ambient_light = lights->ambient_light != nullptr;
 	options.has_hemisphere_light = lights->hemisphere_light != nullptr;
 	options.has_fog = params.constant_fog != nullptr;

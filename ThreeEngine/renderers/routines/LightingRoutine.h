@@ -23,6 +23,7 @@ public:
 		bool has_reflection_map = false;
 		bool has_environment_map = false;
 		bool has_probe_grid = false;
+		bool probe_reference_recorded = false;
 		bool has_ambient_light = false;
 		bool has_hemisphere_light = false;
 		int tone_shading = 0;
@@ -75,7 +76,8 @@ private:
 		int location_tex_reflection_map;
 		int binding_environment_map;
 		int binding_probe_grid;
-		int binding_probes;		
+		int binding_probes;
+		int binding_probe_references;
 		int binding_ambient_light;
 		int binding_hemisphere_light;
 		int binding_fog;
