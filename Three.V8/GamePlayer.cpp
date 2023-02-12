@@ -25,6 +25,8 @@ GamePlayer::GamePlayer(const char* exec_path, int width, int height)
 		m_render_target.update_framebuffers(width, height);
 	}	
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
+	srand(time(nullptr));
 }
 
 GamePlayer::~GamePlayer()

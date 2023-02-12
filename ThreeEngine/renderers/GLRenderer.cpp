@@ -1,4 +1,5 @@
 #include <GL/glew.h>
+#include <gtc/random.hpp>
 #include "crc64/crc64.h"
 #include "GLUtils.h"
 #include "GLRenderer.h"
@@ -22,6 +23,20 @@
 #include "lights/ProbeGridWidget.h"
 
 //#include <gtx/string_cast.hpp>
+
+const double PI = 3.14159265359;
+
+inline double rand01()
+{
+	return (double)rand() / ((double)RAND_MAX + 1.0);
+}
+
+inline double randRad()
+{
+	return rand01() * 2.0 * PI;
+}
+
+
 
 GLRenderer::GLRenderer()
 {
@@ -1597,13 +1612,14 @@ void GLRenderer::_render(Scene& scene, Camera& camera, GLRenderTarget& target, b
 	}
 }
 
-void GLRenderer::_render_cube(Scene& scene, CubeRenderTarget& target, const glm::vec3& position, float zNear, float zFar)
+void GLRenderer::_render_cube(Scene& scene, CubeRenderTarget& target, const glm::vec3& position, float zNear, float zFar, const glm::quat& rotation)
 {
 	{
 		PerspectiveCamera camera(90.0f, 1.0f, zNear, zFar);
 		camera.position = position;
 		camera.up = { 0.0f, -1.0f, 0.0f };
 		camera.lookAt(position + glm::vec3(1.0f, 0.0f, 0.0f));
+		camera.applyQuaternion(rotation);
 		_render(scene, camera, *target.m_faces[0]);
 	}
 
@@ -1612,6 +1628,7 @@ void GLRenderer::_render_cube(Scene& scene, CubeRenderTarget& target, const glm:
 		camera.position = position;
 		camera.up = { 0.0f, -1.0f, 0.0f };
 		camera.lookAt(position + glm::vec3(-1.0f, 0.0f, 0.0f));
+		camera.applyQuaternion(rotation);
 		_render(scene, camera, *target.m_faces[1]);
 	}
 
@@ -1620,6 +1637,7 @@ void GLRenderer::_render_cube(Scene& scene, CubeRenderTarget& target, const glm:
 		camera.position = position;
 		camera.up = { 0.0f, 0.0f, 1.0f };
 		camera.lookAt(position + glm::vec3(0.0f, 1.0f, 0.0f));
+		camera.applyQuaternion(rotation);
 		_render(scene, camera, *target.m_faces[2]);
 	}
 
@@ -1628,6 +1646,7 @@ void GLRenderer::_render_cube(Scene& scene, CubeRenderTarget& target, const glm:
 		camera.position = position;
 		camera.up = { 0.0f, 0.0f, -1.0f };
 		camera.lookAt(position + glm::vec3(0.0f, -1.0f, 0.0f));
+		camera.applyQuaternion(rotation);
 		_render(scene, camera, *target.m_faces[3]);
 	}
 
@@ -1636,6 +1655,7 @@ void GLRenderer::_render_cube(Scene& scene, CubeRenderTarget& target, const glm:
 		camera.position = position;
 		camera.up = { 0.0f, -1.0f, 0.0f };
 		camera.lookAt(position + glm::vec3(0.0f, 0.0f, 1.0f));
+		camera.applyQuaternion(rotation);
 		_render(scene, camera, *target.m_faces[4]);
 	}
 
@@ -1644,6 +1664,7 @@ void GLRenderer::_render_cube(Scene& scene, CubeRenderTarget& target, const glm:
 		camera.position = position;
 		camera.up = { 0.0f, -1.0f, 0.0f };
 		camera.lookAt(position + glm::vec3(0.0f, 0.0f, -1.0f));
+		camera.applyQuaternion(rotation);
 		_render(scene, camera, *target.m_faces[5]);
 	}
 }
@@ -1736,28 +1757,36 @@ void GLRenderer::render_picking(Scene& scene, Camera& camera, GLPickingTarget& t
 	}
 }
 
-void GLRenderer::renderCube(Scene& scene, CubeRenderTarget& target, const glm::vec3& position, float zNear, float zFar)
+void GLRenderer::renderCube(Scene& scene, CubeRenderTarget& target, const glm::vec3& position, float zNear, float zFar, const glm::quat& rotation)
 {
 	_pre_render(scene);
-	_render_cube(scene, target, position, zNear, zFar);	
+	_render_cube(scene, target, position, zNear, zFar, rotation);
 }
 
-void GLRenderer::updateProbe(Scene& scene, CubeRenderTarget& target, ProbeGrid& probe_grid, glm::ivec3 idx, float zNear, float zFar)
+void GLRenderer::updateProbe(Scene& scene, CubeRenderTarget& target, ProbeGrid& probe_grid, glm::ivec3 idx, float zNear, float zFar, float k)
 {
 	glm::vec3 size_grid = probe_grid.coverage_max - probe_grid.coverage_min;
 	glm::vec3 pos_normalized = (glm::vec3(idx) + 0.5f) / glm::vec3(probe_grid.divisions);
 	pos_normalized.y = powf(pos_normalized.y, probe_grid.ypower);
 	glm::vec3 pos = probe_grid.coverage_min + pos_normalized * size_grid;
-	renderCube(scene, target, pos, zNear, zFar);
+
+	glm::vec3 axis = glm::sphericalRand(1.0f);
+	float angle = randRad();
+	glm::quat rotation = glm::angleAxis(angle, axis);
+	renderCube(scene, target, pos, zNear, zFar, rotation);
 
 	glm::vec4 coeffs[9];
-	EnvironmentMapCreator::CreateSH(coeffs, target.m_cube_map->tex_id, target.m_width);	
+	EnvironmentMapCreator::CreateSH(coeffs, target.m_cube_map->tex_id, target.m_width, rotation);
 
 	int index = idx.x + (idx.y + (idx.z * probe_grid.divisions.y)) * probe_grid.divisions.x;
-	memcpy(probe_grid.m_probe_data.data() + index * 9, coeffs, sizeof(glm::vec4) * 9);
+	glm::vec4* dest_coeffs = probe_grid.m_probe_data.data() + index * 9;
+	for (int i = 0; i < 9; i++)
+	{
+		dest_coeffs[i] = (1.0f - k) * dest_coeffs[i] + k * coeffs[i];
+	}
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, probe_grid.m_probe_buf->m_id);
-	glBufferSubData(GL_SHADER_STORAGE_BUFFER, index * sizeof(glm::vec4)*9, sizeof(glm::vec4) * 9, coeffs);	
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, index * sizeof(glm::vec4)*9, sizeof(glm::vec4) * 9, dest_coeffs);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 

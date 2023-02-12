@@ -133,7 +133,13 @@ void WrapperGLRenderer::UpdateProbe(const v8::FunctionCallbackInfo<v8::Value>& i
 		lctx.jnum_to_num(info[5], zFar);
 	}
 
-	self->updateProbe(*scene, *target, *probe_grid, idx, zNear, zFar);
+	float k = 1.0f;
+	if (info.Length() > 6)
+	{
+		lctx.jnum_to_num(info[6], k);
+	}
+
+	self->updateProbe(*scene, *target, *probe_grid, idx, zNear, zFar, k);
 
 }
 

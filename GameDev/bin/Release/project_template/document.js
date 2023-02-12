@@ -174,7 +174,8 @@ class ProbeUpdater
         
         probe_grid.recordReferences = true;
         this.probe_grid = probe_grid;
-        this.cube_target = new CubeRenderTarget(64,64);
+        // this.cube_target = new CubeRenderTarget(64,64);
+        this.cube_target = new CubeRenderTarget(16,16);
         
         this.update_set = new Set();
         this.update_queue = [];
@@ -209,7 +210,7 @@ class ProbeUpdater
             x = x % divisions.x;
             let v_idx = new Vector3(x,y,z);
             
-            renderer.updateProbe(this.doc.scene, this.cube_target, this.probe_grid, v_idx);
+            renderer.updateProbe(this.doc.scene, this.cube_target, this.probe_grid, v_idx, 0.1, 100.0, 0.2);
         }
     }
     

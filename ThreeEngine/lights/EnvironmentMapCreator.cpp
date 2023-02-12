@@ -553,7 +553,7 @@ EnvironmentMapCreator::~EnvironmentMapCreator()
 	glDeleteTextures(1, &m_tex_src);
 }
 
-void EnvironmentMapCreator::CreateSH(glm::vec4 shCoefficients[9], unsigned tex_id, int tex_dim)
+void EnvironmentMapCreator::CreateSH(glm::vec4 shCoefficients[9], unsigned tex_id, int tex_dim, const glm::quat& rotation)
 {
 	glBindTexture(GL_TEXTURE_CUBE_MAP, tex_id);
 
@@ -612,6 +612,7 @@ void EnvironmentMapCreator::CreateSH(glm::vec4 shCoefficients[9], unsigned tex_i
 				weight[k] = 4.0f / (sqrtf(lengthSq) * lengthSq);
 				totalWeight += weight[k];
 				glm::vec3 dir = glm::normalize(coord);
+				dir = rotation* dir;
 				dir_x[k] = dir.x;
 				dir_y[k] = dir.y;
 				dir_z[k] = dir.z;

@@ -51,9 +51,9 @@ public:
 	void render(Scene& scene, Camera& camera, GLRenderTarget& target);	
 	void render_picking(Scene& scene, Camera& camera, GLPickingTarget& target);
 
-	void renderCube(Scene& scene, CubeRenderTarget& target, const glm::vec3& position, float zNear, float zFar);
+	void renderCube(Scene& scene, CubeRenderTarget& target, const glm::vec3& position, float zNear, float zFar, const glm::quat& rotation = glm::identity<glm::quat>());
 
-	void updateProbe(Scene& scene, CubeRenderTarget& target, ProbeGrid& probe_grid, glm::ivec3 idx, float zNear, float zFar);
+	void updateProbe(Scene& scene, CubeRenderTarget& target, ProbeGrid& probe_grid, glm::ivec3 idx, float zNear, float zFar, float k = 1.0f);
 
 	void renderCelluloid(Scene& scene, Camera& camera, GLRenderTarget* layer_base, GLRenderTarget* layer_light, GLRenderTarget* layer_alpha);
 
@@ -117,7 +117,7 @@ private:
 	glm::vec3 probe_space_center_cube(Scene& scene, const glm::vec3& position, float zNear, float zFar, IndirectLight& light);
 	void _render_scene(Scene& scene, Camera& camera, GLRenderTarget& target, bool widgets = false);
 	void _render(Scene& scene, Camera& camera, GLRenderTarget& target, bool widgets = false);
-	void _render_cube(Scene& scene, CubeRenderTarget& target, const glm::vec3& position, float zNear, float zFar);
+	void _render_cube(Scene& scene, CubeRenderTarget& target, const glm::vec3& position, float zNear, float zFar, const glm::quat& rotation = glm::identity<glm::quat>());
 
 	std::unordered_map<uint64_t, std::unique_ptr<Picking>> picking_map;
 	Picking* get_picking(const Picking::Options& options);
