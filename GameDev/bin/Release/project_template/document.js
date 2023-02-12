@@ -166,6 +166,10 @@ class AnimCrossFader
     }
 }
 
+function getRandomInt(max) {
+  return Math.floor(Math.random() * max);
+}
+
 class ProbeUpdater
 {
     constructor(doc, probe_grid)
@@ -200,7 +204,9 @@ class ProbeUpdater
         let divisions = this.probe_grid.divisions;
         while(now()-frame_time<10 && this.update_queue.length>0)
         {
-            let idx = this.update_queue.shift();
+            let i = getRandomInt(this.update_queue.length);
+            let idx = this.update_queue[i];
+            this.update_queue.splice(i,1);
             this.update_set.delete(idx);
             
             let x = idx;
@@ -210,7 +216,7 @@ class ProbeUpdater
             x = x % divisions.x;
             let v_idx = new Vector3(x,y,z);
             
-            renderer.updateProbe(this.doc.scene, this.cube_target, this.probe_grid, v_idx, 0.1, 100.0, 0.2);
+            renderer.updateProbe(this.doc.scene, this.cube_target, this.probe_grid, v_idx, 0.1, 100.0, 0.5);
         }
     }
     
