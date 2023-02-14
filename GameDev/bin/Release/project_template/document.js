@@ -216,7 +216,7 @@ class ProbeUpdater
             x = x % divisions.x;
             let v_idx = new Vector3(x,y,z);
             
-            renderer.updateProbe(this.doc.scene, this.cube_target, this.probe_grid, v_idx, 0.1, 100.0, 0.5);
+            renderer.updateProbe(this.doc.scene, this.cube_target, this.probe_grid, v_idx, 0.1, 100.0, 0.2);
         }
     }
     
@@ -596,7 +596,6 @@ const env_light = {
                 {
                     let envMapCreator = new EnvironmentMapCreator();
                     envLight = envMapCreator.create(cube_img);
-                    print(JSON.stringify(envLight.shCoefficients));
                 }
                 else
                 {
