@@ -483,6 +483,7 @@ namespace GameDev
 
         private void change_path(string path)
         {
+            if (!Directory.Exists(path)) return;
             const string reg_path = "HKEY_CURRENT_USER\\Software\\GameDev";            
             Registry.SetValue(reg_path, "cur_path", path);
             cur_path = path;
@@ -1291,7 +1292,8 @@ namespace GameDev
         }
 
         private void OpenFile(string file_path)
-        {            
+        {
+            if (!File.Exists(file_path)) return;
             string ext = Path.GetExtension(file_path);
             if (ext == ".js")
             {
