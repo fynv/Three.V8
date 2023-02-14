@@ -61,12 +61,12 @@ void WrapperEnvironmentMapCreator::Create(const v8::FunctionCallbackInfo<v8::Val
 	if (clsname == "CubeImage")
 	{
 		CubeImage* image = lctx.jobj_to_obj<CubeImage>(holder_image);
-		creator->Create(image, self, irradiance_only);
+		creator->Create(image, self);
 	}
 	else if (clsname == "CubeBackground")
 	{
 		CubeBackground* background = lctx.jobj_to_obj<CubeBackground>(holder_image);
-		creator->Create(background, self, irradiance_only);
+		creator->Create(background, self);
 	}
 	else  if (clsname == "CubeRenderTarget")
 	{
