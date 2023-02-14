@@ -557,11 +557,11 @@ void EnvironmentMapCreator::CreateSH(glm::vec4 shCoefficients[9], unsigned tex_i
 {
 	glBindTexture(GL_TEXTURE_CUBE_MAP, tex_id);
 
-	std::vector<uint8_t> faces[6];
+	std::vector<float> faces[6];
 	for (int i = 0; i < 6; i++)
 	{
 		faces[i].resize(tex_dim * tex_dim * 4);
-		glGetTexImage(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, GL_UNSIGNED_BYTE, faces[i].data());
+		glGetTexImage(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, GL_FLOAT, faces[i].data());
 	}
 
 	float pixelSize = 2.0f / tex_dim;
@@ -570,7 +570,7 @@ void EnvironmentMapCreator::CreateSH(glm::vec4 shCoefficients[9], unsigned tex_i
 
 	for (int i = 0; i < 6; i++)
 	{
-		std::vector<uint8_t>& face = faces[i];
+		std::vector<float>& face = faces[i];
 
 		for (int j = 0; j < tex_dim * tex_dim; j += 4)
 		{
@@ -617,8 +617,8 @@ void EnvironmentMapCreator::CreateSH(glm::vec4 shCoefficients[9], unsigned tex_i
 				dir_y[k] = dir.y;
 				dir_z[k] = dir.z;
 
-				const uint8_t* pixel = &face[(size_t)pixelIndex * 4];
-				color[k] = { (float)pixel[0] / 255.0f, (float)pixel[1] / 255.0f, (float)pixel[2] / 255.0f };
+				const float* pixel = &face[(size_t)pixelIndex * 4];
+				color[k] = { pixel[0], pixel[1], pixel[2] };
 			}
 
 #if 1
@@ -721,20 +721,15 @@ void EnvironmentMapCreator::CreateReflection(ReflectionMap& reflection, const GL
 
 void EnvironmentMapCreator::Create(const GLCubemap * cubemap, EnvironmentMap * envMap, bool irradiance_only)
 {	
-	if (irradiance_only)
-	{
-		CreateSH(envMap->shCoefficients, cubemap->tex_id);
-	}
-	else
+	if (!irradiance_only)	
 	{
 		if (envMap->reflection == nullptr)
 		{
 			envMap->reflection = std::unique_ptr<ReflectionMap>(new ReflectionMap);
 		}
-		CreateReflection(*envMap->reflection, cubemap);
-		CreateSH(envMap->shCoefficients, m_tex_src);
+		CreateReflection(*envMap->reflection, cubemap);		
 	}
-
+	CreateSH(envMap->shCoefficients, cubemap->tex_id);
 }
 
 void EnvironmentMapCreator::Create(const CubeImage* image, EnvironmentMap* envMap, bool irradiance_only)

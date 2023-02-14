@@ -576,7 +576,7 @@ vec3 get_shading(in vec3 pos)
 #endif
 
 	vec3 col = specular + diffuse;
-	col = clamp(col, 0.0, 1.0);				
+	//col = clamp(col, 0.0, 1.0);				
 	return col;
 }
 

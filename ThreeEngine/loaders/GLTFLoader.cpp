@@ -228,6 +228,14 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 		}
 
 		material_out->emissive = { material_in.emissiveFactor[0], material_in.emissiveFactor[1], material_in.emissiveFactor[2] };
+
+		if (material_in.extensions.find("KHR_materials_emissive_strength") != material_in.extensions.end())
+		{
+			tinygltf::Value::Object& emissive_stength = material_in.extensions["KHR_materials_emissive_strength"].Get<tinygltf::Value::Object>();
+			float strength = (float)emissive_stength["emissiveStrength"].Get<double>();
+			material_out->emissive *= strength;
+		}
+
 		material_out->tex_idx_emissiveMap = material_in.emissiveTexture.index;
 
 		material_out->metallicFactor = pbr.metallicFactor;

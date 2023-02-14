@@ -955,7 +955,7 @@ void main()
 #if !IS_HIGHTLIGHT
 	col += diffuse;
 #endif
-	col = clamp(col, 0.0, 1.0);	
+	// col = clamp(col, 0.0, 1.0);	
 
 #if ALPHA_BLEND
 	float alpha = base_color.w;

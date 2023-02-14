@@ -906,7 +906,7 @@ void main()
 #endif
 
 	vec3 col = specular + diffuse;
-	col = clamp(col, 0.0, 1.0);	
+	//col = clamp(col, 0.0, 1.0);	
 	out0 = vec4(col, 1.0);
 }
 )";
