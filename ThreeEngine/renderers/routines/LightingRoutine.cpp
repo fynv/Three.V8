@@ -725,6 +725,7 @@ void main()
 	vec3 norm = normalize(vNorm);
 
 #if HAS_NORMAL_MAP
+	if (length(vTangent)>0.0 && length(vBitangent)>0.0)
 	{
 		vec3 T = normalize(vTangent);
 		vec3 B = normalize(vBitangent);
