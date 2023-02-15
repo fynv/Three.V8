@@ -194,7 +194,7 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 	std::vector<TexLoadOptions> tex_opts(num_textures);
 
 	size_t num_materials = model.materials.size();
-	model_out->m_materials.resize(num_materials);
+	model_out->m_materials.resize(num_materials+1);
 	for (size_t i = 0; i < num_materials; i++)
 	{
 		tinygltf::Material& material_in = model.materials[i];
@@ -298,6 +298,13 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 		material_out->update_uniform();
 	}
 
+	// default material
+	{
+		MeshStandardMaterial* material_out = new MeshStandardMaterial();
+		model_out->m_materials[num_materials] = std::unique_ptr<MeshStandardMaterial>(material_out);
+		material_out->update_uniform();
+	}
+
 	for (size_t i = 0; i < num_textures; i++)
 	{
 		tinygltf::Texture& tex_in = model.textures[i];
@@ -361,6 +368,10 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 			tinygltf::Primitive& primitive_in = mesh_in.primitives[j];
 			Primitive& primitive_out = mesh_out.primitives[j];
 			primitive_out.material_idx = primitive_in.material;
+			if (primitive_out.material_idx < 0)
+			{
+				primitive_out.material_idx = num_materials;
+			}
 
 			MeshStandardMaterial* material = model_out->m_materials[primitive_out.material_idx].get();
 			bool has_tangent = material->tex_idx_normalMap >= 0;
