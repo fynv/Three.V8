@@ -1515,6 +1515,7 @@ void StandardRoutine::render(const RenderParams& params)
 	else
 	{
 		glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);
 	}
 
 	glUseProgram(m_prog->m_id);

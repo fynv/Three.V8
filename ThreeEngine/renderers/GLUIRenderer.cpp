@@ -126,6 +126,7 @@ public:
 		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);
 		glDisable(GL_DEPTH_TEST);
 
 		nvgBeginFrame(vg, (float)w, (float)h, 1.0f);

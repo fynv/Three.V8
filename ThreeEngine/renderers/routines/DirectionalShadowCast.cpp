@@ -273,6 +273,7 @@ void DirectionalShadowCast::render(const RenderParams& params)
 	else
 	{
 		glEnable(GL_CULL_FACE);
+		glCullFace(GL_FRONT);
 	}
 
 	glUseProgram(m_prog->m_id);
