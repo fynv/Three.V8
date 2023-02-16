@@ -619,6 +619,13 @@ void EnvironmentMapCreator::CreateSH(glm::vec4 shCoefficients[9], unsigned tex_i
 
 				const float* pixel = &face[(size_t)pixelIndex * 4];
 				color[k] = { pixel[0], pixel[1], pixel[2] };
+				glm::bvec3 nan = glm::isnan(color[k]);
+				glm::bvec3 inf = glm::isinf(color[k]);
+				if (nan.x || nan.y || nan.z || inf.x || inf.y || inf.z)
+				{
+					color[k] = { 0.0f, 0.0f, 0.0f };
+					weight[k] = 0.0f;
+				}
 			}
 
 #if 1
