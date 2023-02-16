@@ -460,19 +460,66 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 				tinygltf::BufferView& view_color_in = model.bufferViews[acc_color_in.bufferView];
 
 				primitive_out.color_buf = Attribute(new GLBuffer(sizeof(glm::vec4) * primitive_out.num_pos));
+				
 				if (acc_color_in.type == TINYGLTF_TYPE_VEC4)
 				{					
-					primitive_out.color_buf->upload(model.buffers[view_color_in.buffer].data.data() + view_color_in.byteOffset + acc_color_in.byteOffset);
+					if (acc_color_in.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT)
+					{
+						primitive_out.color_buf->upload(model.buffers[view_color_in.buffer].data.data() + view_color_in.byteOffset + acc_color_in.byteOffset);
+					}
+					else if (acc_color_in.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT)
+					{
+						glm::u16vec4* p_in = (glm::u16vec4*)(model.buffers[view_color_in.buffer].data.data() + view_color_in.byteOffset + acc_color_in.byteOffset);
+						std::vector<glm::vec4> tmp(primitive_out.num_pos);
+						for (int k = 0; k < primitive_out.num_pos; k++)
+						{
+							tmp[k] = glm::vec4(p_in[k]) / 65535.0f;
+						}
+						primitive_out.color_buf->upload(tmp.data());
+					}
+					else if (acc_color_in.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE)
+					{
+						glm::u8vec4* p_in = (glm::u8vec4*)(model.buffers[view_color_in.buffer].data.data() + view_color_in.byteOffset + acc_color_in.byteOffset);
+						std::vector<glm::vec4> tmp(primitive_out.num_pos);
+						for (int k = 0; k < primitive_out.num_pos; k++)
+						{
+							tmp[k] = glm::vec4(p_in[k]) / 255.0f;
+						}
+						primitive_out.color_buf->upload(tmp.data());
+					}
 				}
 				else if (acc_color_in.type == TINYGLTF_TYPE_VEC3)
 				{	
-					glm::vec3* p_in = (glm::vec3*)(model.buffers[view_color_in.buffer].data.data() + view_color_in.byteOffset + acc_color_in.byteOffset);
-					std::vector<glm::vec4> tmp(primitive_out.num_pos);
-					for (int k = 0; k < primitive_out.num_pos; k++)
-					{						
-						tmp[k] = glm::vec4(p_in[k], 1.0f);
+					if (acc_color_in.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT)
+					{
+						glm::vec3* p_in = (glm::vec3*)(model.buffers[view_color_in.buffer].data.data() + view_color_in.byteOffset + acc_color_in.byteOffset);
+						std::vector<glm::vec4> tmp(primitive_out.num_pos);
+						for (int k = 0; k < primitive_out.num_pos; k++)
+						{
+							tmp[k] = glm::vec4(p_in[k], 1.0f);
+						}
+						primitive_out.color_buf->upload(tmp.data());
 					}
-					primitive_out.color_buf->upload(tmp.data());
+					else if (acc_color_in.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT)
+					{
+						glm::u16vec3* p_in = (glm::u16vec3*)(model.buffers[view_color_in.buffer].data.data() + view_color_in.byteOffset + acc_color_in.byteOffset);
+						std::vector<glm::vec4> tmp(primitive_out.num_pos);
+						for (int k = 0; k < primitive_out.num_pos; k++)
+						{
+							tmp[k] = glm::vec4(glm::vec3(p_in[k])/65535.0f, 1.0f);
+						}
+						primitive_out.color_buf->upload(tmp.data());
+					}
+					else if (acc_color_in.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE)
+					{
+						glm::u8vec3* p_in = (glm::u8vec3*)(model.buffers[view_color_in.buffer].data.data() + view_color_in.byteOffset + acc_color_in.byteOffset);
+						std::vector<glm::vec4> tmp(primitive_out.num_pos);
+						for (int k = 0; k < primitive_out.num_pos; k++)
+						{
+							tmp[k] = glm::vec4(glm::vec3(p_in[k]) / 255.0f, 1.0f);
+						}
+						primitive_out.color_buf->upload(tmp.data());
+					}
 				}
 			}
 
