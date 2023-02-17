@@ -173,6 +173,7 @@ void WeightedOIT::PostDraw(Buffers& bufs)
 	}
 
 	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
 	glUseProgram(m_prog->m_id);
 
 	glActiveTexture(GL_TEXTURE0);

@@ -38,12 +38,12 @@ public:
 		using IntersectionType = Intersection;		
 
 		BLAS(BLAS&&) = default;
-		BLAS(const Primitive* primitive, const glm::mat4& model_matrix);
+		BLAS(const Primitive* primitive, const glm::mat4& model_matrix, bool cull_front = false);
 		~BLAS();
 
 		bvh::Vector3<float> center() const;
 		bvh::BoundingBox<float> bounding_box() const;
-		std::optional<Intersection> intersect(const bvh::Ray<float>& ray) const;
+		std::optional<Intersection> intersect(const bvh::Ray<float>& ray, bool culling) const;
 
 		BLAS& operator =(BLAS&&) = default;
 
@@ -69,7 +69,7 @@ public:
 		float distance() const { return t; }
 	};
 
-	BoundingVolumeHierarchy(const std::vector<Object3D*>& objects);
+	BoundingVolumeHierarchy(const std::vector<Object3D*>& objects, bool cull_front = false);
 	~BoundingVolumeHierarchy();
 
 	void update(Object3D* obj);
@@ -78,6 +78,8 @@ public:
 	std::optional<Intersection> intersect(const bvh::Ray<float>& ray) const;
 	
 private:
+	bool m_cull_front = false;
+
 	struct PrimitiveInfo
 	{
 		Object3D* obj;		

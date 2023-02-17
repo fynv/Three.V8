@@ -1689,18 +1689,19 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 
 		camera.updateMatrixWorld(false);
 		glm::vec3 cam_pos = camera.getWorldPosition();
-		// glm::vec3 pos = probe_space_center_cube(scene, camera.getWorldPosition(), p_cam->z_near, p_cam->z_far, *light);
+		glm::vec3 pos = probe_space_center_cube(scene, camera.getWorldPosition(), p_cam->z_near, p_cam->z_far, *light);
 
-		glm::vec3 sum = glm::vec3(0.0f);
+		/*glm::vec3 sum = glm::vec3(0.0f);
 		float sum_weight = 0.0f;
 		probe_space_center(scene, camera, *light->probe_target, target.m_width, target.m_height, sum, sum_weight);
-		glm::vec3 pos = sum / sum_weight;
+		glm::vec3 pos = sum / sum_weight;*/
 		
 		pos.x = 0.5f * pos.x + 0.5f * cam_pos.x;
 		pos.y = cam_pos.y;
 		//pos.y = 0.5f * pos.y + 0.5f * cam_pos.y;
 		pos.z = 0.5f * pos.z + 0.5f * cam_pos.z;
-		light->probe_position = 0.8f * light->probe_position + 0.2f * pos;
+		//light->probe_position = 0.8f * light->probe_position + 0.2f * pos;
+		light->probe_position = pos;
 
 		_render_cube(scene, *light->cube_target, light->probe_position, p_cam->z_near, p_cam->z_far);		
 

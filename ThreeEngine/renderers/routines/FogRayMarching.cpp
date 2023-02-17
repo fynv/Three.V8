@@ -388,6 +388,8 @@ FogRayMarching::FogRayMarching(bool msaa): m_msaa(msaa)
 
 void FogRayMarching::_render_no_shadow(const RenderParams& params)
 {
+	glDisable(GL_CULL_FACE);
+
 	glUseProgram(m_prog->m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.camera->m_constant.m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.fog->m_constant.m_id);
@@ -411,6 +413,8 @@ void FogRayMarching::_render_no_shadow(const RenderParams& params)
 
 void FogRayMarching::_render_shadowed(const RenderParams& params)
 {
+	glDisable(GL_CULL_FACE);
+
 	glUseProgram(m_prog_shadow->m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.camera->m_constant.m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.fog->m_constant.m_id);

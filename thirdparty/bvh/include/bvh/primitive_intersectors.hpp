@@ -21,6 +21,7 @@ struct PrimitiveIntersector {
 
     const Bvh& bvh;
     const Primitive* primitives = nullptr;
+    bool culling = false;
 
     static constexpr bool any_hit = AnyHit;
 
@@ -47,7 +48,7 @@ struct ClosestPrimitiveIntersector : public PrimitiveIntersector<Bvh, Primitive,
 
     std::optional<Result> intersect(size_t index, const Ray<Scalar>& ray) const {
         auto [p, i] = this->primitive_at(index);
-        if (auto hit = p.intersect(ray))
+        if (auto hit = p.intersect(ray, this->culling))
             return std::make_optional(Result { i, *hit });
         return std::nullopt;
     }
@@ -69,7 +70,7 @@ struct AnyPrimitiveIntersector : public PrimitiveIntersector<Bvh, Primitive, Per
 
     std::optional<Result> intersect(size_t index, const Ray<Scalar>& ray) const {
         auto [p, i] = this->primitive_at(index);
-        if (auto hit = p.intersect(ray))
+        if (auto hit = p.intersect(ray, this->culling))
             return std::make_optional(Result { hit->distance() });
         return std::nullopt;
     }

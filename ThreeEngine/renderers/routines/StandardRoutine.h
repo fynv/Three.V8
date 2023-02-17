@@ -85,6 +85,7 @@ private:
 		int binding_environment_map;
 		int binding_probe_grid;
 		int binding_probes;
+		int binding_probe_visibility;
 		int binding_probe_references;
 		int binding_ambient_light;
 		int binding_hemisphere_light;

@@ -49,6 +49,7 @@ void DrawSkyBox::render(const GLDynBuffer* constant_camera, const GLCubemap* cub
 {
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_BLEND);
+    glDisable(GL_CULL_FACE);
 
     glUseProgram(m_prog->m_id);
     glBindBufferBase(GL_UNIFORM_BUFFER, 0, constant_camera->m_id);

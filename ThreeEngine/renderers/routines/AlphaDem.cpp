@@ -44,6 +44,7 @@ void AlphaDem::render(unsigned tex_id, int x, int y, int width, int height)
 	glViewport(x, y, width, height);
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
+	glDisable(GL_CULL_FACE);
 
 	glUseProgram(m_prog->m_id);
 	glActiveTexture(GL_TEXTURE0);

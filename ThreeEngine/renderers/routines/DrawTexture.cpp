@@ -114,6 +114,7 @@ void DrawTexture::render(unsigned tex_id, int x, int y, int width, int height, b
 
 	glViewport(x, y, width, height);
 	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
 
 	if (blending)
 	{

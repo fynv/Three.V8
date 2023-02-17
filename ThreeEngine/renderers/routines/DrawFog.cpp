@@ -180,6 +180,8 @@ DrawFog::DrawFog(const Options& options) : m_options(options)
 
 void DrawFog::render(const RenderParams& params)
 {
+	glDisable(GL_CULL_FACE);
+
 	glUseProgram(m_prog->m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.constant_camera->m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.constant_fog->m_id);

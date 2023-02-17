@@ -29,7 +29,7 @@ inline void get_indices(void* indices, int type_indices, int face_id, unsigned& 
 	}
 }
 
-BoundingVolumeHierarchy::BLAS::BLAS(const Primitive* primitive, const glm::mat4& model_matrix)
+BoundingVolumeHierarchy::BLAS::BLAS(const Primitive* primitive, const glm::mat4& model_matrix, bool cull_front)
 {
 	if (primitive->index_buf != nullptr)
 	{
@@ -47,12 +47,23 @@ BoundingVolumeHierarchy::BLAS::BLAS(const Primitive* primitive, const glm::mat4&
 			v1 = model_matrix * v1;
 			v2 = model_matrix * v2;
 
-			m_triangles.emplace_back(PrimitiveType(
-				bvh::Vector3<float>(v0.x, v0.y, v0.z),
-				bvh::Vector3<float>(v1.x, v1.y, v1.z),
-				bvh::Vector3<float>(v2.x, v2.y, v2.z)
-				)
-			);
+			if (cull_front)
+			{
+				m_triangles.emplace_back(PrimitiveType(					
+					bvh::Vector3<float>(v1.x, v1.y, v1.z),
+					bvh::Vector3<float>(v0.x, v0.y, v0.z),
+					bvh::Vector3<float>(v2.x, v2.y, v2.z)
+				));
+			}
+			else
+			{
+				m_triangles.emplace_back(PrimitiveType(
+					bvh::Vector3<float>(v0.x, v0.y, v0.z),
+					bvh::Vector3<float>(v1.x, v1.y, v1.z),
+					bvh::Vector3<float>(v2.x, v2.y, v2.z)
+				));
+			}
+
 		}
 	}
 	else
@@ -68,12 +79,22 @@ BoundingVolumeHierarchy::BLAS::BLAS(const Primitive* primitive, const glm::mat4&
 			v1 = model_matrix * v1;
 			v2 = model_matrix * v2;
 
-			m_triangles.emplace_back(PrimitiveType(
-				bvh::Vector3<float>(v0.x, v0.y, v0.z),
-				bvh::Vector3<float>(v1.x, v1.y, v1.z),
-				bvh::Vector3<float>(v2.x, v2.y, v2.z)
-				)
-			);
+			if (cull_front)
+			{
+				m_triangles.emplace_back(PrimitiveType(					
+					bvh::Vector3<float>(v1.x, v1.y, v1.z),
+					bvh::Vector3<float>(v0.x, v0.y, v0.z),
+					bvh::Vector3<float>(v2.x, v2.y, v2.z)
+				));
+			}
+			else
+			{
+				m_triangles.emplace_back(PrimitiveType(
+					bvh::Vector3<float>(v0.x, v0.y, v0.z),
+					bvh::Vector3<float>(v1.x, v1.y, v1.z),
+					bvh::Vector3<float>(v2.x, v2.y, v2.z)
+				));
+			}
 		}
 	}
 
@@ -85,6 +106,7 @@ BoundingVolumeHierarchy::BLAS::BLAS(const Primitive* primitive, const glm::mat4&
 	builder.build(m_bounding_box, bboxes.get(), centers.get(), m_triangles.size());
 
 	m_intersector = std::unique_ptr<IntersectorType>(new IntersectorType(*m_bvh, m_triangles.data()));
+	m_intersector->culling = cull_front;
 	m_traverser = std::unique_ptr<TraversorType>(new TraversorType(*m_bvh));
 }
 
@@ -103,7 +125,7 @@ bvh::BoundingBox<float> BoundingVolumeHierarchy::BLAS::bounding_box() const
 	return m_bounding_box;
 }
 
-std::optional<BoundingVolumeHierarchy::BLAS::Intersection> BoundingVolumeHierarchy::BLAS::intersect(const bvh::Ray<float>& ray) const
+std::optional<BoundingVolumeHierarchy::BLAS::Intersection> BoundingVolumeHierarchy::BLAS::intersect(const bvh::Ray<float>& ray, bool culling) const
 {
 	
 	auto hit = m_traverser->traverse(ray, *m_intersector);
@@ -133,7 +155,7 @@ union Signature
 void BoundingVolumeHierarchy::_add_primitive(const Primitive* primitive, const glm::mat4& model_matrix, Object3D* obj, int primitive_idx)
 {	
 	m_primitive_map.push_back({ obj, primitive_idx });
-	m_primitives.emplace_back(BLAS(primitive, model_matrix));
+	m_primitives.emplace_back(BLAS(primitive, model_matrix, m_cull_front));
 
 	Signature s = { obj->id, primitive_idx };
 	m_primitive_index_map[s.key] = (int)(m_primitive_map.size()-1);
@@ -176,12 +198,12 @@ void BoundingVolumeHierarchy::_update_primitive(const Primitive* primitive, cons
 	if (iter != m_primitive_index_map.end())
 	{
 		int idx = iter->second;
-		m_primitives[idx] = BLAS(primitive, model_matrix);
+		m_primitives[idx] = BLAS(primitive, model_matrix, m_cull_front);
 	}
 	else
 	{
 		m_primitive_map.push_back(info);
-		m_primitives.emplace_back(BLAS(primitive, model_matrix));
+		m_primitives.emplace_back(BLAS(primitive, model_matrix, m_cull_front));
 		m_primitive_index_map[s.key] = (int)(m_primitive_map.size() - 1);
 	}
 }
@@ -190,7 +212,6 @@ void BoundingVolumeHierarchy::_update_model(SimpleModel* model)
 {
 	Primitive* primitive = &model->geometry;
 	_update_primitive(primitive, model->matrixWorld, model, 0);
-
 }
 
 void BoundingVolumeHierarchy::_update_model(GLTFModel* model)
@@ -277,7 +298,8 @@ void BoundingVolumeHierarchy::_build_bvh()
 	m_traverser = std::unique_ptr<TraversorType>(new TraversorType(*m_bvh));
 }
 
-BoundingVolumeHierarchy::BoundingVolumeHierarchy(const std::vector<Object3D*>& objects)
+BoundingVolumeHierarchy::BoundingVolumeHierarchy(const std::vector<Object3D*>& objects, bool cull_front) 
+	: m_cull_front(cull_front)
 {
 	std::unordered_set<Object3D*> object_set;
 	std::unordered_set<Object3D*>* p_objects = &object_set;

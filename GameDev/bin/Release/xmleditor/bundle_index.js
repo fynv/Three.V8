@@ -4818,7 +4818,12 @@ class EnvMapGen
                 }
         
                 let text = JSON.stringify(envLight.shCoefficients);
-                fileSaver.saveTextFile(path_sh, text);
+                let res = fileSaver.saveTextFile(path_sh, text);
+                
+                if (!res)
+                {
+                    print("Failed to save enviroment map.");
+                }
             }
             else
             {
@@ -4861,10 +4866,15 @@ class EnvMapGen
                     negz = props.negz;
                 }
                         
-                imageSaver.saveCubeToFile(down_img, 
+                let res = imageSaver.saveCubeToFile(down_img, 
                     url+"/"+posx, url+"/"+negx, 
                     url+"/"+posy, url+"/"+negy, 
                     url+"/"+posz, url+"/"+negz);
+                    
+                if (!res)
+                {
+                    print("Failed to save enviroment map.");
+                }
             }
             
             this.doc.env_gen = null;
@@ -4886,6 +4896,9 @@ class ProbeGridBaker
         this.probe_grid.setCoverageMin(proxy.coverageMin);
         this.probe_grid.setCoverageMax(proxy.coverageMax);
         this.probe_grid.ypower = proxy.ypower;
+        
+        print("Constructing visibility information...");
+        this.probe_grid.constructVisibility(doc.scene);
         
         let props = this.xml_node.attributes;
         if (props.hasOwnProperty('dynamic_map'))
@@ -4985,7 +4998,11 @@ class ProbeGridBaker
                     {
                         probe_data = props.probe_data;
                     }
-                    probeGridSaver.saveFile(this.probe_grid, probe_data);
+                    let res = probeGridSaver.saveFile(this.probe_grid, probe_data);
+                    if (!res)
+                    {
+                        print("Failed to save probe-grid.");
+                    }
                     this.doc.probe_grid_bake = null;
                 }
             }

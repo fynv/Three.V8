@@ -9,6 +9,7 @@ void ProbeGridSaver::SaveFile(const ProbeGrid* probe_grid, const char* fn)
 	fwrite(&probe_grid->divisions, sizeof(glm::ivec3), 1, fp);
 	fwrite(&probe_grid->ypower, sizeof(float), 1, fp);
 	fwrite(probe_grid->m_probe_data.data(), sizeof(glm::vec4), probe_grid->m_probe_data.size(), fp);
+	fwrite(probe_grid->m_visibility_data.data(), sizeof(float), probe_grid->m_visibility_data.size(), fp);
 	fclose(fp);
 }
 

@@ -28,6 +28,8 @@ public:
 	static void GetRecordReferences(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void SetRecordReferences(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
 	static void GetReferences(const v8::FunctionCallbackInfo<v8::Value>& info);
+
+	static void ConstructVisibility(const v8::FunctionCallbackInfo<v8::Value>& info);
 };
 
 v8::Local<v8::FunctionTemplate> WrapperProbeGrid::create_template(v8::Isolate* isolate, v8::FunctionCallback constructor)
@@ -50,6 +52,8 @@ v8::Local<v8::FunctionTemplate> WrapperProbeGrid::create_template(v8::Isolate* i
 
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "recordReferences").ToLocalChecked(), GetRecordReferences, SetRecordReferences);
 	templ->InstanceTemplate()->Set(isolate, "getReferences", v8::FunctionTemplate::New(isolate, GetReferences));
+
+	templ->InstanceTemplate()->Set(isolate, "constructVisibility", v8::FunctionTemplate::New(isolate, ConstructVisibility));
 
 	return templ;
 }
@@ -213,3 +217,12 @@ void WrapperProbeGrid::GetReferences(const v8::FunctionCallbackInfo<v8::Value>& 
 	}
 	info.GetReturnValue().Set(ret);
 }
+
+void WrapperProbeGrid::ConstructVisibility(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	ProbeGrid* self = lctx.self<ProbeGrid>();
+	Scene* scene = lctx.jobj_to_obj<Scene>(info[0]);
+	self->construct_visibility(*scene);
+}
+

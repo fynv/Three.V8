@@ -35,3 +35,15 @@ inline bool exists_test(const char* name)
 	}
 }
 
+inline bool writable_test(const char* name)
+{
+	if (FILE* file = fopen(name, "a"))
+	{
+		fclose(file);
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
