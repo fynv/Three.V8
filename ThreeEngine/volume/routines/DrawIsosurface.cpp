@@ -337,10 +337,11 @@ layout (std430, binding = BINDING_PROBE_REFERENCES) buffer ProbeReferences
 };
 #endif
 
-
 float quantize_vis(float limit, float dis)
 {
-	return 1.0 - clamp((dis-0.9*limit)/(0.1*limit), 0.0, 1.0)*0.99;
+	float x = (dis-0.9*limit)/(0.1*limit);
+	if (x<0.0) x = 0.0;
+	return pow(0.01, x);
 }
 
 float get_visibility(in vec3 world_pos, in ivec3 vert, in vec3 vert_world)
