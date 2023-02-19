@@ -191,8 +191,7 @@ layout (location = 0) uniform sampler2DMS uDepthTex;
 layout (location = 0) uniform sampler2D uDepthTex;
 #endif
 
-layout (location = 1) uniform sampler2D uShadowTex;
-
+layout (location = 1) uniform sampler2DShadow uShadowTex;
 
 vec3 computeShadowCoords(in mat4 VPSB, in vec3 pos_world)
 {
@@ -200,18 +199,12 @@ vec3 computeShadowCoords(in mat4 VPSB, in vec3 pos_world)
 	return shadowCoords.xyz;
 }
 
-float borderDepthTexture(vec2 uv)
-{
-	return ((uv.x <= 1.0) && (uv.y <= 1.0) &&
-	 (uv.x >= 0.0) && (uv.y >= 0.0)) ? textureLod(uShadowTex, uv, 0.0).x : 1.0;
-}
-
 float borderPCFTexture(vec3 uvz)
 {
-    float d = borderDepthTexture(uvz.xy);
-    return uvz.z>d?0.0:1.0;
+    return ((uvz.x <= 1.0) && (uvz.y <= 1.0) &&
+	 (uvz.x >= 0.0) && (uvz.y >= 0.0)) ? texture(uShadowTex, uvz) : 
+	 ((uvz.z <= 1.0) ? 1.0 : 0.0);
 }
-
 
 float computeShadowCoef(in mat4 VPSB, in vec3 pos_world)
 {

@@ -44,6 +44,7 @@ private:
 		int binding_directional_lights;
 		int binding_directional_shadows;
 		int location_tex_directional_shadow;
+		int location_tex_directional_shadow_depth;
 		int location_tex_reflection_map;
 		int binding_environment_map;
 		int binding_probe_grid;

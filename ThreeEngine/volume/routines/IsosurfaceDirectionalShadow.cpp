@@ -234,7 +234,7 @@ void main()
 			pos = eye_pos + t*dir;
 			coord = (pos - min_pos)/(max_pos-min_pos);
 			float v1 = texture(uTex, coord).x;
-			if ((v0<=uIsovalue && v1>=uIsovalue) || (v0>=uIsovalue && v1<=uIsovalue))
+			if (v0>=uIsovalue && v1<=uIsovalue)
 			{
 				float k = (uIsovalue - v1)/(v1-v0);
 				t += k*uStep;
@@ -379,6 +379,7 @@ void IsosurfaceDirectionalShadow::render(const RenderParams& params)
 	calc_scissor(params.shadow, params.model, (float)i_viewport[2], (float)i_viewport[3], origin, size);
 
 	glEnable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
 	glDisable(GL_BLEND);
 
 	glEnable(GL_SCISSOR_TEST);

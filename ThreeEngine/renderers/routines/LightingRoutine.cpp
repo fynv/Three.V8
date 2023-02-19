@@ -258,6 +258,7 @@ layout (std140, binding = BINDING_DIRECTIONAL_SHADOWS) uniform DirectionalShadow
 };
 
 layout (location = LOCATION_TEX_DIRECTIONAL_SHADOW) uniform sampler2D uDirectionalShadowTex[NUM_DIRECTIONAL_SHADOWS];
+layout (location = LOCATION_TEX_DIRECTIONAL_SHADOW_DEPTH) uniform sampler2D uDirectionalShadowTexDepth[NUM_DIRECTIONAL_SHADOWS];
 
 vec3 computeShadowCoords(in mat4 VPSB)
 {
@@ -271,14 +272,14 @@ float borderDepthTexture(sampler2D shadowTex, vec2 uv)
 	 (uv.x >= 0.0) && (uv.y >= 0.0)) ? textureLod(shadowTex, uv, 0.0).x : 1.0;
 }
 
-float borderPCFTexture(sampler2D shadowTex, vec3 uvz)
+float borderPCFTexture(sampler2DShadow shadowTex, vec3 uvz)
 {
-    float d = borderDepthTexture(shadowTex, uvz.xy);
-	return uvz.z>d?0.0:1.0;
+	return ((uvz.x <= 1.0) && (uvz.y <= 1.0) &&
+	 (uvz.x >= 0.0) && (uvz.y >= 0.0)) ? texture(shadowTex, uvz) : 
+	 ((uvz.z <= 1.0) ? 1.0 : 0.0);
 }
 
-
-float computeShadowCoef(in mat4 VPSB, sampler2D shadowTex)
+float computeShadowCoef(in mat4 VPSB, sampler2DShadow shadowTex)
 {
 	vec3 shadowCoords;
 	shadowCoords = computeShadowCoords(VPSB);
@@ -433,7 +434,7 @@ vec2 penumbraRadiusUV(vec2 light_radius_uv, float zReceiver, float zBlocker)
 
 
 // Performs PCF filtering on the shadow map using multiple taps in the filter region.
-float pcfFilter(sampler2D shadowTex, vec2 uv, float z, vec2 filterRadiusUV)
+float pcfFilter(sampler2DShadow shadowTex, vec2 uv, float z, vec2 filterRadiusUV)
 {
     float sum = 0.0;
 
@@ -448,7 +449,7 @@ float pcfFilter(sampler2D shadowTex, vec2 uv, float z, vec2 filterRadiusUV)
     }
 }
 
-float pcssShadow(sampler2D shadowTex, in DirectionalShadow shadow, vec2 uv, float z, float zEye)
+float pcssShadow(sampler2DShadow shadowTex, sampler2D shadowTexDepth, in DirectionalShadow shadow, vec2 uv, float z, float zEye)
 {
     // ------------------------
     // STEP 1: blocker search
@@ -458,7 +459,7 @@ float pcssShadow(sampler2D shadowTex, in DirectionalShadow shadow, vec2 uv, floa
     vec2 frustum_size = vec2(shadow.leftRight.y - shadow.leftRight.x, shadow.bottomTop.y - shadow.bottomTop.x);
     vec2 light_radius_uv = vec2(shadow.lightRadius) / frustum_size;
     vec2 searchRegionRadiusUV = light_radius_uv* (zEye - shadow.nearFar.x);
-	findBlocker(shadowTex, accumBlockerDepth, numBlockers, maxBlockers, uv, z, searchRegionRadiusUV);
+	findBlocker(shadowTexDepth, accumBlockerDepth, numBlockers, maxBlockers, uv, z, searchRegionRadiusUV);
 
     // Early out if not in the penumbra
     if (numBlockers == 0.0)
@@ -476,11 +477,11 @@ float pcssShadow(sampler2D shadowTex, in DirectionalShadow shadow, vec2 uv, floa
 }
 
 
-float computePCSSShadowCoef(in DirectionalShadow shadow, sampler2D shadowTex)
+float computePCSSShadowCoef(in DirectionalShadow shadow, sampler2DShadow shadowTex, sampler2D shadowTexDepth)
 {	
 	vec3 uvz = computeShadowCoords(shadow.VPSBMat);	
 	float zEye = -(shadow.viewMat * vec4(vWorldPos, 1.0)).z;
-	return pcssShadow(shadowTex, shadow, uvz.xy, uvz.z, zEye);
+	return pcssShadow(shadowTex, shadowTexDepth, shadow, uvz.xy, uvz.z, zEye);
 }
 
 #endif
@@ -1135,7 +1136,7 @@ void main()
 			DirectionalShadow shadow = uDirectionalShadows[shadow_id];
 			if (shadow.lightRadius>0.0)
 			{
-				l_shadow = computePCSSShadowCoef(shadow, uDirectionalShadowTex[shadow_id]);
+				l_shadow = computePCSSShadowCoef(shadow, uDirectionalShadowTex[shadow_id], uDirectionalShadowTexDepth[shadow_id]);
 			}
 			else
 			{
@@ -1555,6 +1556,8 @@ void LightingRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	}
 
 	bindings.location_tex_directional_shadow = bindings.location_tex_normal + options.num_directional_shadows;
+	bindings.location_tex_directional_shadow_depth = bindings.location_tex_directional_shadow + options.num_directional_shadows;
+
 
 	if (options.num_directional_shadows > 0)
 	{
@@ -1567,6 +1570,11 @@ void LightingRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 		{
 			char line[64];
 			sprintf(line, "#define LOCATION_TEX_DIRECTIONAL_SHADOW %d\n", bindings.location_tex_directional_shadow - options.num_directional_shadows + 1);
+			defines += line;
+		}
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_TEX_DIRECTIONAL_SHADOW_DEPTH %d\n", bindings.location_tex_directional_shadow_depth - options.num_directional_shadows + 1);
 			defines += line;
 		}
 	}
@@ -1588,7 +1596,7 @@ void LightingRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	if (options.has_reflection_map)
 	{
 		defines += "#define HAS_REFLECTION_MAP 1\n";
-		bindings.location_tex_reflection_map = bindings.location_tex_directional_shadow + 1;
+		bindings.location_tex_reflection_map = bindings.location_tex_directional_shadow_depth + 1;
 		{
 			char line[64];
 			sprintf(line, "#define LOCATION_TEX_REFLECTION_MAP %d\n", bindings.location_tex_reflection_map);
@@ -1598,7 +1606,7 @@ void LightingRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	else
 	{
 		defines += "#define HAS_REFLECTION_MAP 0\n";
-		bindings.location_tex_reflection_map = bindings.location_tex_directional_shadow;
+		bindings.location_tex_reflection_map = bindings.location_tex_directional_shadow_depth;
 	}
 
 	if (options.has_environment_map)
@@ -1843,56 +1851,65 @@ void LightingRoutine::render(const RenderParams& params)
 		glEnableVertexAttribArray(m_bindings.location_attrib_bitangent);
 	}
 
+	int texture_idx = 0;
 	if (m_options.has_color_texture)
 	{
 		const GLTexture2D& tex = *params.tex_list[material.tex_idx_map];
-		glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_color);
+		glActiveTexture(GL_TEXTURE0 + texture_idx);
 		glBindTexture(GL_TEXTURE_2D, tex.tex_id);
-		glUniform1i(m_bindings.location_tex_color, m_bindings.location_tex_color);
+		glUniform1i(m_bindings.location_tex_color, texture_idx);
+		texture_idx++;
 	}
 
 	if (m_options.has_metalness_map)
 	{
 		const GLTexture2D& tex = *params.tex_list[material.tex_idx_metalnessMap];
-		glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_metalness);
+		glActiveTexture(GL_TEXTURE0 + texture_idx);
 		glBindTexture(GL_TEXTURE_2D, tex.tex_id);
-		glUniform1i(m_bindings.location_tex_metalness, m_bindings.location_tex_metalness);
+		glUniform1i(m_bindings.location_tex_metalness, texture_idx);
+		texture_idx++;
 	}
 
 	if (m_options.has_roughness_map)
 	{
 		const GLTexture2D& tex = *params.tex_list[material.tex_idx_roughnessMap];
-		glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_roughness);
+		glActiveTexture(GL_TEXTURE0 + texture_idx);
 		glBindTexture(GL_TEXTURE_2D, tex.tex_id);
-		glUniform1i(m_bindings.location_tex_roughness, m_bindings.location_tex_roughness);
+		glUniform1i(m_bindings.location_tex_roughness, texture_idx);
+		texture_idx++;
 	}
 
 	if (m_options.has_normal_map)
 	{
 		const GLTexture2D& tex = *params.tex_list[material.tex_idx_normalMap];
-		glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_normal);
+		glActiveTexture(GL_TEXTURE0 + texture_idx);
 		glBindTexture(GL_TEXTURE_2D, tex.tex_id);
-		glUniform1i(m_bindings.location_tex_normal, m_bindings.location_tex_normal);
+		glUniform1i(m_bindings.location_tex_normal, texture_idx);
+		texture_idx++;
 	}
 
 	if (m_options.num_directional_shadows > 0)
 	{
-		int start_idx = m_bindings.location_tex_directional_shadow - m_options.num_directional_shadows + 1;
 		std::vector<int> values(m_options.num_directional_shadows);
 		for (int i = 0; i < m_options.num_directional_shadows; i++)
 		{
-			glActiveTexture(GL_TEXTURE0 + start_idx + i);
+			glActiveTexture(GL_TEXTURE0 + texture_idx);
 			glBindTexture(GL_TEXTURE_2D, params.lights->directional_shadow_texs[i]);
-			values[i] = start_idx + i;
+			values[i] = texture_idx;
+			texture_idx++;
 		}
+		int start_idx = m_bindings.location_tex_directional_shadow - m_options.num_directional_shadows + 1;
+		int start_idx_depth = m_bindings.location_tex_directional_shadow_depth - m_options.num_directional_shadows + 1;
 		glUniform1iv(start_idx, m_options.num_directional_shadows, values.data());
+		glUniform1iv(start_idx_depth, m_options.num_directional_shadows, values.data());
 	}
 
 	if (m_options.has_reflection_map)
 	{
-		glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_reflection_map);
+		glActiveTexture(GL_TEXTURE0 + texture_idx);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, params.lights->reflection_map->tex_id);
-		glUniform1i(m_bindings.location_tex_reflection_map, m_bindings.location_tex_reflection_map);
+		glUniform1i(m_bindings.location_tex_reflection_map, texture_idx);
+		texture_idx++;
 	}
 
 	if (params.primitive->index_buf != nullptr)

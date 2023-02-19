@@ -194,7 +194,7 @@ layout (std140, binding = BINDING_DIRECTIONAL_SHADOWS) uniform DirectionalShadow
 	DirectionalShadow uDirectionalShadows[NUM_DIRECTIONAL_SHADOWS];
 };
 
-layout (location = LOCATION_TEX_DIRECTIONAL_SHADOW) uniform sampler2D uDirectionalShadowTex[NUM_DIRECTIONAL_SHADOWS];
+layout (location = LOCATION_TEX_DIRECTIONAL_SHADOW) uniform sampler2DShadow uDirectionalShadowTex[NUM_DIRECTIONAL_SHADOWS];
 
 vec3 computeShadowCoords(in mat4 VPSB, in vec3 world_pos)
 {
@@ -202,20 +202,15 @@ vec3 computeShadowCoords(in mat4 VPSB, in vec3 world_pos)
 	return shadowCoords.xyz;
 }
 
-float borderDepthTexture(sampler2D shadowTex, vec2 uv)
+float borderPCFTexture(sampler2DShadow shadowTex, vec3 uvz)
 {
-	return ((uv.x <= 1.0) && (uv.y <= 1.0) &&
-	 (uv.x >= 0.0) && (uv.y >= 0.0)) ? textureLod(shadowTex, uv, 0.0).x : 1.0;
-}
-
-float borderPCFTexture(sampler2D shadowTex, vec3 uvz)
-{
-    float d = borderDepthTexture(shadowTex, uvz.xy);
-    return uvz.z>d?0.0:1.0;
+	return ((uvz.x <= 1.0) && (uvz.y <= 1.0) &&
+	 (uvz.x >= 0.0) && (uvz.y >= 0.0)) ? texture(shadowTex, uvz) : 
+	 ((uvz.z <= 1.0) ? 1.0 : 0.0);
 }
 
 
-float computeShadowCoef(in mat4 VPSB, sampler2D shadowTex, in vec3 world_pos)
+float computeShadowCoef(in mat4 VPSB, sampler2DShadow shadowTex, in vec3 world_pos)
 {
 	vec3 shadowCoords;
 	shadowCoords = computeShadowCoords(VPSB, world_pos);
