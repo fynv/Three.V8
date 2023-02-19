@@ -209,7 +209,7 @@ float borderDepthTexture(vec2 uv)
 float borderPCFTexture(vec3 uvz)
 {
     float d = borderDepthTexture(uvz.xy);
-    return clamp(1.0 - (uvz.z - d)*5000.0, 0.0, 1.0);
+    return uvz.z>d?0.0:1.0;
 }
 
 

@@ -286,7 +286,7 @@ float borderDepthTexture(sampler2D shadowTex, vec2 uv)
 float borderPCFTexture(sampler2D shadowTex, vec3 uvz)
 {
     float d = borderDepthTexture(shadowTex, uvz.xy);
-    return clamp(1.0 - (uvz.z - d)*5000.0, 0.0, 1.0);
+	return uvz.z>d?0.0:1.0;
 }
 
 
@@ -327,32 +327,6 @@ const vec2 Poisson25[25] = vec2[](
 );
 
 
-vec2 depthGradient(vec2 uv, float z)
-{
-    vec2 dz_duv = vec2(0.0, 0.0);
-
-    vec3 duvdist_dx = dFdx(vec3(uv,z));
-    vec3 duvdist_dy = dFdy(vec3(uv,z));
-
-    dz_duv.x = duvdist_dy.y * duvdist_dx.z;
-    dz_duv.x -= duvdist_dx.y * duvdist_dy.z;
-
-    dz_duv.y = duvdist_dx.x * duvdist_dy.z;
-    dz_duv.y -= duvdist_dy.x * duvdist_dx.z;
-
-    float det = (duvdist_dx.x * duvdist_dy.y) - (duvdist_dx.y * duvdist_dy.x);
-    dz_duv /= det;
-
-    return dz_duv;
-}
-
-float biasedZ(float z0, vec2 dz_duv, vec2 offset)
-{
-    return z0 + dot(dz_duv, offset);
-}
-
-
-
 // Returns average blocker depth in the search region, as well as the number of found blockers.
 // Blockers are defined as shadow-map samples between the surface point and the light.
 void findBlocker(
@@ -361,8 +335,7 @@ void findBlocker(
     out float numBlockers,
     out float maxBlockers,
     vec2 uv,
-    float z0,
-    vec2 dz_duv,
+    float z,
     vec2 searchRegionRadiusUV)
 {
     accumBlockerDepth = 0.0;
@@ -375,8 +348,7 @@ void findBlocker(
         for (int i = 0; i < 25; ++i)
         {
             vec2 offset = Poisson25[i] * searchRegionRadiusUV;
-            float shadowMapDepth = borderDepthTexture(shadowTex, uv + offset);
-            float z = biasedZ(z0, dz_duv, offset);
+            float shadowMapDepth = borderDepthTexture(shadowTex, uv + offset);          
             if (shadowMapDepth < z)
             {
                 accumBlockerDepth += shadowMapDepth;
@@ -400,7 +372,7 @@ vec2 penumbraRadiusUV(vec2 light_radius_uv, float zReceiver, float zBlocker)
 
 
 // Performs PCF filtering on the shadow map using multiple taps in the filter region.
-float pcfFilter(sampler2D shadowTex, vec2 uv, float z0, vec2 dz_duv, vec2 filterRadiusUV)
+float pcfFilter(sampler2D shadowTex, vec2 uv, float z, vec2 filterRadiusUV)
 {
     float sum = 0.0;
 
@@ -408,15 +380,14 @@ float pcfFilter(sampler2D shadowTex, vec2 uv, float z0, vec2 dz_duv, vec2 filter
     {
         for (int i = 0; i < 25; ++i)
         {
-            vec2 offset = Poisson25[i] * filterRadiusUV;
-            float z = biasedZ(z0, dz_duv, offset);
+            vec2 offset = Poisson25[i] * filterRadiusUV;           
             sum += borderPCFTexture(shadowTex, vec3(uv + offset, z));
         }
         return sum / 25.0;
     }
 }
 
-float pcssShadow(sampler2D shadowTex, in DirectionalShadow shadow, vec2 uv, float z, vec2 dz_duv, float zEye)
+float pcssShadow(sampler2D shadowTex, in DirectionalShadow shadow, vec2 uv, float z, float zEye)
 {
     // ------------------------
     // STEP 1: blocker search
@@ -425,8 +396,8 @@ float pcssShadow(sampler2D shadowTex, in DirectionalShadow shadow, vec2 uv, floa
     
     vec2 frustum_size = vec2(shadow.leftRight.y - shadow.leftRight.x, shadow.bottomTop.y - shadow.bottomTop.x);
     vec2 light_radius_uv = vec2(shadow.lightRadius) / frustum_size;
-    vec2 searchRegionRadiusUV = light_radius_uv;
-	findBlocker(shadowTex, accumBlockerDepth, numBlockers, maxBlockers, uv, z, dz_duv, searchRegionRadiusUV);
+    vec2 searchRegionRadiusUV = light_radius_uv* (zEye - shadow.nearFar.x);
+	findBlocker(shadowTex, accumBlockerDepth, numBlockers, maxBlockers, uv, z, searchRegionRadiusUV);
 
     // Early out if not in the penumbra
     if (numBlockers == 0.0)
@@ -440,16 +411,15 @@ float pcssShadow(sampler2D shadowTex, in DirectionalShadow shadow, vec2 uv, floa
     
     vec2 penumbraRadius = penumbraRadiusUV(light_radius_uv, zEye, avgBlockerDepthWorld);
     
-	return pcfFilter(shadowTex, uv, z, dz_duv, penumbraRadius);
+	return pcfFilter(shadowTex, uv, z, penumbraRadius);
 }
 
 
 float computePCSSShadowCoef(in DirectionalShadow shadow, sampler2D shadowTex)
 {	
-	vec3 uvz = computeShadowCoords(shadow.VPSBMat);
-	vec2 dz_duv = depthGradient(uvz.xy, uvz.z);
+	vec3 uvz = computeShadowCoords(shadow.VPSBMat);	
 	float zEye = -(shadow.viewMat * vec4(vWorldPos, 1.0)).z;
-	return pcssShadow(shadowTex, shadow, uvz.xy, uvz.z, dz_duv, zEye);
+	return pcssShadow(shadowTex, shadow, uvz.xy, uvz.z, zEye);
 }
 
 #endif
