@@ -107,10 +107,10 @@ private:
 	std::unique_ptr<DrawSkyBox> SkyBoxDraw;
 	std::unique_ptr<DrawHemisphere> HemisphereDraw;
 
-	std::unique_ptr<DepthOnly> SpaceProbe;
-	void render_space_probe_primitive(const DepthOnly::RenderParams& params);
-	void render_space_probe_model(Camera* p_camera, SimpleModel* model, GLSpaceProbeTarget& target);
-	void render_space_probe_model(Camera* p_camera, GLTFModel* model, GLSpaceProbeTarget& target);
+	std::unique_ptr<DepthOnly> DepthRenderer;
+	void render_depth_primitive(const DepthOnly::RenderParams& params);
+	void render_depth_model(Camera* p_camera, SimpleModel* model);
+	void render_depth_model(Camera* p_camera, GLTFModel* model);
 
 	void _pre_render(Scene& scene);
 	void probe_space_center(Scene& scene, Camera& camera, GLSpaceProbeTarget& target, int width, int height, glm::vec3& ave, float& sum_weight);

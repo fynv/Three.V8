@@ -1127,16 +1127,16 @@ void GLRenderer::_pre_render(Scene& scene)
 }
 
 
-void GLRenderer::render_space_probe_primitive(const DepthOnly::RenderParams& params)
+void GLRenderer::render_depth_primitive(const DepthOnly::RenderParams& params)
 {
-	if (SpaceProbe == nullptr)
+	if (DepthRenderer == nullptr)
 	{
-		SpaceProbe = std::unique_ptr<DepthOnly>(new DepthOnly);
+		DepthRenderer = std::unique_ptr<DepthOnly>(new DepthOnly);
 	}
-	SpaceProbe->render(params);
+	DepthRenderer->render(params);
 }
 
-void GLRenderer::render_space_probe_model(Camera* p_camera, SimpleModel* model, GLSpaceProbeTarget& target)
+void GLRenderer::render_depth_model(Camera* p_camera, SimpleModel* model)
 {
 	glm::mat4 view_matrix = p_camera->matrixWorldInverse;
 	if (!visible(view_matrix * model->matrixWorld, p_camera->projectionMatrix, model->geometry.min_pos, model->geometry.max_pos)) return;
@@ -1149,10 +1149,10 @@ void GLRenderer::render_space_probe_model(Camera* p_camera, SimpleModel* model, 
 	params.constant_camera = &p_camera->m_constant;
 	params.constant_model = &model->m_constant;
 	params.primitive = &model->geometry;	
-	render_space_probe_primitive(params);
+	render_depth_primitive(params);
 }
 
-void GLRenderer::render_space_probe_model(Camera* p_camera, GLTFModel* model, GLSpaceProbeTarget& target)
+void GLRenderer::render_depth_model(Camera* p_camera, GLTFModel* model)
 {
 	glm::mat4 view_matrix = p_camera->matrixWorldInverse;
 
@@ -1177,14 +1177,15 @@ void GLRenderer::render_space_probe_model(Camera* p_camera, GLTFModel* model, GL
 			Primitive& primitive = mesh.primitives[j];
 			if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos)) continue;
 
-			const MeshStandardMaterial* material = material_lst[primitive.material_idx];			
+			const MeshStandardMaterial* material = material_lst[primitive.material_idx];	
+			if (material->alphaMode != AlphaMode::Opaque) continue;
 
 			DepthOnly::RenderParams params;
 			params.material_list = material_lst.data();
 			params.constant_camera = &p_camera->m_constant;
 			params.constant_model = mesh.model_constant.get();
 			params.primitive = &primitive;		
-			render_space_probe_primitive(params);
+			render_depth_primitive(params);
 		}
 	}
 }
@@ -1207,13 +1208,13 @@ void GLRenderer::probe_space_center(Scene& scene, Camera& camera, GLSpaceProbeTa
 	for (size_t j = 0; j < scene.simple_models.size(); j++)
 	{
 		SimpleModel* model = scene.simple_models[j];
-		render_space_probe_model(&camera, model, target);
+		render_depth_model(&camera, model);
 	}
 
 	for (size_t j = 0; j < scene.gltf_models.size(); j++)
 	{
 		GLTFModel* model = scene.gltf_models[j];
-		render_space_probe_model(&camera, model, target);
+		render_depth_model(&camera, model);
 	}
 
 	std::vector<float> buf(target.m_width * target.m_height);
@@ -1450,6 +1451,20 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 		glDisable(GL_BLEND);
 		glDepthMask(GL_TRUE);
 
+		// depth-prepass
+		for (size_t i = 0; i < simple_models.size(); i++)
+		{
+			SimpleModel* model = simple_models[i];
+			render_depth_model(&camera, model);
+		}
+
+		for (size_t i = 0; i < scene.gltf_models.size(); i++)
+		{
+			GLTFModel* model = scene.gltf_models[i];
+			render_depth_model(&camera, model);
+		}
+
+		// opaque
 		for (size_t i = 0; i < simple_models.size(); i++)
 		{
 			SimpleModel* model = simple_models[i];
