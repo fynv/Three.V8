@@ -1452,6 +1452,7 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 		glDepthMask(GL_TRUE);
 
 		// depth-prepass
+		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 		for (size_t i = 0; i < simple_models.size(); i++)
 		{
 			SimpleModel* model = simple_models[i];
@@ -1463,6 +1464,7 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 			GLTFModel* model = scene.gltf_models[i];
 			render_depth_model(&camera, model);
 		}
+		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
 		// opaque
 		for (size_t i = 0; i < simple_models.size(); i++)
