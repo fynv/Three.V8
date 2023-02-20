@@ -83,6 +83,16 @@ namespace GameDev
             game_player = null;
         }
 
+        public void gl_pause()
+        {
+            glControl.Pause();
+        }
+
+        public void gl_resume() 
+        {
+            glControl.Resume();
+        }
+
         private void GLControl_Paint(object sender, System.Windows.Forms.PaintEventArgs e)
         {
             if (game_player == null) return;
@@ -248,18 +258,22 @@ namespace GameDev
             bool changed = await TextChanged();
             if (changed)
             {
+                gl_pause();
                 var result = MessageBox.Show("File has been modified. Save it?", "Save file", MessageBoxButton.YesNoCancel);
                 if (result == MessageBoxResult.Yes)
                 {
                     await doc_save();
+                    gl_resume();
                     return true;
                 }
                 else if (result == MessageBoxResult.No)
                 {
+                    gl_resume();
                     return true;
                 }
                 else
                 {
+                    gl_resume();
                     return false;
                 }
             }
@@ -449,11 +463,13 @@ namespace GameDev
             {
                 if (await TextChanged_code())
                 {
+                    gl_pause();
                     if (MessageBox.Show("Code has changed, apply it to view?", "Apply changes", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
                     {
                         await GetText_code();
                         SetText_gl(text_cache);
                     }
+                    gl_resume();
                 }
             }
             else
@@ -872,10 +888,12 @@ namespace GameDev
                     name = tag;
                 }
 
+                gl_pause();
                 if (MessageBox.Show($"Remove {tag} object \"{name}\" and all its children from scene?", "Remove Object", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
                 {
                     game_player.SendMessageToUser("remove", key);
                 }
+                gl_resume();
             }
             
         }

@@ -32,7 +32,9 @@ namespace CLRBinding
 		}
 
 		void MakeCurrent();
-		void SetFramerate(float fps);
+		void SetFramerate(float fps);	
+		void Pause();
+		void Resume();
 
 		ControlEvent^ pControlKey = nullptr;
 
@@ -64,6 +66,7 @@ namespace CLRBinding
 		HDC m_hdc = nullptr;
 		HGLRC m_hrc = nullptr;
 		unsigned m_interval = 0;
+		bool m_paused = false;
 		uint64_t m_time_scheduled;
 		PTP_TIMER m_timer = nullptr;
 		GCHandle m_func_invalidate;

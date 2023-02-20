@@ -90,6 +90,18 @@ namespace CLRBinding
 		m_time_scheduled = time_milli_sec();
 		this->Invalidate();
 	}
+
+	void CGLControl::Pause()
+	{
+		m_paused = true;
+	}
+
+	void CGLControl::Resume()
+	{
+		m_paused = false;
+		m_time_scheduled = time_milli_sec();
+		this->Invalidate();
+	}
 	
 	void CGLControl::OnPaint(PaintEventArgs^ e)
 	{
@@ -100,7 +112,7 @@ namespace CLRBinding
 			SwapBuffers(m_hdc);
 		}
 
-		if (m_interval > 0)
+		if (!m_paused && m_interval > 0)
 		{
 			unsigned interval = m_interval;
 			uint64_t t = time_milli_sec();
