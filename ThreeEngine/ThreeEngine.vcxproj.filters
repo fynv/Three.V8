@@ -351,6 +351,15 @@
     <ClCompile Include="savers\FileSaver.cpp">
       <Filter>Source Files\savers</Filter>
     </ClCompile>
+    <ClCompile Include="renderers\routines\SimpleRoutine.cpp">
+      <Filter>Source Files\renderers\routines</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\routines\SimpleFogRayMarching.cpp">
+      <Filter>Source Files\renderers\routines</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\routines\SimpleFogRayMarchingEnv.cpp">
+      <Filter>Source Files\renderers\routines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -613,6 +622,15 @@
     </ClInclude>
     <ClInclude Include="savers\FileSaver.h">
       <Filter>Header Files\savers</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\routines\SimpleRoutine.h">
+      <Filter>Header Files\renderers\routines</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\routines\SimpleFogRayMarching.h">
+      <Filter>Header Files\renderers\routines</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\routines\SimpleFogRayMarchingEnv.h">
+      <Filter>Header Files\renderers\routines</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

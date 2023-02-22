@@ -3,6 +3,7 @@
 #include <memory>
 #include <unordered_map>
 #include "renderers/routines/StandardRoutine.h"
+#include "renderers/routines/SimpleRoutine.h"
 #include "renderers/routines/DrawWire.h"
 #include "renderers/routines/MorphUpdate.h"
 #include "renderers/routines/SkinUpdate.h"
@@ -14,6 +15,8 @@
 #include "renderers/routines/DrawFog.h"
 #include "renderers/routines/FogRayMarching.h"
 #include "renderers/routines/FogRayMarchingEnv.h"
+#include "renderers/routines/SimpleFogRayMarching.h"
+#include "renderers/routines/SimpleFogRayMarchingEnv.h"
 
 #include "volume/routines/DrawIsosurface.h"
 #include "volume/routines/IsosurfaceDirectionalShadow.h"
@@ -72,6 +75,9 @@ private:
 	std::unordered_map<uint64_t, std::unique_ptr<StandardRoutine>> routine_map;
 	StandardRoutine* get_routine(const StandardRoutine::Options& options);
 
+	std::unordered_map<uint64_t, std::unique_ptr<SimpleRoutine>> simple_routine_map;
+	SimpleRoutine* get_simple_routine(const SimpleRoutine::Options& options);
+
 	std::unique_ptr<DrawWire> WireDraw;
 
 	std::unordered_map<uint64_t, std::unique_ptr<DrawIsosurface>> IsosurfaceDraw;
@@ -83,6 +89,10 @@ private:
 	void render_model(Camera* p_camera, const Lights& lights, const Fog* fog, VolumeIsosurfaceModel* model, GLRenderTarget& target, Pass pass);
 	void render_widget(Camera* p_camera, DirectionalLight* light);
 	void render_widget(Camera* p_camera, ProbeGridWidget* widget);
+
+	void render_primitive_simple(const SimpleRoutine::RenderParams& params, Pass pass);
+	void render_model_simple(Camera* p_camera, const Lights& lights, const Fog* fog, SimpleModel* model, Pass pass);
+	void render_model_simple(Camera* p_camera, const Lights& lights, const Fog* fog, GLTFModel* model, Pass pass);
 
 	std::unique_ptr<MorphUpdate> morphers[4];
 	std::unique_ptr<SkinUpdate> skinners[2];
@@ -110,8 +120,10 @@ private:
 	void _pre_render(Scene& scene);
 	void probe_space_center(Scene& scene, Camera& camera, GLSpaceProbeTarget& target, int width, int height, glm::vec3& ave, float& sum_weight);
 	glm::vec3 probe_space_center_cube(Scene& scene, const glm::vec3& position, float zNear, float zFar, IndirectLight& light);
-	void _render_scene(Scene& scene, Camera& camera, GLRenderTarget& target, bool widgets = false);
-	void _render(Scene& scene, Camera& camera, GLRenderTarget& target, bool widgets = false);
+	void _render_scene(Scene& scene, Camera& camera, GLRenderTarget& target);
+	void _render(Scene& scene, Camera& camera, GLRenderTarget& target);
+	void _render_scene_simple(Scene& scene, Camera& camera, GLRenderTarget& target);
+	void _render_simple(Scene& scene, Camera& camera, GLRenderTarget& target);
 	void _render_cube(Scene& scene, CubeRenderTarget& target, const glm::vec3& position, float zNear, float zFar, const glm::quat& rotation = glm::identity<glm::quat>());
 
 	std::unordered_map<uint64_t, std::unique_ptr<Picking>> picking_map;
@@ -128,6 +140,11 @@ private:
 	void _render_fog(const Camera& camera, const Lights& lights, const Fog& fog, GLRenderTarget& target);
 	void _render_fog_rm(const Camera& camera, DirectionalLight& light, const Fog& fog, GLRenderTarget& target);	
 	void _render_fog_rm_env(const Camera& camera, const Lights& lights, const Fog& fog, GLRenderTarget& target);
+
+	std::unique_ptr<SimpleFogRayMarching> fog_ray_march_simple[2];
+	std::unordered_map<uint64_t, std::unique_ptr<SimpleFogRayMarchingEnv>> fog_ray_march_map_simple;
+	void _render_fog_rm_simple(const Camera& camera, DirectionalLight& light, const Fog& fog, GLRenderTarget& target);
+	void _render_fog_rm_env_simple(const Camera& camera, const Lights& lights, const Fog& fog, GLRenderTarget& target);
 	
 	std::unique_ptr<DrawTexture> TextureDraw;
 

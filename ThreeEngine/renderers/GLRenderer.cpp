@@ -145,6 +145,18 @@ StandardRoutine* GLRenderer::get_routine(const StandardRoutine::Options& options
 	return routine_map[hash].get();
 }
 
+
+SimpleRoutine* GLRenderer::get_simple_routine(const SimpleRoutine::Options& options)
+{
+	uint64_t hash = crc64(0, (const unsigned char*)&options, sizeof(SimpleRoutine::Options));
+	auto iter = simple_routine_map.find(hash);
+	if (iter == simple_routine_map.end())
+	{
+		simple_routine_map[hash] = std::unique_ptr<SimpleRoutine>(new SimpleRoutine(options));
+	}
+	return simple_routine_map[hash].get();
+}
+
 DrawIsosurface* GLRenderer::get_isosurface_draw(const DrawIsosurface::Options& options)
 {
 	uint64_t hash = crc64(0, (const unsigned char*)&options, sizeof(DrawIsosurface::Options));
@@ -448,8 +460,9 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 	draw->render(params);
 }
 
+
 void GLRenderer::render_widget(Camera* p_camera, DirectionalLight* light)
-{	
+{
 	if (light->shadow != nullptr)
 	{
 		DirectionalLightShadow* shadow = light->shadow.get();
@@ -461,7 +474,7 @@ void GLRenderer::render_widget(Camera* p_camera, DirectionalLight* light)
 		glMatrixLoadfEXT(GL_PROJECTION, (float*)&mat_proj);
 		glMatrixLoadfEXT(GL_MODELVIEW, (float*)&model_view);
 
-		glEnable(GL_DEPTH_TEST);		
+		glEnable(GL_DEPTH_TEST);
 
 		glLineWidth(2.0f);
 
@@ -561,7 +574,7 @@ void GLRenderer::render_widget(Camera* p_camera, ProbeGridWidget* widget)
 	glVertex3f(widget->coverage_min.x, widget->coverage_max.y, widget->coverage_max.z);
 	glVertex3f(widget->coverage_max.x, widget->coverage_min.y, widget->coverage_max.z);
 	glVertex3f(widget->coverage_max.x, widget->coverage_max.y, widget->coverage_max.z);
-	
+
 	glColor3f(0.0f, 0.0f, 1.0f);
 	glVertex3f(widget->coverage_min.x, widget->coverage_min.y, widget->coverage_min.z);
 	glVertex3f(widget->coverage_min.x, widget->coverage_min.y, widget->coverage_max.z);
@@ -594,6 +607,146 @@ void GLRenderer::render_widget(Camera* p_camera, ProbeGridWidget* widget)
 
 
 }
+
+void GLRenderer::render_primitive_simple(const SimpleRoutine::RenderParams& params, Pass pass)
+{
+	const MeshStandardMaterial* material = params.material_list[params.primitive->material_idx];
+	const Lights* lights = params.lights;
+
+	SimpleRoutine::Options options;
+	options.alpha_mode = material->alphaMode;
+	options.is_highlight_pass = pass == Pass::Highlight;
+	options.specular_glossiness = material->specular_glossiness;
+	options.has_color = params.primitive->color_buf != nullptr;
+	options.has_color_texture = material->tex_idx_map >= 0;
+	options.has_metalness_map = material->tex_idx_metalnessMap >= 0;
+	options.has_roughness_map = material->tex_idx_roughnessMap >= 0;		
+	options.has_emissive_map = material->tex_idx_emissiveMap >= 0;
+	options.has_specular_map = material->tex_idx_specularMap >= 0;
+	options.has_glossiness_map = material->tex_idx_glossinessMap >= 0;
+	options.num_directional_lights = lights->num_directional_lights;
+	options.num_directional_shadows = lights->num_directional_shadows;
+	options.has_reflection_map = lights->reflection_map != nullptr;
+	options.has_environment_map = lights->environment_map != nullptr;
+	options.has_probe_grid = lights->probe_grid != nullptr;
+	if (options.has_probe_grid)
+	{
+		options.probe_reference_recorded = lights->probe_grid->record_references;
+	}
+	options.has_ambient_light = lights->ambient_light != nullptr;
+	options.has_hemisphere_light = lights->hemisphere_light != nullptr;
+	options.has_fog = params.constant_fog != nullptr;		
+	SimpleRoutine* routine = get_simple_routine(options);
+	routine->render(params);
+}
+
+void GLRenderer::render_model_simple(Camera* p_camera, const Lights& lights, const Fog* fog, SimpleModel* model, Pass pass)
+{
+	const GLTexture2D* tex = &model->texture;
+	if (model->repl_texture != nullptr)
+	{
+		tex = model->repl_texture;
+	}
+
+	const MeshStandardMaterial* material = &model->material;
+
+	if (pass == Pass::Opaque)
+	{
+		if (material->alphaMode == AlphaMode::Blend) return;
+	}
+	else if (pass == Pass::Alpha || pass == Pass::Highlight)
+	{
+		if (material->alphaMode != AlphaMode::Blend) return;
+	}
+
+	SimpleRoutine::RenderParams params;
+	params.tex_list = &tex;
+	params.material_list = &material;
+	params.constant_camera = &p_camera->m_constant;
+	params.constant_model = &model->m_constant;
+	params.primitive = &model->geometry;
+	params.lights = &lights;
+
+	if (fog != nullptr)
+	{
+		params.constant_fog = &fog->m_constant;
+	}
+	else
+	{
+		params.constant_fog = nullptr;
+	}
+
+	render_primitive_simple(params, pass);
+}
+
+void GLRenderer::render_model_simple(Camera* p_camera, const Lights& lights, const Fog* fog, GLTFModel* model, Pass pass)
+{
+	std::vector<const GLTexture2D*> tex_lst(model->m_textures.size());
+	for (size_t i = 0; i < tex_lst.size(); i++)
+	{
+		auto iter = model->m_repl_textures.find(i);
+		if (iter != model->m_repl_textures.end())
+		{
+			tex_lst[i] = iter->second;
+		}
+		else
+		{
+			tex_lst[i] = model->m_textures[i].get();
+		}
+	}
+
+	std::vector<const MeshStandardMaterial*> material_lst(model->m_materials.size());
+	for (size_t i = 0; i < material_lst.size(); i++)
+		material_lst[i] = model->m_materials[i].get();
+
+	for (size_t i = 0; i < model->m_meshs.size(); i++)
+	{
+		Mesh& mesh = model->m_meshs[i];
+		glm::mat4 matrix = model->matrixWorld;
+		if (mesh.node_id >= 0 && mesh.skin_id < 0)
+		{
+			Node& node = model->m_nodes[mesh.node_id];
+			matrix *= node.g_trans;
+		}
+		glm::mat4 MV = p_camera->matrixWorldInverse * matrix;
+
+		for (size_t j = 0; j < mesh.primitives.size(); j++)
+		{
+			Primitive& primitive = mesh.primitives[j];
+			if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos)) continue;
+
+			const MeshStandardMaterial* material = material_lst[primitive.material_idx];
+			if (pass == Pass::Opaque)
+			{
+				if (material->alphaMode == AlphaMode::Blend) continue;
+			}
+			else if (pass == Pass::Alpha || pass == Pass::Highlight)
+			{
+				if (material->alphaMode != AlphaMode::Blend) continue;
+			}
+			
+			SimpleRoutine::RenderParams params;
+			params.tex_list = tex_lst.data();
+			params.material_list = material_lst.data();
+			params.constant_camera = &p_camera->m_constant;
+			params.constant_model = mesh.model_constant.get();
+			params.primitive = &primitive;
+			params.lights = &lights;
+
+			if (fog != nullptr)
+			{
+				params.constant_fog = &fog->m_constant;
+			}
+			else
+			{
+				params.constant_fog = nullptr;
+			}
+			render_primitive_simple(params, pass);
+		}
+	}
+}
+
+
 
 DirectionalShadowCast* GLRenderer::get_shadow_caster(const DirectionalShadowCast::Options& options)
 {
@@ -889,6 +1042,64 @@ void GLRenderer::_render_fog_rm_env(const Camera& camera, const Lights& lights, 
 	FogRayMarchingEnv* fog_draw = fog_ray_march_map[hash].get();
 
 	FogRayMarchingEnv::RenderParams params;
+	params.tex_depth = target.m_tex_depth.get();
+	params.constant_camera = &camera.m_constant;
+	params.constant_fog = &fog.m_constant;
+	params.lights = &lights;
+
+	fog_draw->render(params);
+
+}
+
+
+void GLRenderer::_render_fog_rm_simple(const Camera& camera, DirectionalLight& light, const Fog& fog, GLRenderTarget& target)
+{
+	bool msaa = target.msaa();
+	int idx = msaa ? 1 : 0;
+	if (fog_ray_march_simple[idx] == nullptr)
+	{
+		fog_ray_march_simple[idx] = std::unique_ptr<SimpleFogRayMarching>(new SimpleFogRayMarching(msaa));
+	}
+	SimpleFogRayMarching* fog_rm = fog_ray_march_simple[idx].get();
+
+	light.updateConstant();
+	SimpleFogRayMarching::RenderParams params;
+	params.tex_depth = target.m_tex_depth.get();
+	params.camera = &camera;
+	params.fog = &fog;
+	params.constant_diretional_light = &light.m_constant;
+	if (light.shadow != nullptr)
+	{
+		params.constant_diretional_shadow = &light.shadow->constant_shadow;
+		params.tex_shadow = light.shadow->m_lightTex;
+	}
+	else
+	{
+		params.constant_diretional_shadow = nullptr;
+		params.tex_shadow = -1;
+	}
+	fog_rm->render(params);
+}
+
+void GLRenderer::_render_fog_rm_env_simple(const Camera& camera, const Lights& lights, const Fog& fog, GLRenderTarget& target)
+{
+	SimpleFogRayMarchingEnv::Options options;
+	options.msaa = target.msaa();
+	options.has_probe_grid = lights.probe_grid != nullptr;
+	if (options.has_probe_grid)
+	{
+		options.probe_reference_recorded = lights.probe_grid->record_references;
+	}
+
+	uint64_t hash = crc64(0, (const unsigned char*)&options, sizeof(SimpleFogRayMarchingEnv::Options));
+	auto iter = fog_ray_march_map_simple.find(hash);
+	if (iter == fog_ray_march_map_simple.end())
+	{
+		fog_ray_march_map_simple[hash] = std::unique_ptr<SimpleFogRayMarchingEnv>(new SimpleFogRayMarchingEnv(options));
+	}
+	SimpleFogRayMarchingEnv* fog_draw = fog_ray_march_map_simple[hash].get();
+
+	SimpleFogRayMarchingEnv::RenderParams params;
 	params.tex_depth = target.m_tex_depth.get();
 	params.constant_camera = &camera.m_constant;
 	params.constant_fog = &fog.m_constant;
@@ -1318,7 +1529,7 @@ glm::vec3 GLRenderer::probe_space_center_cube(Scene& scene, const glm::vec3& pos
 	return sum / sum_weight;
 }
 
-void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& target, bool widgets)
+void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& target)
 {	
 	camera.updateMatrixWorld(false);
 	camera.updateConstant();
@@ -1326,8 +1537,7 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 	// model culling
 
 	std::vector<SimpleModel*> simple_models = scene.simple_models;
-	std::vector<GLTFModel*> gltf_models = scene.gltf_models;
-	std::vector<VolumeIsosurfaceModel*> volume_isosurface_models = scene.volume_isosurface_models;
+	std::vector<GLTFModel*> gltf_models = scene.gltf_models;	
 
 	bool has_alpha = false;
 	bool has_opaque = false;
@@ -1459,9 +1669,9 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 			render_depth_model(&camera, model);
 		}
 
-		for (size_t i = 0; i < scene.gltf_models.size(); i++)
+		for (size_t i = 0; i < gltf_models.size(); i++)
 		{
-			GLTFModel* model = scene.gltf_models[i];
+			GLTFModel* model = gltf_models[i];
 			render_depth_model(&camera, model);
 		}
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -1473,9 +1683,9 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 			render_model(&camera, lights, fog, model, Pass::Opaque);
 		}
 
-		for (size_t i = 0; i < scene.gltf_models.size(); i++)
+		for (size_t i = 0; i < gltf_models.size(); i++)
 		{
-			GLTFModel* model = scene.gltf_models[i];
+			GLTFModel* model = gltf_models[i];
 			render_model(&camera, lights, fog, model, Pass::Opaque);
 		}
 
@@ -1486,43 +1696,41 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 		}
 	}
 
-	if (widgets)
+	
+	for (size_t i = 0; i < scene.widgets.size(); i++)
 	{
-		for (size_t i = 0; i < scene.widgets.size(); i++)
+		Object3D* obj = scene.widgets[i];
+		obj->updateWorldMatrix(false, false);
+		do
 		{
-			Object3D* obj = scene.widgets[i];
-			obj->updateWorldMatrix(false, false);
-			do
 			{
+				SimpleModel* model = dynamic_cast<SimpleModel*>(obj);					
+				if (model != nullptr &&
+					visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->geometry.min_pos, model->geometry.max_pos))
 				{
-					SimpleModel* model = dynamic_cast<SimpleModel*>(obj);					
-					if (model != nullptr &&
-						visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->geometry.min_pos, model->geometry.max_pos))
-					{
-						update_model(model);
-						render_model(&camera, lights, fog, model, Pass::Opaque);
-						break;
-					}
+					update_model(model);
+					render_model(&camera, lights, fog, model, Pass::Opaque);
+					break;
 				}
+			}
+			{
+				DirectionalLight* light = dynamic_cast<DirectionalLight*>(obj);
+				if (light != nullptr)
 				{
-					DirectionalLight* light = dynamic_cast<DirectionalLight*>(obj);
-					if (light != nullptr)
-					{
-						render_widget(&camera, light);
-						break;
-					}
+					render_widget(&camera, light);
+					break;
 				}
+			}
+			{
+				ProbeGridWidget* widget = dynamic_cast<ProbeGridWidget*>(obj);
+				if (widget != nullptr)
 				{
-					ProbeGridWidget* widget = dynamic_cast<ProbeGridWidget*>(obj);
-					if (widget != nullptr)
-					{
-						render_widget(&camera, widget);
-						break;
-					}
+					render_widget(&camera, widget);
+					break;
 				}
+			}
 
-			} while (false);
-		}
+		} while (false);
 	}
 
 	if (has_alpha)
@@ -1537,9 +1745,9 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 			render_model(&camera, lights, fog, model, Pass::Highlight);
 		}
 
-		for (size_t i = 0; i < scene.gltf_models.size(); i++)
+		for (size_t i = 0; i < gltf_models.size(); i++)
 		{
-			GLTFModel* model = scene.gltf_models[i];
+			GLTFModel* model = gltf_models[i];
 			render_model(&camera, lights, fog, model, Pass::Highlight);
 		}
 
@@ -1567,9 +1775,9 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 			render_model(&camera, lights, fog, model, Pass::Alpha);
 		}
 
-		for (size_t i = 0; i < scene.gltf_models.size(); i++)
+		for (size_t i = 0; i < gltf_models.size(); i++)
 		{
-			GLTFModel* model = scene.gltf_models[i];
+			GLTFModel* model = gltf_models[i];
 			render_model(&camera, lights, fog, model, Pass::Alpha);
 		}
 
@@ -1587,9 +1795,9 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 
 }
 
-void GLRenderer::_render(Scene& scene, Camera& camera, GLRenderTarget& target, bool widgets)
+void GLRenderer::_render(Scene& scene, Camera& camera, GLRenderTarget& target)
 {	
-	_render_scene(scene, camera, target, widgets);
+	_render_scene(scene, camera, target);
 
 	Lights& lights = scene.lights;
 
@@ -1629,6 +1837,271 @@ void GLRenderer::_render(Scene& scene, Camera& camera, GLRenderTarget& target, b
 	}
 }
 
+void GLRenderer::_render_scene_simple(Scene& scene, Camera& camera, GLRenderTarget& target)
+{
+	camera.updateMatrixWorld(false);
+	camera.updateConstant();
+
+	// model culling
+
+	std::vector<SimpleModel*> simple_models = scene.simple_models;
+	std::vector<GLTFModel*> gltf_models = scene.gltf_models;
+
+	bool has_alpha = false;
+	bool has_opaque = false;
+
+	for (size_t i = 0; i < simple_models.size(); i++)
+	{
+		SimpleModel* model = simple_models[i];
+		if (!visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->geometry.min_pos, model->geometry.max_pos))
+		{
+			simple_models.erase(simple_models.begin() + i);
+			i--;
+		}
+		else
+		{
+			const MeshStandardMaterial* material = &model->material;
+			if (material->alphaMode == AlphaMode::Blend)
+			{
+				has_alpha = true;
+			}
+			else
+			{
+				has_opaque = true;
+			}
+		}
+	}
+
+	for (size_t i = 0; i < gltf_models.size(); i++)
+	{
+		GLTFModel* model = gltf_models[i];
+		if (!visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->m_min_pos, model->m_max_pos))
+		{
+			gltf_models.erase(gltf_models.begin() + i);
+			i--;
+		}
+		else
+		{
+			size_t num_materials = model->m_materials.size();
+			for (size_t i = 0; i < num_materials; i++)
+			{
+				const MeshStandardMaterial* material = model->m_materials[i].get();
+				if (material->alphaMode == AlphaMode::Blend)
+				{
+					has_alpha = true;
+				}
+				else
+				{
+					has_opaque = true;
+				}
+			}
+		}
+	}
+
+	// render scene
+	target.bind_buffer();
+	glEnable(GL_FRAMEBUFFER_SRGB);
+	glViewport(0, 0, target.m_width, target.m_height);
+
+	while (scene.background != nullptr)
+	{
+		{
+			ColorBackground* bg = dynamic_cast<ColorBackground*>(scene.background);
+			if (bg != nullptr)
+			{
+				glClearColor(bg->color.r, bg->color.g, bg->color.b, 1.0f);
+				glClear(GL_COLOR_BUFFER_BIT);
+				break;
+			}
+		}
+		{
+			CubeBackground* bg = dynamic_cast<CubeBackground*>(scene.background);
+			if (bg != nullptr)
+			{
+				if (SkyBoxDraw == nullptr)
+				{
+					SkyBoxDraw = std::unique_ptr<DrawSkyBox>(new DrawSkyBox);
+				}
+				SkyBoxDraw->render(&camera.m_constant, &bg->cubemap);
+				break;
+			}
+		}
+		{
+			HemisphereBackground* bg = dynamic_cast<HemisphereBackground*>(scene.background);
+			if (bg != nullptr)
+			{
+				bg->updateConstant();
+				if (HemisphereDraw == nullptr)
+				{
+					HemisphereDraw = std::unique_ptr<DrawHemisphere>(new DrawHemisphere);
+				}
+				HemisphereDraw->render(&camera.m_constant, &bg->m_constant);
+				break;
+			}
+		}
+		{
+			BackgroundScene* bg = dynamic_cast<BackgroundScene*>(scene.background);
+			PerspectiveCamera* ref_cam = dynamic_cast<PerspectiveCamera*>(&camera);
+			if (bg != nullptr && bg->scene != nullptr && ref_cam != nullptr)
+			{
+				BackgroundScene::Camera cam(bg, ref_cam);
+				_render_scene_simple(*bg->scene, cam, target);
+			}
+
+		}
+		break;
+	}
+
+	Lights& lights = scene.lights;
+
+	Fog* fog = nullptr;
+	if (scene.fog != nullptr && scene.fog->density > 0)
+	{
+		fog = scene.fog;
+	}
+
+	glDepthMask(GL_TRUE);
+	glClearDepth(1.0f);
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	if (has_opaque)
+	{
+		glDisable(GL_BLEND);
+		glDepthMask(GL_TRUE);
+
+		// depth-prepass
+		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+		for (size_t i = 0; i < simple_models.size(); i++)
+		{
+			SimpleModel* model = simple_models[i];
+			render_depth_model(&camera, model);
+		}
+
+		for (size_t i = 0; i < gltf_models.size(); i++)
+		{
+			GLTFModel* model = gltf_models[i];
+			render_depth_model(&camera, model);
+		}
+		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+		// opaque
+		for (size_t i = 0; i < simple_models.size(); i++)
+		{
+			SimpleModel* model = simple_models[i];
+			render_model_simple(&camera, lights, fog, model, Pass::Opaque);
+		}
+
+		for (size_t i = 0; i < gltf_models.size(); i++)
+		{
+			GLTFModel* model = gltf_models[i];
+			render_model_simple(&camera, lights, fog, model, Pass::Opaque);
+		}		
+	}
+
+	if (has_alpha)
+	{
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_ONE, GL_ONE);
+		glDepthMask(GL_FALSE);
+
+		for (size_t i = 0; i < simple_models.size(); i++)
+		{
+			SimpleModel* model = simple_models[i];
+			render_model_simple(&camera, lights, fog, model, Pass::Highlight);
+		}
+
+		for (size_t i = 0; i < gltf_models.size(); i++)
+		{
+			GLTFModel* model = gltf_models[i];
+			render_model_simple(&camera, lights, fog, model, Pass::Highlight);
+		}
+
+		target.update_oit_buffers();
+		if (!target.msaa())
+		{
+			if (oit_resolvers[0] == nullptr)
+			{
+				oit_resolvers[0] = std::unique_ptr<WeightedOIT>(new WeightedOIT(false));
+			}
+			oit_resolvers[0]->PreDraw(target.m_OITBuffers);
+		}
+		else
+		{
+			if (oit_resolvers[1] == nullptr)
+			{
+				oit_resolvers[1] = std::unique_ptr<WeightedOIT>(new WeightedOIT(true));
+			}
+			oit_resolvers[1]->PreDraw(target.m_OITBuffers);
+		}
+
+		for (size_t i = 0; i < simple_models.size(); i++)
+		{
+			SimpleModel* model = simple_models[i];
+			render_model_simple(&camera, lights, fog, model, Pass::Alpha);
+		}
+
+		for (size_t i = 0; i < gltf_models.size(); i++)
+		{
+			GLTFModel* model = gltf_models[i];
+			render_model_simple(&camera, lights, fog, model, Pass::Alpha);
+		}
+
+		target.bind_buffer();
+
+		if (!target.msaa())
+		{
+			oit_resolvers[0]->PostDraw(target.m_OITBuffers);
+		}
+		else
+		{
+			oit_resolvers[1]->PostDraw(target.m_OITBuffers);
+		}
+	}
+}
+
+void GLRenderer::_render_simple(Scene& scene, Camera& camera, GLRenderTarget& target)
+{
+	_render_scene_simple(scene, camera, target);
+
+	Lights& lights = scene.lights;
+
+	Fog* fog = nullptr;
+	if (scene.fog != nullptr && scene.fog->density > 0)
+	{
+		fog = scene.fog;
+	}
+
+	if (target.msaa())
+	{
+		target.resolve_msaa();
+	}
+
+	if (fog != nullptr)
+	{
+		fog->updateConstant();
+
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+		glDisable(GL_DEPTH_TEST);
+
+		_render_fog(camera, lights, *fog, target);
+
+		glBlendFunc(GL_ONE, GL_ONE);
+
+		for (size_t i = 0; i < scene.directional_lights.size(); i++)
+		{
+			DirectionalLight* light = scene.directional_lights[i];
+			_render_fog_rm_simple(camera, *light, *fog, target);
+		}
+
+		if (lights.probe_grid != nullptr)
+		{
+			_render_fog_rm_env_simple(camera, lights, *fog, target);
+		}
+	}
+
+}
+
 void GLRenderer::_render_cube(Scene& scene, CubeRenderTarget& target, const glm::vec3& position, float zNear, float zFar, const glm::quat& rotation)
 {
 	{
@@ -1637,7 +2110,7 @@ void GLRenderer::_render_cube(Scene& scene, CubeRenderTarget& target, const glm:
 		camera.up = { 0.0f, -1.0f, 0.0f };
 		camera.lookAt(position + glm::vec3(1.0f, 0.0f, 0.0f));
 		camera.applyQuaternion(rotation);
-		_render(scene, camera, *target.m_faces[0]);
+		_render_simple(scene, camera, *target.m_faces[0]);
 	}
 
 	{
@@ -1646,7 +2119,7 @@ void GLRenderer::_render_cube(Scene& scene, CubeRenderTarget& target, const glm:
 		camera.up = { 0.0f, -1.0f, 0.0f };
 		camera.lookAt(position + glm::vec3(-1.0f, 0.0f, 0.0f));
 		camera.applyQuaternion(rotation);
-		_render(scene, camera, *target.m_faces[1]);
+		_render_simple(scene, camera, *target.m_faces[1]);
 	}
 
 	{
@@ -1655,7 +2128,7 @@ void GLRenderer::_render_cube(Scene& scene, CubeRenderTarget& target, const glm:
 		camera.up = { 0.0f, 0.0f, 1.0f };
 		camera.lookAt(position + glm::vec3(0.0f, 1.0f, 0.0f));
 		camera.applyQuaternion(rotation);
-		_render(scene, camera, *target.m_faces[2]);
+		_render_simple(scene, camera, *target.m_faces[2]);
 	}
 
 	{
@@ -1664,7 +2137,7 @@ void GLRenderer::_render_cube(Scene& scene, CubeRenderTarget& target, const glm:
 		camera.up = { 0.0f, 0.0f, -1.0f };
 		camera.lookAt(position + glm::vec3(0.0f, -1.0f, 0.0f));
 		camera.applyQuaternion(rotation);
-		_render(scene, camera, *target.m_faces[3]);
+		_render_simple(scene, camera, *target.m_faces[3]);
 	}
 
 	{
@@ -1673,7 +2146,7 @@ void GLRenderer::_render_cube(Scene& scene, CubeRenderTarget& target, const glm:
 		camera.up = { 0.0f, -1.0f, 0.0f };
 		camera.lookAt(position + glm::vec3(0.0f, 0.0f, 1.0f));
 		camera.applyQuaternion(rotation);
-		_render(scene, camera, *target.m_faces[4]);
+		_render_simple(scene, camera, *target.m_faces[4]);
 	}
 
 	{
@@ -1682,7 +2155,7 @@ void GLRenderer::_render_cube(Scene& scene, CubeRenderTarget& target, const glm:
 		camera.up = { 0.0f, -1.0f, 0.0f };
 		camera.lookAt(position + glm::vec3(0.0f, 0.0f, -1.0f));
 		camera.applyQuaternion(rotation);
-		_render(scene, camera, *target.m_faces[5]);
+		_render_simple(scene, camera, *target.m_faces[5]);
 	}
 }
 
@@ -1730,7 +2203,7 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 		EnvCreator->CreateReflection(*light->reflection, light->cube_target->m_cube_map.get());
 	
 	}
-	_render(scene, camera, target, true);
+	_render(scene, camera, target);
 	
 }
 

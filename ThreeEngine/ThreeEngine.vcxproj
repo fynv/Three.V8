@@ -191,6 +191,9 @@
     <ClCompile Include="renderers\routines\FogRayMarchingEnv.cpp" />
     <ClCompile Include="renderers\routines\MorphUpdate.cpp" />
     <ClCompile Include="renderers\routines\Picking.cpp" />
+    <ClCompile Include="renderers\routines\SimpleFogRayMarching.cpp" />
+    <ClCompile Include="renderers\routines\SimpleFogRayMarchingEnv.cpp" />
+    <ClCompile Include="renderers\routines\SimpleRoutine.cpp" />
     <ClCompile Include="renderers\routines\SkinUpdate.cpp" />
     <ClCompile Include="renderers\routines\StandardRoutine.cpp" />
     <ClCompile Include="renderers\routines\WeightedOIT.cpp" />
@@ -277,6 +280,9 @@
     <ClInclude Include="renderers\routines\FogRayMarchingEnv.h" />
     <ClInclude Include="renderers\routines\MorphUpdate.h" />
     <ClInclude Include="renderers\routines\Picking.h" />
+    <ClInclude Include="renderers\routines\SimpleFogRayMarching.h" />
+    <ClInclude Include="renderers\routines\SimpleFogRayMarchingEnv.h" />
+    <ClInclude Include="renderers\routines\SimpleRoutine.h" />
     <ClInclude Include="renderers\routines\SkinUpdate.h" />
     <ClInclude Include="renderers\routines\StandardRoutine.h" />
     <ClInclude Include="renderers\routines\WeightedOIT.h" />

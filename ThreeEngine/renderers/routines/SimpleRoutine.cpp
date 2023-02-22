@@ -1,7 +1,8 @@
 #include <GL/glew.h>
 #include "models/ModelComponents.h"
 #include "lights/DirectionalLight.h"
-#include "StandardRoutine.h"
+#include "SimpleRoutine.h"
+
 
 static std::string g_vertex =
 R"(#version 430
@@ -39,13 +40,6 @@ layout (location = LOCATION_ATTRIB_UV) in vec2 aUV;
 layout (location = LOCATION_VARYING_UV) out vec2 vUV;
 #endif
 
-#if HAS_NORMAL_MAP
-layout (location = LOCATION_ATTRIB_TANGENT) in vec3 aTangent;
-layout (location = LOCATION_VARYING_TANGENT) out vec3 vTangent;
-layout (location = LOCATION_ATTRIB_BITANGENT) in vec3 aBitangent;
-layout (location = LOCATION_VARYING_BITANGENT) out vec3 vBitangent;
-#endif
-
 layout (location = LOCATION_VARYING_WORLD_POS) out vec3 vWorldPos;
 
 void main()
@@ -64,16 +58,9 @@ void main()
 #if HAS_UV
 	vUV = aUV;
 #endif
-
-#if HAS_NORMAL_MAP
-	vec4 world_tangent = uModelMat * vec4(aTangent, 0.0);
-	vTangent =  world_tangent.xyz;
-
-	vec4 world_bitangent = uModelMat * vec4(aBitangent, 0.0);
-	vBitangent =  world_bitangent.xyz;
-#endif
 }
 )";
+
 
 static std::string g_frag_part0 =
 R"(#version 430
@@ -112,12 +99,6 @@ layout (location = LOCATION_TEX_METALNESS) uniform sampler2D uTexMetalness;
 
 #if HAS_ROUGHNESS_MAP
 layout (location = LOCATION_TEX_ROUGHNESS) uniform sampler2D uTexRoughness;
-#endif
-
-#if HAS_NORMAL_MAP
-layout (location = LOCATION_TEX_NORMAL) uniform sampler2D uTexNormal;
-layout (location = LOCATION_VARYING_TANGENT) in vec3 vTangent;
-layout (location = LOCATION_VARYING_BITANGENT) in vec3 vBitangent;
 #endif
 
 layout (location = LOCATION_VARYING_WORLD_POS) in vec3 vWorldPos;
@@ -247,10 +228,7 @@ layout (std140, binding = BINDING_DIRECTIONAL_LIGHTS) uniform DirectionalLights
 	DirectionalLight uDirectionalLights[NUM_DIRECTIONAL_LIGHTS];
 };
 #endif
-)";
 
-static std::string g_frag_part1 =
-R"(
 #if NUM_DIRECTIONAL_SHADOWS>0
 struct DirectionalShadow
 {
@@ -270,18 +248,11 @@ layout (std140, binding = BINDING_DIRECTIONAL_SHADOWS) uniform DirectionalShadow
 };
 
 layout (location = LOCATION_TEX_DIRECTIONAL_SHADOW) uniform sampler2DShadow uDirectionalShadowTex[NUM_DIRECTIONAL_SHADOWS];
-layout (location = LOCATION_TEX_DIRECTIONAL_SHADOW_DEPTH) uniform sampler2D uDirectionalShadowTexDepth[NUM_DIRECTIONAL_SHADOWS];
 
 vec3 computeShadowCoords(in mat4 VPSB)
 {
 	vec4 shadowCoords = VPSB * vec4(vWorldPos, 1.0);
 	return shadowCoords.xyz;
-}
-
-float borderDepthTexture(sampler2D shadowTex, vec2 uv)
-{
-	return ((uv.x <= 1.0) && (uv.y <= 1.0) &&
-	 (uv.x >= 0.0) && (uv.y >= 0.0)) ? textureLod(shadowTex, uv, 0.0).x : 1.0;
 }
 
 float borderPCFTexture(sampler2DShadow shadowTex, vec3 uvz)
@@ -299,207 +270,10 @@ float computeShadowCoef(in mat4 VPSB, sampler2DShadow shadowTex)
 	return borderPCFTexture(shadowTex, shadowCoords);
 }
 
-const vec2 Poisson32[32] = vec2[](
-    vec2(-0.975402, -0.0711386),
-    vec2(-0.920347, -0.41142),
-    vec2(-0.883908, 0.217872),
-    vec2(-0.884518, 0.568041),
-    vec2(-0.811945, 0.90521),
-    vec2(-0.792474, -0.779962),
-    vec2(-0.614856, 0.386578),
-    vec2(-0.580859, -0.208777),
-    vec2(-0.53795, 0.716666),
-    vec2(-0.515427, 0.0899991),
-    vec2(-0.454634, -0.707938),
-    vec2(-0.420942, 0.991272),
-    vec2(-0.261147, 0.588488),
-    vec2(-0.211219, 0.114841),
-    vec2(-0.146336, -0.259194),
-    vec2(-0.139439, -0.888668),
-    vec2(0.0116886, 0.326395),
-    vec2(0.0380566, 0.625477),
-    vec2(0.0625935, -0.50853),
-    vec2(0.125584, 0.0469069),
-    vec2(0.169469, -0.997253),
-    vec2(0.320597, 0.291055),
-    vec2(0.359172, -0.633717),
-    vec2(0.435713, -0.250832),
-    vec2(0.507797, -0.916562),
-    vec2(0.545763, 0.730216),
-    vec2(0.56859, 0.11655),
-    vec2(0.743156, -0.505173),
-    vec2(0.736442, -0.189734),
-    vec2(0.843562, 0.357036),
-    vec2(0.865413, 0.763726),
-    vec2(0.872005, -0.927)
-);
-
-const vec2 Poisson64[64] = vec2[](
-    vec2(-0.934812, 0.366741),
-    vec2(-0.918943, -0.0941496),
-    vec2(-0.873226, 0.62389),
-    vec2(-0.8352, 0.937803),
-    vec2(-0.822138, -0.281655),
-    vec2(-0.812983, 0.10416),
-    vec2(-0.786126, -0.767632),
-    vec2(-0.739494, -0.535813),
-    vec2(-0.681692, 0.284707),
-    vec2(-0.61742, -0.234535),
-    vec2(-0.601184, 0.562426),
-    vec2(-0.607105, 0.847591),
-    vec2(-0.581835, -0.00485244),
-    vec2(-0.554247, -0.771111),
-    vec2(-0.483383, -0.976928),
-    vec2(-0.476669, -0.395672),
-    vec2(-0.439802, 0.362407),
-    vec2(-0.409772, -0.175695),
-    vec2(-0.367534, 0.102451),
-    vec2(-0.35313, 0.58153),
-    vec2(-0.341594, -0.737541),
-    vec2(-0.275979, 0.981567),
-    vec2(-0.230811, 0.305094),
-    vec2(-0.221656, 0.751152),
-    vec2(-0.214393, -0.0592364),
-    vec2(-0.204932, -0.483566),
-    vec2(-0.183569, -0.266274),
-    vec2(-0.123936, -0.754448),
-    vec2(-0.0859096, 0.118625),
-    vec2(-0.0610675, 0.460555),
-    vec2(-0.0234687, -0.962523),
-    vec2(-0.00485244, -0.373394),
-    vec2(0.0213324, 0.760247),
-    vec2(0.0359813, -0.0834071),
-    vec2(0.0877407, -0.730766),
-    vec2(0.14597, 0.281045),
-    vec2(0.18186, -0.529649),
-    vec2(0.188208, -0.289529),
-    vec2(0.212928, 0.063509),
-    vec2(0.23661, 0.566027),
-    vec2(0.266579, 0.867061),
-    vec2(0.320597, -0.883358),
-    vec2(0.353557, 0.322733),
-    vec2(0.404157, -0.651479),
-    vec2(0.410443, -0.413068),
-    vec2(0.413556, 0.123325),
-    vec2(0.46556, -0.176183),
-    vec2(0.49266, 0.55388),
-    vec2(0.506333, 0.876888),
-    vec2(0.535875, -0.885556),
-    vec2(0.615894, 0.0703452),
-    vec2(0.637135, -0.637623),
-    vec2(0.677236, -0.174291),
-    vec2(0.67626, 0.7116),
-    vec2(0.686331, -0.389935),
-    vec2(0.691031, 0.330729),
-    vec2(0.715629, 0.999939),
-    vec2(0.8493, -0.0485549),
-    vec2(0.863582, -0.85229),
-    vec2(0.890622, 0.850581),
-    vec2(0.898068, 0.633778),
-    vec2(0.92053, -0.355693),
-    vec2(0.933348, -0.62981),
-    vec2(0.95294, 0.156896)
-);
-
-// Returns average blocker depth in the search region, as well as the number of found blockers.
-// Blockers are defined as shadow-map samples between the surface point and the light.
-void findBlocker(
-	sampler2D shadowTex,
-    out float accumBlockerDepth, 
-    out float numBlockers,
-    out float maxBlockers,
-    vec2 uv,
-    float z,
-    vec2 searchRegionRadiusUV)
-{
-    accumBlockerDepth = 0.0;
-    numBlockers = 0.0;
-	maxBlockers = 300.0;
-
-	// case POISSON_32_64:
-    {
-        maxBlockers = 32.0;
-        for (int i = 0; i < 32; ++i)
-        {
-            vec2 offset = Poisson32[i] * searchRegionRadiusUV;
-            float shadowMapDepth = borderDepthTexture(shadowTex, uv + offset);
-            if (shadowMapDepth < z)
-            {
-                accumBlockerDepth += shadowMapDepth;
-                numBlockers++;
-            }
-        }
-    }
-
-}
-
-float zClipToEye(in DirectionalShadow shadow, float z)
-{
-    return (shadow.nearFar.x + (shadow.nearFar.y - shadow.nearFar.x) * z);
-}
-
-// Using similar triangles between the area light, the blocking plane and the surface point
-vec2 penumbraRadiusUV(vec2 light_radius_uv, float zReceiver, float zBlocker)
-{
-    return light_radius_uv * (zReceiver - zBlocker);
-}
-
-
-// Performs PCF filtering on the shadow map using multiple taps in the filter region.
-float pcfFilter(sampler2DShadow shadowTex, vec2 uv, float z, vec2 filterRadiusUV)
-{
-    float sum = 0.0;
-
-	//case POISSON_32_64:
-    {
-        for (int i = 0; i < 64; ++i)
-        {
-            vec2 offset = Poisson64[i] * filterRadiusUV;        
-            sum += borderPCFTexture(shadowTex, vec3(uv + offset, z));
-        }
-        return sum / 64.0;
-    }
-}
-
-float pcssShadow( sampler2DShadow shadowTex, sampler2D shadowTexDepth, in DirectionalShadow shadow, vec2 uv, float z, float zEye)
-{
-    // ------------------------
-    // STEP 1: blocker search
-    // ------------------------
-    float accumBlockerDepth, numBlockers, maxBlockers;
-    
-    vec2 frustum_size = vec2(shadow.leftRight.y - shadow.leftRight.x, shadow.bottomTop.y - shadow.bottomTop.x);
-    vec2 light_radius_uv = vec2(shadow.lightRadius) / frustum_size;
-    vec2 searchRegionRadiusUV = light_radius_uv* (zEye - shadow.nearFar.x);
-	findBlocker(shadowTexDepth, accumBlockerDepth, numBlockers, maxBlockers, uv, z, searchRegionRadiusUV);
-
-    // Early out if not in the penumbra
-    if (numBlockers == 0.0)
-        return 1.0;
-
-    // ------------------------
-    // STEP 2: penumbra size
-    // ------------------------
-    float avgBlockerDepth = accumBlockerDepth / numBlockers;
-    float avgBlockerDepthWorld = zClipToEye(shadow, avgBlockerDepth);
-    
-    vec2 penumbraRadius = penumbraRadiusUV(light_radius_uv, zEye, avgBlockerDepthWorld);
-    
-	return pcfFilter(shadowTex, uv, z, penumbraRadius);
-}
-
-
-float computePCSSShadowCoef(in DirectionalShadow shadow, sampler2DShadow shadowTex, sampler2D shadowTexDepth)
-{	
-	vec3 uvz = computeShadowCoords(shadow.VPSBMat);	
-	float zEye = -(shadow.viewMat * vec4(vWorldPos, 1.0)).z;
-	return pcssShadow(shadowTex, shadowTexDepth, shadow, uvz.xy, uvz.z, zEye);
-}
-
 #endif
 )";
 
-static std::string g_frag_part2 =
+static std::string g_frag_part1 =
 R"(
 vec3 shGetIrradianceAt( in vec3 normal, in vec4 shCoefficients[ 9 ] ) 
 {
@@ -600,331 +374,12 @@ layout (std430, binding = BINDING_PROBES) buffer Probes
 	vec4 bSHCoefficients[];
 };
 
-layout (std430, binding = BINDING_PROBE_VISIBILITY) buffer ProbeVisibility
-{
-	float bProbeVisibility[];
-};
-
 #if PROBE_REFERENCE_RECORDED
 layout (std430, binding = BINDING_PROBE_REFERENCES) buffer ProbeReferences
 {
 	uint bReferenced[];
 };
 #endif
-
-float quantize_vis(float limit, float dis)
-{
-	float x = (dis-0.9*limit)/(0.1*limit);
-	if (x<0.0) x = 0.0;
-	return pow(0.01, x);
-}
-
-float get_visibility(in ivec3 vert, in vec3 vert_world)
-{
-	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
-	vec3 spacing = size_grid/vec3(uDivisions);
-
-	float y0 = pow((float(vert.y) + 0.5f) / float(uDivisions.y), uYpower);
-	float y1 = pow((float(vert.y+1) + 0.5f) / float(uDivisions.y), uYpower);
-	spacing.y = (y1-y0)*size_grid.y;
-
-	float len_xyz = length(spacing);
-	float len_xy = length(vec2(spacing.x, spacing.y));
-	float len_yz = length(vec2(spacing.y, spacing.z));
-	float len_zx = length(vec2(spacing.z, spacing.x));
-	int idx = vert.x + (vert.y + vert.z*uDivisions.y)*uDivisions.x;
-	int offset = idx*26;
-	vec3 dir = vWorldPos - vert_world;	
-	vec3 dir_abs = abs(dir)/spacing;
-	int major_dir = 0;
-	if (dir_abs.y>dir_abs.x)
-	{
-		if (dir_abs.z>dir_abs.y)
-		{
-			major_dir = 2;
-		}
-		else
-		{
-			major_dir = 1;
-		}
-	}
-	else
-	{
-		if (dir_abs.z>dir_abs.x)
-		{
-			major_dir = 2;
-		}		
-	}
-
-	float limit = 0.0;
-	if (major_dir == 0)
-	{
-		dir_abs/=dir_abs.x;
-		if (dir.x<0)
-		{
-			float dis0 = bProbeVisibility[offset];
-			if (dir.y<0)
-			{
-				float dis14 = bProbeVisibility[offset+14] * spacing.x/len_xy;
-				float a = (1.0 - dir_abs.y) * dis0 + dir_abs.y *dis14;
-				float b = 0.0;
-				if (dir.z<0)
-				{
-					float dis10 = bProbeVisibility[offset+10] * spacing.x/len_zx;
-					float dis18 = bProbeVisibility[offset+18] * spacing.x/len_xyz;
-					b = (1.0 - dir_abs.y) * dis10 + dir_abs.y *dis18;
-				}
-				else
-				{
-					float dis11 = bProbeVisibility[offset+11] * spacing.x/len_zx;
-					float dis22 = bProbeVisibility[offset+22] * spacing.x/len_xyz;
-					b = (1.0 - dir_abs.y) * dis11 + dir_abs.y *dis22;					
-				}
-				limit = (1.0 - dir_abs.z) * a + dir_abs.z * b;
-			}
-			else
-			{
-				float dis16 = bProbeVisibility[offset+16] * spacing.x/len_xy;
-				float a = (1.0 - dir_abs.y) * dis0 + dir_abs.y *dis16;
-				float b = 0.0;
-				if (dir.z<0)
-				{
-					float dis10 = bProbeVisibility[offset+10] * spacing.x/len_zx;
-					float dis20 = bProbeVisibility[offset+20] * spacing.x/len_xyz;
-					b = (1.0 - dir_abs.y) * dis10 + dir_abs.y *dis20;					
-				}
-				else
-				{
-					float dis11 = bProbeVisibility[offset+11] * spacing.x/len_zx;
-					float dis24 = bProbeVisibility[offset+24] * spacing.x/len_xyz;
-					b = (1.0 - dir_abs.y) * dis11 + dir_abs.y *dis24;
-				}
-				limit = (1.0 - dir_abs.z) * a + dir_abs.z * b;
-			}			
-		}
-		else
-		{
-			float dis1 = bProbeVisibility[offset + 1];
-			if (dir.y<0)
-			{
-				float dis15 = bProbeVisibility[offset+15] * spacing.x/len_xy;
-				float a = (1.0 - dir_abs.y) * dis1 + dir_abs.y *dis15;
-				float b = 0.0;
-				if (dir.z<0)
-				{
-					float dis12 = bProbeVisibility[offset+12] * spacing.x/len_zx;
-					float dis19 = bProbeVisibility[offset+19] * spacing.x/len_xyz;
-					b = (1.0 - dir_abs.y) * dis12 + dir_abs.y *dis19;
-				}
-				else
-				{
-					float dis13 = bProbeVisibility[offset+13] * spacing.x/len_zx;
-					float dis23 = bProbeVisibility[offset+23] * spacing.x/len_xyz;
-					b = (1.0 - dir_abs.y) * dis13 + dir_abs.y *dis23;
-				}
-				limit = (1.0 - dir_abs.z) * a + dir_abs.z * b;
-			}
-			else
-			{
-				float dis17 = bProbeVisibility[offset+17] * spacing.x/len_xy;
-				float a = (1.0 - dir_abs.y) * dis1 + dir_abs.y *dis17;
-				float b = 0.0;
-				if (dir.z<0)
-				{
-					float dis12 = bProbeVisibility[offset+12] * spacing.x/len_zx;
-					float dis21 = bProbeVisibility[offset+21] * spacing.x/len_xyz;
-					b = (1.0 - dir_abs.y) * dis12 + dir_abs.y *dis21;
-				}
-				else
-				{
-					float dis13 = bProbeVisibility[offset+13] * spacing.x/len_zx;
-					float dis25 = bProbeVisibility[offset+25] * spacing.x/len_xyz;
-					b = (1.0 - dir_abs.y) * dis13 + dir_abs.y *dis25;
-				}
-				limit = (1.0 - dir_abs.z) * a + dir_abs.z * b;
-			}
-		}
-		return quantize_vis(limit, abs(dir.x));
-	}
-	else if (major_dir == 1)
-	{
-		dir_abs/=dir_abs.y;
-		if (dir.y<0)
-		{
-			float dis2 = bProbeVisibility[offset + 2];
-			if (dir.x<0)
-			{
-				float dis14 = bProbeVisibility[offset+14] * spacing.y/len_xy;
-				float a = (1.0 - dir_abs.x) * dis2 + dir_abs.x *dis14;
-				float b = 0.0;
-				if (dir.z<0)
-				{
-					float dis6 = bProbeVisibility[offset+6] * spacing.y/len_yz;
-					float dis18 = bProbeVisibility[offset+18] * spacing.y/len_xyz;
-					b = (1.0 - dir_abs.x) * dis6 + dir_abs.x *dis18;
-				}
-				else
-				{
-					float dis8 = bProbeVisibility[offset+8] * spacing.y/len_yz;
-					float dis22 = bProbeVisibility[offset+22] * spacing.y/len_xyz;
-					b = (1.0 - dir_abs.x) * dis8 + dir_abs.x *dis22;
-				}
-				limit = (1.0 - dir_abs.z) * a + dir_abs.z * b;
-			}
-			else
-			{
-				float dis15 = bProbeVisibility[offset+15] * spacing.y/len_xy;
-				float a = (1.0 - dir_abs.x) * dis2 + dir_abs.x *dis15;
-				float b = 0.0;
-				if (dir.z<0)
-				{
-					float dis6 = bProbeVisibility[offset+6] * spacing.y/len_yz;
-					float dis19 = bProbeVisibility[offset+19] * spacing.y/len_xyz;
-					b = (1.0 - dir_abs.x) * dis6 + dir_abs.x *dis19;
-				}
-				else
-				{
-					float dis8 = bProbeVisibility[offset+8] * spacing.y/len_yz;
-					float dis23 = bProbeVisibility[offset+23] * spacing.y/len_xyz;
-					b = (1.0 - dir_abs.x) * dis8 + dir_abs.x *dis23;
-				}
-				limit = (1.0 - dir_abs.z) * a + dir_abs.z * b;
-			}
-		}
-		else
-		{
-			float dis3 = bProbeVisibility[offset + 3];
-			if (dir.x<0)
-			{
-				float dis16 = bProbeVisibility[offset+16]*spacing.y/len_xy;
-				float a = (1.0 - dir_abs.x) * dis3 + dir_abs.x *dis16;
-				float b = 0.0;
-				if (dir.z<0)
-				{
-					float dis7 = bProbeVisibility[offset+7]*spacing.y/len_yz;
-					float dis20 = bProbeVisibility[offset+20]*spacing.y/len_xyz;
-					b = (1.0 - dir_abs.x) * dis7 + dir_abs.x *dis20;
-				}
-				else
-				{
-					float dis9 = bProbeVisibility[offset+9]*spacing.y/len_yz;
-					float dis24 = bProbeVisibility[offset+24]*spacing.y/len_xyz;
-					b = (1.0 - dir_abs.x) * dis9 + dir_abs.x *dis24;
-				}
-				limit = (1.0 - dir_abs.z) * a + dir_abs.z * b;
-			}
-			else
-			{
-				float dis17 = bProbeVisibility[offset+17];
-				float a = (1.0 - dir_abs.x) * dis3 + dir_abs.x *dis17;
-				float b = 0.0;
-				if (dir.z<0)
-				{
-					float dis7 = bProbeVisibility[offset+7]*spacing.y/len_yz;
-					float dis21 = bProbeVisibility[offset+21]*spacing.y/len_xyz;
-					b = (1.0 - dir_abs.x) * dis7 + dir_abs.x *dis21;
-				}
-				else
-				{
-					float dis9 = bProbeVisibility[offset+9]*spacing.y/len_yz;
-					float dis25 = bProbeVisibility[offset+25]*spacing.y/len_xyz;
-					b = (1.0 - dir_abs.x) * dis9 + dir_abs.x *dis25;
-				}
-				limit = (1.0 - dir_abs.z) * a + dir_abs.z * b;		
-			}
-		}
-		return quantize_vis(limit, abs(dir.y));
-	}
-	else if (major_dir == 2)
-	{
-		dir_abs/=dir_abs.z;
-		if (dir.z<0)
-		{
-			float dis4 = bProbeVisibility[offset + 4];
-			if (dir.x<0)
-			{
-				float dis10 = bProbeVisibility[offset+10]*spacing.z/len_zx;
-				float a = (1.0 - dir_abs.x) * dis4 + dir_abs.x *dis10;
-				float b = 0.0;
-				if (dir.y<0)
-				{
-					float dis6 = bProbeVisibility[offset+6]*spacing.z/len_yz;
-					float dis18 = bProbeVisibility[offset+18]*spacing.z/len_xyz;
-					b = (1.0 - dir_abs.x) * dis6 + dir_abs.x *dis18;					
-				}
-				else
-				{
-					float dis7 = bProbeVisibility[offset+7]*spacing.z/len_yz;
-					float dis20 = bProbeVisibility[offset+20]*spacing.z/len_xyz;
-					b = (1.0 - dir_abs.x) * dis7 + dir_abs.x *dis20;
-				}
-				limit = (1.0 - dir_abs.y) * a + dir_abs.y * b;
-			}
-			else
-			{
-				float dis12 = bProbeVisibility[offset+12]*spacing.z/len_zx;
-				float a = (1.0 - dir_abs.x) * dis4 + dir_abs.x *dis12;
-				float b = 0.0;
-				if (dir.y<0)
-				{
-					float dis6 = bProbeVisibility[offset+6]*spacing.z/len_yz;
-					float dis19 = bProbeVisibility[offset+19]*spacing.z/len_xyz;
-					b = (1.0 - dir_abs.x) * dis6 + dir_abs.x *dis19;
-				}
-				else
-				{
-					float dis7 = bProbeVisibility[offset+7]*spacing.z/len_yz;
-					float dis21 = bProbeVisibility[offset+21]*spacing.z/len_xyz;
-					b = (1.0 - dir_abs.x) * dis7 + dir_abs.x *dis21;
-				}
-				limit = (1.0 - dir_abs.y) * a + dir_abs.y * b;
-			}
-		}		
-		else
-		{
-			float dis5 = bProbeVisibility[offset + 5];
-			if (dir.x<0)
-			{
-				float dis11 = bProbeVisibility[offset+11]*spacing.z/len_zx;
-				float a = (1.0 - dir_abs.x) * dis5 + dir_abs.x *dis11;
-				float b = 0.0;
-				if (dir.y<0)
-				{
-					float dis8 = bProbeVisibility[offset+8]*spacing.z/len_yz;
-					float dis22 = bProbeVisibility[offset+22]*spacing.z/len_xyz;
-					b = (1.0 - dir_abs.x) * dis8 + dir_abs.x *dis22;
-				}
-				else
-				{
-					float dis9 = bProbeVisibility[offset+9]*spacing.z/len_yz;
-					float dis24 = bProbeVisibility[offset+24]*spacing.z/len_xyz;
-					b = (1.0 - dir_abs.x) * dis9 + dir_abs.x *dis24;
-				}
-				limit = (1.0 - dir_abs.y) * a + dir_abs.y * b;
-			}
-			else
-			{
-				float dis13 = bProbeVisibility[offset+13]*spacing.z/len_zx;
-				float a = (1.0 - dir_abs.x) * dis5 + dir_abs.x *dis13;
-				float b = 0.0;
-				if (dir.y<0)
-				{
-					float dis8 = bProbeVisibility[offset+8]*spacing.z/len_yz;
-					float dis23 = bProbeVisibility[offset+23]*spacing.z/len_xyz;
-					b = (1.0 - dir_abs.x) * dis8 + dir_abs.x *dis23;
-				}
-				else
-				{
-					float dis9 = bProbeVisibility[offset+9]*spacing.z/len_yz;
-					float dis25 = bProbeVisibility[offset+25]*spacing.z/len_xyz;
-					b = (1.0 - dir_abs.x) * dis9 + dir_abs.x *dis25;
-				}
-				limit = (1.0 - dir_abs.y) * a + dir_abs.y * b;
-			}
-		}
-		return quantize_vis(limit, abs(dir.z));
-	}
-}
 
 void acc_coeffs(inout vec4 coeffs[9], in ivec3 vert, in float weight)
 {
@@ -971,8 +426,7 @@ vec3 getIrradiance(in vec3 normal)
 					vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
 					float weight = w.x * w.y * w.z;
 					if (weight>0.0)
-					{
-						weight*= get_visibility(vert,vert_world);					
+					{						
 						sum_weight += weight;
 						acc_coeffs(coeffs, vert, weight);
 					}
@@ -1060,9 +514,8 @@ vec3 getRadiance(in vec3 reflectVec, float roughness)
 #endif
 )";
 
-static std::string g_frag_part3 =
+static std::string g_frag_part2 =
 R"(
-
 #if HAS_FOG
 layout (std140, binding = BINDING_FOG) uniform FOG
 {
@@ -1128,17 +581,6 @@ void main()
 	vec3 viewDir = normalize(vViewDir);
 	vec3 norm = normalize(vNorm);
 
-#if HAS_NORMAL_MAP
-	if (length(vTangent)>0.0 && length(vBitangent)>0.0)
-	{
-		vec3 T = normalize(vTangent);
-		vec3 B = normalize(vBitangent);
-		vec3 bump =  texture(uTexNormal, vUV).xyz;
-		bump = (2.0 * bump - 1.0) * vec3(uNormalScale.x, uNormalScale.y, 1.0);
-		norm = normalize(bump.x*T + bump.y*B + bump.z*norm);
-	}
-#endif
-
 	if (uDoubleSided!=0)
 	{
 		if (dot(viewDir,norm)<0.0) norm = -norm;
@@ -1181,14 +623,7 @@ void main()
 		if (light_source.has_shadow!=0)
 		{
 			DirectionalShadow shadow = uDirectionalShadows[shadow_id];
-			if (shadow.lightRadius>0.0)
-			{
-				l_shadow = computePCSSShadowCoef(shadow, uDirectionalShadowTex[shadow_id], uDirectionalShadowTexDepth[shadow_id]);
-			}
-			else
-			{
-				l_shadow = computeShadowCoef(shadow.VPSBMat, uDirectionalShadowTex[shadow_id]);
-			}
+			l_shadow = computeShadowCoef(shadow.VPSBMat, uDirectionalShadowTex[shadow_id]);
 			shadow_id++;
 		}
 #endif
@@ -1210,54 +645,8 @@ void main()
 		float dotNL =  saturate(dot(norm, directLight.direction));
 		vec3 irradiance = dotNL * directLight.color;
 
-#if (TONE_SHADING & 1) == 0
 		diffuse += irradiance * BRDF_Lambert( material.diffuseColor );
-#else
-		float diffuse_thresh = light_source.diffuse_thresh;
-		float diffuse_high = light_source.diffuse_high;
-		float diffuse_low = light_source.diffuse_low;
-
-		vec3 diffuse_light = irradiance * BRDF_Lambert_Toon();
-		float lum_diffuse = luminance(diffuse_light);
-		if (lum_diffuse > diffuse_thresh)
-		{
-			diffuse_light *= diffuse_high/lum_diffuse;			
-		}
-		else if (lum_diffuse>0.0)
-		{
-			diffuse_light *= diffuse_low/lum_diffuse;
-		}
-		else
-		{
-			diffuse_light = vec3(diffuse_low);
-		}
-
-		diffuse += diffuse_light* material.diffuseColor;
-#endif
-
-#if (TONE_SHADING & 2) == 0
 		specular += irradiance * BRDF_GGX( directLight.direction, viewDir, norm, material.specularColor, material.specularF90, material.roughness );
-#else
-		float specular_thresh = light_source.specular_thresh;
-		float specular_high =  light_source.specular_high;
-		float specular_low =  light_source.specular_low;
-
-		vec3 specular_light = irradiance * BRDF_GGX_Toon(directLight.direction, viewDir, norm, material.roughness);
-		float lum_specular = luminance(specular_light);
-		if (lum_specular > specular_thresh)
-		{
-			specular_light *= specular_high/lum_specular;
-		}
-		else if (lum_specular>0.0)
-		{
-			specular_light *= specular_low/lum_specular;
-		}
-		else
-		{
-			specular_light = vec3(specular_low);
-		}
-		specular += specular_light* material.specularColor;
-#endif
 	}
 #endif
 
@@ -1268,56 +657,8 @@ void main()
 		reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );
 		vec3 irradiance = getIrradiance(norm);
 		vec3 radiance = getRadiance(reflectVec, material.roughness);
-
-#if (TONE_SHADING & 4) == 0
 		diffuse += material.diffuseColor * irradiance * RECIPROCAL_PI;
-#else
-		float diffuse_thresh = uDiffuseThresh;
-		float diffuse_high = uDiffuseHigh;
-		float diffuse_low = uDiffuseLow;
-		
-		vec3 diffuse_light =  irradiance * BRDF_Lambert_Toon();
-		float lum_diffuse = luminance(diffuse_light);
-		if (lum_diffuse > diffuse_thresh)
-		{
-			diffuse_light *= diffuse_high/lum_diffuse;			
-		}
-		else if (lum_diffuse>0.0)
-		{
-			diffuse_light *= diffuse_low/lum_diffuse;
-		}
-		else
-		{
-			diffuse_light = vec3(diffuse_low);
-		}
-		
-		diffuse += diffuse_light* material.diffuseColor;
-#endif
-
-#if (TONE_SHADING & 8) == 0
 		specular +=  material.specularColor * radiance;
-#else		
-		float specular_thresh = uSpecularThresh;
-		float specular_high = uSpecularHigh;
-		float specular_low = uSpecularLow;
-
-		vec3 specular_light = radiance;
-		float lum_specular = luminance(specular_light);
-		if (lum_specular > specular_thresh)
-		{
-			specular_light *= specular_high/lum_specular;
-		}
-		else if (lum_specular>0.0)
-		{
-			specular_light *= specular_low/lum_specular;
-		}
-		else
-		{
-			specular_light = vec3(specular_low);
-		}
-		specular += specular_light* material.specularColor;		
-
-#endif
 	}
 #endif
 
@@ -1325,7 +666,6 @@ void main()
 #if !IS_HIGHTLIGHT
 	col += diffuse;
 #endif
-	// col = clamp(col, 0.0, 1.0);	
 
 #if ALPHA_BLEND
 	float alpha = base_color.w;
@@ -1342,6 +682,7 @@ void main()
 }
 )";
 
+
 inline void replace(std::string& str, const char* target, const char* source)
 {
 	int start = 0;
@@ -1356,10 +697,10 @@ inline void replace(std::string& str, const char* target, const char* source)
 	}
 }
 
-void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindings, std::string& s_vertex, std::string& s_frag)
+void SimpleRoutine::s_generate_shaders(const Options& options, Bindings& bindings, std::string& s_vertex, std::string& s_frag)
 {
 	s_vertex = g_vertex;
-	s_frag = g_frag_part0 + g_frag_part1 + g_frag_part2 + g_frag_part3;
+	s_frag = g_frag_part0 + g_frag_part1 + g_frag_part2;
 
 	std::string defines = "";
 
@@ -1373,7 +714,7 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	}
 
 	{
-		bindings.location_attrib_norm = bindings.location_attrib_pos+1;
+		bindings.location_attrib_norm = bindings.location_attrib_pos + 1;
 		{
 			char line[64];
 			sprintf(line, "#define LOCATION_ATTRIB_NORM %d\n", bindings.location_attrib_norm);
@@ -1489,8 +830,8 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 		bindings.location_varying_color = bindings.location_varying_norm;
 	}
 
-	bool has_uv = options.has_color_texture || options.has_metalness_map || options.has_roughness_map 
-		|| options.has_normal_map || options.has_emissive_map || options.has_specular_map || options.has_glossiness_map;
+	bool has_uv = options.has_color_texture || options.has_metalness_map || options.has_roughness_map
+		|| options.has_emissive_map || options.has_specular_map || options.has_glossiness_map;
 
 	if (has_uv)
 	{
@@ -1506,7 +847,7 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 			char line[64];
 			sprintf(line, "#define LOCATION_VARYING_UV %d\n", bindings.location_varying_uv);
 			defines += line;
-		}		
+		}
 	}
 	else
 	{
@@ -1514,7 +855,7 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 		bindings.location_attrib_uv = bindings.location_attrib_color;
 		bindings.location_varying_uv = bindings.location_varying_color;
 	}
-	
+
 	if (options.has_color_texture)
 	{
 		defines += "#define HAS_COLOR_TEX 1\n";
@@ -1564,55 +905,10 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 		defines += "#define HAS_ROUGHNESS_MAP 0\n";
 		bindings.location_tex_roughness = bindings.location_tex_metalness;
 	}
-
-	if (options.has_normal_map)
-	{
-		defines += "#define HAS_NORMAL_MAP 1\n";
-		bindings.location_tex_normal = bindings.location_tex_roughness + 1;
-		bindings.location_attrib_tangent = bindings.location_attrib_uv + 1;
-		bindings.location_varying_tangent = bindings.location_varying_uv + 1;
-		bindings.location_attrib_bitangent = bindings.location_attrib_tangent + 1;
-		bindings.location_varying_bitangent = bindings.location_varying_tangent + 1;
-
-		{
-			char line[64];
-			sprintf(line, "#define LOCATION_TEX_NORMAL %d\n", bindings.location_tex_normal);
-			defines += line;
-		}
-
-		{
-			char line[64];
-			sprintf(line, "#define LOCATION_ATTRIB_TANGENT %d\n", bindings.location_attrib_tangent);
-			defines += line;
-		}
-		{
-			char line[64];
-			sprintf(line, "#define LOCATION_VARYING_TANGENT %d\n", bindings.location_varying_tangent);
-			defines += line;
-		}
-		{
-			char line[64];
-			sprintf(line, "#define LOCATION_ATTRIB_BITANGENT %d\n", bindings.location_attrib_bitangent);
-			defines += line;
-		}
-		{
-			char line[64];
-			sprintf(line, "#define LOCATION_VARYING_BITANGENT %d\n", bindings.location_varying_bitangent);
-			defines += line;
-		}
-	}
-	else
-	{
-		defines += "#define HAS_NORMAL_MAP 0\n";
-		bindings.location_tex_normal = bindings.location_tex_roughness;
-		bindings.location_attrib_tangent = bindings.location_attrib_uv;
-		bindings.location_varying_tangent = bindings.location_varying_uv;
-		bindings.location_attrib_bitangent = bindings.location_attrib_tangent;
-		bindings.location_varying_bitangent = bindings.location_varying_tangent;
-	}
+	
 
 	{
-		bindings.location_varying_world_pos = bindings.location_varying_bitangent + 1;
+		bindings.location_varying_world_pos = bindings.location_varying_uv + 1;
 		{
 			char line[64];
 			sprintf(line, "#define LOCATION_VARYING_WORLD_POS %d\n", bindings.location_varying_world_pos);
@@ -1623,7 +919,7 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	if (options.has_emissive_map)
 	{
 		defines += "#define HAS_EMISSIVE_MAP 1\n";
-		bindings.location_tex_emissive = bindings.location_tex_normal + 1;
+		bindings.location_tex_emissive = bindings.location_tex_roughness + 1;
 		{
 			char line[64];
 			sprintf(line, "#define LOCATION_TEX_EMISSIVE %d\n", bindings.location_tex_emissive);
@@ -1633,7 +929,7 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	else
 	{
 		defines += "#define HAS_EMISSIVE_MAP 0\n";
-		bindings.location_tex_emissive = bindings.location_tex_normal;
+		bindings.location_tex_emissive = bindings.location_tex_roughness;
 	}
 
 	if (options.has_specular_map)
@@ -1694,11 +990,10 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 		defines += line;
 	}
 
-	bindings.location_tex_directional_shadow = bindings.location_tex_glossiness + options.num_directional_shadows;
-	bindings.location_tex_directional_shadow_depth = bindings.location_tex_directional_shadow + options.num_directional_shadows;
+	bindings.location_tex_directional_shadow = bindings.location_tex_glossiness + options.num_directional_shadows;	
 
 	if (options.num_directional_shadows > 0)
-	{	
+	{
 		bindings.binding_directional_shadows = bindings.binding_directional_lights + 1;
 		{
 			char line[64];
@@ -1709,12 +1004,7 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 			char line[64];
 			sprintf(line, "#define LOCATION_TEX_DIRECTIONAL_SHADOW %d\n", bindings.location_tex_directional_shadow - options.num_directional_shadows + 1);
 			defines += line;
-		}
-		{
-			char line[64];
-			sprintf(line, "#define LOCATION_TEX_DIRECTIONAL_SHADOW_DEPTH %d\n", bindings.location_tex_directional_shadow_depth - options.num_directional_shadows + 1);
-			defines += line;
-		}
+		}		
 	}
 	else
 	{
@@ -1734,7 +1024,7 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	if (options.has_reflection_map)
 	{
 		defines += "#define HAS_REFLECTION_MAP 1\n";
-		bindings.location_tex_reflection_map = bindings.location_tex_directional_shadow_depth + 1;
+		bindings.location_tex_reflection_map = bindings.location_tex_directional_shadow + 1;
 		{
 			char line[64];
 			sprintf(line, "#define LOCATION_TEX_REFLECTION_MAP %d\n", bindings.location_tex_reflection_map);
@@ -1744,33 +1034,32 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	else
 	{
 		defines += "#define HAS_REFLECTION_MAP 0\n";
-		bindings.location_tex_reflection_map = bindings.location_tex_directional_shadow_depth;
+		bindings.location_tex_reflection_map = bindings.location_tex_directional_shadow;
 	}
 
 	if (options.has_environment_map)
 	{
 		defines += "#define HAS_ENVIRONMENT_MAP 1\n";
 		bindings.binding_environment_map = bindings.binding_directional_shadows + 1;
-		
+
 		{
 			char line[64];
 			sprintf(line, "#define BINDING_ENVIRONMEN_MAP %d\n", bindings.binding_environment_map);
 			defines += line;
 		}
-		
+
 	}
 	else
 	{
 		defines += "#define HAS_ENVIRONMENT_MAP 0\n";
-		bindings.binding_environment_map = bindings.binding_directional_shadows;		
+		bindings.binding_environment_map = bindings.binding_directional_shadows;
 	}
 
 	if (options.has_probe_grid)
 	{
 		defines += "#define HAS_PROBE_GRID 1\n";
 		bindings.binding_probe_grid = bindings.binding_environment_map + 1;
-		bindings.binding_probes = bindings.binding_probe_grid + 1;
-		bindings.binding_probe_visibility= bindings.binding_probes + 1;
+		bindings.binding_probes = bindings.binding_probe_grid + 1;		
 
 		{
 			char line[64];
@@ -1783,25 +1072,18 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 			sprintf(line, "#define BINDING_PROBES %d\n", bindings.binding_probes);
 			defines += line;
 		}
-
-		{
-			char line[64];
-			sprintf(line, "#define BINDING_PROBE_VISIBILITY %d\n", bindings.binding_probe_visibility);
-			defines += line;
-		}
 	}
 	else
 	{
 		defines += "#define HAS_PROBE_GRID 0\n";
 		bindings.binding_probe_grid = bindings.binding_environment_map;
-		bindings.binding_probes = bindings.binding_environment_map;
-		bindings.binding_probe_visibility = bindings.binding_environment_map;
+		bindings.binding_probes = bindings.binding_environment_map;		
 	}
 
 	if (options.probe_reference_recorded)
 	{
 		defines += "#define PROBE_REFERENCE_RECORDED 1\n";
-		bindings.binding_probe_references = bindings.binding_probe_visibility + 1;
+		bindings.binding_probe_references = bindings.binding_probes + 1;
 
 		{
 			char line[64];
@@ -1812,7 +1094,7 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	else
 	{
 		defines += "#define PROBE_REFERENCE_RECORDED 0\n";
-		bindings.binding_probe_references = bindings.binding_probe_visibility;
+		bindings.binding_probe_references = bindings.binding_probes;
 	}
 
 	if (options.has_ambient_light)
@@ -1847,12 +1129,6 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 		bindings.binding_hemisphere_light = bindings.binding_ambient_light;
 	}
 
-	{
-		char line[64];
-		sprintf(line, "#define TONE_SHADING %d\n", options.tone_shading);
-		defines += line;
-	}
-
 	if (options.has_fog)
 	{
 		defines += "#define HAS_FOG 1\n";
@@ -1873,22 +1149,23 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	replace(s_frag, "#DEFINES#", defines.c_str());
 }
 
-StandardRoutine::StandardRoutine(const Options& options) : m_options(options)
+
+SimpleRoutine::SimpleRoutine(const Options& options) : m_options(options)
 {
 	std::string s_vertex, s_frag;
 	s_generate_shaders(options, m_bindings, s_vertex, s_frag);
-	
+
 	GLShader vert_shader(GL_VERTEX_SHADER, s_vertex.c_str());
 	GLShader frag_shader(GL_FRAGMENT_SHADER, s_frag.c_str());
 	m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(vert_shader, frag_shader));
 }
 
-void StandardRoutine::render(const RenderParams& params)
+void SimpleRoutine::render(const RenderParams& params)
 {
 	const MeshStandardMaterial& material = *(MeshStandardMaterial*)params.material_list[params.primitive->material_idx];
 	const GeometrySet& geo = params.primitive->geometry[params.primitive->geometry.size() - 1];
 
-	glEnable(GL_DEPTH_TEST);	
+	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
 
 	if (material.doubleSided)
@@ -1907,9 +1184,9 @@ void StandardRoutine::render(const RenderParams& params)
 	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_material, material.constant_material.m_id);
 
 	if (m_options.num_directional_lights > 0)
-	{		
+	{
 		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_directional_lights, params.lights->constant_directional_lights->m_id);
-	} 
+	}
 
 	if (m_options.num_directional_shadows > 0)
 	{
@@ -1927,11 +1204,7 @@ void StandardRoutine::render(const RenderParams& params)
 		if (params.lights->probe_grid->m_probe_buf != nullptr)
 		{
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, m_bindings.binding_probes, params.lights->probe_grid->m_probe_buf->m_id);
-		}
-		if (params.lights->probe_grid->m_visibility_buf != nullptr)
-		{
-			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, m_bindings.binding_probe_visibility, params.lights->probe_grid->m_visibility_buf->m_id);
-		}
+		}		
 		if (m_options.probe_reference_recorded)
 		{
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, m_bindings.binding_probe_references, params.lights->probe_grid->m_ref_buf->m_id);
@@ -1968,24 +1241,13 @@ void StandardRoutine::render(const RenderParams& params)
 		glEnableVertexAttribArray(m_bindings.location_attrib_color);
 	}
 
-	bool has_uv = m_options.has_color_texture || m_options.has_metalness_map || m_options.has_roughness_map 
-		|| m_options.has_normal_map || m_options.has_emissive_map || m_options.has_specular_map || m_options.has_glossiness_map;
+	bool has_uv = m_options.has_color_texture || m_options.has_metalness_map || m_options.has_roughness_map
+		|| m_options.has_emissive_map || m_options.has_specular_map || m_options.has_glossiness_map;
 	if (has_uv)
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, params.primitive->uv_buf->m_id);
 		glVertexAttribPointer(m_bindings.location_attrib_uv, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
 		glEnableVertexAttribArray(m_bindings.location_attrib_uv);
-	}
-
-	if (m_options.has_normal_map)
-	{
-		glBindBuffer(GL_ARRAY_BUFFER, geo.tangent_buf->m_id);
-		glVertexAttribPointer(m_bindings.location_attrib_tangent, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
-		glEnableVertexAttribArray(m_bindings.location_attrib_tangent);
-
-		glBindBuffer(GL_ARRAY_BUFFER, geo.bitangent_buf->m_id);
-		glVertexAttribPointer(m_bindings.location_attrib_bitangent, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
-		glEnableVertexAttribArray(m_bindings.location_attrib_bitangent);
 	}
 
 	int texture_idx = 0;
@@ -2016,15 +1278,6 @@ void StandardRoutine::render(const RenderParams& params)
 		texture_idx++;
 	}
 
-	if (m_options.has_normal_map)
-	{
-		const GLTexture2D& tex = *params.tex_list[material.tex_idx_normalMap];
-		glActiveTexture(GL_TEXTURE0 + texture_idx);
-		glBindTexture(GL_TEXTURE_2D, tex.tex_id);
-		glUniform1i(m_bindings.location_tex_normal, texture_idx);
-		texture_idx++;
-	}
-
 	if (m_options.has_emissive_map)
 	{
 		const GLTexture2D& tex = *params.tex_list[material.tex_idx_emissiveMap];
@@ -2032,7 +1285,7 @@ void StandardRoutine::render(const RenderParams& params)
 		glBindTexture(GL_TEXTURE_2D, tex.tex_id);
 		glUniform1i(m_bindings.location_tex_emissive, texture_idx);
 		texture_idx++;
-	}	
+	}
 
 	if (m_options.has_specular_map)
 	{
@@ -2062,11 +1315,9 @@ void StandardRoutine::render(const RenderParams& params)
 			values[i] = texture_idx;
 			texture_idx++;
 		}
-		int start_idx = m_bindings.location_tex_directional_shadow - m_options.num_directional_shadows + 1;
-		int start_idx_depth = m_bindings.location_tex_directional_shadow_depth - m_options.num_directional_shadows + 1;
+		int start_idx = m_bindings.location_tex_directional_shadow - m_options.num_directional_shadows + 1;		
 		glUniform1iv(start_idx, m_options.num_directional_shadows, values.data());
-		glUniform1iv(start_idx_depth, m_options.num_directional_shadows, values.data());
-	}	
+	}
 
 	if (m_options.has_reflection_map)
 	{
@@ -2100,5 +1351,6 @@ void StandardRoutine::render(const RenderParams& params)
 
 	glUseProgram(0);
 }
+
 
 
