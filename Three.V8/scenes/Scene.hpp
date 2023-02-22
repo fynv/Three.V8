@@ -23,6 +23,8 @@ private:
 	static void GetFog(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void SetFog(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
 
+	static void GetWidgets(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
+
 	static void AddWidget(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void RemoveWidget(const v8::FunctionCallbackInfo<v8::Value>& info);	
 	static void ClearWidgets(const v8::FunctionCallbackInfo<v8::Value>& info);
@@ -37,6 +39,7 @@ v8::Local<v8::FunctionTemplate> WrapperScene::create_template(v8::Isolate* isola
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "indirectLight").ToLocalChecked(), GetIndirectLight, SetIndirectLight);
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "fog").ToLocalChecked(), GetFog, SetFog);
 
+	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "widgets").ToLocalChecked(), GetWidgets, 0);
 	templ->InstanceTemplate()->Set(isolate, "addWidget", v8::FunctionTemplate::New(isolate, AddWidget));
 	templ->InstanceTemplate()->Set(isolate, "removeWidget", v8::FunctionTemplate::New(isolate, RemoveWidget));
 	templ->InstanceTemplate()->Set(isolate, "clearWidget", v8::FunctionTemplate::New(isolate, ClearWidgets));
@@ -127,12 +130,33 @@ void WrapperScene::SetFog(v8::Local<v8::String> property, v8::Local<v8::Value> v
 	lctx.set_property(info.Holder(), "_fog", value);
 }
 
+
+
+void WrapperScene::GetWidgets(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	v8::Local<v8::Value> widgets = lctx.get_property(info.Holder(), "_widgets");
+	if (widgets->IsNull())
+	{
+		widgets = v8::Array::New(lctx.isolate);
+		lctx.set_property(info.Holder(), "_widgets", widgets);
+	}
+	info.GetReturnValue().Set(widgets);
+}
+
+
 void WrapperScene::AddWidget(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	LocalContext lctx(info);
 	Scene* self = lctx.self<Scene>();
 	Object3D* object = lctx.jobj_to_obj<Object3D>(info[0]);
 	self->add_widget(object);
+
+	v8::Local<v8::Object> holder = info.Holder();
+	v8::Local<v8::Object> holder_object = info[0].As<v8::Object>();
+
+	v8::Local<v8::Array> widgets = lctx.get_property(holder, "widgets").As<v8::Array>();
+	widgets->Set(lctx.context, widgets->Length(), holder_object);
 }
 
 void WrapperScene::RemoveWidget(const v8::FunctionCallbackInfo<v8::Value>& info)
@@ -141,6 +165,26 @@ void WrapperScene::RemoveWidget(const v8::FunctionCallbackInfo<v8::Value>& info)
 	Scene* self = lctx.self<Scene>();
 	Object3D* object = lctx.jobj_to_obj<Object3D>(info[0]);
 	self->remove_widget(object);
+
+	v8::Local<v8::Object> holder = info.Holder();
+	v8::Local<v8::Object> holder_object = info[0].As<v8::Object>();
+
+	v8::Local<v8::Array> widgets = lctx.get_property(holder, "widgets").As<v8::Array>();
+
+	for (unsigned i = 0; i < widgets->Length(); i++)
+	{
+		v8::Local<v8::Object> obj_i = widgets->Get(lctx.context, i).ToLocalChecked().As<v8::Object>();
+		if (obj_i == holder_object)
+		{			
+			for (unsigned j = i; j < widgets->Length() - 1; j++)
+			{
+				widgets->Set(lctx.context, j, widgets->Get(lctx.context, j + 1).ToLocalChecked());
+			}
+			widgets->Delete(lctx.context, widgets->Length() - 1);
+			lctx.set_property(widgets, "length", lctx.num_to_jnum(widgets->Length() - 1));
+			break;
+		}
+	}
 }
 
 
@@ -149,6 +193,16 @@ void WrapperScene::ClearWidgets(const v8::FunctionCallbackInfo<v8::Value>& info)
 	LocalContext lctx(info);
 	Scene* self = lctx.self<Scene>();	
 	self->clear_widgets();
+
+	v8::Local<v8::Object> holder = info.Holder();
+	v8::Local<v8::Array> widgets = lctx.get_property(holder, "widgets").As<v8::Array>();
+
+	for (unsigned i = 0; i < widgets->Length(); i++)
+	{
+		v8::Local<v8::Object> obj_i = widgets->Get(lctx.context, i).ToLocalChecked().As<v8::Object>();		
+		widgets->Delete(lctx.context, i);
+	}
+	lctx.set_property(widgets, "length", lctx.num_to_jnum(0));
 }
 
 

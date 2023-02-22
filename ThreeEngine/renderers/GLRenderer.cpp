@@ -1529,7 +1529,7 @@ glm::vec3 GLRenderer::probe_space_center_cube(Scene& scene, const glm::vec3& pos
 	return sum / sum_weight;
 }
 
-void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& target)
+void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& target, bool widgets)
 {	
 	camera.updateMatrixWorld(false);
 	camera.updateConstant();
@@ -1696,41 +1696,43 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 		}
 	}
 
-	
-	for (size_t i = 0; i < scene.widgets.size(); i++)
+	if (widgets)
 	{
-		Object3D* obj = scene.widgets[i];
-		obj->updateWorldMatrix(false, false);
-		do
+		for (size_t i = 0; i < scene.widgets.size(); i++)
 		{
+			Object3D* obj = scene.widgets[i];
+			obj->updateWorldMatrix(false, false);
+			do
 			{
-				SimpleModel* model = dynamic_cast<SimpleModel*>(obj);					
-				if (model != nullptr &&
-					visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->geometry.min_pos, model->geometry.max_pos))
 				{
-					update_model(model);
-					render_model(&camera, lights, fog, model, Pass::Opaque);
-					break;
+					SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
+					if (model != nullptr &&
+						visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->geometry.min_pos, model->geometry.max_pos))
+					{
+						update_model(model);
+						render_model(&camera, lights, fog, model, Pass::Opaque);
+						break;
+					}
 				}
-			}
-			{
-				DirectionalLight* light = dynamic_cast<DirectionalLight*>(obj);
-				if (light != nullptr)
 				{
-					render_widget(&camera, light);
-					break;
+					DirectionalLight* light = dynamic_cast<DirectionalLight*>(obj);
+					if (light != nullptr)
+					{
+						render_widget(&camera, light);
+						break;
+					}
 				}
-			}
-			{
-				ProbeGridWidget* widget = dynamic_cast<ProbeGridWidget*>(obj);
-				if (widget != nullptr)
 				{
-					render_widget(&camera, widget);
-					break;
+					ProbeGridWidget* widget = dynamic_cast<ProbeGridWidget*>(obj);
+					if (widget != nullptr)
+					{
+						render_widget(&camera, widget);
+						break;
+					}
 				}
-			}
 
-		} while (false);
+			} while (false);
+		}
 	}
 
 	if (has_alpha)
@@ -1795,9 +1797,9 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 
 }
 
-void GLRenderer::_render(Scene& scene, Camera& camera, GLRenderTarget& target)
+void GLRenderer::_render(Scene& scene, Camera& camera, GLRenderTarget& target, bool widgets)
 {	
-	_render_scene(scene, camera, target);
+	_render_scene(scene, camera, target, widgets);
 
 	Lights& lights = scene.lights;
 
@@ -2203,7 +2205,7 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 		EnvCreator->CreateReflection(*light->reflection, light->cube_target->m_cube_map.get());
 	
 	}
-	_render(scene, camera, target);
+	_render(scene, camera, target, true);
 	
 }
 

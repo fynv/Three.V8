@@ -120,8 +120,8 @@ private:
 	void _pre_render(Scene& scene);
 	void probe_space_center(Scene& scene, Camera& camera, GLSpaceProbeTarget& target, int width, int height, glm::vec3& ave, float& sum_weight);
 	glm::vec3 probe_space_center_cube(Scene& scene, const glm::vec3& position, float zNear, float zFar, IndirectLight& light);
-	void _render_scene(Scene& scene, Camera& camera, GLRenderTarget& target);
-	void _render(Scene& scene, Camera& camera, GLRenderTarget& target);
+	void _render_scene(Scene& scene, Camera& camera, GLRenderTarget& target, bool widgets = false);
+	void _render(Scene& scene, Camera& camera, GLRenderTarget& target, bool widgets = false);
 	void _render_scene_simple(Scene& scene, Camera& camera, GLRenderTarget& target);
 	void _render_simple(Scene& scene, Camera& camera, GLRenderTarget& target);
 	void _render_cube(Scene& scene, CubeRenderTarget& target, const glm::vec3& position, float zNear, float zFar, const glm::quat& rotation = glm::identity<glm::quat>());
