@@ -22,10 +22,10 @@ public:
 		int m_quat_width = -1;
 		int m_quat_height = -1;
 		
-		GLTexture2D m_tex_norm;
-		GLTexture2D m_tex_deinterleave_depth;
-		GLTexture2D m_tex_ao_quat;
-		GLTexture2D m_tex_ao;
+		std::unique_ptr<GLTexture2D> m_tex_norm;
+		std::unique_ptr<GLTexture2D> m_tex_deinterleave_depth;
+		std::unique_ptr<GLTexture2D> m_tex_ao_quat;
+		std::unique_ptr<GLTexture2D> m_tex_ao;
 
 		void update(int width, int height);
 	};

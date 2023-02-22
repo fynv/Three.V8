@@ -24,7 +24,7 @@ layout (std140, binding = 0) uniform Camera
 	vec3 uEyePos;
 };
 
-layout (binding=1, rgba8) uniform image2D uOutTex;
+layout (binding=1, rgba8) uniform highp writeonly image2D uOutTex;
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
@@ -105,7 +105,7 @@ layout (location = 0) uniform highp sampler2DMS uDepthTex;
 layout (location = 0) uniform sampler2D uDepthTex;
 #endif
 
-layout (binding=0, r32f) uniform image2D uOutTex;
+layout (binding=0, r32f) uniform highp writeonly image2D uOutTex;
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
@@ -162,7 +162,7 @@ layout (std140, binding = 0) uniform Camera
 	vec3 uEyePos;
 };
 
-layout (binding=1, r8) uniform image2D uOutTex;
+layout (binding=1, r32f) uniform highp writeonly image2D uOutTex;
 
 const float g_fNDotVBias = 0.1;
 const float g_fSmallScaleAO = 1.0;
@@ -211,7 +211,7 @@ void ComputeGlobals()
     block_offset = block_id* block_size; 
     sub_id = id_out - block_offset;
 
-    rand_seed = InitRandomSeed(id_out.x, id_out.y);
+    rand_seed = InitRandomSeed(uint(id_out.x), uint(id_out.y));
 }
 
 vec3 FetchFullResViewNormal(in ivec2 id_full)
@@ -306,29 +306,29 @@ const float PI = 3.14159265;
 
 float ComputeCoarseAO(in ivec2 FullResID, in vec3 ViewPosition, in vec3 ViewNormal, AORadiusParams Params)
 {
-    float StepSizePixels = (Params.fRadiusPixels / 4.0) / (NUM_STEPS + 1);
+    float StepSizePixels = (Params.fRadiusPixels / 4.0) / float(NUM_STEPS + 1);
     vec4 Rand;
     float r1 = RandomFloat(rand_seed);
 	float r2 = RandomFloat(rand_seed);
 	float r3 = RandomFloat(rand_seed);
-	float angle = 2.0f * 3.14159265f * r1 / NUM_DIRECTIONS;
+	float angle = 2.0 * PI * r1 / float(NUM_DIRECTIONS);
 
 	Rand.x = cos(angle);
 	Rand.y = sin(angle);
 	Rand.z = r2;
 	Rand.w = r3;
     
-    const float Alpha = 2.0 * PI / NUM_DIRECTIONS;
+    const float Alpha = 2.0 * PI / float(NUM_DIRECTIONS);
     float SmallScaleAO = 0.0;
     float LargeScaleAO = 0.0;
 
-    for (float DirectionIndex = 0; DirectionIndex < NUM_DIRECTIONS; ++DirectionIndex)
+    for (int DirectionIndex = 0; DirectionIndex < NUM_DIRECTIONS; ++DirectionIndex)
     {
-        float Angle = Alpha * DirectionIndex;
+        float Angle = Alpha * float(DirectionIndex);
         vec2 Direction = RotateDirection(vec2(cos(Angle), sin(Angle)), Rand.xy);
         float RayPixels = (Rand.z * StepSizePixels + 1.0);
         AccumulateAO(SmallScaleAO, RayPixels, StepSizePixels, Direction, FullResID, ViewPosition, ViewNormal, Params);
-        for (float StepIndex = 1; StepIndex < NUM_STEPS; ++StepIndex)
+        for (int StepIndex = 1; StepIndex < NUM_STEPS; ++StepIndex)
         {
             AccumulateAO(LargeScaleAO, RayPixels, StepSizePixels, Direction, FullResID, ViewPosition, ViewNormal, Params);
         }
@@ -340,7 +340,7 @@ float ComputeCoarseAO(in ivec2 FullResID, in vec3 ViewPosition, in vec3 ViewNorm
 
     float AO = (SmallScaleAO * fSmallScaleAOAmount) + (LargeScaleAO * fLargeScaleAOAmount);
 
-    AO /= (NUM_DIRECTIONS * NUM_STEPS);
+    AO /= float(NUM_DIRECTIONS * NUM_STEPS);
 
     return AO;
 }
@@ -371,7 +371,7 @@ void main()
 static std::string g_comp_reinterleave =
 R"(#version 430
 layout (location = 0) uniform sampler2D uAOTex;
-layout (binding=0, r8) uniform image2D uOutTex;
+layout (binding=0, r32f) uniform highp writeonly image2D uOutTex;
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
@@ -483,42 +483,46 @@ void SSAO::Buffers::update(int width, int height)
 		m_quat_height = (height + 3) / 4 * 4;
 
 		{
-			glBindTexture(GL_TEXTURE_2D, m_tex_norm.tex_id);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, nullptr);
+			m_tex_norm = std::unique_ptr<GLTexture2D>(new GLTexture2D);
+			glBindTexture(GL_TEXTURE_2D, m_tex_norm->tex_id);			
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);			
+			glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, width, height);
 			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 
 		{
-			glBindTexture(GL_TEXTURE_2D, m_tex_deinterleave_depth.tex_id);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, m_quat_width, m_quat_height, 0, GL_RED, GL_FLOAT, nullptr);
+			m_tex_deinterleave_depth = std::unique_ptr<GLTexture2D>(new GLTexture2D);
+			glBindTexture(GL_TEXTURE_2D, m_tex_deinterleave_depth->tex_id);			
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glTexStorage2D(GL_TEXTURE_2D, 1, GL_R32F, m_quat_width, m_quat_height);
 			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 
 		{
-			glBindTexture(GL_TEXTURE_2D, m_tex_ao_quat.tex_id);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, m_quat_width, m_quat_height, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
+			m_tex_ao_quat = std::unique_ptr<GLTexture2D>(new GLTexture2D);
+			glBindTexture(GL_TEXTURE_2D, m_tex_ao_quat->tex_id);			
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glTexStorage2D(GL_TEXTURE_2D, 1, GL_R32F, m_quat_width, m_quat_height);
 			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 
 		{
-			glBindTexture(GL_TEXTURE_2D, m_tex_ao.tex_id);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
+			m_tex_ao = std::unique_ptr<GLTexture2D>(new GLTexture2D);
+			glBindTexture(GL_TEXTURE_2D, m_tex_ao->tex_id);			
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glTexStorage2D(GL_TEXTURE_2D, 1, GL_R32F, width, height);
 			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 	}
@@ -542,7 +546,7 @@ void SSAO::render(const RenderParams& params)
 		}
 		glUniform1i(0, 0);
 
-		glBindImageTexture(1, params.buffers->m_tex_norm.tex_id, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(1, params.buffers->m_tex_norm->tex_id, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
 
 		glm::ivec2 blocks = { (params.buffers->m_width + 7) / 8, (params.buffers->m_height + 7) / 8 };
 		glDispatchCompute(blocks.x, blocks.y, 1);
@@ -564,7 +568,7 @@ void SSAO::render(const RenderParams& params)
 		}
 		glUniform1i(0, 0);
 
-		glBindImageTexture(0, params.buffers->m_tex_deinterleave_depth.tex_id, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_R32F);
+		glBindImageTexture(0, params.buffers->m_tex_deinterleave_depth->tex_id, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_R32F);
 
 		glm::ivec2 blocks = { (params.buffers->m_quat_width + 7) / 8, (params.buffers->m_quat_height + 7) / 8 };
 		glDispatchCompute(blocks.x, blocks.y, 1);
@@ -578,15 +582,15 @@ void SSAO::render(const RenderParams& params)
 		glUseProgram(m_prog_coarse_ao->m_id);
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, params.buffers->m_tex_deinterleave_depth.tex_id);
+		glBindTexture(GL_TEXTURE_2D, params.buffers->m_tex_deinterleave_depth->tex_id);
 		glUniform1i(0, 0);
 
 		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, params.buffers->m_tex_norm.tex_id);
+		glBindTexture(GL_TEXTURE_2D, params.buffers->m_tex_norm->tex_id);
 		glUniform1i(1, 1);
 
 		glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.constant_camera->m_id);		
-		glBindImageTexture(1, params.buffers->m_tex_ao_quat.tex_id, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_R8);
+		glBindImageTexture(1, params.buffers->m_tex_ao_quat->tex_id, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_R32F);
 
 		glm::ivec2 blocks = { (params.buffers->m_quat_width + 7) / 8, (params.buffers->m_quat_height + 7) / 8 };
 		glDispatchCompute(blocks.x, blocks.y, 1);
@@ -602,10 +606,10 @@ void SSAO::render(const RenderParams& params)
 		glUseProgram(m_prog_reinterleave->m_id);
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, params.buffers->m_tex_ao_quat.tex_id);
+		glBindTexture(GL_TEXTURE_2D, params.buffers->m_tex_ao_quat->tex_id);
 		glUniform1i(0, 0);
 
-		glBindImageTexture(0, params.buffers->m_tex_ao.tex_id, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_R8);
+		glBindImageTexture(0, params.buffers->m_tex_ao->tex_id, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_R32F);
 		glm::ivec2 blocks = { (params.buffers->m_width + 7) / 8, (params.buffers->m_height + 7) / 8 };
 		glDispatchCompute(blocks.x, blocks.y, 1);
 
