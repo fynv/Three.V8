@@ -14,9 +14,6 @@
 #include "renderers/routines/DrawFog.h"
 #include "renderers/routines/FogRayMarching.h"
 #include "renderers/routines/FogRayMarchingEnv.h"
-#include "renderers/routines/BaseColorRoutine.h"
-#include "renderers/routines/LightingRoutine.h"
-#include "renderers/routines/AlphaDem.h"
 
 #include "volume/routines/DrawIsosurface.h"
 #include "volume/routines/IsosurfaceDirectionalShadow.h"
@@ -53,9 +50,7 @@ public:
 
 	void renderCube(Scene& scene, CubeRenderTarget& target, const glm::vec3& position, float zNear, float zFar, const glm::quat& rotation = glm::identity<glm::quat>());
 
-	void updateProbe(Scene& scene, CubeRenderTarget& target, ProbeGrid& probe_grid, glm::ivec3 idx, float zNear, float zFar, float k = 1.0f);
-
-	void renderCelluloid(Scene& scene, Camera& camera, GLRenderTarget* layer_base, GLRenderTarget* layer_light, GLRenderTarget* layer_alpha);
+	void updateProbe(Scene& scene, CubeRenderTarget& target, ProbeGrid& probe_grid, glm::ivec3 idx, float zNear, float zFar, float k = 1.0f);	
 
 	void renderTexture(GLTexture2D* tex, int x, int y, int width, int height, GLRenderTarget& target);
 
@@ -133,19 +128,7 @@ private:
 	void _render_fog(const Camera& camera, const Lights& lights, const Fog& fog, GLRenderTarget& target);
 	void _render_fog_rm(const Camera& camera, DirectionalLight& light, const Fog& fog, GLRenderTarget& target);	
 	void _render_fog_rm_env(const Camera& camera, const Lights& lights, const Fog& fog, GLRenderTarget& target);
-
-	std::unordered_map<uint64_t, std::unique_ptr<BaseColorRoutine>> base_routine_map;
-	void render_primitive_base(const BaseColorRoutine::RenderParams& params);
-	void render_model_base(Camera* p_camera, SimpleModel* model);
-	void render_model_base(Camera* p_camera, GLTFModel* model);
-
-	std::unordered_map<uint64_t, std::unique_ptr<LightingRoutine>> lighting_routine_map;
-	void render_primitive_lighting(const LightingRoutine::RenderParams& params);
-	void render_model_lighting(Camera* p_camera, const Lights& lights, const Fog* fog, SimpleModel* model);
-	void render_model_lighting(Camera* p_camera, const Lights& lights, const Fog* fog, GLTFModel* model);
-
-	std::unique_ptr<AlphaDem> alpha_demodulate;
-
+	
 	std::unique_ptr<DrawTexture> TextureDraw;
 
 	std::unique_ptr<EnvironmentMapCreator> EnvCreator;

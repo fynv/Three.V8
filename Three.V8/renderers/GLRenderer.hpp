@@ -23,7 +23,7 @@ private:
 	static void Render(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void RenderCube(const v8::FunctionCallbackInfo<v8::Value>& info);	
 	static void UpdateProbe(const v8::FunctionCallbackInfo<v8::Value>& info);
-	static void RenderCelluloid(const v8::FunctionCallbackInfo<v8::Value>& info);
+	
 #if THREE_MM
 	static void RenderTexture(const v8::FunctionCallbackInfo<v8::Value>& info);
 #endif
@@ -37,8 +37,7 @@ v8::Local<v8::FunctionTemplate> WrapperGLRenderer::create_template(v8::Isolate* 
 	templ->InstanceTemplate()->Set(isolate, "render", v8::FunctionTemplate::New(isolate, Render));
 	templ->InstanceTemplate()->Set(isolate, "renderCube", v8::FunctionTemplate::New(isolate, RenderCube));
 	templ->InstanceTemplate()->Set(isolate, "updateProbe", v8::FunctionTemplate::New(isolate, UpdateProbe));
-
-	templ->InstanceTemplate()->Set(isolate, "renderCelluloid", v8::FunctionTemplate::New(isolate, RenderCelluloid));
+	
 #if THREE_MM
 	templ->InstanceTemplate()->Set(isolate, "renderTexture", v8::FunctionTemplate::New(isolate, RenderTexture));
 #endif
@@ -141,18 +140,6 @@ void WrapperGLRenderer::UpdateProbe(const v8::FunctionCallbackInfo<v8::Value>& i
 
 	self->updateProbe(*scene, *target, *probe_grid, idx, zNear, zFar, k);
 
-}
-
-void WrapperGLRenderer::RenderCelluloid(const v8::FunctionCallbackInfo<v8::Value>& info)
-{
-	LocalContext lctx(info);
-	GLRenderer* self = lctx.self<GLRenderer>();
-	Scene* scene = lctx.jobj_to_obj<Scene>(info[0]);
-	Camera* camera = lctx.jobj_to_obj<Camera>(info[1]);
-	GLRenderTarget* target_base = lctx.jobj_to_obj<GLRenderTarget>(info[2]);
-	GLRenderTarget* target_lighting = lctx.jobj_to_obj<GLRenderTarget>(info[3]);
-	GLRenderTarget* target_alpha = lctx.jobj_to_obj<GLRenderTarget>(info[4]);
-	self->renderCelluloid(*scene, *camera, target_base, target_lighting, target_alpha);
 }
 
 #if THREE_MM

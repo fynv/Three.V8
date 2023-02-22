@@ -288,15 +288,6 @@
     <ClCompile Include="renderers\routines\FogRayMarching.cpp">
       <Filter>Source Files\renderers\routines</Filter>
     </ClCompile>
-    <ClCompile Include="renderers\routines\BaseColorRoutine.cpp">
-      <Filter>Source Files\renderers\routines</Filter>
-    </ClCompile>
-    <ClCompile Include="renderers\routines\LightingRoutine.cpp">
-      <Filter>Source Files\renderers\routines</Filter>
-    </ClCompile>
-    <ClCompile Include="renderers\routines\AlphaDem.cpp">
-      <Filter>Source Files\renderers\routines</Filter>
-    </ClCompile>
     <ClCompile Include="gui\UIDraggable.cpp">
       <Filter>Source Files\gui</Filter>
     </ClCompile>
@@ -552,15 +543,6 @@
       <Filter>Header Files\renderers\routines</Filter>
     </ClInclude>
     <ClInclude Include="renderers\routines\FogRayMarching.h">
-      <Filter>Header Files\renderers\routines</Filter>
-    </ClInclude>
-    <ClInclude Include="renderers\routines\BaseColorRoutine.h">
-      <Filter>Header Files\renderers\routines</Filter>
-    </ClInclude>
-    <ClInclude Include="renderers\routines\LightingRoutine.h">
-      <Filter>Header Files\renderers\routines</Filter>
-    </ClInclude>
-    <ClInclude Include="renderers\routines\AlphaDem.h">
       <Filter>Header Files\renderers\routines</Filter>
     </ClInclude>
     <ClInclude Include="utils\Semaphore.h">
