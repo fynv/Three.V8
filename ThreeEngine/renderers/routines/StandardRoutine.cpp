@@ -1074,6 +1074,10 @@ layout (std140, binding = BINDING_FOG) uniform FOG
 };
 #endif
 
+#if USE_SSAO
+layout (location = LOCATION_TEX_SSAO) uniform sampler2D uTexSSAO;
+#endif 
+
 layout (location = 0) out vec4 out0;
 
 #if ALPHA_BLEND
@@ -1276,6 +1280,16 @@ void main()
 		vec3 irradiance = getIrradiance(norm);
 		vec3 radiance = getRadiance(reflectVec, material.roughness);
 
+#if USE_SSAO && IS_OPAQUE
+		{
+			ivec2 coord = ivec2(gl_FragCoord.xy);	
+			float ao = texelFetch(uTexSSAO, coord, 0).x;
+			ao = pow(ao,2.0);
+			irradiance *= ao;
+			radiance *= ao;
+		}
+#endif
+
 #if (TONE_SHADING & 4) == 0
 		diffuse += material.diffuseColor * irradiance * RECIPROCAL_PI;
 #else
@@ -1422,6 +1436,15 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 			sprintf(line, "#define LOCATION_VARYING_NORM %d\n", bindings.location_varying_norm);
 			defines += line;
 		}
+	}
+
+	if (options.alpha_mode == AlphaMode::Opaque)
+	{
+		defines += "#define IS_OPAQUE 1\n";
+	}
+	else
+	{
+		defines += "#define IS_OPAQUE 0\n";
 	}
 
 	if (options.alpha_mode == AlphaMode::Mask)
@@ -1875,6 +1898,22 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 		bindings.binding_fog = bindings.binding_hemisphere_light;
 	}	
 
+	if (options.use_ssao)
+	{
+		defines += "#define USE_SSAO 1\n";
+		bindings.location_tex_ssao = bindings.location_tex_reflection_map + 1;
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_TEX_SSAO %d\n", bindings.location_tex_ssao);
+			defines += line;
+		}
+	}
+	else
+	{
+		defines += "#define USE_SSAO 0\n";
+		bindings.location_tex_ssao = bindings.location_tex_reflection_map;
+	}
+
 	replace(s_vertex, "#DEFINES#", defines.c_str());
 	replace(s_frag, "#DEFINES#", defines.c_str());
 }
@@ -2079,6 +2118,14 @@ void StandardRoutine::render(const RenderParams& params)
 		glActiveTexture(GL_TEXTURE0 + texture_idx);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, params.lights->reflection_map->tex_id);
 		glUniform1i(m_bindings.location_tex_reflection_map, texture_idx);
+		texture_idx++;
+	}
+
+	if (m_options.use_ssao)
+	{
+		glActiveTexture(GL_TEXTURE0 + texture_idx);
+		glBindTexture(GL_TEXTURE_2D, params.tex_ao->tex_id);
+		glUniform1i(m_bindings.location_tex_ssao, texture_idx);
 		texture_idx++;
 	}
 

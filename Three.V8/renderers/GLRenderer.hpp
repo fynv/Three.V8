@@ -23,6 +23,9 @@ private:
 	static void Render(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void RenderCube(const v8::FunctionCallbackInfo<v8::Value>& info);	
 	static void UpdateProbe(const v8::FunctionCallbackInfo<v8::Value>& info);
+
+	static void GetUseSSAO(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void SetUseSSAO(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
 	
 #if THREE_MM
 	static void RenderTexture(const v8::FunctionCallbackInfo<v8::Value>& info);
@@ -37,6 +40,8 @@ v8::Local<v8::FunctionTemplate> WrapperGLRenderer::create_template(v8::Isolate* 
 	templ->InstanceTemplate()->Set(isolate, "render", v8::FunctionTemplate::New(isolate, Render));
 	templ->InstanceTemplate()->Set(isolate, "renderCube", v8::FunctionTemplate::New(isolate, RenderCube));
 	templ->InstanceTemplate()->Set(isolate, "updateProbe", v8::FunctionTemplate::New(isolate, UpdateProbe));
+
+	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "useSSAO").ToLocalChecked(), GetUseSSAO, SetUseSSAO);
 	
 #if THREE_MM
 	templ->InstanceTemplate()->Set(isolate, "renderTexture", v8::FunctionTemplate::New(isolate, RenderTexture));
@@ -142,6 +147,22 @@ void WrapperGLRenderer::UpdateProbe(const v8::FunctionCallbackInfo<v8::Value>& i
 
 }
 
+
+void WrapperGLRenderer::GetUseSSAO(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	GLRenderer* self = lctx.self<GLRenderer>();
+	info.GetReturnValue().Set(v8::Boolean::New(lctx.isolate, self->m_use_ssao));
+}
+
+void WrapperGLRenderer::SetUseSSAO(v8::Local<v8::String> property, v8::Local<v8::Value> value,
+	const v8::PropertyCallbackInfo<void>& info)
+{
+	LocalContext lctx(info);
+	GLRenderer* self = lctx.self<GLRenderer>();
+	self->m_use_ssao = value.As<v8::Boolean>()->Value();
+}
+
 #if THREE_MM
 void WrapperGLRenderer::RenderTexture(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
@@ -217,3 +238,4 @@ void WrapperGLRenderer::RenderTexture(const v8::FunctionCallbackInfo<v8::Value>&
 	self->renderTexture(tex, x, y, width, height, *target);
 }
 #endif
+

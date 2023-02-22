@@ -33,6 +33,7 @@ public:
 		bool has_hemisphere_light = false;
 		int tone_shading = 0;
 		bool has_fog = false;
+		bool use_ssao = false;
 	};
 
 	StandardRoutine(const Options& options);
@@ -46,6 +47,7 @@ public:
 		const Primitive* primitive;
 		const Lights* lights;
 		const GLDynBuffer* constant_fog;
+		const GLTexture2D* tex_ao;
 	};
 
 	void render(const RenderParams& params);
@@ -91,6 +93,7 @@ private:
 		int binding_ambient_light;
 		int binding_hemisphere_light;
 		int binding_fog;
+		int location_tex_ssao;
 	};
 
 	Bindings m_bindings;

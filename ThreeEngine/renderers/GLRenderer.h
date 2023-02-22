@@ -25,6 +25,7 @@
 
 #include "lights/EnvironmentMapCreator.h"
 #include "renderers/routines/DepthOnly.h"
+#include "renderers/routines/SSAO.h"
 
 class Scene;
 class Fog;
@@ -47,6 +48,8 @@ class GLRenderer
 public:
 	GLRenderer();
 	~GLRenderer();
+
+	bool m_use_ssao = true;
 
 	void render(Scene& scene, Camera& camera, GLRenderTarget& target);	
 	void render_picking(Scene& scene, Camera& camera, GLPickingTarget& target);
@@ -84,8 +87,8 @@ private:
 	DrawIsosurface* get_isosurface_draw(const DrawIsosurface::Options& options);
 
 	void render_primitive(const StandardRoutine::RenderParams& params, Pass pass);
-	void render_model(Camera* p_camera, const Lights& lights, const Fog* fog, SimpleModel* model, Pass pass);
-	void render_model(Camera* p_camera, const Lights& lights, const Fog* fog, GLTFModel* model, Pass pass);
+	void render_model(Camera* p_camera, const Lights& lights, const Fog* fog, SimpleModel* model, GLRenderTarget& target, Pass pass);
+	void render_model(Camera* p_camera, const Lights& lights, const Fog* fog, GLTFModel* model, GLRenderTarget& target, Pass pass);
 	void render_model(Camera* p_camera, const Lights& lights, const Fog* fog, VolumeIsosurfaceModel* model, GLRenderTarget& target, Pass pass);
 	void render_widget(Camera* p_camera, DirectionalLight* light);
 	void render_widget(Camera* p_camera, ProbeGridWidget* widget);
@@ -115,11 +118,15 @@ private:
 	std::unique_ptr<DepthOnly> DepthRenderer;
 	void render_depth_primitive(const DepthOnly::RenderParams& params);
 	void render_depth_model(Camera* p_camera, SimpleModel* model);
-	void render_depth_model(Camera* p_camera, GLTFModel* model);
+	void render_depth_model(Camera* p_camera, GLTFModel* model);	
 
 	void _pre_render(Scene& scene);
 	void probe_space_center(Scene& scene, Camera& camera, GLSpaceProbeTarget& target, int width, int height, glm::vec3& ave, float& sum_weight);
 	glm::vec3 probe_space_center_cube(Scene& scene, const glm::vec3& position, float zNear, float zFar, IndirectLight& light);
+
+	std::unique_ptr<SSAO> SSAORenderer[2];
+	void _ssao(const Camera& camera, GLRenderTarget& target);
+
 	void _render_scene(Scene& scene, Camera& camera, GLRenderTarget& target, bool widgets = false);
 	void _render(Scene& scene, Camera& camera, GLRenderTarget& target, bool widgets = false);
 	void _render_scene_simple(Scene& scene, Camera& camera, GLRenderTarget& target);

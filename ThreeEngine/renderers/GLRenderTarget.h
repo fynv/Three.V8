@@ -2,6 +2,7 @@
 
 #include <memory>
 #include "renderers/routines/WeightedOIT.h"
+#include "renderers/routines/SSAO.h"
 
 class GLTexture2D;
 class CubeRenderTarget;
@@ -27,7 +28,6 @@ public:
 	std::unique_ptr<GLTexture2D> m_tex_video;
 	std::unique_ptr<GLTexture2D> m_tex_msaa;
 	std::unique_ptr<GLTexture2D> m_tex_depth;
-	
 
 	unsigned m_fbo_video = 0;
 	unsigned m_fbo_msaa = -1;
@@ -35,6 +35,9 @@ public:
 
 	WeightedOIT::Buffers m_OITBuffers;
 	void update_oit_buffers();
+
+	std::unique_ptr<SSAO::Buffers> m_ssao_buffers;
+	void update_ssao_buffers();
 
 	void bind_buffer();
 	void resolve_msaa();

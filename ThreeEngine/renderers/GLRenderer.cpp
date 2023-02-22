@@ -267,13 +267,14 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 	options.has_ambient_light = lights->ambient_light != nullptr;
 	options.has_hemisphere_light = lights->hemisphere_light != nullptr;
 	options.has_fog = params.constant_fog != nullptr;
+	options.use_ssao = m_use_ssao;
 	options.tone_shading = material->tone_shading;
 	StandardRoutine* routine = get_routine(options);
 	routine->render(params);	
 }
 
 
-void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog* fog, SimpleModel* model, Pass pass)
+void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog* fog, SimpleModel* model, GLRenderTarget& target, Pass pass)
 {		
 	const GLTexture2D* tex = &model->texture;
 	if (model->repl_texture != nullptr)
@@ -314,10 +315,19 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 		params.constant_fog = nullptr;
 	}
 
+	if (m_use_ssao)
+	{
+		params.tex_ao = &target.m_ssao_buffers->m_tex_ao;
+	}
+	else
+	{
+		params.tex_ao = nullptr;
+	}
+
 	render_primitive(params, pass);
 }
 
-void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog* fog, GLTFModel* model, Pass pass)
+void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog* fog, GLTFModel* model, GLRenderTarget& target, Pass pass)
 {
 	std::vector<const GLTexture2D*> tex_lst(model->m_textures.size());
 	for (size_t i = 0; i < tex_lst.size(); i++)         
@@ -366,7 +376,7 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 			{
 				primitive.compute_wires();
 			}
-			StandardRoutine::RenderParams params;
+			StandardRoutine::RenderParams params;			
 			params.tex_list = tex_lst.data();
 			params.material_list = material_lst.data();
 			params.constant_camera = &p_camera->m_constant;
@@ -381,6 +391,15 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 			else
 			{
 				params.constant_fog = nullptr;
+			}
+
+			if (m_use_ssao)
+			{
+				params.tex_ao = &target.m_ssao_buffers->m_tex_ao;
+			}
+			else
+			{
+				params.tex_ao = nullptr;
 			}
 			render_primitive(params, pass);
 		}
@@ -1529,6 +1548,25 @@ glm::vec3 GLRenderer::probe_space_center_cube(Scene& scene, const glm::vec3& pos
 	return sum / sum_weight;
 }
 
+void GLRenderer::_ssao(const Camera& camera, GLRenderTarget& target)
+{
+	bool msaa = target.msaa();
+	int idx = msaa ? 1 : 0;
+	if (SSAORenderer[idx] == nullptr)
+	{
+		SSAORenderer[idx] = std::unique_ptr<SSAO>(new SSAO(msaa));
+	}
+	SSAO* ssao = SSAORenderer[idx].get();
+
+	target.update_ssao_buffers();
+
+	SSAO::RenderParams params;
+	params.buffers = target.m_ssao_buffers.get();
+	params.depth_in = target.m_tex_depth.get();
+	params.constant_camera = &camera.m_constant;	
+	ssao->render(params);
+}
+
 void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& target, bool widgets)
 {	
 	camera.updateMatrixWorld(false);
@@ -1675,18 +1713,27 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 			render_depth_model(&camera, model);
 		}
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+	}
 
+	// SSAO
+	if (m_use_ssao)
+	{
+		_ssao(camera, target);
+	}
+
+	if (has_opaque)
+	{
 		// opaque
 		for (size_t i = 0; i < simple_models.size(); i++)
 		{
 			SimpleModel* model = simple_models[i];
-			render_model(&camera, lights, fog, model, Pass::Opaque);
+			render_model(&camera, lights, fog, model, target, Pass::Opaque);
 		}
 
 		for (size_t i = 0; i < gltf_models.size(); i++)
 		{
 			GLTFModel* model = gltf_models[i];
-			render_model(&camera, lights, fog, model, Pass::Opaque);
+			render_model(&camera, lights, fog, model, target, Pass::Opaque);
 		}
 
 		for (size_t i = 0; i < scene.volume_isosurface_models.size(); i++)
@@ -1710,7 +1757,7 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 						visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->geometry.min_pos, model->geometry.max_pos))
 					{
 						update_model(model);
-						render_model(&camera, lights, fog, model, Pass::Opaque);
+						render_model(&camera, lights, fog, model, target, Pass::Opaque);
 						break;
 					}
 				}
@@ -1744,13 +1791,13 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 		for (size_t i = 0; i < simple_models.size(); i++)
 		{
 			SimpleModel* model = simple_models[i];
-			render_model(&camera, lights, fog, model, Pass::Highlight);
+			render_model(&camera, lights, fog, model, target, Pass::Highlight);
 		}
 
 		for (size_t i = 0; i < gltf_models.size(); i++)
 		{
 			GLTFModel* model = gltf_models[i];
-			render_model(&camera, lights, fog, model, Pass::Highlight);
+			render_model(&camera, lights, fog, model, target, Pass::Highlight);
 		}
 
 		target.update_oit_buffers();
@@ -1774,13 +1821,13 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 		for (size_t i = 0; i < simple_models.size(); i++)
 		{
 			SimpleModel* model = simple_models[i];
-			render_model(&camera, lights, fog, model, Pass::Alpha);
+			render_model(&camera, lights, fog, model, target, Pass::Alpha);
 		}
 
 		for (size_t i = 0; i < gltf_models.size(); i++)
 		{
 			GLTFModel* model = gltf_models[i];
-			render_model(&camera, lights, fog, model, Pass::Alpha);
+			render_model(&camera, lights, fog, model, target, Pass::Alpha);
 		}
 
 		target.bind_buffer();

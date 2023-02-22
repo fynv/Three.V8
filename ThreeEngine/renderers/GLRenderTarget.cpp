@@ -26,7 +26,9 @@ GLRenderTarget::GLRenderTarget(bool default_buffer, bool msaa)
 		m_tex_msaa = std::unique_ptr<GLTexture2D>(new GLTexture2D);
 		m_tex_depth = std::unique_ptr<GLTexture2D>(new GLTexture2D);		
 	}
+
 }
+
 
 GLRenderTarget::GLRenderTarget(CubeRenderTarget* cube_target, int idx)
 {
@@ -35,7 +37,6 @@ GLRenderTarget::GLRenderTarget(CubeRenderTarget* cube_target, int idx)
 
 	glGenFramebuffers(1, &m_fbo_video);
 	m_tex_depth = std::unique_ptr<GLTexture2D>(new GLTexture2D);
-
 }
 
 GLRenderTarget::~GLRenderTarget()
@@ -62,8 +63,8 @@ bool GLRenderTarget::update_framebuffers(int width, int height)
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, nullptr);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 				glBindTexture(GL_TEXTURE_2D, 0);
 				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_tex_video->tex_id, 0);
 			}
@@ -78,8 +79,8 @@ bool GLRenderTarget::update_framebuffers(int width, int height)
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 				glBindTexture(GL_TEXTURE_2D, 0);
 				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_tex_depth->tex_id, 0);
 			}
@@ -99,6 +100,7 @@ bool GLRenderTarget::update_framebuffers(int width, int height)
 			glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, m_tex_depth->tex_id, 0);
 		}
+			
 
 		m_width = width;
 		m_height = height;
@@ -113,6 +115,14 @@ void GLRenderTarget::update_oit_buffers()
 	m_OITBuffers.update(m_width, m_height, m_tex_depth->tex_id, msaa());
 }
 
+void GLRenderTarget::update_ssao_buffers()
+{
+	if (m_ssao_buffers == nullptr)
+	{
+		m_ssao_buffers = std::unique_ptr<SSAO::Buffers>(new SSAO::Buffers);
+	}
+	m_ssao_buffers->update(m_width, m_height);
+}
 
 void GLRenderTarget::bind_buffer()
 {
