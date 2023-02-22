@@ -954,6 +954,10 @@ vec3 getIrradiance(in vec3 normal)
 	vec4 coeffs[9];
 	for (int i=0; i<9; i++) coeffs[i] = vec4(0.0);
 
+	vec3 dx = dFdx(vWorldPos);
+	vec3 dy = dFdy(vWorldPos);
+	vec3 N = normalize(cross(dx, dy));
+
 	for (int z=0;z<2;z++)
 	{
 		for (int y=0;y<2;y++)
@@ -965,8 +969,8 @@ vec3 getIrradiance(in vec3 normal)
 				vert_normalized.y = pow(vert_normalized.y, uYpower); 
 				vec3 vert_world = vert_normalized * size_grid + uCoverageMin.xyz;
 				vec3 dir = normalize(vert_world - vWorldPos);
-				
-				if (dot(dir, normal)>=0.0)
+
+				if (dot(dir, N)>=0.0)
 				{					
 					vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
 					float weight = w.x * w.y * w.z;
@@ -1141,7 +1145,10 @@ void main()
 
 	if (uDoubleSided!=0)
 	{
-		if (dot(viewDir,norm)<0.0) norm = -norm;
+		vec3 dx = dFdx(vWorldPos);
+		vec3 dy = dFdy(vWorldPos);
+		vec3 N = normalize(cross(dx, dy));
+		if (dot(viewDir, N)<0.0) norm = -norm;
 	}
 
 	PhysicalMaterial material;
@@ -1416,7 +1423,6 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 			defines += line;
 		}
 	}
-
 
 	if (options.alpha_mode == AlphaMode::Mask)
 	{
@@ -1867,7 +1873,7 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	{
 		defines += "#define HAS_FOG 0\n";
 		bindings.binding_fog = bindings.binding_hemisphere_light;
-	}
+	}	
 
 	replace(s_vertex, "#DEFINES#", defines.c_str());
 	replace(s_frag, "#DEFINES#", defines.c_str());
@@ -2074,7 +2080,6 @@ void StandardRoutine::render(const RenderParams& params)
 		glBindTexture(GL_TEXTURE_CUBE_MAP, params.lights->reflection_map->tex_id);
 		glUniform1i(m_bindings.location_tex_reflection_map, texture_idx);
 		texture_idx++;
-
 	}
 
 	if (params.primitive->index_buf != nullptr)
