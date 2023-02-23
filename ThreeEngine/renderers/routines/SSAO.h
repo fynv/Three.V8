@@ -49,6 +49,7 @@ private:
 	std::unique_ptr<GLProgram> m_prog_blur_x;
 	std::unique_ptr<GLProgram> m_prog_blur_y;
 
-
+	
+	GLBuffer m_constant_jitters;
 };
 

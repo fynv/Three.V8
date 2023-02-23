@@ -3,6 +3,14 @@
 #include "renderers/GLRenderTarget.h"
 #include "SSAO.h"
 
+const double PI = 3.14159265359;
+
+static const float MersenneTwisterNumbers[48] = {
+		0.463937f,0.340042f,0.223035f,0.468465f,0.322224f,0.979269f,0.031798f,0.973392f,0.778313f,0.456168f,0.258593f,0.330083f,0.387332f,0.380117f,0.179842f,0.910755f,
+		0.511623f,0.092933f,0.180794f,0.620153f,0.101348f,0.556342f,0.642479f,0.442008f,0.215115f,0.475218f,0.157357f,0.568868f,0.501241f,0.629229f,0.699218f,0.707733f,
+		0.556725f,0.005520f,0.708315f,0.583199f,0.236644f,0.992380f,0.981091f,0.119804f,0.510866f,0.560499f,0.961497f,0.557862f,0.539955f,0.332871f,0.417807f,0.920779f 
+};
+
 
 static std::string g_comp_renorm =
 R"(#version 430
@@ -164,6 +172,11 @@ layout (std140, binding = 0) uniform Camera
 
 layout (binding=1, rg16f) uniform highp writeonly image2D uOutTex;
 
+layout (std140, binding = 2) uniform JITTERS
+{
+	vec4 uJitters[16];
+};
+
 const float g_fNDotVBias = 0.1;
 const float g_fSmallScaleAO = 1.0;
 const float g_fLargeScaleAO = 1.0;
@@ -173,33 +186,8 @@ const float g_fNegInvR2 = -1.0/g_fR2;
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
-uint InitRandomSeed(uint val0, uint val1)
-{
-	uint v0 = val0, v1 = val1, s0 = 0u;
-
-	for (uint n = 0u; n < 16u; n++)
-	{
-		s0 += 0x9e3779b9u;
-		v0 += ((v1 << 4) + 0xa341316cu) ^ (v1 + s0) ^ ((v1 >> 5) + 0xc8013ea4u);
-		v1 += ((v0 << 4) + 0xad90777du) ^ (v0 + s0) ^ ((v0 >> 5) + 0x7e95761eu);
-	}
-
-	return v0;
-}
-
-uint RandomInt(inout uint seed)
-{
-    return (seed = 1664525u * seed + 1013904223u);
-}
-
-float RandomFloat(inout uint seed)
-{
-	return (float(RandomInt(seed) & 0x00FFFFFFu) / float(0x01000000));
-}
-
-
 ivec2 size, block_size, id_out, block_id, block_offset, sub_id;
-uint rand_seed;
+vec4 jitter;
 
 void ComputeGlobals()
 {
@@ -211,7 +199,8 @@ void ComputeGlobals()
     block_offset = block_id* block_size; 
     sub_id = id_out - block_offset;
 
-    rand_seed = InitRandomSeed(uint(id_out.x), uint(id_out.y));
+	int idx = block_id.x + block_id.y * 4;
+    jitter = uJitters[idx];
 }
 
 vec3 FetchFullResViewNormal(in ivec2 id_full)
@@ -307,16 +296,7 @@ const float PI = 3.14159265;
 float ComputeCoarseAO(in ivec2 FullResID, in vec3 ViewPosition, in vec3 ViewNormal, AORadiusParams Params)
 {
     float StepSizePixels = (Params.fRadiusPixels / 4.0) / float(NUM_STEPS + 1);
-    vec4 Rand;
-    float r1 = RandomFloat(rand_seed);
-	float r2 = RandomFloat(rand_seed);
-	float r3 = RandomFloat(rand_seed);
-	float angle = 2.0 * PI * r1 / float(NUM_DIRECTIONS);
-
-	Rand.x = cos(angle);
-	Rand.y = sin(angle);
-	Rand.z = r2;
-	Rand.w = r3;
+    vec4 Rand = jitter;
     
     const float Alpha = 2.0 * PI / float(NUM_DIRECTIONS);
     float SmallScaleAO = 0.0;
@@ -557,7 +537,9 @@ inline void replace(std::string& str, const char* target, const char* source)
 }
 
 
-SSAO::SSAO(bool msaa) : m_msaa(msaa)
+SSAO::SSAO(bool msaa) 
+	: m_msaa(msaa)
+	, m_constant_jitters(sizeof(glm::vec4)*16, GL_UNIFORM_BUFFER)
 {
 	{
 		std::string s_comp = g_comp_renorm;
@@ -616,6 +598,21 @@ SSAO::SSAO(bool msaa) : m_msaa(msaa)
 		GLShader comp_shader(GL_COMPUTE_SHADER, s_comp.c_str());
 		m_prog_blur_y = (std::unique_ptr<GLProgram>)(new GLProgram(comp_shader));
 	}
+
+	const int NUM_DIRECTIONS = 8;
+	glm::vec4 jitters[16];
+	for (int i = 0; i < 16; i++)
+	{
+		float r1 = MersenneTwisterNumbers[i * 3];
+		float r2 = MersenneTwisterNumbers[i * 3 + 1];
+		float r3 = MersenneTwisterNumbers[i * 3 + 2];
+		float angle = 2.0f * float(PI) * r1 / float(NUM_DIRECTIONS);
+		jitters[i].x = cosf(angle);
+		jitters[i].y = sinf(angle);
+		jitters[i].z = r2;
+		jitters[i].w = r3;
+	}
+	m_constant_jitters.upload(jitters);
 }
 
 SSAO::~SSAO()
@@ -762,6 +759,8 @@ void SSAO::render(const RenderParams& params)
 
 		glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.constant_camera->m_id);		
 		glBindImageTexture(1, params.buffers->m_tex_aoz_quat->tex_id, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RG16F);
+
+		glBindBufferBase(GL_UNIFORM_BUFFER, 2, m_constant_jitters.m_id);
 
 		glm::ivec2 blocks = { (params.buffers->m_quat_width + 7) / 8, (params.buffers->m_quat_height + 7) / 8 };
 		glDispatchCompute(blocks.x, blocks.y, 1);
