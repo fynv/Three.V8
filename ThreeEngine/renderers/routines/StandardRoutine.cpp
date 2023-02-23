@@ -1136,6 +1136,11 @@ void main()
 	vec3 viewDir = normalize(vViewDir);
 	vec3 norm = normalize(vNorm);
 
+	if (uDoubleSided!=0)
+	{		
+		if (dot(viewDir, norm)<0.0) norm = -norm;
+	}
+
 #if HAS_NORMAL_MAP
 	if (length(vTangent)>0.0 && length(vBitangent)>0.0)
 	{
@@ -1145,15 +1150,7 @@ void main()
 		bump = (2.0 * bump - 1.0) * vec3(uNormalScale.x, uNormalScale.y, 1.0);
 		norm = normalize(bump.x*T + bump.y*B + bump.z*norm);
 	}
-#endif
-
-	if (uDoubleSided!=0)
-	{
-		vec3 dx = dFdx(vWorldPos);
-		vec3 dy = dFdy(vWorldPos);
-		vec3 N = normalize(cross(dx, dy));
-		if (dot(viewDir, N)<0.0) norm = -norm;
-	}
+#endif	
 
 	PhysicalMaterial material;
 
