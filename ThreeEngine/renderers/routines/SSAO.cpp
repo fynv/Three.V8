@@ -162,7 +162,7 @@ layout (std140, binding = 0) uniform Camera
 	vec3 uEyePos;
 };
 
-layout (binding=1, r32f) uniform highp writeonly image2D uOutTex;
+layout (binding=1, rg16f) uniform highp writeonly image2D uOutTex;
 
 const float g_fNDotVBias = 0.1;
 const float g_fSmallScaleAO = 1.0;
@@ -362,7 +362,8 @@ void main()
         AO = ComputeCoarseAO(id_full, ViewPosition, ViewNormal, Params);
         AO = clamp(1.0 - AO * 2.0, 0.0, 1.0);
     }    
-    imageStore(uOutTex, id_out, vec4(AO,AO,AO,AO));
+	float z = -ViewPosition.z;
+    imageStore(uOutTex, id_out, vec4(AO,z,AO,z));
 }
 
 )";
@@ -371,7 +372,7 @@ void main()
 static std::string g_comp_reinterleave =
 R"(#version 430
 layout (location = 0) uniform sampler2D uAOTex;
-layout (binding=0, r32f) uniform highp writeonly image2D uOutTex;
+layout (binding=0, rg16f) uniform highp writeonly image2D uOutTex;
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
@@ -387,10 +388,159 @@ void main()
 	ivec2 block_id = id_out - sub_id * 4;
 	ivec2 id_in = block_size * block_id + sub_id;
 	
-	float ao = texelFetch(uAOTex, id_in, 0).x;
-	imageStore(uOutTex, id_out, vec4(ao));
+	vec2 aoz = texelFetch(uAOTex, id_in, 0).xy;
+	imageStore(uOutTex, id_out, vec4(aoz, aoz));
 }
 )";
+
+static std::string g_comp_blur_common =
+R"(#version 430
+
+layout (location = 0) uniform sampler2D uAOInTex;
+layout (binding=0, rg16f) uniform image2D uAOOutTex;
+
+const int KERNEL_RADIUS = 4;
+
+vec2 PointSampleAODepth(in vec2 UV)
+{
+    ivec2 size = imageSize(uAOOutTex); 
+    ivec2 id = ivec2(UV * vec2(size));
+    return texelFetch(uAOInTex, id, 0).xy;
+}
+vec2 LinearSampleAODepth(in vec2 UV)
+{
+    return textureLod(uAOInTex, UV, 0).xy;
+}
+
+struct CenterPixelData
+{
+    vec2 UV;
+    float Depth;
+    float Sharpness;
+    float Scale;
+    float Bias;
+};
+
+float CrossBilateralWeight(float R, float SampleDepth, float DepthSlope, in CenterPixelData Center)
+{
+    const float BlurSigma = (float(KERNEL_RADIUS)+1.0) * 0.5;
+    const float BlurFalloff = 1.0 / (2.0*BlurSigma*BlurSigma);
+    SampleDepth -= DepthSlope * R;
+    float DeltaZ = SampleDepth * Center.Scale + Center.Bias;
+    return exp2(-R*R*BlurFalloff - DeltaZ*DeltaZ);
+}
+
+
+void ProcessSample(in vec2 AOZ,
+                   float R,
+                   float DepthSlope,
+                   in CenterPixelData Center,
+                   inout float TotalAO,
+                   inout float TotalW)
+{
+    float AO = AOZ.x;
+    float Z = AOZ.y;
+
+    float W = CrossBilateralWeight(R, Z, DepthSlope, Center);
+    TotalAO += W * AO;
+    TotalW += W;
+}
+
+void ProcessRadius(float R0,
+                   in vec2 DeltaUV,
+                   float DepthSlope,
+                   in CenterPixelData Center,
+                   inout float TotalAO,
+                   inout float TotalW)
+{
+    float R = R0;
+    for (; R <= float(KERNEL_RADIUS)/2.0; R += 1.0)
+    {
+        vec2 UV = R * DeltaUV + Center.UV;
+        vec2 AOZ = PointSampleAODepth(UV);
+        ProcessSample(AOZ, R, DepthSlope, Center, TotalAO, TotalW);
+    }
+
+    for (; R <= float(KERNEL_RADIUS); R += 2.0)
+    {
+        vec2 UV = (R + 0.5) * DeltaUV + Center.UV;
+        vec2 AOZ = LinearSampleAODepth(UV);
+        ProcessSample(AOZ, R, DepthSlope, Center, TotalAO, TotalW);
+    }
+}
+
+void ProcessRadius1(in vec2 DeltaUV,
+                    in CenterPixelData Center,
+                    inout float TotalAO,
+                    inout float TotalW)
+{
+    vec2 AODepth = PointSampleAODepth(Center.UV + DeltaUV);
+    float DepthSlope = AODepth.y - Center.Depth;
+
+    ProcessSample(AODepth, 1.0, DepthSlope, Center, TotalAO, TotalW);
+    ProcessRadius(2.0, DeltaUV, DepthSlope, Center, TotalAO, TotalW);
+}
+
+const float BaseSharpness = 16.0;
+
+float ComputeBlur(in vec2 DeltaUV, out float CenterDepth)
+{
+    ivec2 size = imageSize(uAOOutTex); 
+    ivec2 id = ivec3(gl_GlobalInvocationID).xy;
+    vec2 AOZ = texelFetch(uAOInTex, id, 0).xy;
+    CenterDepth = AOZ.y;
+
+    CenterPixelData Center;
+    Center.UV = (vec2(id) + 0.5)/vec2(size);
+    Center.Depth = CenterDepth;
+    Center.Sharpness = BaseSharpness;
+    Center.Scale = Center.Sharpness;
+    Center.Bias = -Center.Depth * Center.Sharpness;
+
+    float TotalAO = AOZ.x;
+    float TotalW = 1.0;
+
+    ProcessRadius1(DeltaUV, Center, TotalAO, TotalW);
+    ProcessRadius1(-DeltaUV, Center, TotalAO, TotalW);
+    
+    return TotalAO / TotalW;
+}
+)";
+
+static std::string g_comp_blur_x =
+R"(
+layout(local_size_x = 8, local_size_y = 8) in;
+
+void main()
+{
+    ivec2 size = imageSize(uAOOutTex); 
+    ivec2 id = ivec3(gl_GlobalInvocationID).xy;
+    if (id.x>= size.x || id.y >=size.y) return;
+
+    float z; 
+    vec2 DeltaUV = vec2(1.0/float(size.x),0.0);
+    float AO = ComputeBlur(DeltaUV, z);
+    imageStore(uAOOutTex, id, vec4(AO,z,AO,z));
+}
+)";
+
+static std::string g_comp_blur_y =
+R"(
+layout(local_size_x = 8, local_size_y = 8) in;
+
+void main()
+{
+    ivec2 size = imageSize(uAOOutTex); 
+    ivec2 id = ivec3(gl_GlobalInvocationID).xy;
+    if (id.x>= size.x || id.y >=size.y) return;
+
+    float z; 
+    vec2 DeltaUV = vec2(0.0, 1.0/float(size.y));
+    float AO = ComputeBlur(DeltaUV, z);
+    imageStore(uAOOutTex, id, vec4(AO,z,AO,z));
+}
+)";
+
 
 inline void replace(std::string& str, const char* target, const char* source)
 {
@@ -456,6 +606,16 @@ SSAO::SSAO(bool msaa) : m_msaa(msaa)
 		GLShader comp_shader(GL_COMPUTE_SHADER, g_comp_reinterleave.c_str());
 		m_prog_reinterleave = (std::unique_ptr<GLProgram>)(new GLProgram(comp_shader));
 	}
+	{
+		std::string s_comp = g_comp_blur_common + g_comp_blur_x;
+		GLShader comp_shader(GL_COMPUTE_SHADER, s_comp.c_str());
+		m_prog_blur_x = (std::unique_ptr<GLProgram>)(new GLProgram(comp_shader));
+	}
+	{
+		std::string s_comp = g_comp_blur_common + g_comp_blur_y;
+		GLShader comp_shader(GL_COMPUTE_SHADER, s_comp.c_str());
+		m_prog_blur_y = (std::unique_ptr<GLProgram>)(new GLProgram(comp_shader));
+	}
 }
 
 SSAO::~SSAO()
@@ -505,24 +665,35 @@ void SSAO::Buffers::update(int width, int height)
 		}
 
 		{
-			m_tex_ao_quat = std::unique_ptr<GLTexture2D>(new GLTexture2D);
-			glBindTexture(GL_TEXTURE_2D, m_tex_ao_quat->tex_id);			
+			m_tex_aoz_quat = std::unique_ptr<GLTexture2D>(new GLTexture2D);
+			glBindTexture(GL_TEXTURE_2D, m_tex_aoz_quat->tex_id);			
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glTexStorage2D(GL_TEXTURE_2D, 1, GL_R32F, m_quat_width, m_quat_height);
+			glTexStorage2D(GL_TEXTURE_2D, 1, GL_RG16F, m_quat_width, m_quat_height);
 			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 
 		{
-			m_tex_ao = std::unique_ptr<GLTexture2D>(new GLTexture2D);
-			glBindTexture(GL_TEXTURE_2D, m_tex_ao->tex_id);			
+			m_tex_aoz = std::unique_ptr<GLTexture2D>(new GLTexture2D);
+			glBindTexture(GL_TEXTURE_2D, m_tex_aoz->tex_id);			
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glTexStorage2D(GL_TEXTURE_2D, 1, GL_R32F, width, height);
+			glTexStorage2D(GL_TEXTURE_2D, 1, GL_RG16F, width, height);
+			glBindTexture(GL_TEXTURE_2D, 0);
+		}
+
+		{
+			m_tex_aoz2 = std::unique_ptr<GLTexture2D>(new GLTexture2D);
+			glBindTexture(GL_TEXTURE_2D, m_tex_aoz2->tex_id);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glTexStorage2D(GL_TEXTURE_2D, 1, GL_RG16F, width, height);
 			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 	}
@@ -590,7 +761,7 @@ void SSAO::render(const RenderParams& params)
 		glUniform1i(1, 1);
 
 		glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.constant_camera->m_id);		
-		glBindImageTexture(1, params.buffers->m_tex_ao_quat->tex_id, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_R32F);
+		glBindImageTexture(1, params.buffers->m_tex_aoz_quat->tex_id, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RG16F);
 
 		glm::ivec2 blocks = { (params.buffers->m_quat_width + 7) / 8, (params.buffers->m_quat_height + 7) / 8 };
 		glDispatchCompute(blocks.x, blocks.y, 1);
@@ -606,10 +777,44 @@ void SSAO::render(const RenderParams& params)
 		glUseProgram(m_prog_reinterleave->m_id);
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, params.buffers->m_tex_ao_quat->tex_id);
+		glBindTexture(GL_TEXTURE_2D, params.buffers->m_tex_aoz_quat->tex_id);
 		glUniform1i(0, 0);
 
-		glBindImageTexture(0, params.buffers->m_tex_ao->tex_id, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_R32F);
+		glBindImageTexture(0, params.buffers->m_tex_aoz->tex_id, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RG16F);
+		glm::ivec2 blocks = { (params.buffers->m_width + 7) / 8, (params.buffers->m_height + 7) / 8 };
+		glDispatchCompute(blocks.x, blocks.y, 1);
+
+		glUseProgram(0);
+
+	}
+
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+	// blur_x
+	{
+		glUseProgram(m_prog_blur_x->m_id);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, params.buffers->m_tex_aoz->tex_id);
+		glUniform1i(0, 0);
+
+		glBindImageTexture(0, params.buffers->m_tex_aoz2->tex_id, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RG16F);
+		glm::ivec2 blocks = { (params.buffers->m_width + 7) / 8, (params.buffers->m_height + 7) / 8 };
+		glDispatchCompute(blocks.x, blocks.y, 1);
+
+		glUseProgram(0);
+	}
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+	// blur_y
+	{
+		glUseProgram(m_prog_blur_y->m_id);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, params.buffers->m_tex_aoz2->tex_id);
+		glUniform1i(0, 0);
+
+		glBindImageTexture(0, params.buffers->m_tex_aoz->tex_id, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RG16F);
 		glm::ivec2 blocks = { (params.buffers->m_width + 7) / 8, (params.buffers->m_height + 7) / 8 };
 		glDispatchCompute(blocks.x, blocks.y, 1);
 

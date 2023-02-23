@@ -317,7 +317,7 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 
 	if (m_use_ssao)
 	{
-		params.tex_ao = target.m_ssao_buffers->m_tex_ao.get();
+		params.tex_ao = target.m_ssao_buffers->m_tex_aoz.get();
 	}
 	else
 	{
@@ -395,7 +395,7 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 
 			if (m_use_ssao)
 			{
-				params.tex_ao = target.m_ssao_buffers->m_tex_ao.get();
+				params.tex_ao = target.m_ssao_buffers->m_tex_aoz.get();
 			}
 			else
 			{
