@@ -405,7 +405,7 @@ vec2 PointSampleAODepth(in vec2 UV)
 {
     ivec2 size = imageSize(uAOOutTex); 
     ivec2 id = ivec2(UV * vec2(size));
-    return texelFetch(uAOInTex, id, 0.0).xy;
+    return texelFetch(uAOInTex, id, 0).xy;
 }
 vec2 LinearSampleAODepth(in vec2 UV)
 {
