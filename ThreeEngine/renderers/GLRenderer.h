@@ -49,7 +49,7 @@ public:
 	GLRenderer();
 	~GLRenderer();
 
-	bool m_use_ssao = true;
+	bool m_use_ssao = false;
 
 	void render(Scene& scene, Camera& camera, GLRenderTarget& target);	
 	void render_picking(Scene& scene, Camera& camera, GLPickingTarget& target);

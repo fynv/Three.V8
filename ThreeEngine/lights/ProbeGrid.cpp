@@ -100,6 +100,35 @@ void ProbeGrid::construct_visibility(Scene& scene)
 	glm::vec3 spacing = size_grid / glm::vec3(divisions);
 	float max_visibility = glm::length(spacing);
 
+	const glm::vec3 directions[26] = {
+		glm::vec3(-1.0f,0.0f,0.0f),
+		glm::vec3(1.0f,0.0f,0.0f),
+		glm::vec3(0.0f,-1.0f,0.0f),
+		glm::vec3(0.0f,1.0f,0.0f),
+		glm::vec3(0.0f,0.0f,-1.0f),
+		glm::vec3(0.0f,0.0f,1.0f),
+		glm::vec3(0.0f,-1.0f,-1.0f),
+		glm::vec3(0.0f,1.0f,-1.0f),
+		glm::vec3(0.0f,-1.0f,1.0f),
+		glm::vec3(0.0f,1.0f,1.0f),
+		glm::vec3(-1.0f,0.0f,-1.0f),
+		glm::vec3(-1.0f,0.0f,1.0f),
+		glm::vec3(1.0f,0.0f,-1.0f),
+		glm::vec3(1.0f,0.0f,1.0f),
+		glm::vec3(-1.0f,-1.0f,0.0f),
+		glm::vec3(1.0f,-1.0f,0.0f),
+		glm::vec3(-1.0f,1.0f,0.0f),
+		glm::vec3(1.0f,1.0f,0.0f),
+		glm::vec3(-1.0f,-1.0f,-1.0f),
+		glm::vec3(1.0f,-1.0f,-1.0f),
+		glm::vec3(-1.0f,1.0f,-1.0f),
+		glm::vec3(1.0f,1.0f,-1.0f),
+		glm::vec3(-1.0f,-1.0f,1.0f),
+		glm::vec3(1.0f,-1.0f,1.0f),
+		glm::vec3(-1.0f,1.0f,1.0f),
+		glm::vec3(1.0f,1.0f,1.0f)
+	};
+
 	BoundingVolumeHierarchy bvh(objects, true);
 	for (int z = 0; z < divisions.z; z++)
 	{
@@ -134,21 +163,9 @@ void ProbeGrid::construct_visibility(Scene& scene)
 					max_visibility
 				};
 
-				{					
-					glm::vec3 dir = glm::vec3(-1.0f,0.0f,0.0f)*spacing;
-					float vis = glm::length(dir);
-					dir = glm::normalize(dir);
-					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-					auto intersection = bvh.intersect(bvh_ray);
-					if (intersection.has_value())
-					{
-						float dis = intersection->distance();
-						if (dis < vis) vis = dis;
-					}					
-					m_visibility_data[index * 26] = vis;
-				}
+				for (int i = 0; i < 26; i++)
 				{
-					glm::vec3 dir = glm::vec3(1.0f, 0.0f, 0.0f) * spacing;
+					glm::vec3 dir = directions[i] * spacing;
 					float vis = glm::length(dir);
 					dir = glm::normalize(dir);
 					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
@@ -158,323 +175,9 @@ void ProbeGrid::construct_visibility(Scene& scene)
 						float dis = intersection->distance();
 						if (dis < vis) vis = dis;
 					}
-					m_visibility_data[index * 26 + 1] = vis;
-				}
-				{
-					glm::vec3 dir = glm::vec3(0.0f, -1.0f, 0.0f) * spacing1;
-					float vis = glm::length(dir);
-					dir = glm::normalize(dir);
-					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-					auto intersection = bvh.intersect(bvh_ray);
-					if (intersection.has_value())
-					{
-						float dis = intersection->distance();
-						if (dis < vis) vis = dis;
-					}
-					m_visibility_data[index * 26 + 2] = vis;
-				}
-				{
-					glm::vec3 dir = glm::vec3(0.0f, 1.0f, 0.0f) * spacing2;
-					float vis = glm::length(dir);
-					dir = glm::normalize(dir);
-					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-					auto intersection = bvh.intersect(bvh_ray);
-					if (intersection.has_value())
-					{
-						float dis = intersection->distance();
-						if (dis < vis) vis = dis;
-					}
-					m_visibility_data[index * 26 + 3] = vis;
-				}
-				{
-					glm::vec3 dir = glm::vec3(0.0f, 0.0f, -1.0f) * spacing;
-					float vis = glm::length(dir);
-					dir = glm::normalize(dir);
-					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-					auto intersection = bvh.intersect(bvh_ray);
-					if (intersection.has_value())
-					{
-						float dis = intersection->distance();
-						if (dis < vis) vis = dis;
-					}
-					m_visibility_data[index * 26 + 4] = vis;
-				}
-				{
-					glm::vec3 dir = glm::vec3(0.0f, 0.0f, 1.0f) * spacing;
-					float vis = glm::length(dir);
-					dir = glm::normalize(dir);
-					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-					auto intersection = bvh.intersect(bvh_ray);
-					if (intersection.has_value())
-					{
-						float dis = intersection->distance();
-						if (dis < vis) vis = dis;
-					}
-					m_visibility_data[index * 26 + 5] = vis;
-				}
-				{
-					glm::vec3 dir = glm::vec3(0.0f, -1.0f, -1.0f) * spacing1;
-					float vis = glm::length(dir);
-					dir = glm::normalize(dir);
-					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-					auto intersection = bvh.intersect(bvh_ray);
-					if (intersection.has_value())
-					{
-						float dis = intersection->distance();
-						if (dis < vis) vis = dis;
-					}
-					m_visibility_data[index * 26 + 6] = vis;
-				}
-				{
-					glm::vec3 dir = glm::vec3(0.0f, 1.0f, -1.0f) * spacing2;
-					float vis = glm::length(dir);
-					dir = glm::normalize(dir);
-					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-					auto intersection = bvh.intersect(bvh_ray);
-					if (intersection.has_value())
-					{
-						float dis = intersection->distance();
-						if (dis < vis) vis = dis;
-					}
-					m_visibility_data[index * 26 + 7] = vis;
-				}
-				{
-					glm::vec3 dir = glm::vec3(0.0f, -1.0f, 1.0f) * spacing1;
-					float vis = glm::length(dir);
-					dir = glm::normalize(dir);
-					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-					auto intersection = bvh.intersect(bvh_ray);
-					if (intersection.has_value())
-					{
-						float dis = intersection->distance();
-						if (dis < vis) vis = dis;
-					}
-					m_visibility_data[index * 26 + 8] = vis;
-				}
-				{
-					glm::vec3 dir = glm::vec3(0.0f, 1.0f, 1.0f) * spacing2;
-					float vis = glm::length(dir);
-					dir = glm::normalize(dir);
-					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-					auto intersection = bvh.intersect(bvh_ray);
-					if (intersection.has_value())
-					{
-						float dis = intersection->distance();
-						if (dis < vis) vis = dis;
-					}
-					m_visibility_data[index * 26 + 9] = vis;
-				}
-				{
-					glm::vec3 dir = glm::vec3(-1.0f, 0.0f, -1.0f) * spacing;
-					float vis = glm::length(dir);
-					dir = glm::normalize(dir);
-					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-					auto intersection = bvh.intersect(bvh_ray);
-					if (intersection.has_value())
-					{
-						float dis = intersection->distance();
-						if (dis < vis) vis = dis;
-					}
-					m_visibility_data[index * 26 + 10] = vis;
-				}
-				{
-					glm::vec3 dir = glm::vec3(-1.0f, 0.0f, 1.0f) * spacing;
-					float vis = glm::length(dir);
-					dir = glm::normalize(dir);
-					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-					auto intersection = bvh.intersect(bvh_ray);
-					if (intersection.has_value())
-					{
-						float dis = intersection->distance();
-						if (dis < vis) vis = dis;
-					}
-					m_visibility_data[index * 26 + 11] = vis;
-				}
-				{
-					glm::vec3 dir = glm::vec3(1.0f, 0.0f, -1.0f) * spacing;
-					float vis = glm::length(dir);
-					dir = glm::normalize(dir);
-					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-					auto intersection = bvh.intersect(bvh_ray);
-					if (intersection.has_value())
-					{
-						float dis = intersection->distance();
-						if (dis < vis) vis = dis;
-					}
-					m_visibility_data[index * 26 + 12] = vis;
-				}
-				{
-					glm::vec3 dir = glm::vec3(1.0f, 0.0f, 1.0f) * spacing;
-					float vis = glm::length(dir);
-					dir = glm::normalize(dir);
-					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-					auto intersection = bvh.intersect(bvh_ray);
-					if (intersection.has_value())
-					{
-						float dis = intersection->distance();
-						if (dis < vis) vis = dis;
-					}
-					m_visibility_data[index * 26 + 13] = vis;
-				}
-				{
-					glm::vec3 dir = glm::vec3(-1.0f, -1.0f, 0.0f) * spacing1;
-					float vis = glm::length(dir);
-					dir = glm::normalize(dir);
-					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-					auto intersection = bvh.intersect(bvh_ray);
-					if (intersection.has_value())
-					{
-						float dis = intersection->distance();
-						if (dis < vis) vis = dis;
-					}
-					m_visibility_data[index * 26 + 14] = vis;
-				}
-				{
-					glm::vec3 dir = glm::vec3(1.0f, -1.0f, 0.0f) * spacing1;
-					float vis = glm::length(dir);
-					dir = glm::normalize(dir);
-					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-					auto intersection = bvh.intersect(bvh_ray);
-					if (intersection.has_value())
-					{
-						float dis = intersection->distance();
-						if (dis < vis) vis = dis;
-					}
-					m_visibility_data[index * 26 + 15] = vis;
-				}
-				{
-					glm::vec3 dir = glm::vec3(-1.0f, 1.0f, 0.0f) * spacing2;
-					float vis = glm::length(dir);
-					dir = glm::normalize(dir);
-					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-					auto intersection = bvh.intersect(bvh_ray);
-					if (intersection.has_value())
-					{
-						float dis = intersection->distance();
-						if (dis < vis) vis = dis;
-					}
-					m_visibility_data[index * 26 + 16] = vis;
-				}
-				{
-					glm::vec3 dir = glm::vec3(1.0f, 1.0f, 0.0f) * spacing2;
-					float vis = glm::length(dir);
-					dir = glm::normalize(dir);
-					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-					auto intersection = bvh.intersect(bvh_ray);
-					if (intersection.has_value())
-					{
-						float dis = intersection->distance();
-						if (dis < vis) vis = dis;
-					}
-					m_visibility_data[index * 26 + 17] = vis;
-				}
-				{
-					glm::vec3 dir = glm::vec3(-1.0f, -1.0f, -1.0f) * spacing1;
-					float vis = glm::length(dir);
-					dir = glm::normalize(dir);
-					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-					auto intersection = bvh.intersect(bvh_ray);
-					if (intersection.has_value())
-					{
-						float dis = intersection->distance();
-						if (dis < vis) vis = dis;
-					}
-					m_visibility_data[index * 26 + 18] = vis;
-				}
-				{
-					glm::vec3 dir = glm::vec3(1.0f, -1.0f, -1.0f) * spacing1;
-					float vis = glm::length(dir);
-					dir = glm::normalize(dir);
-					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-					auto intersection = bvh.intersect(bvh_ray);
-					if (intersection.has_value())
-					{
-						float dis = intersection->distance();
-						if (dis < vis) vis = dis;
-					}
-					m_visibility_data[index * 26 + 19] = vis;
-				}
-				{
-					glm::vec3 dir = glm::vec3(-1.0f, 1.0f, -1.0f) * spacing2;
-					float vis = glm::length(dir);
-					dir = glm::normalize(dir);
-					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-					auto intersection = bvh.intersect(bvh_ray);
-					if (intersection.has_value())
-					{
-						float dis = intersection->distance();
-						if (dis < vis) vis = dis;
-					}
-					m_visibility_data[index * 26 + 20] = vis;
-				}
-				{
-					glm::vec3 dir = glm::vec3(1.0f, 1.0f, -1.0f) * spacing2;
-					float vis = glm::length(dir);
-					dir = glm::normalize(dir);
-					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-					auto intersection = bvh.intersect(bvh_ray);
-					if (intersection.has_value())
-					{
-						float dis = intersection->distance();
-						if (dis < vis) vis = dis;
-					}
-					m_visibility_data[index * 26 + 21] = vis;
-				}
-				{
-					glm::vec3 dir = glm::vec3(-1.0f, -1.0f, 1.0f) * spacing1;
-					float vis = glm::length(dir);
-					dir = glm::normalize(dir);
-					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-					auto intersection = bvh.intersect(bvh_ray);
-					if (intersection.has_value())
-					{
-						float dis = intersection->distance();
-						if (dis < vis) vis = dis;
-					}
-					m_visibility_data[index * 26 + 22] = vis;
-				}
-				{
-					glm::vec3 dir = glm::vec3(1.0f, -1.0f, 1.0f) * spacing1;
-					float vis = glm::length(dir);
-					dir = glm::normalize(dir);
-					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-					auto intersection = bvh.intersect(bvh_ray);
-					if (intersection.has_value())
-					{
-						float dis = intersection->distance();
-						if (dis < vis) vis = dis;
-					}
-					m_visibility_data[index * 26 + 23] = vis;
-				}
-				{
-					glm::vec3 dir = glm::vec3(-1.0f, 1.0f, 1.0f) * spacing2;
-					float vis = glm::length(dir);
-					dir = glm::normalize(dir);
-					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-					auto intersection = bvh.intersect(bvh_ray);
-					if (intersection.has_value())
-					{
-						float dis = intersection->distance();
-						if (dis < vis) vis = dis;
-					}
-					m_visibility_data[index * 26 + 24] = vis;
-				}
-				{
-					glm::vec3 dir = glm::vec3(1.0f, 1.0f, 1.0f) * spacing2;
-					float vis = glm::length(dir);
-					dir = glm::normalize(dir);
-					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-					auto intersection = bvh.intersect(bvh_ray);
-					if (intersection.has_value())
-					{
-						float dis = intersection->distance();
-						m_visibility_data[index * 26 + 25] = dis;
-					}
-					else
-					{
-						m_visibility_data[index * 26 + 25] = max_visibility;
-					}
-				}
+					m_visibility_data[index * 26 + i] = vis;
+
+				}				
 			}
 		}
 	}
