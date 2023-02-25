@@ -40,7 +40,7 @@ inline double randRad()
 
 GLRenderer::GLRenderer()
 {
-
+	
 }
 
 GLRenderer::~GLRenderer()
@@ -1390,7 +1390,6 @@ void GLRenderer::render_depth_model(Camera* p_camera, GLTFModel* model)
 	for (size_t i = 0; i < material_lst.size(); i++)
 		material_lst[i] = model->m_materials[i].get();
 
-	int primitive_idx = 0;
 	for (size_t i = 0; i < model->m_meshs.size(); i++)
 	{
 		Mesh& mesh = model->m_meshs[i];
@@ -1402,7 +1401,7 @@ void GLRenderer::render_depth_model(Camera* p_camera, GLTFModel* model)
 		}
 		glm::mat4 MV = view_matrix * matrix;
 
-		for (size_t j = 0; j < mesh.primitives.size(); j++, primitive_idx++)
+		for (size_t j = 0; j < mesh.primitives.size(); j++)
 		{
 			Primitive& primitive = mesh.primitives[j];
 			if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos)) continue;
@@ -2338,5 +2337,106 @@ void GLRenderer::renderTexture(GLTexture2D* tex, int x, int y, int width, int he
 	}	
 	glBindFramebuffer(GL_FRAMEBUFFER, target.m_fbo_video);
 	TextureDraw->render(tex->tex_id, x, target.m_height - (y + height), width, height);
+}
+
+void GLRenderer::scene_to_volume_primitive(const SceneToVolume::RenderParams& params)
+{
+	if (SceneVolumeConvert == nullptr)
+	{
+		SceneVolumeConvert = std::unique_ptr<SceneToVolume>(new SceneToVolume);
+	}
+	SceneVolumeConvert->render(params);
+}
+
+void GLRenderer::scene_to_volume_model(SimpleModel* model, SceneToVolume::RenderParams& params)
+{	
+	params.constant_model = &model->m_constant;
+	params.primitive = &model->geometry;
+	scene_to_volume_primitive(params);
+}
+
+void GLRenderer::scene_to_volume_model(GLTFModel* model, SceneToVolume::RenderParams& params)
+{
+
+	for (size_t i = 0; i < model->m_meshs.size(); i++)
+	{
+		Mesh& mesh = model->m_meshs[i];
+		glm::mat4 matrix = model->matrixWorld;
+		if (mesh.node_id >= 0 && mesh.skin_id < 0)
+		{
+			Node& node = model->m_nodes[mesh.node_id];
+			matrix *= node.g_trans;
+		}		
+
+		for (size_t j = 0; j < mesh.primitives.size(); j++)
+		{
+			Primitive& primitive = mesh.primitives[j];
+			params.constant_model = mesh.model_constant.get();
+			params.primitive = &primitive;
+			scene_to_volume_primitive(params);			
+		}
+	}
+}
+
+void GLRenderer::sceneToVolume(Scene& scene, unsigned tex_id_volume, const glm::vec3& coverage_min, const glm::vec3& coverage_max, const glm::ivec3& divisions)
+{
+
+	scene.clear_lists();
+
+	auto* p_scene = &scene;
+	scene.traverse([p_scene](Object3D* obj) {
+		do
+		{
+			{
+				SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
+				if (model)
+				{
+					p_scene->simple_models.push_back(model);
+					break;
+				}
+			}
+			{
+				GLTFModel* model = dynamic_cast<GLTFModel*>(obj);
+				if (model)
+				{
+					p_scene->gltf_models.push_back(model);
+					break;
+				}
+			}			
+		} while (false);
+
+		obj->updateWorldMatrix(false, false);
+	});
+
+	// update models
+	for (size_t i = 0; i < scene.simple_models.size(); i++)
+	{
+		SimpleModel* model = scene.simple_models[i];
+		update_model(model);
+	}
+
+	for (size_t i = 0; i < scene.gltf_models.size(); i++)
+	{
+		GLTFModel* model = scene.gltf_models[i];
+		update_model(model);
+	}
+		
+	SceneToVolume::RenderParams params;
+	params.tex_id_volume = tex_id_volume;
+	params.coverage_min = coverage_min;
+	params.coverage_max = coverage_max;
+	params.divisions = divisions;
+
+	for (size_t i = 0; i < scene.simple_models.size(); i++)
+	{
+		SimpleModel* model = scene.simple_models[i];
+		scene_to_volume_model(model, params);
+	}
+
+	for (size_t i = 0; i < scene.gltf_models.size(); i++)
+	{
+		GLTFModel* model = scene.gltf_models[i];
+		scene_to_volume_model(model, params);
+	}
 }
 

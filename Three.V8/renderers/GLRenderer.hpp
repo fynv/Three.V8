@@ -26,6 +26,8 @@ private:
 
 	static void GetUseSSAO(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void SetUseSSAO(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
+
+	static void SceneToVolume(const v8::FunctionCallbackInfo<v8::Value>& info);
 	
 #if THREE_MM
 	static void RenderTexture(const v8::FunctionCallbackInfo<v8::Value>& info);
@@ -42,6 +44,8 @@ v8::Local<v8::FunctionTemplate> WrapperGLRenderer::create_template(v8::Isolate* 
 	templ->InstanceTemplate()->Set(isolate, "updateProbe", v8::FunctionTemplate::New(isolate, UpdateProbe));
 
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "useSSAO").ToLocalChecked(), GetUseSSAO, SetUseSSAO);
+
+	templ->InstanceTemplate()->Set(isolate, "sceneToVolume", v8::FunctionTemplate::New(isolate, SceneToVolume));
 	
 #if THREE_MM
 	templ->InstanceTemplate()->Set(isolate, "renderTexture", v8::FunctionTemplate::New(isolate, RenderTexture));
@@ -239,3 +243,45 @@ void WrapperGLRenderer::RenderTexture(const v8::FunctionCallbackInfo<v8::Value>&
 }
 #endif
 
+#include <GL/glew.h>
+
+void WrapperGLRenderer::SceneToVolume(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	GLRenderer* self = lctx.self<GLRenderer>();
+	Scene* scene = lctx.jobj_to_obj<Scene>(info[0]);
+	std::string filename = lctx.jstr_to_str(info[1]);
+
+	glm::vec3 coverage_min; 
+	glm::vec3 coverage_max;
+	glm::ivec3 divisions;
+	lctx.jvec3_to_vec3(info[2], coverage_min);
+	lctx.jvec3_to_vec3(info[3], coverage_max);
+	lctx.jvec3_to_ivec3(info[4], divisions);
+
+	unsigned tex_id;
+	glGenTextures(1, &tex_id);
+	glBindTexture(GL_TEXTURE_3D, tex_id);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexStorage3D(GL_TEXTURE_3D, 1, GL_R8, divisions.x, divisions.y, divisions.z);
+	glBindTexture(GL_TEXTURE_3D, 0);
+
+	uint8_t zero = 0;	
+	glClearTexImage(tex_id, 0, GL_RED, GL_UNSIGNED_BYTE, &zero);
+	
+	self->sceneToVolume(*scene, tex_id, coverage_min, coverage_max, divisions);
+
+	{
+		std::vector<uint8_t> data(divisions.x * divisions.y * divisions.z);
+		glBindTexture(GL_TEXTURE_3D, tex_id);
+		glGetTexImage(GL_TEXTURE_3D, 0, GL_RED, GL_UNSIGNED_BYTE, data.data());		
+
+		FILE* fp = fopen(filename.c_str(), "wb");
+		fwrite(data.data(), 1, divisions.x * divisions.y * divisions.z, fp);
+		fclose(fp);
+	}
+
+	glDeleteTextures(1, &tex_id);
+	
+}

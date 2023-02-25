@@ -27,6 +27,8 @@
 #include "renderers/routines/DepthOnly.h"
 #include "renderers/routines/SSAO.h"
 
+#include "renderers/routines/SceneToVolume.h"
+
 class Scene;
 class Fog;
 class Camera;
@@ -59,6 +61,8 @@ public:
 	void updateProbe(Scene& scene, CubeRenderTarget& target, ProbeGrid& probe_grid, glm::ivec3 idx, float zNear, float zFar, float k = 1.0f);	
 
 	void renderTexture(GLTexture2D* tex, int x, int y, int width, int height, GLRenderTarget& target);
+
+	void sceneToVolume(Scene& scene, unsigned tex_id_volume, const glm::vec3& coverage_min, const glm::vec3& coverage_max, const glm::ivec3& divisions);
 
 private:
 	std::unique_ptr<WeightedOIT> oit_resolvers[2];
@@ -156,6 +160,11 @@ private:
 	std::unique_ptr<DrawTexture> TextureDraw;
 
 	std::unique_ptr<EnvironmentMapCreator> EnvCreator;
+
+	std::unique_ptr<SceneToVolume> SceneVolumeConvert;
+	void scene_to_volume_primitive(const SceneToVolume::RenderParams& params);
+	void scene_to_volume_model(SimpleModel* model, SceneToVolume::RenderParams& params);
+	void scene_to_volume_model(GLTFModel* model, SceneToVolume::RenderParams& params);
 
 };
 
