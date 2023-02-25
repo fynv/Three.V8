@@ -28,6 +28,7 @@ public:
 		bool has_environment_map = false;
 		bool has_probe_grid = false;
 		bool probe_reference_recorded = false;
+		bool has_lod_probe_grid = false;
 		bool has_ambient_light = false;
 		bool has_hemisphere_light = false;		
 		bool has_fog = false;
@@ -79,6 +80,9 @@ private:
 		int binding_probe_grid;
 		int binding_probes;		
 		int binding_probe_references;
+		int binding_lod_probe_grid;
+		int binding_lod_probes;
+		int binding_lod_probe_indices;
 		int binding_ambient_light;
 		int binding_hemisphere_light;
 		int binding_fog;

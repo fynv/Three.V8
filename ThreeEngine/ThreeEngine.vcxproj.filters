@@ -366,6 +366,12 @@
     <ClCompile Include="renderers\routines\SceneToVolume.cpp">
       <Filter>Source Files\renderers\routines</Filter>
     </ClCompile>
+    <ClCompile Include="lights\LODProbeGrid.cpp">
+      <Filter>Source Files\lights</Filter>
+    </ClCompile>
+    <ClCompile Include="lights\LODProbeGridWidget.cpp">
+      <Filter>Source Files\lights</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -643,6 +649,12 @@
     </ClInclude>
     <ClInclude Include="renderers\routines\SceneToVolume.h">
       <Filter>Header Files\renderers\routines</Filter>
+    </ClInclude>
+    <ClInclude Include="lights\LODProbeGrid.h">
+      <Filter>Header Files\lights</Filter>
+    </ClInclude>
+    <ClInclude Include="lights\LODProbeGridWidget.h">
+      <Filter>Header Files\lights</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

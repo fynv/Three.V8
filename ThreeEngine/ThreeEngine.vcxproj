@@ -157,6 +157,8 @@
     <ClCompile Include="lights\HemisphereLight.cpp" />
     <ClCompile Include="lights\IndirectLight.cpp" />
     <ClCompile Include="lights\Light.cpp" />
+    <ClCompile Include="lights\LODProbeGrid.cpp" />
+    <ClCompile Include="lights\LODProbeGridWidget.cpp" />
     <ClCompile Include="lights\ProbeGrid.cpp" />
     <ClCompile Include="lights\ProbeGridWidget.cpp" />
     <ClCompile Include="loaders\FileLoader.cpp" />
@@ -247,6 +249,8 @@
     <ClInclude Include="lights\IndirectLight.h" />
     <ClInclude Include="lights\Light.h" />
     <ClInclude Include="lights\Lights.h" />
+    <ClInclude Include="lights\LODProbeGrid.h" />
+    <ClInclude Include="lights\LODProbeGridWidget.h" />
     <ClInclude Include="lights\ProbeGrid.h" />
     <ClInclude Include="lights\ProbeGridWidget.h" />
     <ClInclude Include="loaders\FileLoader.h" />

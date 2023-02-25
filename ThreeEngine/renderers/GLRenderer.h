@@ -42,6 +42,8 @@ class DirectionalLight;
 class DirectionalLightShadow;
 class ProbeGrid;
 class ProbeGridWidget;
+class LODProbeGrid;
+class LODProbeGridWidget;
 
 class VolumeIsosurfaceModel;
 
@@ -59,6 +61,7 @@ public:
 	void renderCube(Scene& scene, CubeRenderTarget& target, const glm::vec3& position, float zNear, float zFar, const glm::quat& rotation = glm::identity<glm::quat>());
 
 	void updateProbe(Scene& scene, CubeRenderTarget& target, ProbeGrid& probe_grid, glm::ivec3 idx, float zNear, float zFar, float k = 1.0f);	
+	void updateProbe(Scene& scene, CubeRenderTarget& target, LODProbeGrid& probe_grid, int idx, float zNear, float zFar, float k = 1.0f);
 
 	void renderTexture(GLTexture2D* tex, int x, int y, int width, int height, GLRenderTarget& target);
 
@@ -96,6 +99,7 @@ private:
 	void render_model(Camera* p_camera, const Lights& lights, const Fog* fog, VolumeIsosurfaceModel* model, GLRenderTarget& target, Pass pass);
 	void render_widget(Camera* p_camera, DirectionalLight* light);
 	void render_widget(Camera* p_camera, ProbeGridWidget* widget);
+	void render_widget(Camera* p_camera, LODProbeGridWidget* widget);
 
 	void render_primitive_simple(const SimpleRoutine::RenderParams& params, Pass pass);
 	void render_model_simple(Camera* p_camera, const Lights& lights, const Fog* fog, SimpleModel* model, Pass pass);

@@ -719,6 +719,255 @@ vec3 getRadiance(in vec3 world_pos, in vec3 reflectVec, float roughness)
 
 #endif
 
+)";
+
+static std::string g_frag_part2 =
+R"(
+#if HAS_LOD_PROBE_GRID
+layout (std140, binding = BINDING_LOD_PROBE_GRID) uniform ProbeGrid
+{
+	vec4 uCoverageMin;
+	vec4 uCoverageMax;
+	ivec4 uBaseDivisions;	
+	int uSubDivisionLevel;
+	float uDiffuseThresh;
+	float uDiffuseHigh;
+	float uDiffuseLow;
+	float uSpecularThresh;
+	float uSpecularHigh;
+	float uSpecularLow;
+};
+
+
+layout (std430, binding = BINDING_LOD_PROBES) buffer Probes
+{
+	vec4 bProbeData[];
+};
+
+
+layout (std430, binding = BINDING_LOD_PROBES) buffer Probes
+{
+	vec4 bProbeData[];
+};
+
+layout (std430, binding = BINDING_LOD_PROBE_INDICES) buffer ProbeIndex
+{
+	int bIndexData[];
+};
+
+int get_probe_lod_i(in ivec3 ipos)
+{	
+	if (uSubDivisionLevel<1) return 0;
+
+	ivec3 ipos_base = ipos / (1<<uSubDivisionLevel);
+	int idx_base = ipos_base.x + (ipos_base.y + ipos_base.z * uBaseDivisions.y) * uBaseDivisions.x;
+	int idx_sub = bIndexData[idx_base];
+	int base_offset = uBaseDivisions.x * uBaseDivisions.y * uBaseDivisions.z;
+	
+	int lod = 0;	
+	int digit_mask = 1 << (uSubDivisionLevel -1);
+	while(lod<uSubDivisionLevel && idx_sub>=0)
+	{
+		if (lod<uSubDivisionLevel-1)
+		{
+			int offset = base_offset + idx_sub*8;
+			int sub = 0;
+			if ((ipos.x & digit_mask) !=0) sub+=1;
+			if ((ipos.y & digit_mask) !=0) sub+=2;
+			if ((ipos.z & digit_mask) !=0) sub+=4;
+			idx_sub = bIndexData[offset + sub];
+		}
+		else
+		{
+			idx_sub = -1;
+		}
+		lod++;
+		digit_mask >>=1;		
+	}	
+	return lod;
+}
+
+float get_probe_lod_f(in vec3 pos)
+{
+	ivec3 divs = uBaseDivisions.xyz * (1<<uSubDivisionLevel);	
+	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
+	vec3 pos_normalized = (pos - uCoverageMin.xyz)/size_grid;	
+	vec3 pos_voxel = pos_normalized * vec3(divs) - vec3(0.5);
+	pos_voxel = clamp(pos_voxel, vec3(0.0), vec3(divs) - vec3(1.0));
+	ivec3 i_voxel = clamp(ivec3(pos_voxel), ivec3(0), ivec3(divs) - ivec3(2));
+	vec3 frac_voxel = pos_voxel - vec3(i_voxel);
+
+	float acc_lod = 0.0;
+	float acc_weight = 0.0;
+	for (int z=0;z<2;z++)
+	{
+		for (int y=0;y<2;y++)
+		{
+			for (int x=0;x<2;x++)
+			{				
+				ivec3 vert = i_voxel + ivec3(x,y,z);
+				vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
+				float weight = w.x * w.y * w.z;
+				if (weight>0.0)
+				{
+					acc_lod += float(get_probe_lod_i(vert)) * weight;
+					acc_weight += weight;					
+				}				
+			}
+		}
+	}
+	return acc_lod/acc_weight;
+}
+
+int get_probe_idx_lod(in ivec3 ipos, int target_lod)
+{
+	ivec3 ipos_base = ipos / (1<<target_lod);
+	int probe_idx = ipos_base.x + (ipos_base.y + ipos_base.z * uBaseDivisions.y) * uBaseDivisions.x;
+	if (uSubDivisionLevel<1 || target_lod < 1) return probe_idx;
+
+	int idx_sub = bIndexData[probe_idx];
+	int base_offset = uBaseDivisions.x * uBaseDivisions.y * uBaseDivisions.z;
+
+	int lod = 0;
+	int digit_mask = 1 << (uSubDivisionLevel -1);
+	while(lod<target_lod && idx_sub>=0)
+	{
+		int offset = base_offset + idx_sub*8;
+		int sub = 0;
+		if ((ipos.x & digit_mask) !=0) sub+=1;
+		if ((ipos.y & digit_mask) !=0) sub+=2;
+		if ((ipos.z & digit_mask) !=0) sub+=4;
+		probe_idx = offset + sub;
+		
+		if (lod < uSubDivisionLevel -1)
+		{
+			idx_sub = bIndexData[probe_idx];
+		}
+		else
+		{
+			idx_sub = -1;
+		}
+		lod++;
+		digit_mask >>=1;
+	}
+	return probe_idx;
+}
+
+void acc_coeffs(inout vec4 coeffs[9], int idx, in float weight)
+{
+	int offset = idx*10 + 1;
+	for (int i=0;i<9;i++)
+	{
+		coeffs[i]+=bProbeData[offset+i]*weight;
+	}
+}
+
+vec3 getIrradiance(in vec3 world_pos, in vec3 normal)
+{
+	float lod = get_probe_lod_f(world_pos);
+	int i_lod = int(lod);
+	float frac_lod = lod - float(i_lod);
+
+	float sum_weight = 0.0;
+	vec4 coeffs[9];
+	for (int i=0; i<9; i++) coeffs[i] = vec4(0.0);
+
+	vec3 dx = dFdx(world_pos);
+	vec3 dy = dFdy(world_pos);
+	vec3 N = normalize(cross(dx, dy));
+
+	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
+	vec3 pos_normalized = (world_pos - uCoverageMin.xyz)/size_grid;
+
+	// lod 0
+	{
+		ivec3 divs = uBaseDivisions.xyz * (1<<i_lod);
+		vec3 pos_voxel = pos_normalized * vec3(divs) - vec3(0.5);
+		pos_voxel = clamp(pos_voxel, vec3(0.0), vec3(divs) - vec3(1.0));
+		ivec3 i_voxel = clamp(ivec3(pos_voxel), ivec3(0), ivec3(divs) - ivec3(2));
+		vec3 frac_voxel = pos_voxel - vec3(i_voxel);
+
+		for (int z=0;z<2;z++)
+		{
+			for (int y=0;y<2;y++)
+			{
+				for (int x=0;x<2;x++)
+				{
+					ivec3 vert = i_voxel + ivec3(x,y,z);
+					vec3 vert_normalized = (vec3(vert) + vec3(0.5))/vec3(divs);
+					vec3 vert_world = vert_normalized * size_grid + uCoverageMin.xyz;
+					vec3 dir = normalize(vert_world - world_pos);
+					
+					if (dot(dir, N)>=0.0)
+					{					
+						vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
+						float weight = w.x * w.y * w.z * (1.0 - frac_lod); 
+						if (weight>0.0)
+						{
+							int idx_probe = get_probe_idx_lod(vert, i_lod);
+							sum_weight += weight;
+							acc_coeffs(coeffs, idx_probe, weight);
+						}
+					}
+				}
+			}
+		}
+	}
+	// lod 1
+	if (frac_lod > 0.0)
+	{
+		i_lod++;
+		ivec3 divs = uBaseDivisions.xyz * (1<<i_lod);
+		vec3 pos_voxel = pos_normalized * vec3(divs) - vec3(0.5);
+		pos_voxel = clamp(pos_voxel, vec3(0.0), vec3(divs) - vec3(1.0));
+		ivec3 i_voxel = clamp(ivec3(pos_voxel), ivec3(0), ivec3(divs) - ivec3(2));
+		vec3 frac_voxel = pos_voxel - vec3(i_voxel);
+
+		for (int z=0;z<2;z++)
+		{
+			for (int y=0;y<2;y++)
+			{
+				for (int x=0;x<2;x++)
+				{
+					ivec3 vert = i_voxel + ivec3(x,y,z);
+					vec3 vert_normalized = (vec3(vert) + vec3(0.5))/vec3(divs);
+					vec3 vert_world = vert_normalized * size_grid + uCoverageMin.xyz;
+					vec3 dir = normalize(vert_world - world_pos);
+					
+					if (dot(dir, N)>=0.0)
+					{					
+						vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
+						float weight = w.x * w.y * w.z * frac_lod; 
+						if (weight>0.0)
+						{
+							int idx_probe = get_probe_idx_lod(vert, i_lod);
+							sum_weight += weight;
+							acc_coeffs(coeffs, idx_probe, weight);
+						}
+					}
+				}
+			}
+		}	
+	}
+
+	if (sum_weight>0.0)
+	{
+		for (int i=0; i<9; i++) coeffs[i]/=sum_weight;
+		return shGetIrradianceAt(normal, coeffs);
+	}
+
+	return vec3(0.0);
+}
+
+#if !HAS_REFLECTION_MAP
+vec3 getRadiance(in vec3 world_pos, in vec3 reflectVec, float roughness)
+{
+	return getIrradiance(world_pos, reflectVec) * RECIPROCAL_PI;
+}
+#endif
+
+#endif
+
 #if HAS_AMBIENT_LIGHT
 layout (std140, binding = BINDING_AMBIENT_LIGHT) uniform AmbientLight
 {
@@ -784,10 +1033,7 @@ layout (std140, binding = BINDING_FOG) uniform FOG
 	vec4 fog_rgba;
 };
 #endif
-)";
 
-static std::string g_frag_part2 =
-R"(
 layout (location = 0) in vec2 vPosProj;
 layout (location = 0) out vec4 outColor;
 
@@ -1184,7 +1430,7 @@ DrawIsosurface::DrawIsosurface(const Options& options) : m_options(options)
 		m_bindings.binding_directional_shadows = m_bindings.binding_directional_lights;
 	}
 
-	bool has_indirect_light = options.has_environment_map || options.has_probe_grid || options.has_ambient_light || options.has_hemisphere_light;
+	bool has_indirect_light = options.has_environment_map || options.has_probe_grid || options.has_lod_probe_grid || options.has_ambient_light || options.has_hemisphere_light;
 	if (has_indirect_light)
 	{
 		defines += "#define HAS_INDIRECT_LIGHT 1\n";
@@ -1278,10 +1524,37 @@ DrawIsosurface::DrawIsosurface(const Options& options) : m_options(options)
 		m_bindings.binding_probe_references = m_bindings.binding_probe_visibility;
 	}
 
+	if (options.has_lod_probe_grid)
+	{
+		defines += "#define HAS_LOD_PROBE_GRID 1\n";
+		m_bindings.binding_lod_probe_grid = m_bindings.binding_probe_references + 1;
+		m_bindings.binding_lod_probes = m_bindings.binding_lod_probe_grid + 1;
+		m_bindings.binding_lod_probe_indices = m_bindings.binding_lod_probes + 1;
+
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_LOD_PROBE_GRID %d\n", m_bindings.binding_lod_probe_grid);
+			defines += line;
+		}
+
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_LOD_PROBES %d\n", m_bindings.binding_lod_probes);
+			defines += line;
+		}
+
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_LOD_PROBE_INDICES %d\n", m_bindings.binding_lod_probe_indices);
+			defines += line;
+		}
+
+	}
+
 	if (options.has_ambient_light)
 	{
 		defines += "#define HAS_AMBIENT_LIGHT 1\n";
-		m_bindings.binding_ambient_light = m_bindings.binding_probe_references + 1;
+		m_bindings.binding_ambient_light = m_bindings.binding_lod_probe_indices + 1;
 		{
 			char line[64];
 			sprintf(line, "#define BINDING_AMBIENT_LIGHT %d\n", m_bindings.binding_ambient_light);
@@ -1291,7 +1564,7 @@ DrawIsosurface::DrawIsosurface(const Options& options) : m_options(options)
 	else
 	{
 		defines += "#define HAS_AMBIENT_LIGHT 0\n";
-		m_bindings.binding_ambient_light = m_bindings.binding_probe_references;
+		m_bindings.binding_ambient_light = m_bindings.binding_lod_probe_indices;
 	}
 
 	if (options.has_hemisphere_light)
@@ -1486,6 +1759,20 @@ void DrawIsosurface::render(const RenderParams& params)
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, m_bindings.binding_probe_references, params.lights->probe_grid->m_ref_buf->m_id);
 		}
 	}
+
+	if (m_options.has_lod_probe_grid)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_lod_probe_grid, params.lights->lod_probe_grid->m_constant.m_id);
+		if (params.lights->lod_probe_grid->m_probe_buf != nullptr)
+		{
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, m_bindings.binding_lod_probes, params.lights->lod_probe_grid->m_probe_buf->m_id);
+		}
+		if (params.lights->lod_probe_grid->m_sub_index_buf != nullptr)
+		{
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, m_bindings.binding_lod_probe_indices, params.lights->lod_probe_grid->m_sub_index_buf->m_id);
+		}
+	}
+
 
 	if (m_options.has_hemisphere_light)
 	{

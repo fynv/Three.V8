@@ -41,10 +41,12 @@ V8VM::~V8VM()
 #include "lights/DirectionalLight.hpp"
 #include "lights/EnvironmentMap.hpp"
 #include "lights/ProbeGrid.hpp"
+#include "lights/LODProbeGrid.hpp"
 #include "lights/EnvironmentMapCreator.hpp"
 #include "lights/AmbientLight.hpp"
 #include "lights/HemisphereLight.hpp"
 #include "lights/ProbeGridWidget.hpp"
+#include "lights/LODProbeGridWidget.hpp"
 
 #include "models/SimpleModel.hpp"
 #include "models/GLTFModel.hpp"
@@ -134,10 +136,12 @@ GlobalDefinitions GameContext::s_globals =
 		{ "DirectionalLight", WrapperDirectionalLight::New, WrapperDirectionalLight::create_template },
 		{ "EnvironmentMap", WrapperEnvironmentMap::New, WrapperEnvironmentMap::create_template },
 		{ "ProbeGrid", WrapperProbeGrid::New, WrapperProbeGrid::create_template },
+		{ "LODProbeGrid", WrapperLODProbeGrid::New, WrapperLODProbeGrid::create_template },
 		{ "EnvironmentMapCreator", WrapperEnvironmentMapCreator::New, WrapperEnvironmentMapCreator::create_template},
 		{ "AmbientLight", WrapperAmbientLight::New, WrapperAmbientLight::create_template},
 		{ "HemisphereLight", WrapperHemisphereLight::New, WrapperHemisphereLight::create_template},
 		{ "ProbeGridWidget", WrapperProbeGridWidget::New, WrapperProbeGridWidget::create_template},
+		{ "LODProbeGridWidget", WrapperLODProbeGridWidget::New, WrapperLODProbeGridWidget::create_template},
 		{ "BoundingVolumeHierarchy", WrappeBoundingVolumeHierarchy::New, WrappeBoundingVolumeHierarchy::create_template},
 
 		{ "UIArea", WrapperUIArea::New, WrapperUIArea::create_template},

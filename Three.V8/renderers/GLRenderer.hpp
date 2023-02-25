@@ -129,9 +129,6 @@ void WrapperGLRenderer::UpdateProbe(const v8::FunctionCallbackInfo<v8::Value>& i
 	GLRenderer* self = lctx.self<GLRenderer>();
 	Scene* scene = lctx.jobj_to_obj<Scene>(info[0]);
 	CubeRenderTarget* target = lctx.jobj_to_obj<CubeRenderTarget>(info[1]);
-	ProbeGrid* probe_grid = lctx.jobj_to_obj<ProbeGrid>(info[2]);
-	glm::ivec3 idx;
-	lctx.jvec3_to_ivec3(info[3], idx);
 
 	float zNear = 0.1f;
 	float zFar = 100.0f;
@@ -147,7 +144,23 @@ void WrapperGLRenderer::UpdateProbe(const v8::FunctionCallbackInfo<v8::Value>& i
 		lctx.jnum_to_num(info[6], k);
 	}
 
-	self->updateProbe(*scene, *target, *probe_grid, idx, zNear, zFar, k);
+	v8::Local<v8::Object> holder_grid = info[2].As<v8::Object>();
+	std::string clsname = lctx.jstr_to_str(holder_grid->GetConstructorName());
+
+	if (clsname == "ProbeGrid")
+	{
+		ProbeGrid* probe_grid = lctx.jobj_to_obj<ProbeGrid>(holder_grid);
+		glm::ivec3 idx;
+		lctx.jvec3_to_ivec3(info[3], idx);
+		self->updateProbe(*scene, *target, *probe_grid, idx, zNear, zFar, k);
+	}
+	else if (clsname == "LODProbeGrid")
+	{
+		LODProbeGrid* probe_grid = lctx.jobj_to_obj<LODProbeGrid>(holder_grid);
+		int idx;
+		lctx.jnum_to_num(info[3], idx);
+		self->updateProbe(*scene, *target, *probe_grid, idx, zNear, zFar, k);
+	}
 
 }
 

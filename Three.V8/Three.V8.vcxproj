@@ -157,6 +157,8 @@
     <ClInclude Include="lights\HemisphereLight.hpp" />
     <ClInclude Include="lights\IndirectLight.hpp" />
     <ClInclude Include="lights\Light.hpp" />
+    <ClInclude Include="lights\LODProbeGrid.hpp" />
+    <ClInclude Include="lights\LODProbeGridWidget.hpp" />
     <ClInclude Include="lights\ProbeGrid.hpp" />
     <ClInclude Include="lights\ProbeGridWidget.hpp" />
     <ClInclude Include="loaders\FileLoader.hpp" />

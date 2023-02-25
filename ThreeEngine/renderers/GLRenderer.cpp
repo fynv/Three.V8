@@ -21,6 +21,7 @@
 #include "lights/DirectionalLightShadow.h"
 #include "scenes/Fog.h"
 #include "lights/ProbeGridWidget.h"
+#include "lights/LODProbeGridWidget.h"
 
 //#include <gtx/string_cast.hpp>
 
@@ -264,6 +265,7 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 	{
 		options.probe_reference_recorded = lights->probe_grid->record_references;
 	}
+	options.has_lod_probe_grid = lights->lod_probe_grid != nullptr;
 	options.has_ambient_light = lights->ambient_light != nullptr;
 	options.has_hemisphere_light = lights->hemisphere_light != nullptr;
 	options.has_fog = params.constant_fog != nullptr;
@@ -456,6 +458,7 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 	{
 		options.probe_reference_recorded = lights.probe_grid->record_references;
 	}
+	options.has_lod_probe_grid = lights.lod_probe_grid != nullptr;
 	options.has_ambient_light = lights.ambient_light != nullptr;
 	options.has_hemisphere_light = lights.hemisphere_light != nullptr;
 	options.has_fog = fog != nullptr;	
@@ -627,6 +630,68 @@ void GLRenderer::render_widget(Camera* p_camera, ProbeGridWidget* widget)
 
 }
 
+void GLRenderer::render_widget(Camera* p_camera, LODProbeGridWidget* widget)
+{
+	glm::mat4 mat_proj = p_camera->projectionMatrix;
+	glm::mat4 mat_camera = p_camera->matrixWorldInverse;
+	glm::mat4 mat_model = widget->matrixWorld;
+	glm::mat4 model_view = mat_camera * mat_model;
+	glMatrixLoadfEXT(GL_PROJECTION, (float*)&mat_proj);
+	glMatrixLoadfEXT(GL_MODELVIEW, (float*)&model_view);
+
+	glEnable(GL_DEPTH_TEST);
+
+	glLineWidth(1.0f);
+
+	glBegin(GL_LINES);
+
+	glColor3f(1.0f, 0.0f, 0.0f);
+	glVertex3f(widget->coverage_min.x, widget->coverage_min.y, widget->coverage_min.z);
+	glVertex3f(widget->coverage_max.x, widget->coverage_min.y, widget->coverage_min.z);
+	glVertex3f(widget->coverage_min.x, widget->coverage_max.y, widget->coverage_min.z);
+	glVertex3f(widget->coverage_max.x, widget->coverage_max.y, widget->coverage_min.z);
+	glVertex3f(widget->coverage_min.x, widget->coverage_min.y, widget->coverage_max.z);
+	glVertex3f(widget->coverage_max.x, widget->coverage_min.y, widget->coverage_max.z);
+	glVertex3f(widget->coverage_min.x, widget->coverage_max.y, widget->coverage_max.z);
+	glVertex3f(widget->coverage_max.x, widget->coverage_max.y, widget->coverage_max.z);
+
+	glColor3f(0.0f, 1.0f, 0.0f);
+	glVertex3f(widget->coverage_min.x, widget->coverage_min.y, widget->coverage_min.z);
+	glVertex3f(widget->coverage_min.x, widget->coverage_max.y, widget->coverage_min.z);
+	glVertex3f(widget->coverage_max.x, widget->coverage_min.y, widget->coverage_min.z);
+	glVertex3f(widget->coverage_max.x, widget->coverage_max.y, widget->coverage_min.z);
+	glVertex3f(widget->coverage_min.x, widget->coverage_min.y, widget->coverage_max.z);
+	glVertex3f(widget->coverage_min.x, widget->coverage_max.y, widget->coverage_max.z);
+	glVertex3f(widget->coverage_max.x, widget->coverage_min.y, widget->coverage_max.z);
+	glVertex3f(widget->coverage_max.x, widget->coverage_max.y, widget->coverage_max.z);
+
+	glColor3f(0.0f, 0.0f, 1.0f);
+	glVertex3f(widget->coverage_min.x, widget->coverage_min.y, widget->coverage_min.z);
+	glVertex3f(widget->coverage_min.x, widget->coverage_min.y, widget->coverage_max.z);
+	glVertex3f(widget->coverage_max.x, widget->coverage_min.y, widget->coverage_min.z);
+	glVertex3f(widget->coverage_max.x, widget->coverage_min.y, widget->coverage_max.z);
+	glVertex3f(widget->coverage_min.x, widget->coverage_max.y, widget->coverage_min.z);
+	glVertex3f(widget->coverage_min.x, widget->coverage_max.y, widget->coverage_max.z);
+	glVertex3f(widget->coverage_max.x, widget->coverage_max.y, widget->coverage_min.z);
+	glVertex3f(widget->coverage_max.x, widget->coverage_max.y, widget->coverage_max.z);
+
+	glEnd();
+
+	glColor3f(1.0f, 0.2f, 1.0f);
+
+	if (widget->probe_grid == nullptr) return;
+
+	size_t num_probes = widget->probe_grid->getNumberOfProbes();
+	for (size_t i = 0; i < num_probes; i++)
+	{
+		glm::vec4 pos_level = widget->probe_grid->m_probe_data[i * 10];
+		glm::vec3 pos = glm::vec3(pos_level);
+		float level = pos_level.w;
+		draw_round(pos, 0.05 * powf(0.5f, level), p_camera);
+	}
+
+}
+
 void GLRenderer::render_primitive_simple(const SimpleRoutine::RenderParams& params, Pass pass)
 {
 	const MeshStandardMaterial* material = params.material_list[params.primitive->material_idx];
@@ -652,6 +717,7 @@ void GLRenderer::render_primitive_simple(const SimpleRoutine::RenderParams& para
 	{
 		options.probe_reference_recorded = lights->probe_grid->record_references;
 	}
+	options.has_lod_probe_grid = lights->lod_probe_grid != nullptr;
 	options.has_ambient_light = lights->ambient_light != nullptr;
 	options.has_hemisphere_light = lights->hemisphere_light != nullptr;
 	options.has_fog = params.constant_fog != nullptr;		
@@ -1051,6 +1117,7 @@ void GLRenderer::_render_fog_rm_env(const Camera& camera, const Lights& lights, 
 	{
 		options.probe_reference_recorded = lights.probe_grid->record_references;
 	}
+	options.has_lod_probe_grid = lights.lod_probe_grid != nullptr;
 
 	uint64_t hash = crc64(0, (const unsigned char*)&options, sizeof(FogRayMarchingEnv::Options));
 	auto iter = fog_ray_march_map.find(hash);
@@ -1109,6 +1176,7 @@ void GLRenderer::_render_fog_rm_env_simple(const Camera& camera, const Lights& l
 	{
 		options.probe_reference_recorded = lights.probe_grid->record_references;
 	}
+	options.has_lod_probe_grid = lights.lod_probe_grid != nullptr;
 
 	uint64_t hash = crc64(0, (const unsigned char*)&options, sizeof(SimpleFogRayMarchingEnv::Options));
 	auto iter = fog_ray_march_map_simple.find(hash);
@@ -1328,6 +1396,17 @@ void GLRenderer::_pre_render(Scene& scene)
 			{
 				probeGrid->updateConstant();
 				lights.probe_grid = probeGrid;
+				break;
+			}
+
+		}
+
+		{
+			LODProbeGrid* probeGrid = dynamic_cast<LODProbeGrid*>(scene.indirectLight);
+			if (probeGrid != nullptr)
+			{
+				probeGrid->updateConstant();
+				lights.lod_probe_grid = probeGrid;
 				break;
 			}
 
@@ -1776,6 +1855,14 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 						break;
 					}
 				}
+				{
+					LODProbeGridWidget* widget = dynamic_cast<LODProbeGridWidget*>(obj);
+					if (widget != nullptr)
+					{
+						render_widget(&camera, widget);
+						break;
+					}
+				}
 
 			} while (false);
 		}
@@ -1878,7 +1965,7 @@ void GLRenderer::_render(Scene& scene, Camera& camera, GLRenderTarget& target, b
 			_render_fog_rm(camera, *light, *fog, target);
 		}
 
-		if (lights.probe_grid != nullptr)
+		if (lights.probe_grid != nullptr || lights.lod_probe_grid != nullptr)
 		{
 			_render_fog_rm_env(camera, lights, *fog, target);
 		}
@@ -2142,7 +2229,7 @@ void GLRenderer::_render_simple(Scene& scene, Camera& camera, GLRenderTarget& ta
 			_render_fog_rm_simple(camera, *light, *fog, target);
 		}
 
-		if (lights.probe_grid != nullptr)
+		if (lights.probe_grid != nullptr || lights.lod_probe_grid !=nullptr)
 		{
 			_render_fog_rm_env_simple(camera, lights, *fog, target);
 		}
@@ -2327,6 +2414,66 @@ void GLRenderer::updateProbe(Scene& scene, CubeRenderTarget& target, ProbeGrid& 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, probe_grid.m_probe_buf->m_id);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, index * sizeof(glm::vec4)*9, sizeof(glm::vec4) * 9, dest_coeffs);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+
+void GLRenderer::updateProbe(Scene& scene, CubeRenderTarget& target, LODProbeGrid& probe_grid, int idx, float zNear, float zFar, float k)
+{
+	bool full_update = true;
+	glm::vec4* dest_coeffs = &probe_grid.m_probe_data[idx * 10 + 1];	
+
+	if (idx < probe_grid.m_sub_index.size())
+	{
+		int sub_idx = probe_grid.m_sub_index[idx];
+		if (sub_idx >= 0)
+		{
+			size_t base_offset = probe_grid.base_divisions.x * probe_grid.base_divisions.y * probe_grid.base_divisions.z;
+			size_t sub_offset = base_offset + sub_idx * 8;
+
+			glm::vec4 coeffs[9];
+			memset(coeffs, 0, sizeof(glm::vec4) * 9);
+			for (int i = 0; i < 8; i++)
+			{
+				size_t probe_offset = sub_offset + i;
+				glm::vec4* src_coeffs = &probe_grid.m_probe_data[probe_offset * 10 + 1];
+				for (int j = 0; j < 9; j++)
+				{
+					coeffs[j] += src_coeffs[j];
+				}
+			}
+
+			for (int j = 0; j < 9; j++)
+			{
+				dest_coeffs[j] = coeffs[j] / 8.0f;
+			}
+
+			full_update = false;
+		}
+
+	}
+
+	if (full_update)
+	{
+		glm::vec3 pos = probe_grid.m_probe_data[idx * 10];
+
+		glm::vec3 axis = glm::sphericalRand(1.0f);
+		float angle = randRad();
+		glm::quat rotation = glm::angleAxis(angle, axis);
+		renderCube(scene, target, pos, zNear, zFar, rotation);
+
+		glm::vec4 coeffs[9];
+		EnvironmentMapCreator::CreateSH(coeffs, target.m_cube_map->tex_id, target.m_width, rotation);
+
+		glm::vec4* dest_coeffs = &probe_grid.m_probe_data[idx * 10 + 1];
+		for (int i = 0; i < 9; i++)
+		{
+			dest_coeffs[i] = (1.0f - k) * dest_coeffs[i] + k * coeffs[i];
+		}
+	}
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, probe_grid.m_probe_buf->m_id);
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, sizeof(glm::vec4) * (idx * 10 + 1), sizeof(glm::vec4) * 9, dest_coeffs);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
 }
 
 void GLRenderer::renderTexture(GLTexture2D* tex, int x, int y, int width, int height, GLRenderTarget& target)

@@ -6,6 +6,7 @@
 #include "renderers/GLUtils.h"
 #include "lights/EnvironmentMap.h"
 #include "lights/ProbeGrid.h"
+#include "lights/LODProbeGrid.h"
 #include "lights/AmbientLight.h"
 #include "lights/HemisphereLight.h"
 
@@ -24,6 +25,7 @@ struct Lights
 	const ReflectionMap* reflection_map = nullptr;
 	const EnvironmentMap* environment_map = nullptr;
 	const ProbeGrid* probe_grid = nullptr;
+	const LODProbeGrid* lod_probe_grid = nullptr;
 	const AmbientLight* ambient_light = nullptr;
 	const HemisphereLight* hemisphere_light = nullptr;
 };

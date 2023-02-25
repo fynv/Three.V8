@@ -12,6 +12,7 @@ public:
 		bool msaa = false;
 		bool has_probe_grid = false;
 		bool probe_reference_recorded = false;
+		bool has_lod_probe_grid = false;
 	};
 	FogRayMarchingEnv(const Options& options);
 
