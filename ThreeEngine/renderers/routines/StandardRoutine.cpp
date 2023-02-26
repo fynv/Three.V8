@@ -969,11 +969,11 @@ vec3 getIrradiance(in vec3 normal)
 				vert_normalized.y = pow(vert_normalized.y, uYpower); 
 				vec3 vert_world = vert_normalized * size_grid + uCoverageMin.xyz;
 				vec3 dir = normalize(vert_world - vWorldPos);
-
-				if (dot(dir, N)>=0.0)
+				float dotDirN = dot(dir, N);
+				if (dotDirN>=0.0)
 				{					
 					vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
-					float weight = w.x * w.y * w.z;
+					float weight = w.x * w.y * w.z * dotDirN;
 					if (weight>0.0)
 					{
 						weight*= get_visibility(vert,vert_world);					
@@ -1034,18 +1034,16 @@ layout (std430, binding = BINDING_LOD_PROBE_INDICES) buffer ProbeIndex
 	int bIndexData[];
 };
 
-int get_probe_lod_i(in ivec3 ipos)
-{	
-	if (uSubDivisionLevel<1) return 0;
-
-	ivec3 ipos_base = ipos / (1<<uSubDivisionLevel);
+bool try_lod_i(int target_lod, in ivec3 ipos)
+{
+	ivec3 ipos_base = ipos / (1<<target_lod);
 	int idx_base = ipos_base.x + (ipos_base.y + ipos_base.z * uBaseDivisions.y) * uBaseDivisions.x;
 	int idx_sub = bIndexData[idx_base];
 	int base_offset = uBaseDivisions.x * uBaseDivisions.y * uBaseDivisions.z;
-	
+
 	int lod = 0;	
-	int digit_mask = 1 << (uSubDivisionLevel -1);
-	while(lod<uSubDivisionLevel && idx_sub>=0)
+	int digit_mask = 1 << (target_lod -1);
+	while(lod<target_lod && idx_sub>=0)
 	{
 		if (lod<uSubDivisionLevel-1)
 		{
@@ -1061,41 +1059,43 @@ int get_probe_lod_i(in ivec3 ipos)
 			idx_sub = -1;
 		}
 		lod++;
-		digit_mask >>=1;		
-	}	
-	return lod;
+		digit_mask >>=1;
+	}
+	return lod == target_lod;
 }
 
-float get_probe_lod_f(in vec3 pos)
+bool try_lod_f(int target_lod, in vec3 pos)
 {
-	ivec3 divs = uBaseDivisions.xyz * (1<<uSubDivisionLevel);	
+	ivec3 divs = uBaseDivisions.xyz * (1<<target_lod);	
 	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
 	vec3 pos_normalized = (pos - uCoverageMin.xyz)/size_grid;	
 	vec3 pos_voxel = pos_normalized * vec3(divs) - vec3(0.5);
 	pos_voxel = clamp(pos_voxel, vec3(0.0), vec3(divs) - vec3(1.0));
 	ivec3 i_voxel = clamp(ivec3(pos_voxel), ivec3(0), ivec3(divs) - ivec3(2));
-	vec3 frac_voxel = pos_voxel - vec3(i_voxel);
 
-	float acc_lod = 0.0;
-	float acc_weight = 0.0;
 	for (int z=0;z<2;z++)
 	{
 		for (int y=0;y<2;y++)
 		{
 			for (int x=0;x<2;x++)
-			{				
+			{
 				ivec3 vert = i_voxel + ivec3(x,y,z);
-				vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
-				float weight = w.x * w.y * w.z;
-				if (weight>0.0)
-				{
-					acc_lod += float(get_probe_lod_i(vert)) * weight;
-					acc_weight += weight;					
-				}				
+				if (try_lod_i(target_lod,vert)) return true; 
 			}
 		}
 	}
-	return acc_lod/acc_weight;
+	return false;
+}
+
+int get_lod(in vec3 pos)
+{
+	int lod = uSubDivisionLevel;
+	while(lod>0)
+	{
+		if (try_lod_f(lod, pos)) break;
+		lod--;
+	}
+	return lod;
 }
 
 int get_probe_idx_lod(in ivec3 ipos, int target_lod)
@@ -1108,7 +1108,7 @@ int get_probe_idx_lod(in ivec3 ipos, int target_lod)
 	int base_offset = uBaseDivisions.x * uBaseDivisions.y * uBaseDivisions.z;
 
 	int lod = 0;
-	int digit_mask = 1 << (uSubDivisionLevel -1);
+	int digit_mask = 1 << (target_lod -1);
 	while(lod<target_lod && idx_sub>=0)
 	{
 		int offset = base_offset + idx_sub*8;
@@ -1143,9 +1143,16 @@ void acc_coeffs(inout vec4 coeffs[9], int idx, in float weight)
 
 vec3 getIrradiance(in vec3 normal)
 {
-	float lod = get_probe_lod_f(vWorldPos);
-	int i_lod = int(lod);
-	float frac_lod = lod - float(i_lod);
+	int lod = get_lod(vWorldPos);		
+	ivec3 divs = uBaseDivisions.xyz * (1<<lod);
+
+	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
+	vec3 pos_normalized = (vWorldPos - uCoverageMin.xyz)/size_grid;	
+	vec3 pos_voxel = pos_normalized * vec3(divs) - vec3(0.5);
+	pos_voxel = clamp(pos_voxel, vec3(0.0), vec3(divs) - vec3(1.0));
+
+	ivec3 i_voxel = clamp(ivec3(pos_voxel), ivec3(0), ivec3(divs) - ivec3(2));
+	vec3 frac_voxel = pos_voxel - vec3(i_voxel);
 
 	float sum_weight = 0.0;
 	vec4 coeffs[9];
@@ -1154,86 +1161,37 @@ vec3 getIrradiance(in vec3 normal)
 	vec3 dx = dFdx(vWorldPos);
 	vec3 dy = dFdy(vWorldPos);
 	vec3 N = normalize(cross(dx, dy));
-
-	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
-	vec3 pos_normalized = (vWorldPos - uCoverageMin.xyz)/size_grid;
-
-	// lod 0
+	
+	for (int z=0;z<2;z++)
 	{
-		ivec3 divs = uBaseDivisions.xyz * (1<<i_lod);
-		vec3 pos_voxel = pos_normalized * vec3(divs) - vec3(0.5);
-		pos_voxel = clamp(pos_voxel, vec3(0.0), vec3(divs) - vec3(1.0));
-		ivec3 i_voxel = clamp(ivec3(pos_voxel), ivec3(0), ivec3(divs) - ivec3(2));
-		vec3 frac_voxel = pos_voxel - vec3(i_voxel);
-
-		for (int z=0;z<2;z++)
+		for (int y=0;y<2;y++)
 		{
-			for (int y=0;y<2;y++)
+			for (int x=0;x<2;x++)
 			{
-				for (int x=0;x<2;x++)
-				{
-					ivec3 vert = i_voxel + ivec3(x,y,z);
-					vec3 vert_normalized = (vec3(vert) + vec3(0.5))/vec3(divs);
-					vec3 vert_world = vert_normalized * size_grid + uCoverageMin.xyz;
-					vec3 dir = normalize(vert_world - vWorldPos);
-					
-					if (dot(dir, N)>=0.0)
-					{					
-						vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
-						float weight = w.x * w.y * w.z * (1.0 - frac_lod); 
-						if (weight>0.0)
-						{
-							int idx_probe = get_probe_idx_lod(vert, i_lod);
-							sum_weight += weight;
-							acc_coeffs(coeffs, idx_probe, weight);
-						}
+				ivec3 vert = i_voxel + ivec3(x,y,z);
+				vec3 vert_normalized = (vec3(vert) + vec3(0.5))/vec3(divs);
+				vec3 vert_world = vert_normalized * size_grid + uCoverageMin.xyz;
+				vec3 dir = normalize(vert_world - vWorldPos);
+				float dotDirN = dot(dir, N);
+				if (dotDirN>=0.0)
+				{					
+					vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
+					float weight = w.x * w.y * w.z * dotDirN; 
+					if (weight>0.0)
+					{
+						int idx_probe = get_probe_idx_lod(vert, lod);
+						sum_weight += weight;
+						acc_coeffs(coeffs, idx_probe, weight);
 					}
 				}
 			}
 		}
 	}
-	// lod 1
-	if (frac_lod > 0.0)
-	{
-		i_lod++;
-		ivec3 divs = uBaseDivisions.xyz * (1<<i_lod);
-		vec3 pos_voxel = pos_normalized * vec3(divs) - vec3(0.5);
-		pos_voxel = clamp(pos_voxel, vec3(0.0), vec3(divs) - vec3(1.0));
-		ivec3 i_voxel = clamp(ivec3(pos_voxel), ivec3(0), ivec3(divs) - ivec3(2));
-		vec3 frac_voxel = pos_voxel - vec3(i_voxel);
-
-		for (int z=0;z<2;z++)
-		{
-			for (int y=0;y<2;y++)
-			{
-				for (int x=0;x<2;x++)
-				{
-					ivec3 vert = i_voxel + ivec3(x,y,z);
-					vec3 vert_normalized = (vec3(vert) + vec3(0.5))/vec3(divs);
-					vec3 vert_world = vert_normalized * size_grid + uCoverageMin.xyz;
-					vec3 dir = normalize(vert_world - vWorldPos);
-					
-					if (dot(dir, N)>=0.0)
-					{					
-						vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
-						float weight = w.x * w.y * w.z * frac_lod; 
-						if (weight>0.0)
-						{
-							int idx_probe = get_probe_idx_lod(vert, i_lod);
-							sum_weight += weight;
-							acc_coeffs(coeffs, idx_probe, weight);
-						}
-					}
-				}
-			}
-		}	
-	}
-
 	if (sum_weight>0.0)
 	{
 		for (int i=0; i<9; i++) coeffs[i]/=sum_weight;
 		return shGetIrradianceAt(normal, coeffs);
-	}
+	}	
 
 	return vec3(0.0);
 }

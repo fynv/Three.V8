@@ -44,10 +44,15 @@ void main()
 	if (N.x<N.y || N.x < N.z) discard;	
 
 	vec3 coord = gl_FragCoord.xyz;
-	coord.z = clamp(floor(coord.z * float(uDiv)), 0.0, float(uDiv) - 1.0);
+	coord.z = clamp(floor(coord.z * float(uDiv) - 0.5), 0.0, float(uDiv) - 1.0);
 	ivec3 icoord = ivec3(coord);
 	
 	imageStore(uTexVol, icoord.zxy, vec4(1.0));
+	if (icoord.z<uDiv-1)
+	{
+		icoord.z++;
+		imageStore(uTexVol, icoord.zxy, vec4(1.0));
+	}
 }
 )";
 
@@ -94,10 +99,15 @@ void main()
 	if (N.y<=N.x || N.y < N.z) discard;	
 
 	vec3 coord = gl_FragCoord.xyz;
-	coord.z = clamp(floor(coord.z * float(uDiv)), 0.0, float(uDiv) - 1.0);
+	coord.z = clamp(floor(coord.z * float(uDiv) - 0.5), 0.0, float(uDiv) - 1.0);
 	ivec3 icoord = ivec3(coord);
 	
 	imageStore(uTexVol, icoord.yzx, vec4(1.0));
+	if (icoord.z<uDiv-1)
+	{
+		icoord.z++;
+		imageStore(uTexVol, icoord.yzx, vec4(1.0));
+	}
 }
 )";
 
@@ -144,10 +154,15 @@ void main()
 	if (N.z<=N.y || N.z <= N.y) discard;	
 
 	vec3 coord = gl_FragCoord.xyz;
-	coord.z = clamp(floor(coord.z * float(uDiv)), 0.0, float(uDiv) - 1.0);
+	coord.z = clamp(floor(coord.z * float(uDiv) - 0.5), 0.0, float(uDiv) - 1.0);
 	ivec3 icoord = ivec3(coord);
 	
 	imageStore(uTexVol, icoord.xyz, vec4(1.0));
+	if (icoord.z<uDiv-1)
+	{
+		icoord.z++;
+		imageStore(uTexVol, icoord.xyz, vec4(1.0));
+	}
 }
 )";
 

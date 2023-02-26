@@ -84,15 +84,15 @@ void LODProbeGrid::initialize(GLRenderer& renderer, Scene& scene)
 	if (sub_division_level > 0)
 	{
 		typedef std::vector<uint8_t> Volume;
-		std::vector<Volume> volumes(sub_division_level);
+		std::vector<Volume> volumes(sub_division_level+1);
 
 		unsigned tex_id;
 		glGenTextures(1, &tex_id);		
 
-		glm::ivec3 vol_div = base_divisions * (1 << (sub_division_level - 1));
+		glm::ivec3 vol_div = base_divisions * (1 << sub_division_level);
 
 		{
-			Volume& vol = volumes[sub_division_level - 1];
+			Volume& vol = volumes[sub_division_level];
 
 			glBindTexture(GL_TEXTURE_3D, tex_id);
 			glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -113,7 +113,7 @@ void LODProbeGrid::initialize(GLRenderer& renderer, Scene& scene)
 			glDeleteTextures(1, &tex_id);
 		}
 
-		for (int i = sub_division_level - 2; i >= 0; i--)
+		for (int i = sub_division_level - 1; i >= 0; i--)
 		{
 			Volume& vol1 = volumes[i + 1];
 			Volume& vol0 = volumes[i];
