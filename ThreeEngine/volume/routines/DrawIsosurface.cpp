@@ -1548,7 +1548,13 @@ DrawIsosurface::DrawIsosurface(const Options& options) : m_options(options)
 			sprintf(line, "#define BINDING_LOD_PROBE_INDICES %d\n", m_bindings.binding_lod_probe_indices);
 			defines += line;
 		}
-
+	}
+	else
+	{
+		defines += "#define HAS_LOD_PROBE_GRID 0\n";
+		m_bindings.binding_lod_probe_grid = m_bindings.binding_probe_references;
+		m_bindings.binding_lod_probes = m_bindings.binding_probe_references;
+		m_bindings.binding_lod_probe_indices = m_bindings.binding_probe_references;
 	}
 
 	if (options.has_ambient_light)

@@ -1361,7 +1361,13 @@ void SimpleRoutine::s_generate_shaders(const Options& options, Bindings& binding
 			sprintf(line, "#define BINDING_LOD_PROBE_INDICES %d\n", bindings.binding_lod_probe_indices);
 			defines += line;
 		}
-
+	}
+	else
+	{
+		defines += "#define HAS_LOD_PROBE_GRID 0\n";
+		bindings.binding_lod_probe_grid = bindings.binding_probe_references;
+		bindings.binding_lod_probes = bindings.binding_probe_references;
+		bindings.binding_lod_probe_indices = bindings.binding_probe_references;
 	}
 
 	if (options.has_ambient_light)
