@@ -28,7 +28,16 @@ LODProbeGrid::~LODProbeGrid()
 
 }
 
-int LODProbeGrid::getNumberOfProbes()
+void LODProbeGrid::updateBuffers()
+{
+	m_sub_index_buf = std::unique_ptr<GLBuffer>(new GLBuffer(sizeof(int) * m_sub_index.size(), GL_SHADER_STORAGE_BUFFER));
+	m_sub_index_buf->upload(m_sub_index.data());
+
+	m_probe_buf = std::unique_ptr<GLBuffer>(new GLBuffer(sizeof(glm::vec4) * m_probe_data.size(), GL_SHADER_STORAGE_BUFFER));
+	m_probe_buf->upload(m_probe_data.data());
+}
+
+int LODProbeGrid::getNumberOfProbes() const
 {
 	return m_probe_data.size() / 10;
 }
@@ -212,12 +221,6 @@ void LODProbeGrid::initialize(GLRenderer& renderer, Scene& scene)
 		//int num_probes = getNumberOfProbes();
 		//printf("%d %d %d\n", num_probes, base_divisions.x* base_divisions.y* base_divisions.z, ref_idx*8);
 
-	}
-	
-	m_sub_index_buf = std::unique_ptr<GLBuffer>(new GLBuffer(sizeof(int) * m_sub_index.size(), GL_SHADER_STORAGE_BUFFER));
-	m_sub_index_buf->upload(m_sub_index.data());
-
-	m_probe_buf = std::unique_ptr<GLBuffer>(new GLBuffer(sizeof(glm::vec4) * m_probe_data.size(), GL_SHADER_STORAGE_BUFFER));
-	m_probe_buf->upload(m_probe_data.data());
-
+	}	
+	updateBuffers();
 }

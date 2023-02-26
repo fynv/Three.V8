@@ -164,6 +164,7 @@
     <ClInclude Include="loaders\FileLoader.hpp" />
     <ClInclude Include="loaders\GLTFLoader.hpp" />
     <ClInclude Include="loaders\ImageLoader.hpp" />
+    <ClInclude Include="loaders\LODProbeGridLoader.hpp" />
     <ClInclude Include="loaders\ProbeGridLoader.hpp" />
     <ClInclude Include="models\AnimationMixer.hpp" />
     <ClInclude Include="models\GLTFModel.hpp" />
@@ -183,6 +184,7 @@
     <ClInclude Include="renderers\GLRenderTarget.hpp" />
     <ClInclude Include="savers\FileSaver.hpp" />
     <ClInclude Include="savers\ImageSaver.hpp" />
+    <ClInclude Include="savers\LODProbeGridSaver.hpp" />
     <ClInclude Include="savers\ProbeGridSaver.hpp" />
     <ClInclude Include="scenes\Fog.hpp" />
     <ClInclude Include="scenes\Scene.hpp" />

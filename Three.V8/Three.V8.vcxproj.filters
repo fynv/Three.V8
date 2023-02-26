@@ -249,6 +249,12 @@
     <ClInclude Include="lights\LODProbeGridWidget.hpp">
       <Filter>Header Files\lights</Filter>
     </ClInclude>
+    <ClInclude Include="loaders\LODProbeGridLoader.hpp">
+      <Filter>Header Files\loaders</Filter>
+    </ClInclude>
+    <ClInclude Include="savers\LODProbeGridSaver.hpp">
+      <Filter>Header Files\savers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="binding.cpp">

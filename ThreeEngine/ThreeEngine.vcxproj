@@ -164,6 +164,7 @@
     <ClCompile Include="loaders\FileLoader.cpp" />
     <ClCompile Include="loaders\GLTFLoader.cpp" />
     <ClCompile Include="loaders\ImageLoader.cpp" />
+    <ClCompile Include="loaders\LODProbeGirdLoader.cpp" />
     <ClCompile Include="loaders\ProbeGridLoader.cpp" />
     <ClCompile Include="materials\Material.cpp" />
     <ClCompile Include="materials\MeshStandardMaterial.cpp" />
@@ -203,6 +204,7 @@
     <ClCompile Include="renderers\routines\WeightedOIT.cpp" />
     <ClCompile Include="savers\FileSaver.cpp" />
     <ClCompile Include="savers\ImageSaver.cpp" />
+    <ClCompile Include="savers\LODProbeGridSaver.cpp" />
     <ClCompile Include="savers\ProbeGridSaver.cpp" />
     <ClCompile Include="scenes\Fog.cpp" />
     <ClCompile Include="scenes\Scene.cpp" />
@@ -256,6 +258,7 @@
     <ClInclude Include="loaders\FileLoader.h" />
     <ClInclude Include="loaders\GLTFLoader.h" />
     <ClInclude Include="loaders\ImageLoader.h" />
+    <ClInclude Include="loaders\LODProbeGridLoader.h" />
     <ClInclude Include="loaders\ProbeGridLoader.h" />
     <ClInclude Include="materials\Material.h" />
     <ClInclude Include="materials\MeshStandardMaterial.h" />
@@ -296,6 +299,7 @@
     <ClInclude Include="renderers\routines\WeightedOIT.h" />
     <ClInclude Include="savers\FileSaver.h" />
     <ClInclude Include="savers\ImageSaver.h" />
+    <ClInclude Include="savers\LODProbeGridSaver.h" />
     <ClInclude Include="savers\ProbeGridSaver.h" />
     <ClInclude Include="scenes\Fog.h" />
     <ClInclude Include="scenes\Scene.h" />

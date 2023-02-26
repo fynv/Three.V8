@@ -23,8 +23,9 @@ public:
 
 	std::vector<glm::vec4> m_probe_data;	
 	std::unique_ptr<GLBuffer> m_probe_buf;
+	void updateBuffers();
 
-	int getNumberOfProbes();
+	int getNumberOfProbes() const;
 
 	GLDynBuffer m_constant;
 	void updateConstant();

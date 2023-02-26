@@ -372,6 +372,12 @@
     <ClCompile Include="lights\LODProbeGridWidget.cpp">
       <Filter>Source Files\lights</Filter>
     </ClCompile>
+    <ClCompile Include="loaders\LODProbeGirdLoader.cpp">
+      <Filter>Source Files\loaders</Filter>
+    </ClCompile>
+    <ClCompile Include="savers\LODProbeGridSaver.cpp">
+      <Filter>Source Files\savers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -655,6 +661,12 @@
     </ClInclude>
     <ClInclude Include="lights\LODProbeGridWidget.h">
       <Filter>Header Files\lights</Filter>
+    </ClInclude>
+    <ClInclude Include="loaders\LODProbeGridLoader.h">
+      <Filter>Header Files\loaders</Filter>
+    </ClInclude>
+    <ClInclude Include="savers\LODProbeGridSaver.h">
+      <Filter>Header Files\savers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
