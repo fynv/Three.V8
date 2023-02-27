@@ -614,7 +614,7 @@ layout (std430, binding = BINDING_PROBE_REFERENCES) buffer ProbeReferences
 
 float quantize_vis(float limit, float dis)
 {
-	float x = (dis-0.9*limit)/(0.1*limit);
+	float x = dis-0.9*limit;
 	if (x<0.0) x = 0.0;
 	return pow(0.01, x);
 }
@@ -963,23 +963,22 @@ vec3 getIrradiance(in vec3 normal)
 		for (int y=0;y<2;y++)
 		{
 			for (int x=0;x<2;x++)
-			{				
-				ivec3 vert = i_voxel + ivec3(x,y,z);
-				vec3 vert_normalized = (vec3(vert) + vec3(0.5))/vec3(uDivisions);
-				vert_normalized.y = pow(vert_normalized.y, uYpower); 
-				vec3 vert_world = vert_normalized * size_grid + uCoverageMin.xyz;
-				vec3 dir = normalize(vert_world - vWorldPos);
-				float dotDirN = dot(dir, N);
-				if (dotDirN>=0.0)
-				{					
-					vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
-					float weight = w.x * w.y * w.z * dotDirN;
-					if (weight>0.0)
-					{
-						weight*= get_visibility(vert,vert_world);					
-						sum_weight += weight;
-						acc_coeffs(coeffs, vert, weight);
-					}
+			{		
+				vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
+				float weight = w.x * w.y * w.z;		
+				if (weight> 0.0)
+				{
+					ivec3 vert = i_voxel + ivec3(x,y,z);
+					vec3 vert_normalized = (vec3(vert) + vec3(0.5))/vec3(uDivisions);
+					vert_normalized.y = pow(vert_normalized.y, uYpower); 
+					vec3 vert_world = vert_normalized * size_grid + uCoverageMin.xyz;
+					vec3 dir = normalize(vert_world - vWorldPos);
+					float dotDirN = dot(dir, N);
+					float k = 0.9;
+					dotDirN = (k*dotDirN + sqrt(1.0 - (1.0-dotDirN*dotDirN)*k*k))/(k+1.0);
+					weight*= dotDirN * get_visibility(vert,vert_world);
+					sum_weight += weight;
+					acc_coeffs(coeffs, vert, weight);						
 				}
 			}
 		}
@@ -1168,21 +1167,22 @@ vec3 getIrradiance(in vec3 normal)
 		{
 			for (int x=0;x<2;x++)
 			{
-				ivec3 vert = i_voxel + ivec3(x,y,z);
-				vec3 vert_normalized = (vec3(vert) + vec3(0.5))/vec3(divs);
-				vec3 vert_world = vert_normalized * size_grid + uCoverageMin.xyz;
-				vec3 dir = normalize(vert_world - vWorldPos);
-				float dotDirN = dot(dir, N);
-				if (dotDirN>=0.0)
-				{					
-					vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
-					float weight = w.x * w.y * w.z * dotDirN; 
-					if (weight>0.0)
-					{
-						int idx_probe = get_probe_idx_lod(vert, lod);
-						sum_weight += weight;
-						acc_coeffs(coeffs, idx_probe, weight);
-					}
+				vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
+				float weight = w.x * w.y * w.z; 
+				if (weight>0.0)
+				{
+					ivec3 vert = i_voxel + ivec3(x,y,z);
+					vec3 vert_normalized = (vec3(vert) + vec3(0.5))/vec3(divs);
+					vec3 vert_world = vert_normalized * size_grid + uCoverageMin.xyz;
+					vec3 dir = normalize(vert_world - vWorldPos);					
+					float dotDirN = dot(dir, N);
+					float k = 0.9;
+					dotDirN = (k*dotDirN + sqrt(1.0 - (1.0-dotDirN*dotDirN)*k*k))/(k+1.0);
+					weight*= dotDirN;					
+					int idx_probe = get_probe_idx_lod(vert, lod);
+					sum_weight += weight;
+					acc_coeffs(coeffs, idx_probe, weight);
+				
 				}
 			}
 		}
@@ -1332,12 +1332,7 @@ void main()
 #endif
 
 	vec3 viewDir = normalize(vViewDir);
-	vec3 norm = normalize(vNorm);
-
-	if (uDoubleSided!=0)
-	{		
-		if (dot(viewDir, norm)<0.0) norm = -norm;
-	}
+	vec3 norm = normalize(vNorm);	
 
 #if HAS_NORMAL_MAP
 	if (length(vTangent)>0.0 && length(vBitangent)>0.0)
@@ -1349,6 +1344,11 @@ void main()
 		norm = normalize(bump.x*T + bump.y*B + bump.z*norm);
 	}
 #endif	
+
+	if (uDoubleSided!=0 && !gl_FrontFacing)
+	{		
+		norm = -norm;
+	}
 
 	PhysicalMaterial material;
 

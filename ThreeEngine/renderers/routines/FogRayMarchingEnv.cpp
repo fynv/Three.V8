@@ -108,7 +108,7 @@ layout (std430, binding = 5) buffer ProbeReferences
 
 float quantize_vis(float limit, float dis)
 {
-	float x = (dis-0.9*limit)/(0.1*limit);
+	float x = dis-0.9*limit;
 	if (x<0.0) x = 0.0;
 	return pow(0.01, x);
 }
