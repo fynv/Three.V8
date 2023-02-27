@@ -645,6 +645,39 @@ const env_light = {
             
             doc.scene.indirectLight = probe_grid;
         }
+        else if (type == "lod_probe_grid")
+        {
+            let probe_data = "assets/lod_probes.dat";
+            if (props.hasOwnProperty('probe_data')) 
+            {
+                probe_data = props.probe_data;
+            }
+            let probe_grid = LODProbeGridLoader.loadFile(probe_data);
+            if (probe_grid == null)
+            {
+                probe_grid = new LODProbeGrid();
+                if (props.hasOwnProperty('base_divisions')) 
+                {
+                    const divisions = props.base_divisions.split(',');
+                    probe_grid.setBaseDivisions(parseInt(divisions[0]), parseInt(divisions[1]), parseInt(divisions[2]));
+                }
+                if (props.hasOwnProperty('coverage_min')) 
+                {
+                    const coverage_min = props.coverage_min.split(',');
+                    probe_grid.setCoverageMin(parseFloat(coverage_min[0]), parseFloat(coverage_min[1]), parseFloat(coverage_min[2]));
+                }
+                if (props.hasOwnProperty('coverage_max')) 
+                {
+                    const coverage_max = props.coverage_max.split(',');
+                    probe_grid.setCoverageMax(parseFloat(coverage_max[0]), parseFloat(coverage_max[1]), parseFloat(coverage_max[2]));
+                }
+                if (props.hasOwnProperty('sub_division_level'))
+                {
+                    probe_grid.subDivisionLevel = parseFloat(props.sub_division_level);
+                }
+            }
+            doc.scene.indirectLight = probe_grid;
+        }
         
         if (props.hasOwnProperty('dynamic_map'))
         {
@@ -1338,7 +1371,6 @@ export class Document
     
     render(renderer)
     {
-        
         if (this.scene && this.camera) 
         {
             renderer.render(this.scene, this.camera);

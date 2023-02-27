@@ -39,6 +39,12 @@ function tuning(args)
     return doc.tuning(input);
 }
 
+function initialize(args)
+{
+    let input = JSON.parse(args);
+    return doc.initialize(input);
+}
+
 function generate(args)
 {
     let input = JSON.parse(args);
@@ -67,7 +73,7 @@ function init(width, height)
     doc = new Document(view);
     clock = new Clock();
     
-    message_map = { isModified, setXML, getXML, picking, pick_obj, tuning, generate, create, remove};
+    message_map = { isModified, setXML, getXML, picking, pick_obj, tuning, initialize, generate, create, remove};
 }
 
 function render(width, height, size_changed)

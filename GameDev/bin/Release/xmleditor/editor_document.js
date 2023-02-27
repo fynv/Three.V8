@@ -300,6 +300,65 @@ class ProbeGridBaker
     
 }
 
+class LODProbeGridBaker
+{
+    constructor(doc, proxy, xml_node, iterations)
+    {
+        this.doc = doc;
+        this.xml_node = xml_node;
+        
+        this.cube_target = new CubeRenderTarget(64,64);
+        this.probe_grid = this.doc.scene.indirectLight;
+        
+        this.probe_count = this.probe_grid.numberOfProbes;
+        this.probe_idx = 0;
+        
+        this.iterations = iterations;
+        this.iter = 0;
+        this.check_time = now();
+        
+    }
+    
+    render(renderer)
+    {
+        let frame_time = now();
+        
+        if (frame_time -  this.check_time>=500)
+        {
+            print(`Building LOD Probe-Grid, iteration: ${this.iter+1}/${this.iterations}, probe: ${this.probe_idx +1}/${this.probe_count}`);
+            this.check_time = frame_time;
+        }
+        while(now()-frame_time<10)
+        {
+            renderer.updateProbe(this.doc.scene, this.cube_target, this.probe_grid, this.probe_idx);
+            this.probe_idx++;
+            if (this.probe_idx>=this.probe_count)
+            {
+                this.probe_idx = 0;
+                this.iter++;
+                
+                if (this.iter >= this.iterations)
+                {
+                    print("Saving LOD Probe-Grid.");
+                    let props = this.xml_node.attributes;
+                    let probe_data = "assets/lod_probes.dat";
+                    if (props.hasOwnProperty('probe_data')) 
+                    {
+                        probe_data = props.probe_data;
+                    }
+                    let res = LODProbeGridSaver.saveFile(this.probe_grid, probe_data);
+                    if (!res)
+                    {
+                        print("Failed to save probe-grid.");
+                    }
+                    this.doc.lod_probe_grid_bake = null;
+                }
+            }
+        }
+    }
+    
+}
+
 // Tags
 const create_default_controls = (doc)=>{
     if (doc.controls)
@@ -945,6 +1004,63 @@ const create_probe_grid = (doc, props) => {
     return proxy;
 }
 
+const create_lod_probe_grid = (doc, props) => {
+    const proxy = new LODProbeGridWidget();    
+    if (props.hasOwnProperty('base_divisions')) 
+    {
+        const divisions = props.base_divisions.split(',');
+        proxy.setBaseDivisions(parseInt(divisions[0]), parseInt(divisions[1]), parseInt(divisions[2]));
+    }
+    if (props.hasOwnProperty('coverage_min')) 
+    {
+        const coverage_min = props.coverage_min.split(',');
+        proxy.setCoverageMin(parseFloat(coverage_min[0]), parseFloat(coverage_min[1]), parseFloat(coverage_min[2]));
+    }
+    if (props.hasOwnProperty('coverage_max')) 
+    {
+        const coverage_max = props.coverage_max.split(',');
+        proxy.setCoverageMax(parseFloat(coverage_max[0]), parseFloat(coverage_max[1]), parseFloat(coverage_max[2]));
+    }
+    proxy.subDivisionLevel = 2;
+    if (props.hasOwnProperty('sub_division_level'))
+    {
+        proxy.subDivisionLevel = parseInt(props.sub_division_level);
+    }
+    doc.scene.addWidget(proxy);
+    
+    let probe_data = "assets/lod_probes.dat";
+    if (props.hasOwnProperty('probe_data')) 
+    {
+        probe_data = props.probe_data;
+    }
+    
+    let probe_grid = LODProbeGridLoader.loadFile(probe_data);
+    if (probe_grid == null)
+    {
+        probe_grid = new LODProbeGrid();
+        probe_grid.setBaseDivisions(proxy.baseDivisions);
+        probe_grid.setCoverageMin(proxy.coverageMin);
+        probe_grid.setCoverageMax(proxy.coverageMax);
+        probe_grid.subDivisionLevel = proxy.subDivisionLevel;
+    }
+    else
+    {
+        proxy.setBaseDivisions(probe_grid.baseDivisions);
+        proxy.setCoverageMin(probe_grid.coverageMin);
+        proxy.setCoverageMax(probe_grid.coverageMax);
+        proxy.subDivisionLevel = probe_grid.subDivisionLevel;
+        
+        props.base_divisions = `${probe_grid.baseDivisions.x}, ${probe_grid.baseDivisions.y}, ${probe_grid.baseDivisions.z}`;
+        props.coverage_min = `${probe_grid.coverageMin.x}, ${probe_grid.coverageMin.y}, ${probe_grid.coverageMin.z}`;
+        props.coverage_max = `${probe_grid.coverageMax.x}, ${probe_grid.coverageMax.y}, ${probe_grid.coverageMax.z}`;
+        props.sub_division_level = `${probe_grid.subDivisionLevel}`;
+    }
+    proxy.probeGrid = probe_grid;
+    
+    doc.scene.indirectLight = probe_grid;
+    
+    return proxy;
+}
 
 const tuning_ambient_light = (doc, obj, input) =>{
     let node = doc.internal_index[obj.uuid].xml_node;
@@ -1214,6 +1330,100 @@ const tuning_probe_grid =  (doc, obj, input) =>{
     
 }
 
+const tuning_lod_probe_grid =  (doc, obj, input) =>{
+    let node = doc.internal_index[obj.uuid].xml_node;
+    let props = node.attributes;
+    
+    if ("probe_data" in input)
+    {
+        props.probe_data = input.probe_data;
+        
+        let probe_grid = LODProbeGridLoader.loadFile(input.probe_data);
+        if (probe_grid == null)
+        {
+            probe_grid = new LODProbeGrid();
+            probe_grid.setBaseDivisions(obj.baseDivisions);
+            probe_grid.setCoverageMin(obj.coverageMin);
+            probe_grid.setCoverageMax(obj.coverageMax);
+            probe_grid.subDivisionLevel = obj.subDivisionLevel;
+        }
+        else
+        {
+            obj.setBaseDivisions(probe_grid.baseDivisions);
+            obj.setCoverageMin(probe_grid.coverageMin);
+            obj.setCoverageMax(probe_grid.coverageMax);
+            obj.subDivisionLevel = probe_grid.subDivisionLevel;
+            
+            props.base_divisions = `${probe_grid.baseDivisions.x}, ${probe_grid.baseDivisions.y}, ${probe_grid.baseDivisions.z}`;
+            props.coverage_min = `${probe_grid.coverageMin.x}, ${probe_grid.coverageMin.y}, ${probe_grid.coverageMin.z}`;
+            props.coverage_max = `${probe_grid.coverageMax.x}, ${probe_grid.coverageMax.y}, ${probe_grid.coverageMax.z}`;
+            props.sub_division_level = `${probe_grid.subDivisionLevel}`;
+        }
+        
+        if (props.hasOwnProperty('dynamic_map'))
+        {
+            probe_grid.dynamicMap = string_to_boolean(props.dynamic_map);
+        }
+        
+        doc.scene.indirectLight = probe_grid;
+        
+        return JSON.stringify(props);
+    }
+    
+    if ("base_divisions" in input)
+    {
+        props.base_divisions = input.base_divisions;
+        let divisions = input.base_divisions.split(',');
+        obj.setBaseDivisions(parseInt(divisions[0]), parseInt(divisions[1]), parseInt(divisions[2]));
+    }
+    
+    if ("coverage_min" in input)
+    {
+        props.coverage_min = input.coverage_min;
+        let coverage_min = input.coverage_min.split(',');
+        obj.setCoverageMin(parseFloat(coverage_min[0]), parseFloat(coverage_min[1]), parseFloat(coverage_min[2]));
+    }
+    
+    if ("coverage_max" in input)
+    {
+        props.coverage_max = input.coverage_max;
+        let coverage_max = input.coverage_max.split(',');
+        obj.setCoverageMax(parseFloat(coverage_max[0]), parseFloat(coverage_max[1]), parseFloat(coverage_max[2]));
+    }
+    
+    if ("sub_division_level" in input)
+    {
+        props.sub_division_level = input.sub_division_level;
+        obj.subDivisionLevel = parseFloat(input.sub_division_level);
+    }
+    
+    return "";
+    
+}
+
+const initialize_lod_probe_grid = (doc, obj, input) =>{
+    let node = doc.internal_index[obj.uuid].xml_node;
+    let props = node.attributes;
+    let probe_grid = doc.scene.indirectLight;
+    
+    let count = probe_grid.numberOfProbes;
+    let changed = (count == 0 || obj.coverageMin.x != probe_grid.coverageMin.x || obj.coverageMin.y != probe_grid.coverageMin.y || obj.coverageMin.z != probe_grid.coverageMin.z
+        || obj.coverageMax.x != probe_grid.coverageMax.x || obj.coverageMax.y != probe_grid.coverageMax.y || obj.coverageMax.z != probe_grid.coverageMax.z
+        || obj.baseDivisions.x != probe_grid.baseDivisions.x || obj.baseDivisions.y != probe_grid.baseDivisions.y || obj.baseDivisions.z != probe_grid.baseDivisions.z
+        || obj.subDivisionLevel != probe_grid.subDivisionLevel);
+        
+    if (changed)
+    {
+        probe_grid.setBaseDivisions(obj.baseDivisions);
+        probe_grid.setCoverageMin(obj.coverageMin);
+        probe_grid.setCoverageMax(obj.coverageMax);
+        probe_grid.subDivisionLevel = obj.subDivisionLevel;
+        probe_grid.initialize(doc.renderer, doc.scene);
+        count = probe_grid.numberOfProbes;
+    }
+    return `${count}`;
+}
+
 const generate_cube_env_light = (doc, obj, input) =>{
     let node = doc.internal_index[obj.uuid].xml_node;
     let props = node.attributes;
@@ -1240,6 +1450,14 @@ const generate_probe_grid = (doc, obj, input) =>{
     let node = doc.internal_index[obj.uuid].xml_node;
     let iterations = parseInt(input.iterations);
     doc.probe_grid_bake = new ProbeGridBaker(doc, obj, node, iterations);
+}
+
+
+const generate_lod_probe_grid = (doc, obj, input) =>{
+    initialize_lod_probe_grid(doc, obj, input);
+    let node = doc.internal_index[obj.uuid].xml_node;
+    let iterations = parseInt(input.iterations);
+    doc.lod_probe_grid_bake = new LODProbeGridBaker(doc, obj, node, iterations);
 }
 
 const env_light = {
@@ -1271,6 +1489,10 @@ const env_light = {
         {
             ret = create_probe_grid(doc, props);
         }
+        else if (type == "lod_probe_grid")
+        {
+            ret = create_lod_probe_grid(doc, props);
+        }
         
         if (props.hasOwnProperty('dynamic_map'))
         {
@@ -1290,7 +1512,7 @@ const env_light = {
             type = props.type;
         }
         
-        if (type == "cube" || type =="probe_grid")
+        if (type == "cube" || type =="probe_grid" || type == "lod_probe_grid")
         {
             doc.scene.removeWidget(obj);
         }
@@ -1344,8 +1566,22 @@ const env_light = {
             {
                 return tuning_probe_grid(doc,obj,input);
             }
+            else if (type == "lod_probe_grid")
+            {
+                return tuning_lod_probe_grid(doc,obj,input);
+            }
         }
         
+    },
+    
+    initialize: (doc, obj, input) =>{
+        let node = doc.internal_index[obj.uuid].xml_node;
+        let props = node.attributes;
+        if (props.type == "lod_probe_grid")
+        {
+            return initialize_lod_probe_grid(doc,obj,input);
+        }
+        return "";
     },
     
     generate: (doc, obj, input) =>{
@@ -1355,11 +1591,16 @@ const env_light = {
         {
             generate_cube_env_light(doc,obj,input);
         }
-        if (props.type == "probe_grid")
+        else if (props.type == "probe_grid")
         {
             generate_probe_grid(doc,obj,input);
         }
+        else if (props.type == "lod_probe_grid")
+        {
+            generate_lod_probe_grid(doc,obj,input);
+        }
     }
+    
 }
 
 
@@ -2001,6 +2242,7 @@ export class Document
         
         this.env_gen = null;
         this.probe_grid_bake = null;
+        this.lod_probe_grid_bake = null;
     }
     
     tick(delta)
@@ -2016,6 +2258,8 @@ export class Document
     
     render(renderer)
     {
+        this.renderer = renderer;
+        
         if (this.env_gen!=null)
         {
             this.env_gen.render(renderer);
@@ -2024,6 +2268,11 @@ export class Document
         if (this.probe_grid_bake!=null)
         {
             this.probe_grid_bake.render(renderer);
+        }
+        
+        if (this.lod_probe_grid_bake!=null)
+        {
+            this.lod_probe_grid_bake.render(renderer);
         }
         
         if (this.scene && this.camera) 
@@ -2237,13 +2486,24 @@ export class Document
     
     tuning(input)
     {
-        if (this.picked_key=="") return;
+        if (this.picked_key=="") return "";
         let picked_obj = this.internal_index[this.picked_key].obj;
         let node = this.internal_index[this.picked_key].xml_node;
         let tag = node.tagName;
         
-        if (!(tag in this.Tags)) return;
+        if (!(tag in this.Tags)) return "";
         return this.Tags[tag].tuning(this, picked_obj, input);
+    }
+    
+    initialize(input)
+    {
+        if (this.picked_key=="") return "";
+        let picked_obj = this.internal_index[this.picked_key].obj;
+        let node = this.internal_index[this.picked_key].xml_node;
+        let tag = node.tagName;
+        
+        if (!(tag in this.Tags)) return "";
+        return this.Tags[tag].initialize(this, picked_obj, input);
     }
 
     generate(input)

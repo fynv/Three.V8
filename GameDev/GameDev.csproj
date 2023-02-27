@@ -108,6 +108,9 @@
     <Compile Include="HemisphereSkyTuner.xaml.cs">
       <DependentUpon>HemisphereSkyTuner.xaml</DependentUpon>
     </Compile>
+    <Compile Include="LODProbeGridTuner.xaml.cs">
+      <DependentUpon>LODProbeGridTuner.xaml</DependentUpon>
+    </Compile>
     <Compile Include="ModelTuner.xaml.cs">
       <DependentUpon>ModelTuner.xaml</DependentUpon>
     </Compile>
@@ -224,6 +227,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="JsonEditor.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="LODProbeGridTuner.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

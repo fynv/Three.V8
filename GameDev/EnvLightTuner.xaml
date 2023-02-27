@@ -10,11 +10,12 @@
         <StackPanel Orientation="Vertical">
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="Type:" VerticalAlignment="Center"/>
-                <ComboBox x:Name="lst_types" Width="100" Margin="5" SelectionChanged="lst_types_SelectionChanged">
+                <ComboBox x:Name="lst_types" Width="130" Margin="5" SelectionChanged="lst_types_SelectionChanged">
                     <ComboBoxItem Tag="uniform">Uniform</ComboBoxItem>
                     <ComboBoxItem Tag="hemisphere" IsSelected="True">Hemisphere</ComboBoxItem>
                     <ComboBoxItem Tag="cube">Cube</ComboBoxItem>
                     <ComboBoxItem Tag="probe_grid">Probe-Grid</ComboBoxItem>
+                    <ComboBoxItem Tag="lod_probe_grid">LOD Probe-Grid</ComboBoxItem>
                 </ComboBox>
                 <CheckBox x:Name="chk_dynamic" VerticalAlignment="Center" Content="Dynamic reflection map" Checked="chk_dynamic_Checked" Unchecked="chk_dynamic_Checked" />
             </StackPanel>

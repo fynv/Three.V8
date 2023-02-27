@@ -50,6 +50,10 @@ namespace GameDev
             {
                 lst_types.SelectedIndex = 3;
             }
+            else if (type == "lod_probe_grid")
+            {
+                lst_types.SelectedIndex = 4;
+            }
             load_type(type);
 
             initialized = true;
@@ -76,6 +80,11 @@ namespace GameDev
             else if (type == "probe_grid")
             {
                 var tuner = new ProbeGridTuner(game_player, jobj);
+                property_area.Children.Add(tuner);
+            }
+            else if (type == "lod_probe_grid")
+            {
+                var tuner = new LODProbeGridTuner(game_player, jobj);
                 property_area.Children.Add(tuner);
             }
         }
