@@ -310,6 +310,9 @@ class LODProbeGridBaker
         this.cube_target = new CubeRenderTarget(64,64);
         this.probe_grid = this.doc.scene.indirectLight;
         
+        print("Constructing visibility information...");
+        this.probe_grid.constructVisibility(doc.scene);
+        
         this.probe_count = this.probe_grid.numberOfProbes;
         this.probe_idx = 0;
         

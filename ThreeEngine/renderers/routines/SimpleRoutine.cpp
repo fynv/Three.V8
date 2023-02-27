@@ -354,6 +354,321 @@ vec3 getRadiance(in vec3 reflectVec, float roughness)
 
 #endif
 
+#if HAS_PROBE_GRID || HAS_LOD_PROBE_GRID
+
+layout (std430, binding = BINDING_PROBE_VISIBILITY) buffer ProbeVisibility
+{
+	float bProbeVisibility[];
+};
+
+float quantize_vis(float limit, float dis)
+{
+	float x = dis-0.9*limit;
+	if (x<0.0) x = 0.0;
+	return pow(0.01, x);
+}
+
+float get_visibility_common(in vec3 spacing, int idx, in vec3 vert_world)
+{		
+	float len_xyz = length(spacing);
+	float len_xy = length(vec2(spacing.x, spacing.y));
+	float len_yz = length(vec2(spacing.y, spacing.z));
+	float len_zx = length(vec2(spacing.z, spacing.x));
+
+	int offset = idx*26;
+	vec3 dir = vWorldPos - vert_world;	
+	vec3 dir_abs = abs(dir)/spacing;
+	int major_dir = 0;
+	if (dir_abs.y>dir_abs.x)
+	{
+		if (dir_abs.z>dir_abs.y)
+		{
+			major_dir = 2;
+		}
+		else
+		{
+			major_dir = 1;
+		}
+	}
+	else
+	{
+		if (dir_abs.z>dir_abs.x)
+		{
+			major_dir = 2;
+		}		
+	}
+
+	float limit = 0.0;
+	if (major_dir == 0)
+	{
+		dir_abs/=dir_abs.x;
+		if (dir.x<0)
+		{
+			float dis0 = bProbeVisibility[offset];
+			if (dir.y<0)
+			{
+				float dis14 = bProbeVisibility[offset+14] * spacing.x/len_xy;
+				float a = (1.0 - dir_abs.y) * dis0 + dir_abs.y *dis14;
+				float b = 0.0;
+				if (dir.z<0)
+				{
+					float dis10 = bProbeVisibility[offset+10] * spacing.x/len_zx;
+					float dis18 = bProbeVisibility[offset+18] * spacing.x/len_xyz;
+					b = (1.0 - dir_abs.y) * dis10 + dir_abs.y *dis18;
+				}
+				else
+				{
+					float dis11 = bProbeVisibility[offset+11] * spacing.x/len_zx;
+					float dis22 = bProbeVisibility[offset+22] * spacing.x/len_xyz;
+					b = (1.0 - dir_abs.y) * dis11 + dir_abs.y *dis22;					
+				}
+				limit = (1.0 - dir_abs.z) * a + dir_abs.z * b;
+			}
+			else
+			{
+				float dis16 = bProbeVisibility[offset+16] * spacing.x/len_xy;
+				float a = (1.0 - dir_abs.y) * dis0 + dir_abs.y *dis16;
+				float b = 0.0;
+				if (dir.z<0)
+				{
+					float dis10 = bProbeVisibility[offset+10] * spacing.x/len_zx;
+					float dis20 = bProbeVisibility[offset+20] * spacing.x/len_xyz;
+					b = (1.0 - dir_abs.y) * dis10 + dir_abs.y *dis20;					
+				}
+				else
+				{
+					float dis11 = bProbeVisibility[offset+11] * spacing.x/len_zx;
+					float dis24 = bProbeVisibility[offset+24] * spacing.x/len_xyz;
+					b = (1.0 - dir_abs.y) * dis11 + dir_abs.y *dis24;
+				}
+				limit = (1.0 - dir_abs.z) * a + dir_abs.z * b;
+			}			
+		}
+		else
+		{
+			float dis1 = bProbeVisibility[offset + 1];
+			if (dir.y<0)
+			{
+				float dis15 = bProbeVisibility[offset+15] * spacing.x/len_xy;
+				float a = (1.0 - dir_abs.y) * dis1 + dir_abs.y *dis15;
+				float b = 0.0;
+				if (dir.z<0)
+				{
+					float dis12 = bProbeVisibility[offset+12] * spacing.x/len_zx;
+					float dis19 = bProbeVisibility[offset+19] * spacing.x/len_xyz;
+					b = (1.0 - dir_abs.y) * dis12 + dir_abs.y *dis19;
+				}
+				else
+				{
+					float dis13 = bProbeVisibility[offset+13] * spacing.x/len_zx;
+					float dis23 = bProbeVisibility[offset+23] * spacing.x/len_xyz;
+					b = (1.0 - dir_abs.y) * dis13 + dir_abs.y *dis23;
+				}
+				limit = (1.0 - dir_abs.z) * a + dir_abs.z * b;
+			}
+			else
+			{
+				float dis17 = bProbeVisibility[offset+17] * spacing.x/len_xy;
+				float a = (1.0 - dir_abs.y) * dis1 + dir_abs.y *dis17;
+				float b = 0.0;
+				if (dir.z<0)
+				{
+					float dis12 = bProbeVisibility[offset+12] * spacing.x/len_zx;
+					float dis21 = bProbeVisibility[offset+21] * spacing.x/len_xyz;
+					b = (1.0 - dir_abs.y) * dis12 + dir_abs.y *dis21;
+				}
+				else
+				{
+					float dis13 = bProbeVisibility[offset+13] * spacing.x/len_zx;
+					float dis25 = bProbeVisibility[offset+25] * spacing.x/len_xyz;
+					b = (1.0 - dir_abs.y) * dis13 + dir_abs.y *dis25;
+				}
+				limit = (1.0 - dir_abs.z) * a + dir_abs.z * b;
+			}
+		}
+		return quantize_vis(limit, abs(dir.x));
+	}
+	else if (major_dir == 1)
+	{
+		dir_abs/=dir_abs.y;
+		if (dir.y<0)
+		{
+			float dis2 = bProbeVisibility[offset + 2];
+			if (dir.x<0)
+			{
+				float dis14 = bProbeVisibility[offset+14] * spacing.y/len_xy;
+				float a = (1.0 - dir_abs.x) * dis2 + dir_abs.x *dis14;
+				float b = 0.0;
+				if (dir.z<0)
+				{
+					float dis6 = bProbeVisibility[offset+6] * spacing.y/len_yz;
+					float dis18 = bProbeVisibility[offset+18] * spacing.y/len_xyz;
+					b = (1.0 - dir_abs.x) * dis6 + dir_abs.x *dis18;
+				}
+				else
+				{
+					float dis8 = bProbeVisibility[offset+8] * spacing.y/len_yz;
+					float dis22 = bProbeVisibility[offset+22] * spacing.y/len_xyz;
+					b = (1.0 - dir_abs.x) * dis8 + dir_abs.x *dis22;
+				}
+				limit = (1.0 - dir_abs.z) * a + dir_abs.z * b;
+			}
+			else
+			{
+				float dis15 = bProbeVisibility[offset+15] * spacing.y/len_xy;
+				float a = (1.0 - dir_abs.x) * dis2 + dir_abs.x *dis15;
+				float b = 0.0;
+				if (dir.z<0)
+				{
+					float dis6 = bProbeVisibility[offset+6] * spacing.y/len_yz;
+					float dis19 = bProbeVisibility[offset+19] * spacing.y/len_xyz;
+					b = (1.0 - dir_abs.x) * dis6 + dir_abs.x *dis19;
+				}
+				else
+				{
+					float dis8 = bProbeVisibility[offset+8] * spacing.y/len_yz;
+					float dis23 = bProbeVisibility[offset+23] * spacing.y/len_xyz;
+					b = (1.0 - dir_abs.x) * dis8 + dir_abs.x *dis23;
+				}
+				limit = (1.0 - dir_abs.z) * a + dir_abs.z * b;
+			}
+		}
+		else
+		{
+			float dis3 = bProbeVisibility[offset + 3];
+			if (dir.x<0)
+			{
+				float dis16 = bProbeVisibility[offset+16]*spacing.y/len_xy;
+				float a = (1.0 - dir_abs.x) * dis3 + dir_abs.x *dis16;
+				float b = 0.0;
+				if (dir.z<0)
+				{
+					float dis7 = bProbeVisibility[offset+7]*spacing.y/len_yz;
+					float dis20 = bProbeVisibility[offset+20]*spacing.y/len_xyz;
+					b = (1.0 - dir_abs.x) * dis7 + dir_abs.x *dis20;
+				}
+				else
+				{
+					float dis9 = bProbeVisibility[offset+9]*spacing.y/len_yz;
+					float dis24 = bProbeVisibility[offset+24]*spacing.y/len_xyz;
+					b = (1.0 - dir_abs.x) * dis9 + dir_abs.x *dis24;
+				}
+				limit = (1.0 - dir_abs.z) * a + dir_abs.z * b;
+			}
+			else
+			{
+				float dis17 = bProbeVisibility[offset+17];
+				float a = (1.0 - dir_abs.x) * dis3 + dir_abs.x *dis17;
+				float b = 0.0;
+				if (dir.z<0)
+				{
+					float dis7 = bProbeVisibility[offset+7]*spacing.y/len_yz;
+					float dis21 = bProbeVisibility[offset+21]*spacing.y/len_xyz;
+					b = (1.0 - dir_abs.x) * dis7 + dir_abs.x *dis21;
+				}
+				else
+				{
+					float dis9 = bProbeVisibility[offset+9]*spacing.y/len_yz;
+					float dis25 = bProbeVisibility[offset+25]*spacing.y/len_xyz;
+					b = (1.0 - dir_abs.x) * dis9 + dir_abs.x *dis25;
+				}
+				limit = (1.0 - dir_abs.z) * a + dir_abs.z * b;		
+			}
+		}
+		return quantize_vis(limit, abs(dir.y));
+	}
+	else if (major_dir == 2)
+	{
+		dir_abs/=dir_abs.z;
+		if (dir.z<0)
+		{
+			float dis4 = bProbeVisibility[offset + 4];
+			if (dir.x<0)
+			{
+				float dis10 = bProbeVisibility[offset+10]*spacing.z/len_zx;
+				float a = (1.0 - dir_abs.x) * dis4 + dir_abs.x *dis10;
+				float b = 0.0;
+				if (dir.y<0)
+				{
+					float dis6 = bProbeVisibility[offset+6]*spacing.z/len_yz;
+					float dis18 = bProbeVisibility[offset+18]*spacing.z/len_xyz;
+					b = (1.0 - dir_abs.x) * dis6 + dir_abs.x *dis18;					
+				}
+				else
+				{
+					float dis7 = bProbeVisibility[offset+7]*spacing.z/len_yz;
+					float dis20 = bProbeVisibility[offset+20]*spacing.z/len_xyz;
+					b = (1.0 - dir_abs.x) * dis7 + dir_abs.x *dis20;
+				}
+				limit = (1.0 - dir_abs.y) * a + dir_abs.y * b;
+			}
+			else
+			{
+				float dis12 = bProbeVisibility[offset+12]*spacing.z/len_zx;
+				float a = (1.0 - dir_abs.x) * dis4 + dir_abs.x *dis12;
+				float b = 0.0;
+				if (dir.y<0)
+				{
+					float dis6 = bProbeVisibility[offset+6]*spacing.z/len_yz;
+					float dis19 = bProbeVisibility[offset+19]*spacing.z/len_xyz;
+					b = (1.0 - dir_abs.x) * dis6 + dir_abs.x *dis19;
+				}
+				else
+				{
+					float dis7 = bProbeVisibility[offset+7]*spacing.z/len_yz;
+					float dis21 = bProbeVisibility[offset+21]*spacing.z/len_xyz;
+					b = (1.0 - dir_abs.x) * dis7 + dir_abs.x *dis21;
+				}
+				limit = (1.0 - dir_abs.y) * a + dir_abs.y * b;
+			}
+		}		
+		else
+		{
+			float dis5 = bProbeVisibility[offset + 5];
+			if (dir.x<0)
+			{
+				float dis11 = bProbeVisibility[offset+11]*spacing.z/len_zx;
+				float a = (1.0 - dir_abs.x) * dis5 + dir_abs.x *dis11;
+				float b = 0.0;
+				if (dir.y<0)
+				{
+					float dis8 = bProbeVisibility[offset+8]*spacing.z/len_yz;
+					float dis22 = bProbeVisibility[offset+22]*spacing.z/len_xyz;
+					b = (1.0 - dir_abs.x) * dis8 + dir_abs.x *dis22;
+				}
+				else
+				{
+					float dis9 = bProbeVisibility[offset+9]*spacing.z/len_yz;
+					float dis24 = bProbeVisibility[offset+24]*spacing.z/len_xyz;
+					b = (1.0 - dir_abs.x) * dis9 + dir_abs.x *dis24;
+				}
+				limit = (1.0 - dir_abs.y) * a + dir_abs.y * b;
+			}
+			else
+			{
+				float dis13 = bProbeVisibility[offset+13]*spacing.z/len_zx;
+				float a = (1.0 - dir_abs.x) * dis5 + dir_abs.x *dis13;
+				float b = 0.0;
+				if (dir.y<0)
+				{
+					float dis8 = bProbeVisibility[offset+8]*spacing.z/len_yz;
+					float dis23 = bProbeVisibility[offset+23]*spacing.z/len_xyz;
+					b = (1.0 - dir_abs.x) * dis8 + dir_abs.x *dis23;
+				}
+				else
+				{
+					float dis9 = bProbeVisibility[offset+9]*spacing.z/len_yz;
+					float dis25 = bProbeVisibility[offset+25]*spacing.z/len_xyz;
+					b = (1.0 - dir_abs.x) * dis9 + dir_abs.x *dis25;
+				}
+				limit = (1.0 - dir_abs.y) * a + dir_abs.y * b;
+			}
+		}
+		return quantize_vis(limit, abs(dir.z));
+	}
+}
+#endif
+
 #if HAS_PROBE_GRID
 layout (std140, binding = BINDING_PROBE_GRID) uniform ProbeGrid
 {
@@ -380,6 +695,19 @@ layout (std430, binding = BINDING_PROBE_REFERENCES) buffer ProbeReferences
 	uint bReferenced[];
 };
 #endif
+
+float get_visibility(in ivec3 vert, in vec3 vert_world)
+{
+	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
+	vec3 spacing = size_grid/vec3(uDivisions);
+
+	float y0 = pow((float(vert.y) + 0.5f) / float(uDivisions.y), uYpower);
+	float y1 = pow((float(vert.y+1) + 0.5f) / float(uDivisions.y), uYpower);
+	spacing.y = (y1-y0)*size_grid.y;
+	
+	int idx = vert.x + (vert.y + vert.z*uDivisions.y)*uDivisions.x;
+	return get_visibility_common(spacing, idx, vert_world);
+}
 
 void acc_coeffs(inout vec4 coeffs[9], in ivec3 vert, in float weight)
 {
@@ -431,7 +759,7 @@ vec3 getIrradiance(in vec3 normal)
 					float dotDirN = dot(dir, N);
 					float k = 0.9;
 					dotDirN = (k*dotDirN + sqrt(1.0 - (1.0-dotDirN*dotDirN)*k*k))/(k+1.0);
-					weight*=dotDirN;
+					weight*= dotDirN * get_visibility(vert,vert_world);
 					sum_weight += weight;
 					acc_coeffs(coeffs, vert, weight);
 				}
@@ -1269,10 +1597,24 @@ void SimpleRoutine::s_generate_shaders(const Options& options, Bindings& binding
 		bindings.binding_lod_probe_indices = bindings.binding_probe_references;
 	}
 
+	if (options.has_probe_grid || options.has_lod_probe_grid)
+	{
+		bindings.binding_probe_visibility = bindings.binding_lod_probe_indices + 1;
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_PROBE_VISIBILITY %d\n", bindings.binding_probe_visibility);
+			defines += line;
+		}
+	}
+	else
+	{
+		bindings.binding_probe_visibility = bindings.binding_lod_probe_indices;
+	}
+
 	if (options.has_ambient_light)
 	{
 		defines += "#define HAS_AMBIENT_LIGHT 1\n";
-		bindings.binding_ambient_light = bindings.binding_lod_probe_indices + 1;
+		bindings.binding_ambient_light = bindings.binding_probe_visibility + 1;
 		{
 			char line[64];
 			sprintf(line, "#define BINDING_AMBIENT_LIGHT %d\n", bindings.binding_ambient_light);
@@ -1282,7 +1624,7 @@ void SimpleRoutine::s_generate_shaders(const Options& options, Bindings& binding
 	else
 	{
 		defines += "#define HAS_AMBIENT_LIGHT 0\n";
-		bindings.binding_ambient_light = bindings.binding_lod_probe_indices;
+		bindings.binding_ambient_light = bindings.binding_probe_visibility;
 	}
 
 	if (options.has_hemisphere_light)
@@ -1376,7 +1718,11 @@ void SimpleRoutine::render(const RenderParams& params)
 		if (params.lights->probe_grid->m_probe_buf != nullptr)
 		{
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, m_bindings.binding_probes, params.lights->probe_grid->m_probe_buf->m_id);
-		}		
+		}
+		if (params.lights->probe_grid->m_visibility_buf != nullptr)
+		{
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, m_bindings.binding_probe_visibility, params.lights->probe_grid->m_visibility_buf->m_id);
+		}
 		if (m_options.probe_reference_recorded)
 		{
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, m_bindings.binding_probe_references, params.lights->probe_grid->m_ref_buf->m_id);
@@ -1393,6 +1739,10 @@ void SimpleRoutine::render(const RenderParams& params)
 		if (params.lights->lod_probe_grid->m_sub_index_buf != nullptr)
 		{
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, m_bindings.binding_lod_probe_indices, params.lights->lod_probe_grid->m_sub_index_buf->m_id);
+		}
+		if (params.lights->lod_probe_grid->m_visibility_buf != nullptr)
+		{
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, m_bindings.binding_probe_visibility, params.lights->lod_probe_grid->m_visibility_buf->m_id);
 		}
 	}
 

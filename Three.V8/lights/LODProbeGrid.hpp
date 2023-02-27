@@ -28,6 +28,7 @@ public:
 	static void GetNumberOfProbes(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 
 	static void Initialize(const v8::FunctionCallbackInfo<v8::Value>& info);
+	static void ConstructVisibility(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 };
 
@@ -51,7 +52,7 @@ v8::Local<v8::FunctionTemplate> WrapperLODProbeGrid::create_template(v8::Isolate
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "numberOfProbes").ToLocalChecked(), GetNumberOfProbes, 0);
 
 	templ->InstanceTemplate()->Set(isolate, "initialize", v8::FunctionTemplate::New(isolate, Initialize));
-
+	templ->InstanceTemplate()->Set(isolate, "constructVisibility", v8::FunctionTemplate::New(isolate, ConstructVisibility));
 
 	return templ;
 }
@@ -197,4 +198,13 @@ void WrapperLODProbeGrid::GetNumberOfProbes(v8::Local<v8::String> property, cons
 	LocalContext lctx(info);
 	LODProbeGrid* self = lctx.self<LODProbeGrid>();
 	info.GetReturnValue().Set(lctx.num_to_jnum(self->getNumberOfProbes()));
+}
+
+
+void WrapperLODProbeGrid::ConstructVisibility(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	LODProbeGrid* self = lctx.self<LODProbeGrid>();
+	Scene* scene = lctx.jobj_to_obj<Scene>(info[0]);
+	self->construct_visibility(*scene);
 }

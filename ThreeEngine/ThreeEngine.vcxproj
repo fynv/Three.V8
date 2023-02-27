@@ -164,7 +164,7 @@
     <ClCompile Include="loaders\FileLoader.cpp" />
     <ClCompile Include="loaders\GLTFLoader.cpp" />
     <ClCompile Include="loaders\ImageLoader.cpp" />
-    <ClCompile Include="loaders\LODProbeGirdLoader.cpp" />
+    <ClCompile Include="loaders\LODProbeGridLoader.cpp" />
     <ClCompile Include="loaders\ProbeGridLoader.cpp" />
     <ClCompile Include="materials\Material.cpp" />
     <ClCompile Include="materials\MeshStandardMaterial.cpp" />

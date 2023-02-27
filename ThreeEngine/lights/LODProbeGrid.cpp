@@ -3,6 +3,11 @@
 #include "LODProbeGrid.h"
 #include "renderers/GLRenderer.h"
 
+#include "scenes/Scene.h"
+#include "models/SimpleModel.h"
+#include "models/GLTFModel.h"
+#include "core/BoundingVolumeHierarchy.h"
+
 struct LODProbeGridConst
 {
 	glm::vec4 coverageMin;
@@ -35,6 +40,16 @@ void LODProbeGrid::updateBuffers()
 
 	m_probe_buf = std::unique_ptr<GLBuffer>(new GLBuffer(sizeof(glm::vec4) * m_probe_data.size(), GL_SHADER_STORAGE_BUFFER));
 	m_probe_buf->upload(m_probe_data.data());
+
+	int num_probes = getNumberOfProbes();
+	if (m_visibility_data.size()< num_probes)
+	{
+		glm::vec3 spacing = (coverage_max - coverage_min) / glm::vec3(base_divisions);
+		float max_visibility = glm::length(spacing);		
+		m_visibility_data.resize(26 * num_probes, max_visibility);		
+	}
+	m_visibility_buf = std::unique_ptr<GLBuffer>(new GLBuffer(sizeof(float) * m_visibility_data.size(), GL_SHADER_STORAGE_BUFFER));
+	m_visibility_buf->upload(m_visibility_data.data());
 }
 
 int LODProbeGrid::getNumberOfProbes() const
@@ -222,5 +237,105 @@ void LODProbeGrid::initialize(GLRenderer& renderer, Scene& scene)
 		//printf("%d %d %d\n", num_probes, base_divisions.x* base_divisions.y* base_divisions.z, ref_idx*8);
 
 	}	
+	
 	updateBuffers();
 }
+
+void LODProbeGrid::construct_visibility(Scene& scene)
+{
+	std::vector<Object3D*> objects;
+	auto* p_objects = &objects;
+
+	scene.traverse([p_objects](Object3D* obj) {
+		do
+		{
+			{
+				SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
+				if (model)
+				{
+					p_objects->push_back(model);
+					break;
+				}
+			}
+			{
+				GLTFModel* model = dynamic_cast<GLTFModel*>(obj);
+				if (model)
+				{
+					p_objects->push_back(model);
+					break;
+				}
+			}
+		} while (false);
+		});
+
+	glm::vec3 size_grid = coverage_max - coverage_min;
+	glm::vec3 spacing = size_grid / glm::vec3(base_divisions);
+	float max_visibility = glm::length(spacing);
+
+	const glm::vec3 directions[26] = {
+		glm::vec3(-1.0f,0.0f,0.0f),
+		glm::vec3(1.0f,0.0f,0.0f),
+		glm::vec3(0.0f,-1.0f,0.0f),
+		glm::vec3(0.0f,1.0f,0.0f),
+		glm::vec3(0.0f,0.0f,-1.0f),
+		glm::vec3(0.0f,0.0f,1.0f),
+		glm::vec3(0.0f,-1.0f,-1.0f),
+		glm::vec3(0.0f,1.0f,-1.0f),
+		glm::vec3(0.0f,-1.0f,1.0f),
+		glm::vec3(0.0f,1.0f,1.0f),
+		glm::vec3(-1.0f,0.0f,-1.0f),
+		glm::vec3(-1.0f,0.0f,1.0f),
+		glm::vec3(1.0f,0.0f,-1.0f),
+		glm::vec3(1.0f,0.0f,1.0f),
+		glm::vec3(-1.0f,-1.0f,0.0f),
+		glm::vec3(1.0f,-1.0f,0.0f),
+		glm::vec3(-1.0f,1.0f,0.0f),
+		glm::vec3(1.0f,1.0f,0.0f),
+		glm::vec3(-1.0f,-1.0f,-1.0f),
+		glm::vec3(1.0f,-1.0f,-1.0f),
+		glm::vec3(-1.0f,1.0f,-1.0f),
+		glm::vec3(1.0f,1.0f,-1.0f),
+		glm::vec3(-1.0f,-1.0f,1.0f),
+		glm::vec3(1.0f,-1.0f,1.0f),
+		glm::vec3(-1.0f,1.0f,1.0f),
+		glm::vec3(1.0f,1.0f,1.0f)
+	};
+
+	BoundingVolumeHierarchy bvh(objects);
+
+	int num_probes = getNumberOfProbes();
+	m_visibility_data.resize(26 * num_probes, max_visibility);
+	for (int index = 0; index < num_probes; index++)
+	{
+		glm::vec4 pos_lod = m_probe_data[index * 10];
+		bvh::Ray<float> bvh_ray = {
+			bvh::Vector3<float>(pos_lod.x, pos_lod.y, pos_lod.z),
+			bvh::Vector3<float>(0.0f, 0.0f, 0.0f),
+			0.0f,
+			max_visibility
+		};
+
+		int lod = (int)pos_lod.w;
+		float scale = 1.0f/ float(1 << lod);
+
+		for (int i = 0; i < 26; i++)
+		{
+			glm::vec3 dir = directions[i] * spacing * scale;
+			float vis = glm::length(dir);
+			dir = glm::normalize(dir);
+			bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
+			auto intersection = bvh.intersect(bvh_ray);
+			if (intersection.has_value())
+			{
+				float dis = intersection->distance();
+				if (dis < vis) vis = dis;
+			}
+			m_visibility_data[index * 26 + i] = vis;
+
+		}
+	}
+
+	m_visibility_buf->upload(m_visibility_data.data());
+
+}
+

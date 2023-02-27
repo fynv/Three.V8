@@ -299,38 +299,12 @@ vec3 getRadiance(in vec3 world_pos, in vec3 reflectVec, float roughness)
 
 #endif
 
-
-#if HAS_PROBE_GRID
-layout (std140, binding = BINDING_PROBE_GRID) uniform ProbeGrid
-{
-	vec4 uCoverageMin;
-	vec4 uCoverageMax;
-	ivec4 uDivisions;
-	float uYpower;
-	float uDiffuseThresh;
-	float uDiffuseHigh;
-	float uDiffuseLow;
-	float uSpecularThresh;
-	float uSpecularHigh;
-	float uSpecularLow;
-};
-
-layout (std430, binding = BINDING_PROBES) buffer Probes
-{
-	vec4 bSHCoefficients[];
-};
+#if HAS_PROBE_GRID || HAS_LOD_PROBE_GRID
 
 layout (std430, binding = BINDING_PROBE_VISIBILITY) buffer ProbeVisibility
 {
 	float bProbeVisibility[];
 };
-
-#if PROBE_REFERENCE_RECORDED
-layout (std430, binding = BINDING_PROBE_REFERENCES) buffer ProbeReferences
-{
-	uint bReferenced[];
-};
-#endif
 
 float quantize_vis(float limit, float dis)
 {
@@ -339,20 +313,13 @@ float quantize_vis(float limit, float dis)
 	return pow(0.01, x);
 }
 
-float get_visibility(in vec3 world_pos, in ivec3 vert, in vec3 vert_world)
+float get_visibility_common(in vec3 world_pos, in vec3 spacing, int idx, in vec3 vert_world)
 {
-	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
-	vec3 spacing = size_grid/vec3(uDivisions);
-
-	float y0 = pow((float(vert.y) + 0.5f) / float(uDivisions.y), uYpower);
-	float y1 = pow((float(vert.y+1) + 0.5f) / float(uDivisions.y), uYpower);
-	spacing.y = (y1-y0)*size_grid.y;
-
 	float len_xyz = length(spacing);
 	float len_xy = length(vec2(spacing.x, spacing.y));
 	float len_yz = length(vec2(spacing.y, spacing.z));
 	float len_zx = length(vec2(spacing.z, spacing.x));
-	int idx = vert.x + (vert.y + vert.z*uDivisions.y)*uDivisions.x;
+	
 	int offset = idx*26;
 	vec3 dir = world_pos - vert_world;	
 	vec3 dir_abs = abs(dir)/spacing;
@@ -646,6 +613,50 @@ float get_visibility(in vec3 world_pos, in ivec3 vert, in vec3 vert_world)
 	}
 }
 
+#endif
+
+
+#if HAS_PROBE_GRID
+layout (std140, binding = BINDING_PROBE_GRID) uniform ProbeGrid
+{
+	vec4 uCoverageMin;
+	vec4 uCoverageMax;
+	ivec4 uDivisions;
+	float uYpower;
+	float uDiffuseThresh;
+	float uDiffuseHigh;
+	float uDiffuseLow;
+	float uSpecularThresh;
+	float uSpecularHigh;
+	float uSpecularLow;
+};
+
+layout (std430, binding = BINDING_PROBES) buffer Probes
+{
+	vec4 bSHCoefficients[];
+};
+
+#if PROBE_REFERENCE_RECORDED
+layout (std430, binding = BINDING_PROBE_REFERENCES) buffer ProbeReferences
+{
+	uint bReferenced[];
+};
+#endif
+
+float get_visibility(in vec3 world_pos, in ivec3 vert, in vec3 vert_world)
+{
+	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
+	vec3 spacing = size_grid/vec3(uDivisions);
+
+	float y0 = pow((float(vert.y) + 0.5f) / float(uDivisions.y), uYpower);
+	float y1 = pow((float(vert.y+1) + 0.5f) / float(uDivisions.y), uYpower);
+	spacing.y = (y1-y0)*size_grid.y;
+	
+	int idx = vert.x + (vert.y + vert.z*uDivisions.y)*uDivisions.x;
+	return get_visibility_common(world_pos, spacing, idx, vert_world);
+}
+
+
 void acc_coeffs(inout vec4 coeffs[9], in ivec3 vert, in float weight)
 {
 	int idx = vert.x + (vert.y + vert.z*uDivisions.y)*uDivisions.x;
@@ -744,16 +755,18 @@ layout (std430, binding = BINDING_LOD_PROBES) buffer Probes
 	vec4 bProbeData[];
 };
 
-
-layout (std430, binding = BINDING_LOD_PROBES) buffer Probes
-{
-	vec4 bProbeData[];
-};
-
 layout (std430, binding = BINDING_LOD_PROBE_INDICES) buffer ProbeIndex
 {
 	int bIndexData[];
 };
+
+
+float get_visibility(in vec3 world_pos, int idx, in vec3 vert_world)
+{
+	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
+	vec3 spacing = size_grid/vec3(uBaseDivisions);
+	return get_visibility_common(world_pos, spacing, idx, vert_world);
+}
 
 bool try_lod_i(int target_lod, in ivec3 ipos)
 {
@@ -901,6 +914,8 @@ vec3 getIrradiance(in vec3 world_pos, in vec3 normal)
 					dotDirN = (k*dotDirN + sqrt(1.0 - (1.0-dotDirN*dotDirN)*k*k))/(k+1.0);
 					weight*= dotDirN;
 					int idx_probe = get_probe_idx_lod(vert, lod);
+					vec3 probe_world = bProbeData[idx_probe*10].xyz;
+					weight*= dotDirN * get_visibility(world_pos, idx_probe, probe_world);	
 					sum_weight += weight;
 					acc_coeffs(coeffs, idx_probe, weight);
 				}
@@ -1437,8 +1452,7 @@ DrawIsosurface::DrawIsosurface(const Options& options) : m_options(options)
 	{
 		defines += "#define HAS_PROBE_GRID 1\n";
 		m_bindings.binding_probe_grid = m_bindings.binding_environment_map + 1;
-		m_bindings.binding_probes = m_bindings.binding_probe_grid + 1;
-		m_bindings.binding_probe_visibility = m_bindings.binding_probes + 1;
+		m_bindings.binding_probes = m_bindings.binding_probe_grid + 1;		
 
 		{
 			char line[64];
@@ -1451,25 +1465,19 @@ DrawIsosurface::DrawIsosurface(const Options& options) : m_options(options)
 			sprintf(line, "#define BINDING_PROBES %d\n", m_bindings.binding_probes);
 			defines += line;
 		}
-
-		{
-			char line[64];
-			sprintf(line, "#define BINDING_PROBE_VISIBILITY %d\n", m_bindings.binding_probe_visibility);
-			defines += line;
-		}
+		
 	}
 	else
 	{
 		defines += "#define HAS_PROBE_GRID 0\n";
 		m_bindings.binding_probe_grid = m_bindings.binding_environment_map;
-		m_bindings.binding_probes = m_bindings.binding_environment_map;
-		m_bindings.binding_probe_visibility = m_bindings.binding_environment_map;
+		m_bindings.binding_probes = m_bindings.binding_environment_map;		
 	}
 
 	if (options.probe_reference_recorded)
 	{
 		defines += "#define PROBE_REFERENCE_RECORDED 1\n";
-		m_bindings.binding_probe_references = m_bindings.binding_probe_visibility + 1;
+		m_bindings.binding_probe_references = m_bindings.binding_probes + 1;
 
 		{
 			char line[64];
@@ -1480,7 +1488,7 @@ DrawIsosurface::DrawIsosurface(const Options& options) : m_options(options)
 	else
 	{
 		defines += "#define PROBE_REFERENCE_RECORDED 0\n";
-		m_bindings.binding_probe_references = m_bindings.binding_probe_visibility;
+		m_bindings.binding_probe_references = m_bindings.binding_probes;
 	}
 
 	if (options.has_lod_probe_grid)
@@ -1516,10 +1524,25 @@ DrawIsosurface::DrawIsosurface(const Options& options) : m_options(options)
 		m_bindings.binding_lod_probe_indices = m_bindings.binding_probe_references;
 	}
 
+	if (options.has_probe_grid || options.has_lod_probe_grid)
+	{
+		m_bindings.binding_probe_visibility = m_bindings.binding_lod_probe_indices + 1;
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_PROBE_VISIBILITY %d\n", m_bindings.binding_probe_visibility);
+			defines += line;
+		}
+	}
+	else
+	{
+		m_bindings.binding_probe_visibility = m_bindings.binding_lod_probe_indices;
+	}
+
+
 	if (options.has_ambient_light)
 	{
 		defines += "#define HAS_AMBIENT_LIGHT 1\n";
-		m_bindings.binding_ambient_light = m_bindings.binding_lod_probe_indices + 1;
+		m_bindings.binding_ambient_light = m_bindings.binding_probe_visibility + 1;
 		{
 			char line[64];
 			sprintf(line, "#define BINDING_AMBIENT_LIGHT %d\n", m_bindings.binding_ambient_light);
@@ -1529,7 +1552,7 @@ DrawIsosurface::DrawIsosurface(const Options& options) : m_options(options)
 	else
 	{
 		defines += "#define HAS_AMBIENT_LIGHT 0\n";
-		m_bindings.binding_ambient_light = m_bindings.binding_lod_probe_indices;
+		m_bindings.binding_ambient_light = m_bindings.binding_probe_visibility;
 	}
 
 	if (options.has_hemisphere_light)
@@ -1735,6 +1758,10 @@ void DrawIsosurface::render(const RenderParams& params)
 		if (params.lights->lod_probe_grid->m_sub_index_buf != nullptr)
 		{
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, m_bindings.binding_lod_probe_indices, params.lights->lod_probe_grid->m_sub_index_buf->m_id);
+		}
+		if (params.lights->lod_probe_grid->m_visibility_buf != nullptr)
+		{
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, m_bindings.binding_probe_visibility, params.lights->lod_probe_grid->m_visibility_buf->m_id);
 		}
 	}
 

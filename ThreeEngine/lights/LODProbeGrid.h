@@ -23,6 +23,9 @@ public:
 
 	std::vector<glm::vec4> m_probe_data;	
 	std::unique_ptr<GLBuffer> m_probe_buf;
+
+	std::vector<float> m_visibility_data;
+	std::unique_ptr<GLBuffer> m_visibility_buf;
 	void updateBuffers();
 
 	int getNumberOfProbes() const;
@@ -31,5 +34,7 @@ public:
 	void updateConstant();
 	
 	void initialize(GLRenderer& renderer, Scene& scene);
+	void construct_visibility(Scene& scene);
+	
 
 };

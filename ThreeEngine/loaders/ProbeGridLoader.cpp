@@ -20,6 +20,10 @@ void ProbeGridLoader::LoadFile(ProbeGrid* probe_grid, const char* fn)
 		probe_grid->m_visibility_data.resize(count * 26);
 		fread(probe_grid->m_visibility_data.data(), sizeof(float), count * 26, fp);
 	}
+	else
+	{
+		probe_grid->m_visibility_data.clear();
+	}
 	probe_grid->allocate_probes();
 	fclose(fp);
 }
@@ -40,6 +44,10 @@ void ProbeGridLoader::LoadMemory(ProbeGrid* probe_grid, unsigned char* data, siz
 	{
 		probe_grid->m_visibility_data.resize(count * 26);
 		memcpy(probe_grid->m_visibility_data.data(), ptr, sizeof(float) * 26 * count);
+	}
+	else
+	{
+		probe_grid->m_visibility_data.clear();
 	}
 	probe_grid->allocate_probes();
 }

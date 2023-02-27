@@ -177,7 +177,7 @@ void ProbeGrid::construct_visibility(Scene& scene)
 					}
 					m_visibility_data[index * 26 + i] = vis;
 
-				}				
+				}
 			}
 		}
 	}

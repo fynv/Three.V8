@@ -73,38 +73,12 @@ float RandomFloat(inout uint seed)
 	return (float(RandomInt(seed) & 0x00FFFFFFu) / float(0x01000000));
 }
 
-#if HAS_PROBE_GRID
-layout (std140, binding = 2) uniform ProbeGrid
-{
-	vec4 uCoverageMin;
-	vec4 uCoverageMax;
-	ivec4 uDivisions;
-	float uYpower;
-	float uDiffuseThresh;
-	float uDiffuseHigh;
-	float uDiffuseLow;
-	float uSpecularThresh;
-	float uSpecularHigh;
-	float uSpecularLow;
-};
+#if HAS_PROBE_GRID || HAS_LOD_PROBE_GRID
 
-layout (std430, binding = 3) buffer Probes
-{
-	vec4 bSHCoefficients[];
-};
-
-
-layout (std430, binding = 4) buffer ProbeVisibility
+layout (std430, binding = 5) buffer ProbeVisibility
 {
 	float bProbeVisibility[];
 };
-
-#if PROBE_REFERENCE_RECORDED
-layout (std430, binding = 5) buffer ProbeReferences
-{
-	uint bReferenced[];
-};
-#endif
 
 float quantize_vis(float limit, float dis)
 {
@@ -113,20 +87,13 @@ float quantize_vis(float limit, float dis)
 	return pow(0.01, x);
 }
 
-float get_visibility(in vec3 pos_world, in ivec3 vert, in vec3 vert_world)
-{
-	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
-	vec3 spacing = size_grid/vec3(uDivisions);
-
-	float y0 = pow((float(vert.y) + 0.5f) / float(uDivisions.y), uYpower);
-	float y1 = pow((float(vert.y+1) + 0.5f) / float(uDivisions.y), uYpower);
-	spacing.y = (y1-y0)*size_grid.y;
-
+float get_visibility_common(in vec3 pos_world, vec3 spacing, int idx, in vec3 vert_world)
+{		
 	float len_xyz = length(spacing);
 	float len_xy = length(vec2(spacing.x, spacing.y));
 	float len_yz = length(vec2(spacing.y, spacing.z));
 	float len_zx = length(vec2(spacing.z, spacing.x));
-	int idx = vert.x + (vert.y + vert.z*uDivisions.y)*uDivisions.x;
+
 	int offset = idx*26;
 	vec3 dir = pos_world - vert_world;	
 	vec3 dir_abs = abs(dir)/spacing;
@@ -419,6 +386,47 @@ float get_visibility(in vec3 pos_world, in ivec3 vert, in vec3 vert_world)
 		return quantize_vis(limit, abs(dir.z));
 	}
 }
+#endif
+
+#if HAS_PROBE_GRID
+layout (std140, binding = 2) uniform ProbeGrid
+{
+	vec4 uCoverageMin;
+	vec4 uCoverageMax;
+	ivec4 uDivisions;
+	float uYpower;
+	float uDiffuseThresh;
+	float uDiffuseHigh;
+	float uDiffuseLow;
+	float uSpecularThresh;
+	float uSpecularHigh;
+	float uSpecularLow;
+};
+
+layout (std430, binding = 3) buffer Probes
+{
+	vec4 bSHCoefficients[];
+};
+
+#if PROBE_REFERENCE_RECORDED
+layout (std430, binding = 4) buffer ProbeReferences
+{
+	uint bReferenced[];
+};
+#endif
+
+float get_visibility(in vec3 pos_world, in ivec3 vert, in vec3 vert_world)
+{
+	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
+	vec3 spacing = size_grid/vec3(uDivisions);
+
+	float y0 = pow((float(vert.y) + 0.5f) / float(uDivisions.y), uYpower);
+	float y1 = pow((float(vert.y+1) + 0.5f) / float(uDivisions.y), uYpower);
+	spacing.y = (y1-y0)*size_grid.y;
+	
+	int idx = vert.x + (vert.y + vert.z*uDivisions.y)*uDivisions.x;
+	return get_visibility_common(pos_world, spacing, idx, vert_world);
+}
 
 
 void acc_coeffs(inout vec4 coeffs0, in ivec3 vert, in float weight)
@@ -511,6 +519,14 @@ layout (std430, binding = 4) buffer ProbeIndex
 	int bIndexData[];
 };
 
+
+float get_visibility(in vec3 pos_world, int idx, in vec3 vert_world)
+{
+	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
+	vec3 spacing = size_grid/vec3(uBaseDivisions);
+	return get_visibility_common(pos_world, spacing, idx, vert_world);
+}
+
 int get_probe_idx_lod(in ivec3 ipos, int target_lod)
 {
 	ivec3 ipos_base = ipos / (1<<target_lod);
@@ -582,6 +598,8 @@ vec3 getIrradiance(in vec3 pos_world)
 					vec3 vert_normalized = (vec3(vert) + vec3(0.5))/vec3(divs);
 					vec3 vert_world = vert_normalized * size_grid + uCoverageMin.xyz;
 					int idx_probe = get_probe_idx_lod(vert, lod);
+					vec3 probe_world = bProbeData[idx_probe*10].xyz;
+					weight*= get_visibility(pos_world, idx_probe, probe_world);
 					sum_weight += weight;
 					acc_coeffs(coeffs0, idx_probe, weight);
 						
@@ -730,14 +748,14 @@ void FogRayMarchingEnv::render(const RenderParams& params)
 		if (params.lights->probe_grid->m_probe_buf != nullptr)
 		{
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, params.lights->probe_grid->m_probe_buf->m_id);
+		}	
+		if (m_options.probe_reference_recorded)
+		{
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, params.lights->probe_grid->m_ref_buf->m_id);
 		}
 		if (params.lights->probe_grid->m_visibility_buf != nullptr)
 		{
-			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, params.lights->probe_grid->m_visibility_buf->m_id);
-		}
-		if (m_options.probe_reference_recorded)
-		{
-			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, params.lights->probe_grid->m_ref_buf->m_id);
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, params.lights->probe_grid->m_visibility_buf->m_id);
 		}
 	}
 
@@ -751,6 +769,10 @@ void FogRayMarchingEnv::render(const RenderParams& params)
 		if (params.lights->lod_probe_grid->m_sub_index_buf != nullptr)
 		{
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, params.lights->lod_probe_grid->m_sub_index_buf->m_id);
+		}
+		if (params.lights->lod_probe_grid->m_visibility_buf != nullptr)
+		{
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, params.lights->lod_probe_grid->m_visibility_buf->m_id);
 		}
 	}
 
