@@ -816,6 +816,13 @@ layout (std430, binding = BINDING_LOD_PROBE_INDICES) buffer ProbeIndex
 	int bIndexData[];
 };
 
+float get_visibility(int idx, in vec3 vert_world)
+{
+	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
+	vec3 spacing = size_grid/vec3(uBaseDivisions);
+	return get_visibility_common(spacing, idx, vert_world);
+}
+
 int get_probe_idx_lod(in ivec3 ipos, int target_lod)
 {
 	ivec3 ipos_base = ipos / (1<<target_lod);
@@ -897,8 +904,9 @@ vec3 getIrradiance(in vec3 normal)
 					float dotDirN = dot(dir, N);
 					float k = 0.9;
 					dotDirN = (k*dotDirN + sqrt(1.0 - (1.0-dotDirN*dotDirN)*k*k))/(k+1.0);
-					weight*= dotDirN;
 					int idx_probe = get_probe_idx_lod(vert, lod);
+					vec3 probe_world = bProbeData[idx_probe*10].xyz;
+					weight*= dotDirN * get_visibility(idx_probe, probe_world);					
 					sum_weight += weight;
 					acc_coeffs(coeffs, idx_probe, weight);
 				}
