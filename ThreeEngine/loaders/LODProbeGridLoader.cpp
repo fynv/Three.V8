@@ -64,6 +64,10 @@ void LODProbeGridLoader::LoadMemory(LODProbeGrid* probe_grid, unsigned char* dat
 		probe_grid->m_visibility_data.resize(num_probes * 26);
 		memcpy(probe_grid->m_visibility_data.data(), ptr, sizeof(float) * 26 * num_probes);
 	}
+	else
+	{
+		probe_grid->m_visibility_data.clear();
+	}
 
 	probe_grid->updateBuffers();
 }
