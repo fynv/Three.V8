@@ -33,8 +33,10 @@ public:
 	GLDynBuffer m_constant;
 	void updateConstant();
 	
-	void initialize(GLRenderer& renderer, Scene& scene);
+	void initialize(GLRenderer& renderer, Scene& scene, int probe_budget = -1);
 	void construct_visibility(Scene& scene);
 	
+private:
+	void _initialize(GLRenderer& renderer, Scene& scene, int probe_budget);
 
 };

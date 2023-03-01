@@ -8,6 +8,13 @@
 #include "models/GLTFModel.h"
 #include "core/BoundingVolumeHierarchy.h"
 
+
+inline double rand01()
+{
+	return (double)rand() / ((double)RAND_MAX + 1.0);
+}
+
+
 struct LODProbeGridConst
 {
 	glm::vec4 coverageMin;
@@ -74,7 +81,7 @@ void LODProbeGrid::updateConstant()
 }
 
 
-void LODProbeGrid::initialize(GLRenderer& renderer, Scene& scene)
+void LODProbeGrid::_initialize(GLRenderer& renderer, Scene& scene, int probe_budget)
 {
 	m_sub_index.resize(base_divisions.x * base_divisions.y * base_divisions.z, -1);
 	m_probe_data.resize(base_divisions.x * base_divisions.y * base_divisions.z * 10, glm::vec4(0.0f));
@@ -144,6 +151,59 @@ void LODProbeGrid::initialize(GLRenderer& renderer, Scene& scene)
 						int idx_in = x + (y + z * vol_div.y * 2) * vol_div.x * 2;
 						int idx_out = x / 2 + (y / 2 + z / 2 * vol_div.y) * vol_div.x;
 						if (vol1[idx_in] > 0) vol0[idx_out] = 1;
+					}
+				}
+			}
+		}
+
+		if (probe_budget > 0)
+		{
+			glm::ivec3 vol_div = base_divisions * (1 << (sub_division_level-1));
+			int count = 0;
+			Volume& vol = volumes[sub_division_level - 1];
+			for (int z = 0; z < vol_div.z; z++)
+			{
+				for (int y = 0; y < vol_div.y; y++)
+				{
+					for (int x = 0; x < vol_div.x; x++)
+					{
+						int idx = x + (y + z * vol_div.y) * vol_div.x;
+						if (vol[idx] > 0)
+						{
+							count++;
+						}
+					}
+				}
+			}
+
+			int base_count = base_divisions.x * base_divisions.y * base_divisions.z;
+			int root_count = 0;
+			for (int level = 0; level < sub_division_level; level++)
+			{
+				root_count += base_count * (1 << (3 * level));
+			}
+			int est_probes = root_count + (base_count * (1 << (3 * sub_division_level))) * count / (vol_div.x * vol_div.y * vol_div.z);
+
+			if (probe_budget < est_probes)
+			{
+				float pass_rate = float(probe_budget - root_count) / float(est_probes - root_count);
+				if (pass_rate < 0.0f) pass_rate = 0.0f;
+				for (int z = 0; z < vol_div.z; z++)
+				{
+					for (int y = 0; y < vol_div.y; y++)
+					{
+						for (int x = 0; x < vol_div.x; x++)
+						{
+							int idx = x + (y + z * vol_div.y) * vol_div.x;
+							if (vol[idx] > 0)
+							{
+								float r = rand01();
+								if (r > pass_rate)
+								{
+									vol[idx] = 0;
+								}
+							}
+						}
 					}
 				}
 			}
@@ -236,8 +296,25 @@ void LODProbeGrid::initialize(GLRenderer& renderer, Scene& scene)
 		//int num_probes = getNumberOfProbes();
 		//printf("%d %d %d\n", num_probes, base_divisions.x* base_divisions.y* base_divisions.z, ref_idx*8);
 
-	}	
+	}		
 	
+}
+
+void LODProbeGrid::initialize(GLRenderer& renderer, Scene& scene, int probe_budget)
+{
+	if (probe_budget > 0)
+	{
+		int base_count = base_divisions.x * base_divisions.y * base_divisions.z;
+		int est_count = base_count;
+		int lod = 0;
+		while (est_count < probe_budget)
+		{
+			lod++;
+			est_count += base_count * (1 << (3 * lod));
+		}
+		sub_division_level = lod;
+	}
+	_initialize(renderer, scene, probe_budget);
 	updateBuffers();
 }
 

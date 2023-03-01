@@ -173,7 +173,12 @@ void WrapperLODProbeGrid::Initialize(const v8::FunctionCallbackInfo<v8::Value>& 
 	LODProbeGrid* self = lctx.self<LODProbeGrid>();
 	GLRenderer *renderer = lctx.jobj_to_obj<GLRenderer>(info[0]);
 	Scene* scene = lctx.jobj_to_obj<Scene>(info[1]);
-	self->initialize(*renderer, *scene);
+	int budget = -1;
+	if (info.Length() > 2)
+	{
+		lctx.jnum_to_num(info[2], budget);
+	}
+	self->initialize(*renderer, *scene, budget);
 
 }
 
