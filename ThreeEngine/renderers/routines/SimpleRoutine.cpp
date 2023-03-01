@@ -790,6 +790,40 @@ float get_visibility(int idx, in vec3 vert_world)
 	return get_visibility_common(spacing, idx, vert_world);
 }
 
+int get_probe_lod_i(in ivec3 ipos)
+{	
+	if (uSubDivisionLevel<1) return 0;
+
+	ivec3 ipos_base = ipos / (1<<uSubDivisionLevel);
+	int probe_idx = ipos_base.x + (ipos_base.y + ipos_base.z * uBaseDivisions.y) * uBaseDivisions.x;
+	int idx_sub = bIndexData[probe_idx];
+	int base_offset = uBaseDivisions.x * uBaseDivisions.y * uBaseDivisions.z;
+	
+	int lod = 0;	
+	int digit_mask = 1 << (uSubDivisionLevel -1);
+	while(lod<uSubDivisionLevel && idx_sub>=0)
+	{
+		int offset = base_offset + idx_sub*8;
+		int sub = 0;
+		if ((ipos.x & digit_mask) !=0) sub+=1;
+		if ((ipos.y & digit_mask) !=0) sub+=2;
+		if ((ipos.z & digit_mask) !=0) sub+=4;
+		probe_idx = offset + sub;
+
+		if (lod<uSubDivisionLevel-1)
+		{			
+			idx_sub = bIndexData[probe_idx];
+		}
+		else
+		{
+			idx_sub = -1;
+		}
+		lod++;
+		digit_mask >>=1;		
+	}	
+	return lod;
+}
+
 int get_probe_idx_lod(in ivec3 ipos, int target_lod)
 {
 	ivec3 ipos_base = ipos / (1<<target_lod);
@@ -833,9 +867,8 @@ void acc_coeffs(inout vec4 coeffs[9], int idx, in float weight)
 	}
 }
 
-vec3 getIrradiance(in vec3 normal)
-{
-	int lod = uSubDivisionLevel;
+bool getCoeffsLod(int lod, inout vec4 coeffs[9])
+{	
 	ivec3 divs = uBaseDivisions.xyz * (1<<lod);
 
 	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
@@ -847,8 +880,6 @@ vec3 getIrradiance(in vec3 normal)
 	vec3 frac_voxel = pos_voxel - vec3(i_voxel);
 
 	float sum_weight = 0.0;
-	vec4 coeffs[9];
-	for (int i=0; i<9; i++) coeffs[i] = vec4(0.0);
 
 	vec3 dx = dFdx(vWorldPos);
 	vec3 dy = dFdy(vWorldPos);
@@ -867,24 +898,44 @@ vec3 getIrradiance(in vec3 normal)
 					ivec3 vert = i_voxel + ivec3(x,y,z);
 					int idx_probe = get_probe_idx_lod(vert, lod);
 					vec3 probe_world = bProbeData[idx_probe*10].xyz;					
-					vec3 dir = normalize(probe_world - vWorldPos);
+					vec3 dir = normalize(probe_world - vWorldPos);					
 					float dotDirN = dot(dir, N);
 					float k = 0.9;
-					dotDirN = (k*dotDirN + sqrt(1.0 - (1.0-dotDirN*dotDirN)*k*k))/(k+1.0);					
-					weight*= dotDirN * get_visibility(idx_probe, probe_world);					
+					dotDirN = (k*dotDirN + sqrt(1.0 - (1.0-dotDirN*dotDirN)*k*k))/(k+1.0);				
+					weight*= dotDirN * get_visibility(idx_probe, probe_world);								
 					sum_weight += weight;
 					acc_coeffs(coeffs, idx_probe, weight);
 				}
 			}
 		}
 	}
-
 	if (sum_weight>0.0)
 	{
-		for (int i=0; i<9; i++) coeffs[i]/=sum_weight;
+		for (int i=0; i<9; i++) coeffs[i]/=sum_weight;		
+		return true;
+	}		
+	return false;
+}
+
+vec3 getIrradiance(in vec3 normal)
+{
+	ivec3 divs = uBaseDivisions.xyz * (1<<uSubDivisionLevel);	
+	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
+	vec3 pos_normalized = (vWorldPos - uCoverageMin.xyz)/size_grid;	
+	vec3 pos_voxel = pos_normalized * vec3(divs);
+	pos_voxel = clamp(pos_voxel, vec3(0.0), vec3(divs));
+	ivec3 i_voxel = clamp(ivec3(pos_voxel), ivec3(0), ivec3(divs) - ivec3(1));
+	int lod = get_probe_lod_i(i_voxel);
+
+	vec4 coeffs[9];
+	for (int i=0; i<9; i++) coeffs[i] = vec4(0.0);
+
+	bool non_zero = getCoeffsLod(lod, coeffs);
+
+	if (non_zero)	
+	{
 		return shGetIrradianceAt(normal, coeffs);
 	}
-
 	return vec3(0.0);
 }
 
