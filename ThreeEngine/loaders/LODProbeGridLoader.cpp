@@ -29,6 +29,10 @@ void LODProbeGridLoader::LoadFile(LODProbeGrid* probe_grid, const char* fn)
 		probe_grid->m_visibility_data.resize(num_probes * 26);
 		fread(probe_grid->m_visibility_data.data(), sizeof(float), num_probes * 26, fp);
 	}
+	else
+	{
+		probe_grid->m_visibility_data.clear();
+	}
 
 	probe_grid->updateBuffers();
 	fclose(fp);
