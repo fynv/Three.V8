@@ -1029,6 +1029,12 @@ const create_lod_probe_grid = (doc, props) => {
     {
         proxy.subDivisionLevel = parseInt(props.sub_division_level);
     }
+    proxy.probe_budget = -1;
+    if (props.hasOwnProperty('probe_budget'))
+    {
+        proxy.probe_budget = parseInt(props.probe_budget);
+    }
+    
     doc.scene.addWidget(proxy);
     
     let probe_data = "assets/lod_probes.dat";
@@ -1045,13 +1051,17 @@ const create_lod_probe_grid = (doc, props) => {
         probe_grid.setCoverageMin(proxy.coverageMin);
         probe_grid.setCoverageMax(proxy.coverageMax);
         probe_grid.subDivisionLevel = proxy.subDivisionLevel;
+        probe_grid.probe_budget = proxy.probe_budget;
     }
     else
     {
+        probe_grid.probe_budget = -1;
+        
         proxy.setBaseDivisions(probe_grid.baseDivisions);
         proxy.setCoverageMin(probe_grid.coverageMin);
         proxy.setCoverageMax(probe_grid.coverageMax);
         proxy.subDivisionLevel = probe_grid.subDivisionLevel;
+        proxy.probe_budget = probe_grid.probe_budget;
         
         props.base_divisions = `${probe_grid.baseDivisions.x}, ${probe_grid.baseDivisions.y}, ${probe_grid.baseDivisions.z}`;
         props.coverage_min = `${probe_grid.coverageMin.x}, ${probe_grid.coverageMin.y}, ${probe_grid.coverageMin.z}`;
@@ -1349,13 +1359,16 @@ const tuning_lod_probe_grid =  (doc, obj, input) =>{
             probe_grid.setCoverageMin(obj.coverageMin);
             probe_grid.setCoverageMax(obj.coverageMax);
             probe_grid.subDivisionLevel = obj.subDivisionLevel;
+            probe_grid.probe_budget = obj.probe_grid;
         }
         else
         {
+            probe_grid.probe_budget = -1;
             obj.setBaseDivisions(probe_grid.baseDivisions);
             obj.setCoverageMin(probe_grid.coverageMin);
             obj.setCoverageMax(probe_grid.coverageMax);
             obj.subDivisionLevel = probe_grid.subDivisionLevel;
+            obj.probe_budget = probe_grid.probe_budget;
             
             props.base_divisions = `${probe_grid.baseDivisions.x}, ${probe_grid.baseDivisions.y}, ${probe_grid.baseDivisions.z}`;
             props.coverage_min = `${probe_grid.coverageMin.x}, ${probe_grid.coverageMin.y}, ${probe_grid.coverageMin.z}`;
@@ -1397,7 +1410,13 @@ const tuning_lod_probe_grid =  (doc, obj, input) =>{
     if ("sub_division_level" in input)
     {
         props.sub_division_level = input.sub_division_level;
-        obj.subDivisionLevel = parseFloat(input.sub_division_level);
+        obj.subDivisionLevel = parseInt(input.sub_division_level);
+    }
+    
+    if ("probe_budget" in input)
+    {
+        props.probe_budget  = input.probe_budget;
+        obj.probe_budget = parseInt(input.probe_budget);
     }
     
     return "";
@@ -1413,7 +1432,7 @@ const initialize_lod_probe_grid = (doc, obj, input) =>{
     let changed = (count == 0 || obj.coverageMin.x != probe_grid.coverageMin.x || obj.coverageMin.y != probe_grid.coverageMin.y || obj.coverageMin.z != probe_grid.coverageMin.z
         || obj.coverageMax.x != probe_grid.coverageMax.x || obj.coverageMax.y != probe_grid.coverageMax.y || obj.coverageMax.z != probe_grid.coverageMax.z
         || obj.baseDivisions.x != probe_grid.baseDivisions.x || obj.baseDivisions.y != probe_grid.baseDivisions.y || obj.baseDivisions.z != probe_grid.baseDivisions.z
-        || obj.subDivisionLevel != probe_grid.subDivisionLevel);
+        || obj.subDivisionLevel != probe_grid.subDivisionLevel || obj.probe_budget != probe_grid.probe_budget);
         
     if (changed)
     {
@@ -1421,7 +1440,8 @@ const initialize_lod_probe_grid = (doc, obj, input) =>{
         probe_grid.setCoverageMin(obj.coverageMin);
         probe_grid.setCoverageMax(obj.coverageMax);
         probe_grid.subDivisionLevel = obj.subDivisionLevel;
-        probe_grid.initialize(doc.renderer, doc.scene);
+        probe_grid.probe_budget = obj.probe_budget;
+        probe_grid.initialize(doc.renderer, doc.scene, obj.probe_budget);
         count = probe_grid.numberOfProbes;
     }
     return `${count}`;

@@ -70,6 +70,13 @@ namespace GameDev
                 tuner_sub_div.value = float.Parse(att["sub_division_level"].ToString());
             }
 
+            tuner_probe_budget.value = -1;
+            tuner_probe_budget.step = 500;
+            if (att.ContainsKey("probe_budget"))
+            {
+                tuner_probe_budget.value = float.Parse(att["probe_budget"].ToString());
+            }
+
             tuner_iterations.value = 6;
         }
 
@@ -203,6 +210,17 @@ namespace GameDev
             game_player.SendMessageToUser("tuning", tuning.ToString());
         }
 
+        private void tuner_probe_budget_ValueChanged(object sender, EventArgs e)
+        {
+            JObject tuning = new JObject();
+            tuning["probe_budget"] = $"{tuner_probe_budget.value}";
+
+            var att = (JObject)jobj["attributes"];
+            att["probe_budget"] = tuning["probe_budget"];
+
+            game_player.SendMessageToUser("tuning", tuning.ToString());
+        }
+
         private void btn_initialize_Click(object sender, RoutedEventArgs e)
         {
             int num_probes = int.Parse(game_player.SendMessageToUser("initialize", "{}"));
@@ -215,7 +233,6 @@ namespace GameDev
             tuning["iterations"] = tuner_iterations.value;
             game_player.SendMessageToUser("generate", tuning.ToString());
         }
-
         
     }
 }
