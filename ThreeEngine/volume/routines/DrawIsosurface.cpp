@@ -877,11 +877,11 @@ void acc_coeffs(inout vec4 coeffs[9], int idx, in float weight)
 
 vec3 getIrradiance(in vec3 world_pos, in vec3 normal)
 {
-	int lod = get_lod(vWorldPos);		
+	int lod = get_lod(world_pos);		
 	ivec3 divs = uBaseDivisions.xyz * (1<<lod);
 
 	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
-	vec3 pos_normalized = (vWorldPos - uCoverageMin.xyz)/size_grid;	
+	vec3 pos_normalized = (world_pos - uCoverageMin.xyz)/size_grid;	
 	vec3 pos_voxel = pos_normalized * vec3(divs) - vec3(0.5);
 	pos_voxel = clamp(pos_voxel, vec3(0.0), vec3(divs) - vec3(1.0));
 
@@ -906,15 +906,12 @@ vec3 getIrradiance(in vec3 world_pos, in vec3 normal)
 				if (weight>0.0)
 				{
 					ivec3 vert = i_voxel + ivec3(x,y,z);
-					vec3 vert_normalized = (vec3(vert) + vec3(0.5))/vec3(divs);
-					vec3 vert_world = vert_normalized * size_grid + uCoverageMin.xyz;
-					vec3 dir = normalize(vert_world - world_pos);
+					int idx_probe = get_probe_idx_lod(vert, lod);
+					vec3 probe_world = bProbeData[idx_probe*10].xyz;
+					vec3 dir = normalize(probe_world - world_pos);
 					float dotDirN = dot(dir, normal);
 					float k = 0.9;
 					dotDirN = (k*dotDirN + sqrt(1.0 - (1.0-dotDirN*dotDirN)*k*k))/(k+1.0);
-					weight*= dotDirN;
-					int idx_probe = get_probe_idx_lod(vert, lod);
-					vec3 probe_world = bProbeData[idx_probe*10].xyz;
 					weight*= dotDirN * get_visibility(world_pos, idx_probe, probe_world);	
 					sum_weight += weight;
 					acc_coeffs(coeffs, idx_probe, weight);

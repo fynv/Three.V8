@@ -299,35 +299,6 @@ vec3 shGetIrradianceAt( in vec3 normal, in vec4 shCoefficients[ 9 ] )
 	return result;
 }
 
-#if HAS_REFLECTION_MAP
-
-layout (location = LOCATION_TEX_REFLECTION_MAP) uniform samplerCube uReflectionMap;
-
-vec3 GetReflectionAt(in vec3 reflectVec, in samplerCube reflectMap, float roughness)
-{
-	float gloss;
-	if (roughness<0.053) 
-	{
-		gloss = 1.0;
-	}
-	else
-	{
-		float r2 = roughness*roughness;
-		float r4 = r2*r2;
-		gloss = log(2.0/r4 - 1.0)/log(2.0)/18.0;
-	}
-
-	float mip = (1.0-gloss)*6.0;
-	return textureLod(reflectMap, reflectVec, mip).xyz;
-}
-
-vec3 getRadiance(in vec3 reflectVec, float roughness)
-{
-	return GetReflectionAt(reflectVec, uReflectionMap, roughness);
-}
-
-#endif
-
 #if HAS_ENVIRONMENT_MAP
 layout (std140, binding = BINDING_ENVIRONMEN_MAP) uniform EnvironmentMap
 {
@@ -345,12 +316,10 @@ vec3 getIrradiance(in vec3 normal)
 	return shGetIrradianceAt(normal, uSHCoefficients);
 }
 
-#if !HAS_REFLECTION_MAP
 vec3 getRadiance(in vec3 reflectVec, float roughness)
 {
 	return shGetIrradianceAt(reflectVec, uSHCoefficients) * RECIPROCAL_PI;
 }
-#endif
 
 #endif
 
@@ -776,12 +745,10 @@ vec3 getIrradiance(in vec3 normal)
 	return vec3(0.0);
 }
 
-#if !HAS_REFLECTION_MAP
 vec3 getRadiance(in vec3 reflectVec, float roughness)
 {
 	return getIrradiance(reflectVec) * RECIPROCAL_PI;
 }
-#endif
 
 #endif
 
@@ -898,14 +865,12 @@ vec3 getIrradiance(in vec3 normal)
 				if (weight>0.0)
 				{
 					ivec3 vert = i_voxel + ivec3(x,y,z);
-					vec3 vert_normalized = (vec3(vert) + vec3(0.5))/vec3(divs);
-					vec3 vert_world = vert_normalized * size_grid + uCoverageMin.xyz;
-					vec3 dir = normalize(vert_world - vWorldPos);
+					int idx_probe = get_probe_idx_lod(vert, lod);
+					vec3 probe_world = bProbeData[idx_probe*10].xyz;					
+					vec3 dir = normalize(probe_world - vWorldPos);
 					float dotDirN = dot(dir, N);
 					float k = 0.9;
-					dotDirN = (k*dotDirN + sqrt(1.0 - (1.0-dotDirN*dotDirN)*k*k))/(k+1.0);
-					int idx_probe = get_probe_idx_lod(vert, lod);
-					vec3 probe_world = bProbeData[idx_probe*10].xyz;
+					dotDirN = (k*dotDirN + sqrt(1.0 - (1.0-dotDirN*dotDirN)*k*k))/(k+1.0);					
 					weight*= dotDirN * get_visibility(idx_probe, probe_world);					
 					sum_weight += weight;
 					acc_coeffs(coeffs, idx_probe, weight);
@@ -923,12 +888,10 @@ vec3 getIrradiance(in vec3 normal)
 	return vec3(0.0);
 }
 
-#if !HAS_REFLECTION_MAP
 vec3 getRadiance(in vec3 reflectVec, float roughness)
 {
 	return getIrradiance(reflectVec) * RECIPROCAL_PI;
 }
-#endif
 
 #endif
 
@@ -949,12 +912,10 @@ vec3 getIrradiance(in vec3 normal)
 	return uAmbientColor.xyz * PI;
 }
 
-#if !HAS_REFLECTION_MAP
 vec3 getRadiance(in vec3 reflectVec, float roughness)
 {
 	return uAmbientColor.xyz;
 }
-#endif
 
 #endif
 
@@ -982,12 +943,10 @@ vec3 getIrradiance(in vec3 normal)
 	return HemisphereColor(normal) * PI;
 }
 
-#if !HAS_REFLECTION_MAP
 vec3 getRadiance(in vec3 reflectVec, float roughness)
 {
 	return HemisphereColor(reflectVec);
 }
-#endif
 
 #endif
 
@@ -1495,22 +1454,7 @@ void SimpleRoutine::s_generate_shaders(const Options& options, Bindings& binding
 	{
 		defines += "#define HAS_INDIRECT_LIGHT 0\n";
 	}
-
-	if (options.has_reflection_map)
-	{
-		defines += "#define HAS_REFLECTION_MAP 1\n";
-		bindings.location_tex_reflection_map = bindings.location_tex_directional_shadow + 1;
-		{
-			char line[64];
-			sprintf(line, "#define LOCATION_TEX_REFLECTION_MAP %d\n", bindings.location_tex_reflection_map);
-			defines += line;
-		}
-	}
-	else
-	{
-		defines += "#define HAS_REFLECTION_MAP 0\n";
-		bindings.location_tex_reflection_map = bindings.location_tex_directional_shadow;
-	}
+	
 
 	if (options.has_environment_map)
 	{
@@ -1860,15 +1804,6 @@ void SimpleRoutine::render(const RenderParams& params)
 		}
 		int start_idx = m_bindings.location_tex_directional_shadow - m_options.num_directional_shadows + 1;		
 		glUniform1iv(start_idx, m_options.num_directional_shadows, values.data());
-	}
-
-	if (m_options.has_reflection_map)
-	{
-		glActiveTexture(GL_TEXTURE0 + texture_idx);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, params.lights->reflection_map->tex_id);
-		glUniform1i(m_bindings.location_tex_reflection_map, texture_idx);
-		texture_idx++;
-
 	}
 
 	if (params.primitive->index_buf != nullptr)

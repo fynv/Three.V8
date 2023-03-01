@@ -1188,14 +1188,12 @@ vec3 getIrradiance(in vec3 normal)
 				if (weight>0.0)
 				{
 					ivec3 vert = i_voxel + ivec3(x,y,z);
-					vec3 vert_normalized = (vec3(vert) + vec3(0.5))/vec3(divs);
-					vec3 vert_world = vert_normalized * size_grid + uCoverageMin.xyz;
-					vec3 dir = normalize(vert_world - vWorldPos);					
+					int idx_probe = get_probe_idx_lod(vert, lod);
+					vec3 probe_world = bProbeData[idx_probe*10].xyz;					
+					vec3 dir = normalize(probe_world - vWorldPos);					
 					float dotDirN = dot(dir, N);
 					float k = 0.9;
-					dotDirN = (k*dotDirN + sqrt(1.0 - (1.0-dotDirN*dotDirN)*k*k))/(k+1.0);
-					int idx_probe = get_probe_idx_lod(vert, lod);
-					vec3 probe_world = bProbeData[idx_probe*10].xyz;
+					dotDirN = (k*dotDirN + sqrt(1.0 - (1.0-dotDirN*dotDirN)*k*k))/(k+1.0);				
 					weight*= dotDirN * get_visibility(idx_probe, probe_world);								
 					sum_weight += weight;
 					acc_coeffs(coeffs, idx_probe, weight);

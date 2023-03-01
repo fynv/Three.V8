@@ -709,8 +709,7 @@ void GLRenderer::render_primitive_simple(const SimpleRoutine::RenderParams& para
 	options.has_specular_map = material->tex_idx_specularMap >= 0;
 	options.has_glossiness_map = material->tex_idx_glossinessMap >= 0;
 	options.num_directional_lights = lights->num_directional_lights;
-	options.num_directional_shadows = lights->num_directional_shadows;
-	options.has_reflection_map = lights->reflection_map != nullptr;
+	options.num_directional_shadows = lights->num_directional_shadows;	
 	options.has_environment_map = lights->environment_map != nullptr;
 	options.has_probe_grid = lights->probe_grid != nullptr;
 	if (options.has_probe_grid)

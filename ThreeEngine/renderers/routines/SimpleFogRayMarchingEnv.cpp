@@ -592,9 +592,7 @@ vec3 getIrradiance(in vec3 pos_world)
 				float weight = w.x * w.y * w.z;
 				if (weight>0.0)
 				{
-					ivec3 vert = i_voxel + ivec3(x,y,z);
-					vec3 vert_normalized = (vec3(vert) + vec3(0.5))/vec3(divs);
-					vec3 vert_world = vert_normalized * size_grid + uCoverageMin.xyz;
+					ivec3 vert = i_voxel + ivec3(x,y,z);					
 					int idx_probe = get_probe_idx_lod(vert, lod);
 					vec3 probe_world = bProbeData[idx_probe*10].xyz;
 					weight*= get_visibility(pos_world, idx_probe, probe_world);
