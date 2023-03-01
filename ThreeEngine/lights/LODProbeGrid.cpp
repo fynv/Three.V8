@@ -83,8 +83,11 @@ void LODProbeGrid::updateConstant()
 
 void LODProbeGrid::_initialize(GLRenderer& renderer, Scene& scene, int probe_budget)
 {
+	m_sub_index.clear();
 	m_sub_index.resize(base_divisions.x * base_divisions.y * base_divisions.z, -1);
+	m_probe_data.clear();
 	m_probe_data.resize(base_divisions.x * base_divisions.y * base_divisions.z * 10, glm::vec4(0.0f));
+	m_visibility_data.clear();
 
 	glm::vec3 size_grid = coverage_max - coverage_min;
 	for (int z = 0; z < base_divisions.z; z++)
@@ -118,39 +121,104 @@ void LODProbeGrid::_initialize(GLRenderer& renderer, Scene& scene, int probe_bud
 
 			glBindTexture(GL_TEXTURE_3D, tex_id);
 			glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			glTexStorage3D(GL_TEXTURE_3D, 1, GL_R8, vol_div.x, vol_div.y, vol_div.z);
+			glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);			
+			glTexStorage3D(GL_TEXTURE_3D, 1, GL_R8UI, vol_div.x, vol_div.y, vol_div.z);			
 			glBindTexture(GL_TEXTURE_3D, 0);
 
-			uint8_t zero = 0;
-			glClearTexImage(tex_id, 0, GL_RED, GL_UNSIGNED_BYTE, &zero);
-
+			uint8_t zero = 0;			
+			glClearTexImage(tex_id, 0, GL_RED_INTEGER, GL_UNSIGNED_BYTE, &zero);			
 			renderer.sceneToVolume(scene, tex_id, coverage_min, coverage_max, vol_div);
 			vol.resize(vol_div.x * vol_div.y * vol_div.z);
 
 			glBindTexture(GL_TEXTURE_3D, tex_id);
-			glGetTexImage(GL_TEXTURE_3D, 0, GL_RED, GL_UNSIGNED_BYTE, vol.data());
+			glGetTexImage(GL_TEXTURE_3D, 0, GL_RED_INTEGER, GL_UNSIGNED_BYTE, vol.data());
 			glBindTexture(GL_TEXTURE_3D, 0);
 
 			glDeleteTextures(1, &tex_id);
 		}
-
-		for (int i = sub_division_level - 1; i >= 0; i--)
+		
 		{
-			Volume& vol1 = volumes[i + 1];
-			Volume& vol0 = volumes[i];
-			vol_div /= 2;
-			vol0.resize(vol_div.x * vol_div.y * vol_div.z, 0);
-			
-			for (int z = 0; z < vol_div.z * 2; z++)
+			for (int level = 0; level < sub_division_level; level++)
 			{
-				for (int y = 0; y < vol_div.y * 2; y++)
+				glm::ivec3 l_div = vol_div / (1 << (sub_division_level - level));
+				volumes[level].resize(l_div.x * l_div.y * l_div.z);
+
+			}
+			Volume& vol = volumes[sub_division_level];
+			for (int z = 0; z < vol_div.z; z++)
+			{
+				for (int y = 0; y < vol_div.y; y++)
 				{
-					for (int x = 0; x < vol_div.x * 2; x++)
+					for (int x = 0; x < vol_div.x; x++)
 					{
-						int idx_in = x + (y + z * vol_div.y * 2) * vol_div.x * 2;
-						int idx_out = x / 2 + (y / 2 + z / 2 * vol_div.y) * vol_div.x;
-						if (vol1[idx_in] > 0) vol0[idx_out] = 1;
+						int idx = x + (y + z  * vol_div.y) * vol_div.x;
+						uint8_t dir_mask = vol[idx];
+						if (dir_mask & 1)
+						{
+							unsigned level_mask = (1 << sub_division_level) - 1;
+							for (int level = 0; level < sub_division_level; level++)
+							{
+								if (x & level_mask)
+								{
+									glm::ivec3 l_div = vol_div / (1 << (sub_division_level - level));
+									int lx = x >> (sub_division_level - level);
+									int ly = y >> (sub_division_level - level);
+									int lz = z >> (sub_division_level - level);
+									int idx_l = lx + (ly + lz * l_div.y) * l_div.x;
+									volumes[level][idx_l] = 1;
+								}
+								else
+								{
+									break;
+								}
+								level_mask >>= 1;
+							}
+						}
+						if (dir_mask & 2)
+						{
+							unsigned level_mask = (1 << sub_division_level) - 1;
+							for (int level = 0; level < sub_division_level; level++)
+							{
+								if (y & level_mask)
+								{
+									glm::ivec3 l_div = vol_div / (1 << (sub_division_level - level));
+									int lx = x >> (sub_division_level - level);
+									int ly = y >> (sub_division_level - level);
+									int lz = z >> (sub_division_level - level);
+									int idx_l = lx + (ly + lz * l_div.y) * l_div.x;
+									volumes[level][idx_l] = 1;
+								}
+								else
+								{
+									break;
+								}
+								level_mask >>= 1;
+							}
+
+						}
+						if (dir_mask & 4)
+						{
+							unsigned level_mask = (1 << sub_division_level) - 1;
+							for (int level = 0; level < sub_division_level; level++)
+							{
+								if (z & level_mask)
+								{
+									glm::ivec3 l_div = vol_div / (1 << (sub_division_level - level));
+									int lx = x >> (sub_division_level - level);
+									int ly = y >> (sub_division_level - level);
+									int lz = z >> (sub_division_level - level);
+									int idx_l = lx + (ly + lz * l_div.y) * l_div.x;
+									volumes[level][idx_l] = 1;
+								}
+								else
+								{
+									break;
+								}
+								level_mask >>= 1;
+							}
+
+						}
+
 					}
 				}
 			}
