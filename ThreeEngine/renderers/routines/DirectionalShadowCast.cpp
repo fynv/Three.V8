@@ -55,7 +55,6 @@ R"(#version 430
 
 #DEFINES#
 
-#if ALPHA
 layout (std140, binding = BINDING_MATERIAL) uniform Material
 {
 	vec4 uColor;
@@ -68,6 +67,7 @@ layout (std140, binding = BINDING_MATERIAL) uniform Material
 	int uDoubleSided;
 };
 
+#if ALPHA
 
 #if HAS_COLOR
 layout (location = LOCATION_VARYING_ALPHA) in float vAlpha;
@@ -109,7 +109,6 @@ R"(#version 430
 
 #DEFINES#
 
-#if ALPHA
 layout (std140, binding = BINDING_MATERIAL) uniform Material
 {
 	vec4 uColor;
@@ -121,7 +120,7 @@ layout (std140, binding = BINDING_MATERIAL) uniform Material
 	float uAlphaCutoff;
 	int uDoubleSided;
 };
-
+#if ALPHA
 
 #if HAS_COLOR
 layout (location = LOCATION_VARYING_ALPHA) in float vAlpha;
@@ -157,10 +156,9 @@ void main()
 
 	if (base_alpha<0.5) discard;
 #endif
-	
 	float z0 = gl_FragCoord.z;
 	float z1 = texelFetch(uTexShadow0, ivec2(gl_FragCoord.xy), 0).x;
-	if (z0 <= z1) discard;
+	if (uDoubleSided!=0 && z0 <= z1) discard;		
 	gl_FragDepth = (z0 + z1)*0.5;	
 }
 )";
@@ -213,23 +211,23 @@ DirectionalShadowCast::DirectionalShadowCast(const Options& options) : m_options
 		}
 	}
 
+
+	{
+		bindings.binding_material = bindings.binding_model + 1;
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_MATERIAL %d\n", bindings.binding_material);
+			defines += line;
+		}
+	}
+
 	if (options.alpha_mode == AlphaMode::Opaque)
 	{
-		defines += "#define ALPHA 0\n";
-		bindings.binding_material = bindings.binding_model;
+		defines += "#define ALPHA 0\n";		
 	}
 	else
 	{
-		defines += "#define ALPHA 1\n";
-
-		{
-			bindings.binding_material = bindings.binding_model + 1;
-			{
-				char line[64];
-				sprintf(line, "#define BINDING_MATERIAL %d\n", bindings.binding_material);
-				defines += line;
-			}
-		}
+		defines += "#define ALPHA 1\n";		
 
 		if (options.alpha_mode == AlphaMode::Mask)
 		{
@@ -337,10 +335,7 @@ void DirectionalShadowCast::render0(const RenderParams& params)
 	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_shadow, params.constant_shadow->m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_model, params.constant_model->m_id);
 
-	if (m_options.alpha_mode != AlphaMode::Opaque)
-	{
-		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_material, material.constant_material.m_id);
-	}
+	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_material, material.constant_material.m_id);	
 
 	glBindBuffer(GL_ARRAY_BUFFER, geo.pos_buf->m_id);
 	glVertexAttribPointer(m_bindings.location_attrib_pos, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
@@ -412,17 +407,14 @@ void DirectionalShadowCast::render1(const RenderParams& params)
 	else
 	{
 		glEnable(GL_CULL_FACE);
-		glCullFace(GL_BACK);
+		glCullFace(GL_FRONT);
 	}
 
 	glUseProgram(m_prog1->m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_shadow, params.constant_shadow->m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_model, params.constant_model->m_id);
 
-	if (m_options.alpha_mode != AlphaMode::Opaque)
-	{
-		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_material, material.constant_material.m_id);
-	}
+	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_material, material.constant_material.m_id);
 
 	glBindBuffer(GL_ARRAY_BUFFER, geo.pos_buf->m_id);
 	glVertexAttribPointer(m_bindings.location_attrib_pos, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
