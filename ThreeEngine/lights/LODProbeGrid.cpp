@@ -462,8 +462,9 @@ void LODProbeGrid::construct_visibility(Scene& scene)
 
 		int lod = (int)pos_lod.w;
 		float scale = 1.0f/ float(1 << lod);
-
-		bool zero = false;
+		int count_A = 0;
+		int count_bad = 0;
+		
 		for (int i = 0; i < 26; i++)
 		{
 			glm::vec3 dir = directions[i] * spacing * scale;
@@ -473,6 +474,7 @@ void LODProbeGrid::construct_visibility(Scene& scene)
 			auto intersectionA = bvh.intersect(bvh_ray, 2);
 			if (intersectionA.has_value())
 			{
+				count_A++;
 				float disA = intersectionA->distance();
 				auto intersectionB = bvh.intersect(bvh_ray,1);
 				if (intersectionB.has_value())
@@ -480,27 +482,38 @@ void LODProbeGrid::construct_visibility(Scene& scene)
 					float disB = intersectionB->distance();
 					if (disB >= disA)
 					{
-						zero = true;
-						break;
+						if (disA < vis) vis = disA;
+						count_bad++;
 					}
 					float dis = (disA + disB) * 0.5f;
 					if (dis < vis) vis = dis;
 				}
 				else
-				{
-					zero = true;
-					break;
+				{					
+					if (disA < vis) vis = disA;
+					count_bad++;
 				}				
+			}
+			else
+			{
+				auto intersectionB = bvh.intersect(bvh_ray, 1);
+				if (intersectionB.has_value())
+				{
+					float disB = intersectionB->distance();				
+					float dis = (vis + disB) * 0.5f;
+					if (dis < vis) vis = dis;
+				}
+
 			}
 			m_visibility_data[index * 26 + i] = vis;
 		}
-		if (zero)
-		{
+		if (count_bad > 0)
+		{			
 			for (int i = 0; i < 26; i++)
 			{
 				m_visibility_data[index * 26 + i] = 0.0f;
 			}
-		}
+		}		
 	}
 
 	m_visibility_buf->upload(m_visibility_data.data());
