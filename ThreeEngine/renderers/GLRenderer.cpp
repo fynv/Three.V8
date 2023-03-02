@@ -851,7 +851,7 @@ DirectionalShadowCast* GLRenderer::get_shadow_caster(const DirectionalShadowCast
 	return directional_shadow_caster_map[hash].get();
 }
 
-void GLRenderer::render_shadow_primitive(const DirectionalShadowCast::RenderParams& params)
+void GLRenderer::render_shadow_primitive0(const DirectionalShadowCast::RenderParams& params)
 {		
 	const MeshStandardMaterial* material = params.material_list[params.primitive->material_idx];
 
@@ -860,10 +860,10 @@ void GLRenderer::render_shadow_primitive(const DirectionalShadowCast::RenderPara
 	options.has_color = params.primitive->color_buf != nullptr;
 	options.has_color_texture = material->tex_idx_map >= 0;
 	DirectionalShadowCast* shadow_caster = get_shadow_caster(options);
-	shadow_caster->render(params);
+	shadow_caster->render0(params);
 }
 
-void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, SimpleModel* model)
+void GLRenderer::render_shadow_model0(DirectionalLightShadow* shadow, SimpleModel* model)
 {
 	glm::mat4 view_matrix = glm::inverse(shadow->m_light->matrixWorld);
 	if (!visible(view_matrix * model->matrixWorld, shadow->m_light_proj_matrix, model->geometry.min_pos, model->geometry.max_pos)) return;
@@ -882,10 +882,10 @@ void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, SimpleModel
 	params.constant_shadow = &shadow->constant_shadow;
 	params.constant_model = &model->m_constant;
 	params.primitive = &model->geometry;
-	render_shadow_primitive(params);
+	render_shadow_primitive0(params);
 }
 
-void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, GLTFModel* model)
+void GLRenderer::render_shadow_model0(DirectionalLightShadow* shadow, GLTFModel* model)
 {
 	glm::mat4 view_matrix = glm::inverse(shadow->m_light->matrixWorld);
 	
@@ -931,10 +931,98 @@ void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, GLTFModel* 
 			params.constant_shadow = &shadow->constant_shadow;
 			params.constant_model = mesh.model_constant.get();
 			params.primitive = &primitive;		
-			render_shadow_primitive(params);
+			render_shadow_primitive0(params);
 		}
 	}
 }
+
+void GLRenderer::render_shadow_primitive1(const DirectionalShadowCast::RenderParams& params)
+{
+	const MeshStandardMaterial* material = params.material_list[params.primitive->material_idx];
+
+	DirectionalShadowCast::Options options;
+	options.alpha_mode = material->alphaMode;
+	options.has_color = params.primitive->color_buf != nullptr;
+	options.has_color_texture = material->tex_idx_map >= 0;
+	DirectionalShadowCast* shadow_caster = get_shadow_caster(options);
+	shadow_caster->render1(params);
+}
+
+void GLRenderer::render_shadow_model1(DirectionalLightShadow* shadow, SimpleModel* model, unsigned texShadow0)
+{
+	glm::mat4 view_matrix = glm::inverse(shadow->m_light->matrixWorld);
+	if (!visible(view_matrix * model->matrixWorld, shadow->m_light_proj_matrix, model->geometry.min_pos, model->geometry.max_pos)) return;
+
+	const GLTexture2D* tex = &model->texture;
+	if (model->repl_texture != nullptr)
+	{
+		tex = model->repl_texture;
+	}
+
+	const MeshStandardMaterial* material = &model->material;
+
+	DirectionalShadowCast::RenderParams params;
+	params.tex_list = &tex;
+	params.material_list = &material;
+	params.constant_shadow = &shadow->constant_shadow;
+	params.constant_model = &model->m_constant;
+	params.primitive = &model->geometry;
+	params.texShadow0 = texShadow0;
+	render_shadow_primitive1(params);
+}
+
+void GLRenderer::render_shadow_model1(DirectionalLightShadow* shadow, GLTFModel* model, unsigned texShadow0)
+{
+	glm::mat4 view_matrix = glm::inverse(shadow->m_light->matrixWorld);
+
+	std::vector<const GLTexture2D*> tex_lst(model->m_textures.size());
+	for (size_t i = 0; i < tex_lst.size(); i++)
+	{
+		auto iter = model->m_repl_textures.find(i);
+		if (iter != model->m_repl_textures.end())
+		{
+			tex_lst[i] = iter->second;
+		}
+		else
+		{
+			tex_lst[i] = model->m_textures[i].get();
+		}
+	}
+
+	std::vector<const MeshStandardMaterial*> material_lst(model->m_materials.size());
+	for (size_t i = 0; i < material_lst.size(); i++)
+		material_lst[i] = model->m_materials[i].get();
+
+	for (size_t i = 0; i < model->m_meshs.size(); i++)
+	{
+		Mesh& mesh = model->m_meshs[i];
+		glm::mat4 matrix = model->matrixWorld;
+		if (mesh.node_id >= 0 && mesh.skin_id < 0)
+		{
+			Node& node = model->m_nodes[mesh.node_id];
+			matrix *= node.g_trans;
+		}
+		glm::mat4 MV = view_matrix * matrix;
+
+		for (size_t j = 0; j < mesh.primitives.size(); j++)
+		{
+			Primitive& primitive = mesh.primitives[j];
+			if (!visible(MV, shadow->m_light_proj_matrix, primitive.min_pos, primitive.max_pos)) continue;
+
+			const MeshStandardMaterial* material = material_lst[primitive.material_idx];
+
+			DirectionalShadowCast::RenderParams params;
+			params.tex_list = tex_lst.data();
+			params.material_list = material_lst.data();
+			params.constant_shadow = &shadow->constant_shadow;
+			params.constant_model = mesh.model_constant.get();
+			params.primitive = &primitive;
+			params.texShadow0 = texShadow0;
+			render_shadow_primitive1(params);
+		}
+	}
+}
+
 
 void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, VolumeIsosurfaceModel* model)
 {
@@ -949,6 +1037,7 @@ void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, VolumeIsosu
 	params.shadow = shadow;
 	shadow_caster->render(params);
 }
+
 
 Picking* GLRenderer::get_picking(const Picking::Options& options)
 {
@@ -1285,25 +1374,50 @@ void GLRenderer::_pre_render(Scene& scene)
 		if (light->shadow != nullptr)
 		{
 			light->shadow->updateMatrices();
-			glBindFramebuffer(GL_FRAMEBUFFER, light->shadow->m_lightFBO);
-			glViewport(0, 0, light->shadow->m_map_width, light->shadow->m_map_height);
-			const float one = 1.0f;
-			glDepthMask(GL_TRUE);
-			glClearBufferfv(GL_DEPTH, 0, &one);
-
-			for (size_t j = 0; j < scene.simple_models.size(); j++)
+			// pass 0
 			{
-				SimpleModel* model = scene.simple_models[j];
-				render_shadow_model(light->shadow.get(), model);
+				glBindFramebuffer(GL_FRAMEBUFFER, light->shadow->m_lightFBO0);
+				glViewport(0, 0, light->shadow->m_map_width, light->shadow->m_map_height);
+				const float one = 1.0f;
+				glDepthMask(GL_TRUE);
+				glClearBufferfv(GL_DEPTH, 0, &one);
+
+				for (size_t j = 0; j < scene.simple_models.size(); j++)
+				{
+					SimpleModel* model = scene.simple_models[j];
+					render_shadow_model0(light->shadow.get(), model);
+				}
+
+				for (size_t j = 0; j < scene.gltf_models.size(); j++)
+				{
+					GLTFModel* model = scene.gltf_models[j];
+					render_shadow_model0(light->shadow.get(), model);
+				}				
 			}
 
-			for (size_t j = 0; j < scene.gltf_models.size(); j++)
+			// pass 1
 			{
-				GLTFModel* model = scene.gltf_models[j];
-				render_shadow_model(light->shadow.get(), model);
+				glBindFramebuffer(GL_FRAMEBUFFER, light->shadow->m_lightFBO);
+				glViewport(0, 0, light->shadow->m_map_width, light->shadow->m_map_height);
+				const float one = 1.0f;
+				glDepthMask(GL_TRUE);
+				glClearBufferfv(GL_DEPTH, 0, &one);
+
+				for (size_t j = 0; j < scene.simple_models.size(); j++)
+				{
+					SimpleModel* model = scene.simple_models[j];
+					render_shadow_model1(light->shadow.get(), model, light->shadow->m_lightTex0);
+				}
+
+				for (size_t j = 0; j < scene.gltf_models.size(); j++)
+				{
+					GLTFModel* model = scene.gltf_models[j];
+					render_shadow_model1(light->shadow.get(), model, light->shadow->m_lightTex0);
+				}
+				
 			}
 
-
+			// volume
 			for (size_t j = 0; j < scene.volume_isosurface_models.size(); j++)
 			{
 				VolumeIsosurfaceModel* model = scene.volume_isosurface_models[j];

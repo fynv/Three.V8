@@ -1051,23 +1051,20 @@ const create_lod_probe_grid = (doc, props) => {
         probe_grid.setCoverageMin(proxy.coverageMin);
         probe_grid.setCoverageMax(proxy.coverageMax);
         probe_grid.subDivisionLevel = proxy.subDivisionLevel;
-        probe_grid.probe_budget = proxy.probe_budget;
     }
     else
     {
-        probe_grid.probe_budget = -1;
-        
         proxy.setBaseDivisions(probe_grid.baseDivisions);
         proxy.setCoverageMin(probe_grid.coverageMin);
         proxy.setCoverageMax(probe_grid.coverageMax);
         proxy.subDivisionLevel = probe_grid.subDivisionLevel;
-        proxy.probe_budget = probe_grid.probe_budget;
         
         props.base_divisions = `${probe_grid.baseDivisions.x}, ${probe_grid.baseDivisions.y}, ${probe_grid.baseDivisions.z}`;
         props.coverage_min = `${probe_grid.coverageMin.x}, ${probe_grid.coverageMin.y}, ${probe_grid.coverageMin.z}`;
         props.coverage_max = `${probe_grid.coverageMax.x}, ${probe_grid.coverageMax.y}, ${probe_grid.coverageMax.z}`;
         props.sub_division_level = `${probe_grid.subDivisionLevel}`;
     }
+    probe_grid.probe_budget = proxy.probe_budget;
     proxy.probeGrid = probe_grid;
     
     doc.scene.indirectLight = probe_grid;
@@ -1359,22 +1356,20 @@ const tuning_lod_probe_grid =  (doc, obj, input) =>{
             probe_grid.setCoverageMin(obj.coverageMin);
             probe_grid.setCoverageMax(obj.coverageMax);
             probe_grid.subDivisionLevel = obj.subDivisionLevel;
-            probe_grid.probe_budget = obj.probe_grid;
         }
         else
         {
-            probe_grid.probe_budget = -1;
             obj.setBaseDivisions(probe_grid.baseDivisions);
             obj.setCoverageMin(probe_grid.coverageMin);
             obj.setCoverageMax(probe_grid.coverageMax);
             obj.subDivisionLevel = probe_grid.subDivisionLevel;
-            obj.probe_budget = probe_grid.probe_budget;
             
             props.base_divisions = `${probe_grid.baseDivisions.x}, ${probe_grid.baseDivisions.y}, ${probe_grid.baseDivisions.z}`;
             props.coverage_min = `${probe_grid.coverageMin.x}, ${probe_grid.coverageMin.y}, ${probe_grid.coverageMin.z}`;
             props.coverage_max = `${probe_grid.coverageMax.x}, ${probe_grid.coverageMax.y}, ${probe_grid.coverageMax.z}`;
             props.sub_division_level = `${probe_grid.subDivisionLevel}`;
         }
+        probe_grid.probe_budget = obj.probe_grid;
         
         if (props.hasOwnProperty('dynamic_map'))
         {

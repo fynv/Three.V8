@@ -474,8 +474,6 @@ void LODProbeGrid::construct_visibility(Scene& scene)
 			if (intersectionA.has_value())
 			{
 				float disA = intersectionA->distance();
-				if (disA < vis) vis = disA;
-
 				auto intersectionB = bvh.intersect(bvh_ray,1);
 				if (intersectionB.has_value())
 				{
@@ -485,12 +483,14 @@ void LODProbeGrid::construct_visibility(Scene& scene)
 						zero = true;
 						break;
 					}
+					float dis = (disA + disB) * 0.5f;
+					if (dis < vis) vis = dis;
 				}
 				else
 				{
 					zero = true;
 					break;
-				}
+				}				
 			}
 			m_visibility_data[index * 26 + i] = vis;
 		}

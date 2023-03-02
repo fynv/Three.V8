@@ -114,10 +114,14 @@ private:
 
 	std::unique_ptr<IsosurfaceDirectionalShadow> isosurface_directional_shadow;
 
-	void render_shadow_primitive(const DirectionalShadowCast::RenderParams& params);
-	void render_shadow_model(DirectionalLightShadow* shadow, SimpleModel* model);
-	void render_shadow_model(DirectionalLightShadow* shadow, GLTFModel* model);
-	void render_shadow_model(DirectionalLightShadow* shadow, VolumeIsosurfaceModel* model);
+	void render_shadow_primitive0(const DirectionalShadowCast::RenderParams& params);
+	void render_shadow_model0(DirectionalLightShadow* shadow, SimpleModel* model);
+	void render_shadow_model0(DirectionalLightShadow* shadow, GLTFModel* model);
+	void render_shadow_primitive1(const DirectionalShadowCast::RenderParams& params);
+	void render_shadow_model1(DirectionalLightShadow* shadow, SimpleModel* model, unsigned texShadow0);
+	void render_shadow_model1(DirectionalLightShadow* shadow, GLTFModel* model, unsigned texShadow0);
+
+	void render_shadow_model(DirectionalLightShadow* shadow, VolumeIsosurfaceModel* model);	
 	
 
 	std::unique_ptr<DrawSkyBox> SkyBoxDraw;
