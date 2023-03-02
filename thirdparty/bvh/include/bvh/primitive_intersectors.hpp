@@ -21,7 +21,7 @@ struct PrimitiveIntersector {
 
     const Bvh& bvh;
     const Primitive* primitives = nullptr;
-    bool culling = false;
+    int culling = 0;
 
     static constexpr bool any_hit = AnyHit;
 

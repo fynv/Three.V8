@@ -96,13 +96,14 @@ struct Triangle {
         return std::make_pair(left, right);
     }
 
-    std::optional<Intersection> intersect(const Ray<Scalar>& ray, bool culling) const {
+    std::optional<Intersection> intersect(const Ray<Scalar>& ray, int culling) const {
         auto negate_when_right_handed = [] (Scalar x) { return LeftHandedNormal ? x : -x; };
 
         auto c = p0 - ray.origin;
         auto r = cross(ray.direction, c);
         auto inv_det = negate_when_right_handed(1.0) / dot(n, ray.direction);
-        if (culling && inv_det <= 0) return std::nullopt;
+        if (culling == 1 && inv_det <= 0) return std::nullopt;
+        if (culling == 2 && inv_det >= 0) return std::nullopt;
 
         auto u = dot(r, e2) * inv_det;
         auto v = dot(r, e1) * inv_det;
