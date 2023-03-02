@@ -26,9 +26,6 @@ public:
 	DirectionalLight* m_light;
 	int m_map_width, m_map_height;
 
-	unsigned m_lightTex0;
-	unsigned m_lightFBO0;
-
 	unsigned m_lightTex;
 	unsigned m_lightFBO;
 
@@ -42,6 +39,5 @@ public:
 
 	void makeConst(ConstDirectionalShadow& const_shadow);
 	void updateMatrices();
-	
 
 };

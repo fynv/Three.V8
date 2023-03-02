@@ -26,11 +26,10 @@ public:
 		const GLDynBuffer* constant_shadow;
 		const GLDynBuffer* constant_model;
 		const Primitive* primitive;
-		unsigned texShadow0;
 	};
 
-	void render0(const RenderParams& params);
-	void render1(const RenderParams& params);
+	void render(const RenderParams& params);
+
 
 private:
 	Options m_options;
@@ -45,13 +44,13 @@ private:
 		int location_varying_alpha;
 		int location_attrib_uv;
 		int location_varying_uv;
-		int location_tex_color;	
-		int location_tex_shadow0;
+		int location_tex_color;		
 	};
 	Bindings m_bindings;
 
-	std::unique_ptr<GLProgram> m_prog0;
-	std::unique_ptr<GLProgram> m_prog1;
+	static void s_generate_shaders(const Options& options, Bindings& bindings, std::string& s_vertex, std::string& s_frag);
+
+	std::unique_ptr<GLProgram> m_prog;
 
 };
 
