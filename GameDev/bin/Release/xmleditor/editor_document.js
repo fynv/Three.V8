@@ -1369,7 +1369,8 @@ const tuning_lod_probe_grid =  (doc, obj, input) =>{
             props.coverage_max = `${probe_grid.coverageMax.x}, ${probe_grid.coverageMax.y}, ${probe_grid.coverageMax.z}`;
             props.sub_division_level = `${probe_grid.subDivisionLevel}`;
         }
-        probe_grid.probe_budget = obj.probe_grid;
+        probe_grid.probe_budget = obj.probe_budget;
+        obj.probeGrid = probe_grid;
         
         if (props.hasOwnProperty('dynamic_map'))
         {
@@ -1419,9 +1420,7 @@ const tuning_lod_probe_grid =  (doc, obj, input) =>{
 }
 
 const initialize_lod_probe_grid = (doc, obj, input) =>{
-    let node = doc.internal_index[obj.uuid].xml_node;
-    let props = node.attributes;
-    let probe_grid = doc.scene.indirectLight;
+    let probe_grid = obj.probeGrid;
     
     let count = probe_grid.numberOfProbes;
     let changed = (count == 0 || obj.coverageMin.x != probe_grid.coverageMin.x || obj.coverageMin.y != probe_grid.coverageMin.y || obj.coverageMin.z != probe_grid.coverageMin.z
