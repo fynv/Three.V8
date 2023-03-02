@@ -308,6 +308,7 @@ layout (std430, binding = BINDING_PROBE_VISIBILITY) buffer ProbeVisibility
 
 float quantize_vis(float limit, float dis)
 {
+	if (limit == 0.0) return 0.0;
 	float x = dis-0.9*limit;
 	if (x<0.0) x = 0.0;
 	return pow(0.01, x);
@@ -887,7 +888,7 @@ void acc_coeffs(inout vec4 coeffs[9], int idx, in float weight)
 	}
 }
 
-bool getCoeffsLod(in vec3 world_pos, in vec3 normal, int lod, inout vec4 coeffs[9])
+void accCoeffsLod(in vec3 world_pos, in vec3 normal, int lod, inout vec4 coeffs[9], inout float sum_weight, float level_weight)
 {
 	ivec3 divs = uBaseDivisions.xyz * (1<<lod);
 
@@ -899,81 +900,77 @@ bool getCoeffsLod(in vec3 world_pos, in vec3 normal, int lod, inout vec4 coeffs[
 	ivec3 i_voxel = clamp(ivec3(pos_voxel), ivec3(0), ivec3(divs) - ivec3(2));
 	vec3 frac_voxel = pos_voxel - vec3(i_voxel);
 
-	float sum_weight = 0.0;
-
 	for (int z=0;z<2;z++)
 	{
 		for (int y=0;y<2;y++)
 		{
 			for (int x=0;x<2;x++)
 			{
-				vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
-				float weight = w.x * w.y * w.z; 
+				float weight = level_weight;
+				ivec3 vert = i_voxel + ivec3(x,y,z);
+				int idx_probe = get_probe_idx_lod(vert, lod);
+				vec3 probe_world = bProbeData[idx_probe*10].xyz;
+				weight *= get_visibility(world_pos, idx_probe, probe_world);						
 				if (weight>0.0)
 				{
-					ivec3 vert = i_voxel + ivec3(x,y,z);
-					int idx_probe = get_probe_idx_lod(vert, lod);
-					vec3 probe_world = bProbeData[idx_probe*10].xyz;
+					vec3 w = vec3(1.1) - abs(vec3(x,y,z) - frac_voxel);
+					weight *= w.x * w.y * w.z; 					
 					vec3 dir = normalize(probe_world - world_pos);
 					float dotDirN = dot(dir, normal);
 					float k = 0.9;
 					dotDirN = (k*dotDirN + sqrt(1.0 - (1.0-dotDirN*dotDirN)*k*k))/(k+1.0);
-					weight*= dotDirN * get_visibility(world_pos, idx_probe, probe_world);	
+					weight*= dotDirN;
 					sum_weight += weight;
 					acc_coeffs(coeffs, idx_probe, weight);
 				}
 			}
 		}
 	}
-	
-
-	if (sum_weight>0.0)
-	{
-		for (int i=0; i<9; i++) coeffs[i]/=sum_weight;
-		return true;
-	}
-	return false;
 }
 
 vec3 getIrradiance(in vec3 world_pos, in vec3 normal)
 {
-	float f_lod = get_probe_lod_f(world_pos);	
-
-	int i_lod = clamp(int(f_lod), 0, uSubDivisionLevel - 1);	
-	float frac_lod = f_lod - float(i_lod);
-		
 	vec4 coeffs[9];
-	for (int i=0; i<9; i++) coeffs[i] = vec4(0.0);
-
-	bool non_zero = false;
-	if (frac_lod<1.0)
+	for (int i=0; i<9; i++) 
 	{
-		non_zero = getCoeffsLod(world_pos, normal, i_lod, coeffs);
-	}	
-
-	if (frac_lod > 0.0)
-	{
-		i_lod++;
-		vec4 coeffs1[9];
-		for (int i=0; i<9; i++) coeffs1[i] = vec4(0.0);
-
-		bool non_zero1 = getCoeffsLod(world_pos, normal, i_lod, coeffs1);
-		non_zero = non_zero || non_zero1;
-		
-		if (non_zero)
-		{
-			for (int i=0; i<9; i++) 
-			{
-				coeffs[i] = (1.0 - frac_lod) * coeffs[i] + frac_lod * coeffs1[i];
-			}
-		}
+		coeffs[i] = vec4(0.0);
 	}
 
-	if (non_zero)	
+	float sum_weight = 0.0;
+
+	float f_lod = get_probe_lod_f(world_pos);	
+
+	int i_lod = clamp(int(ceil(f_lod)), 0, uSubDivisionLevel);	
+	float level_weight = 1.0 + f_lod - float(i_lod);
+
+	if (level_weight>0.0)
 	{
+		accCoeffsLod(world_pos, normal, i_lod, coeffs, sum_weight, level_weight);
+	}
+	
+	if (i_lod>0 && level_weight<1.0)
+	{
+		i_lod--;
+		level_weight = 1.0 - level_weight;
+		accCoeffsLod(world_pos, normal, i_lod, coeffs, sum_weight, level_weight);
+	}
+
+	while(i_lod>0 && sum_weight <=0.0)
+	{
+		i_lod--;
+		accCoeffsLod(world_pos, normal, i_lod, coeffs, sum_weight, 1.0);
+	}
+
+	if (sum_weight > 0.0)	
+	{
+		for (int i=0; i<9; i++)
+		{
+			coeffs[i] /= sum_weight;
+		}
 		return shGetIrradianceAt(normal, coeffs);
 	}
 	return vec3(0.0);
+	
 }
 
 #if !HAS_REFLECTION_MAP

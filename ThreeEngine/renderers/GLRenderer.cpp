@@ -675,9 +675,7 @@ void GLRenderer::render_widget(Camera* p_camera, LODProbeGridWidget* widget)
 	glVertex3f(widget->coverage_max.x, widget->coverage_max.y, widget->coverage_min.z);
 	glVertex3f(widget->coverage_max.x, widget->coverage_max.y, widget->coverage_max.z);
 
-	glEnd();
-
-	glColor3f(1.0f, 0.2f, 1.0f);
+	glEnd();	
 
 	if (widget->probe_grid == nullptr) return;
 
@@ -687,6 +685,16 @@ void GLRenderer::render_widget(Camera* p_camera, LODProbeGridWidget* widget)
 		glm::vec4 pos_level = widget->probe_grid->m_probe_data[i * 10];
 		glm::vec3 pos = glm::vec3(pos_level);
 		float level = pos_level.w;
+
+		float vis = widget->probe_grid->m_visibility_data[i * 26];
+		if (vis > 0.0f)
+		{
+			glColor3f(1.0f, 0.2f, 1.0f);
+		}
+		else
+		{
+			glColor3f(0.7f, 0.7f, 0.7f);
+		}
 		draw_round(pos, 0.05 * powf(0.5f, level), p_camera);
 	}
 
@@ -2417,6 +2425,9 @@ void GLRenderer::updateProbe(Scene& scene, CubeRenderTarget& target, ProbeGrid& 
 
 void GLRenderer::updateProbe(Scene& scene, CubeRenderTarget& target, LODProbeGrid& probe_grid, int idx, float zNear, float zFar, float k)
 {
+	float vis = probe_grid.m_visibility_data[idx * 26];
+	if (vis <= 0.0f) return;
+
 	bool full_update = true;
 	glm::vec4* dest_coeffs = &probe_grid.m_probe_data[idx * 10 + 1];	
 
@@ -2428,24 +2439,32 @@ void GLRenderer::updateProbe(Scene& scene, CubeRenderTarget& target, LODProbeGri
 			size_t base_offset = probe_grid.base_divisions.x * probe_grid.base_divisions.y * probe_grid.base_divisions.z;
 			size_t sub_offset = base_offset + sub_idx * 8;
 
+			float valid_count = 0.0f;
 			glm::vec4 coeffs[9];
 			memset(coeffs, 0, sizeof(glm::vec4) * 9);
 			for (int i = 0; i < 8; i++)
 			{
 				size_t probe_offset = sub_offset + i;
-				glm::vec4* src_coeffs = &probe_grid.m_probe_data[probe_offset * 10 + 1];
-				for (int j = 0; j < 9; j++)
+				float vis_sub = probe_grid.m_visibility_data[probe_offset * 26];
+				if (vis_sub)
 				{
-					coeffs[j] += src_coeffs[j];
+					glm::vec4* src_coeffs = &probe_grid.m_probe_data[probe_offset * 10 + 1];
+					for (int j = 0; j < 9; j++)
+					{
+						coeffs[j] += src_coeffs[j];
+					}
+					valid_count += 1.0f;
 				}
 			}
 
-			for (int j = 0; j < 9; j++)
+			if (valid_count > 0.0f)
 			{
-				dest_coeffs[j] = coeffs[j] / 8.0f;
-			}
-
-			full_update = false;
+				for (int j = 0; j < 9; j++)
+				{
+					dest_coeffs[j] = coeffs[j] / valid_count;
+				}
+				full_update = false;
+			}			
 		}
 
 	}

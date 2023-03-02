@@ -82,6 +82,7 @@ layout (std430, binding = 5) buffer ProbeVisibility
 
 float quantize_vis(float limit, float dis)
 {
+	if (limit == 0.0) return 0.0;
 	float x = dis-0.9*limit;
 	if (x<0.0) x = 0.0;
 	return pow(0.01, x);
@@ -602,7 +603,7 @@ void acc_coeffs(inout vec4 coeffs0, int idx, in float weight)
 	coeffs0+=bProbeData[offset]*weight;
 }
 
-bool getCoeffsLod(in vec3 pos_world, int lod, inout vec4 coeffs0)
+void accCoeffsLod(in vec3 pos_world, int lod, inout vec4 coeffs0, inout float sum_weight, float level_weight)
 {	
 	ivec3 divs = uBaseDivisions.xyz * (1<<lod);
 
@@ -614,40 +615,34 @@ bool getCoeffsLod(in vec3 pos_world, int lod, inout vec4 coeffs0)
 	ivec3 i_voxel = clamp(ivec3(pos_voxel), ivec3(0), ivec3(divs) - ivec3(2));
 	vec3 frac_voxel = pos_voxel - vec3(i_voxel);
 
-	float sum_weight = 0.0;
-
 	for (int z=0;z<2;z++)
 	{
 		for (int y=0;y<2;y++)
 		{
 			for (int x=0;x<2;x++)
 			{
-				vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
-				float weight = w.x * w.y * w.z;
+				float weight = level_weight;
+				ivec3 vert = i_voxel + ivec3(x,y,z);					
+				int idx_probe = get_probe_idx_lod(vert, lod);
+				vec3 probe_world = bProbeData[idx_probe*10].xyz;
+				weight*= get_visibility(pos_world, idx_probe, probe_world);							
 				if (weight>0.0)
 				{
-					ivec3 vert = i_voxel + ivec3(x,y,z);					
-					int idx_probe = get_probe_idx_lod(vert, lod);
-					vec3 probe_world = bProbeData[idx_probe*10].xyz;
-					weight*= get_visibility(pos_world, idx_probe, probe_world);
+					vec3 w = vec3(1.1) - abs(vec3(x,y,z) - frac_voxel);
+					weight *= w.x * w.y * w.z;
 					sum_weight += weight;
-					acc_coeffs(coeffs0, idx_probe, weight);
-						
+					acc_coeffs(coeffs0, idx_probe, weight);						
 				}
 			}
 		}
-	}
-	
-	if (sum_weight>0)
-	{
-		coeffs0/=sum_weight;
-		return true;
-	}
-	return false;
+	}	
 }
 
 vec3 getIrradiance(in vec3 pos_world)
 {
+	vec4 coeffs = vec4(0.0);
+	float sum_weight = 0.0;
+
 	ivec3 divs = uBaseDivisions.xyz * (1<<uSubDivisionLevel);	
 	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
 	vec3 pos_normalized = (pos_world - uCoverageMin.xyz)/size_grid;	
@@ -655,11 +650,18 @@ vec3 getIrradiance(in vec3 pos_world)
 	pos_voxel = clamp(pos_voxel, vec3(0.0), vec3(divs));
 	ivec3 i_voxel = clamp(ivec3(pos_voxel), ivec3(0), ivec3(divs) - ivec3(1));
 	int lod = get_probe_lod_i(i_voxel);
-	vec4 coeffs0 = vec4(0.0);
-	bool non_zero = getCoeffsLod(pos_world, lod, coeffs0);
-	if (non_zero)
+
+	accCoeffsLod(pos_world, lod, coeffs, sum_weight, 1.0);
+	while(lod>0 && sum_weight <=0.0)
 	{
-		return coeffs0.xyz * 0.886227;
+		lod--;
+		accCoeffsLod(pos_world, lod, coeffs, sum_weight, 1.0);
+	}
+
+	if (sum_weight > 0.0)	
+	{
+		coeffs /= sum_weight;
+		return coeffs.xyz * 0.886227;
 	}
 	return vec3(0.0);
 }

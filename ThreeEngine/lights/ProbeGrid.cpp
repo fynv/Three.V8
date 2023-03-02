@@ -129,7 +129,7 @@ void ProbeGrid::construct_visibility(Scene& scene)
 		glm::vec3(1.0f,1.0f,1.0f)
 	};
 
-	BoundingVolumeHierarchy bvh(objects, true);
+	BoundingVolumeHierarchy bvh(objects);
 	for (int z = 0; z < divisions.z; z++)
 	{
 		for (int y = 0; y < divisions.y; y++)
@@ -169,7 +169,7 @@ void ProbeGrid::construct_visibility(Scene& scene)
 					float vis = glm::length(dir);
 					dir = glm::normalize(dir);
 					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-					auto intersection = bvh.intersect(bvh_ray);
+					auto intersection = bvh.intersect(bvh_ray, 2);
 					if (intersection.has_value())
 					{
 						float dis = intersection->distance();

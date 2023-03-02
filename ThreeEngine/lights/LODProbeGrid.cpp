@@ -463,20 +463,43 @@ void LODProbeGrid::construct_visibility(Scene& scene)
 		int lod = (int)pos_lod.w;
 		float scale = 1.0f/ float(1 << lod);
 
+		bool zero = false;
 		for (int i = 0; i < 26; i++)
 		{
 			glm::vec3 dir = directions[i] * spacing * scale;
 			float vis = glm::length(dir);
 			dir = glm::normalize(dir);
 			bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-			auto intersection = bvh.intersect(bvh_ray);
-			if (intersection.has_value())
+			auto intersectionA = bvh.intersect(bvh_ray, 2);
+			if (intersectionA.has_value())
 			{
-				float dis = intersection->distance();
-				if (dis < vis) vis = dis;
+				float disA = intersectionA->distance();
+				if (disA < vis) vis = disA;
+
+				auto intersectionB = bvh.intersect(bvh_ray,1);
+				if (intersectionB.has_value())
+				{
+					float disB = intersectionB->distance();
+					if (disB >= disA)
+					{
+						zero = true;
+						break;
+					}
+				}
+				else
+				{
+					zero = true;
+					break;
+				}
 			}
 			m_visibility_data[index * 26 + i] = vis;
-
+		}
+		if (zero)
+		{
+			for (int i = 0; i < 26; i++)
+			{
+				m_visibility_data[index * 26 + i] = 0.0f;
+			}
 		}
 	}
 
