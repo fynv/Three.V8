@@ -12,9 +12,12 @@ void LODProbeGridSaver::SaveFile(const LODProbeGrid* probe_grid, const char* fn)
 	int num_indices = (int)probe_grid->m_sub_index.size();
 	fwrite(&num_probes, sizeof(int), 1, fp);
 	fwrite(&num_indices, sizeof(int), 1, fp);
+	fwrite(&probe_grid->vis_res, sizeof(int), 1, fp);
+	fwrite(&probe_grid->pack_size, sizeof(int), 1, fp);
+	fwrite(&probe_grid->pack_res, sizeof(int), 1, fp);
 	fwrite(probe_grid->m_probe_data.data(), sizeof(glm::vec4), probe_grid->m_probe_data.size(), fp);
 	fwrite(probe_grid->m_sub_index.data(), sizeof(int), probe_grid->m_sub_index.size(), fp);
-	fwrite(probe_grid->m_visibility_data.data(), sizeof(float), probe_grid->m_visibility_data.size(), fp);
+	fwrite(probe_grid->m_visibility_data.data(), sizeof(unsigned short), probe_grid->m_visibility_data.size(), fp);
 	fclose(fp);
 }
 

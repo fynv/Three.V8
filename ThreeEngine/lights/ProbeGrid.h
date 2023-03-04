@@ -16,11 +16,14 @@ public:
 	glm::vec3 coverage_max = { 10.0f, 10.0f, 10.0f };
 	glm::ivec3 divisions = { 10, 5, 10 };
 	float ypower = 1.0f;
+	int vis_res = 16;
+	int pack_size = 0;
+	int pack_res = 0;
 
 	std::vector<glm::vec4> m_probe_data;
 	std::unique_ptr<GLBuffer> m_probe_buf;
-	std::vector<float> m_visibility_data;
-	std::unique_ptr<GLBuffer> m_visibility_buf;
+	std::vector<unsigned short> m_visibility_data;
+	std::unique_ptr<GLTexture2D> m_tex_visibility;
 	void allocate_probes();
 
 	GLDynBuffer m_constant;

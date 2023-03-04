@@ -21,6 +21,9 @@ struct LODProbeGridConst
 	glm::vec4 coverageMax;
 	glm::ivec4 baseDivisions;	
 	int subDivisionLevel;
+	int visRes;
+	int packSize;
+	int packRes;
 	float diffuseThresh;
 	float diffuseHigh;
 	float diffuseLow;
@@ -32,7 +35,7 @@ struct LODProbeGridConst
 
 LODProbeGrid::LODProbeGrid() : m_constant(sizeof(LODProbeGridConst), GL_UNIFORM_BUFFER)
 {
-
+	m_tex_visibility = std::unique_ptr<GLTexture2D>(new GLTexture2D);
 }
 
 LODProbeGrid::~LODProbeGrid()
@@ -47,16 +50,19 @@ void LODProbeGrid::updateBuffers()
 
 	m_probe_buf = std::unique_ptr<GLBuffer>(new GLBuffer(sizeof(glm::vec4) * m_probe_data.size(), GL_SHADER_STORAGE_BUFFER));
 	m_probe_buf->upload(m_probe_data.data());
-
+	
 	int num_probes = getNumberOfProbes();
-	if (m_visibility_data.size()< num_probes)
-	{
-		glm::vec3 spacing = (coverage_max - coverage_min) / glm::vec3(base_divisions);
-		float max_visibility = glm::length(spacing);		
-		m_visibility_data.resize(26 * num_probes, max_visibility);		
-	}
-	m_visibility_buf = std::unique_ptr<GLBuffer>(new GLBuffer(sizeof(float) * m_visibility_data.size(), GL_SHADER_STORAGE_BUFFER));
-	m_visibility_buf->upload(m_visibility_data.data());
+	pack_size = int(ceilf(sqrtf(float(num_probes))));
+	pack_res = pack_size * (vis_res + 2);
+	m_visibility_data.resize(pack_res * pack_res, 0);
+
+	glBindTexture(GL_TEXTURE_2D, m_tex_visibility->tex_id);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, pack_res, pack_res, 0, GL_RED, GL_UNSIGNED_SHORT, m_visibility_data.data());
+	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 int LODProbeGrid::getNumberOfProbes() const
@@ -71,6 +77,9 @@ void LODProbeGrid::updateConstant()
 	c.coverageMax = glm::vec4(coverage_max, 0.0f);
 	c.baseDivisions = glm::ivec4(base_divisions, 0);
 	c.subDivisionLevel = sub_division_level;
+	c.visRes = vis_res;
+	c.packSize = pack_size;
+	c.packRes = pack_res;
 	c.diffuseThresh = diffuse_thresh;
 	c.diffuseHigh = diffuse_high;
 	c.diffuseLow = diffuse_low;
@@ -383,7 +392,26 @@ void LODProbeGrid::initialize(GLRenderer& renderer, Scene& scene, int probe_budg
 		sub_division_level = lod;
 	}
 	_initialize(renderer, scene, probe_budget);
+	
 	updateBuffers();
+}
+
+
+inline glm::vec2 signNotZero(const glm::vec2& v)
+{
+	return glm::vec2((v.x >= 0.0f) ? 1.0f : -1.0f, (v.y >= 0.0f) ? 1.0f : -1.0f);
+}
+
+inline glm::vec3 oct_to_vec3(const glm::vec2& e)
+{
+	glm::vec3 v = glm::vec3(glm::vec2(e.x, e.y), 1.0f - fabsf(e.x) - fabsf(e.y));
+	if (v.z < 0.0f)
+	{
+		glm::vec2 tmp = (1.0f - glm::abs(glm::vec2(v.y, v.x))) * signNotZero(glm::vec2(v.x, v.y));
+		v.x = tmp.x;
+		v.y = tmp.y;
+	}
+	return glm::normalize(v);
 }
 
 void LODProbeGrid::construct_visibility(Scene& scene)
@@ -411,45 +439,18 @@ void LODProbeGrid::construct_visibility(Scene& scene)
 				}
 			}
 		} while (false);
-		});
+	});
+
+	BoundingVolumeHierarchy bvh(objects);
 
 	glm::vec3 size_grid = coverage_max - coverage_min;
 	glm::vec3 spacing = size_grid / glm::vec3(base_divisions);
 	float max_visibility = glm::length(spacing);
 
-	const glm::vec3 directions[26] = {
-		glm::vec3(-1.0f,0.0f,0.0f),
-		glm::vec3(1.0f,0.0f,0.0f),
-		glm::vec3(0.0f,-1.0f,0.0f),
-		glm::vec3(0.0f,1.0f,0.0f),
-		glm::vec3(0.0f,0.0f,-1.0f),
-		glm::vec3(0.0f,0.0f,1.0f),
-		glm::vec3(0.0f,-1.0f,-1.0f),
-		glm::vec3(0.0f,1.0f,-1.0f),
-		glm::vec3(0.0f,-1.0f,1.0f),
-		glm::vec3(0.0f,1.0f,1.0f),
-		glm::vec3(-1.0f,0.0f,-1.0f),
-		glm::vec3(-1.0f,0.0f,1.0f),
-		glm::vec3(1.0f,0.0f,-1.0f),
-		glm::vec3(1.0f,0.0f,1.0f),
-		glm::vec3(-1.0f,-1.0f,0.0f),
-		glm::vec3(1.0f,-1.0f,0.0f),
-		glm::vec3(-1.0f,1.0f,0.0f),
-		glm::vec3(1.0f,1.0f,0.0f),
-		glm::vec3(-1.0f,-1.0f,-1.0f),
-		glm::vec3(1.0f,-1.0f,-1.0f),
-		glm::vec3(-1.0f,1.0f,-1.0f),
-		glm::vec3(1.0f,1.0f,-1.0f),
-		glm::vec3(-1.0f,-1.0f,1.0f),
-		glm::vec3(1.0f,-1.0f,1.0f),
-		glm::vec3(-1.0f,1.0f,1.0f),
-		glm::vec3(1.0f,1.0f,1.0f)
-	};
-
-	BoundingVolumeHierarchy bvh(objects);
-
 	int num_probes = getNumberOfProbes();
-	m_visibility_data.resize(26 * num_probes, max_visibility);
+
+	std::vector<float> f_visibility(vis_res * vis_res * num_probes, max_visibility);
+
 	for (int index = 0; index < num_probes; index++)
 	{
 		glm::vec4 pos_lod = m_probe_data[index * 10];
@@ -461,62 +462,156 @@ void LODProbeGrid::construct_visibility(Scene& scene)
 		};
 
 		int lod = (int)pos_lod.w;
-		float scale = 1.0f/ float(1 << lod);
-		int count_A = 0;
-		int count_bad = 0;
-		
-		for (int i = 0; i < 26; i++)
+		float scale = 1.0f / float(1 << lod);
+
+		for (int y = 0; y < vis_res; y++)
 		{
-			glm::vec3 dir = directions[i] * spacing * scale;
-			float vis = glm::length(dir);
-			dir = glm::normalize(dir);
-			bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-			auto intersectionA = bvh.intersect(bvh_ray, 2);
-			if (intersectionA.has_value())
+			for (int x = 0; x < vis_res; x++)
 			{
-				count_A++;
-				float disA = intersectionA->distance();
-				auto intersectionB = bvh.intersect(bvh_ray,1);
-				if (intersectionB.has_value())
+				glm::vec2 v2 = glm::vec2(float(x) + 0.5f, float(y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
+				glm::vec3 dir = oct_to_vec3(v2);
+
+				glm::vec3 dir_abs = glm::abs(dir) / spacing;
+
+				int major_dir = 0;
+				if (dir_abs.y > dir_abs.x)
 				{
-					float disB = intersectionB->distance();
-					if (disB >= disA)
+					if (dir_abs.z > dir_abs.y)
 					{
-						if (disA < vis) vis = disA;
-						count_bad++;
+						major_dir = 2;
 					}
-					float dis = (disA + disB) * 0.5f;
-					if (dis < vis) vis = dis;
+					else
+					{
+						major_dir = 1;
+					}
 				}
 				else
-				{					
-					if (disA < vis) vis = disA;
-					count_bad++;
-				}				
-			}
-			else
-			{
-				auto intersectionB = bvh.intersect(bvh_ray, 1);
-				if (intersectionB.has_value())
 				{
-					float disB = intersectionB->distance();				
-					float dis = (vis + disB) * 0.5f;
-					if (dis < vis) vis = dis;
+					if (dir_abs.z > dir_abs.x)
+					{
+						major_dir = 2;
+					}
 				}
 
+				if (major_dir == 0)
+				{
+					dir_abs *= spacing.x * scale / dir_abs.x;
+				}
+				else if (major_dir == 1)
+				{
+					dir_abs *= spacing.y * scale / dir_abs.y;
+				}
+				else if (major_dir == 2)
+				{
+					dir_abs *= spacing.z * scale / dir_abs.z;
+				}
+
+				float max_dis = glm::length(dir_abs);
+				float dis = max_dis;
+
+				bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
+				bvh_ray.tmax = max_dis;
+				auto intersection = bvh.intersect(bvh_ray);
+				if (intersection.has_value())
+				{					
+					dis = intersection->distance();
+				}				
+				f_visibility[x + y * vis_res + index * vis_res * vis_res] = glm::clamp(dis / max_dis, 0.0f, 1.0f);
 			}
-			m_visibility_data[index * 26 + i] = vis;
 		}
-		/*if (count_bad > 0)
-		{			
-			for (int i = 0; i < 26; i++)
+	}
+	
+	//printf("%d\n", pack_res);
+
+	{
+		m_visibility_data.resize(pack_res * pack_res, 0);
+		for (int index = 0; index < num_probes; index++)
+		{
+			for (int y = 0; y < vis_res; y++)
 			{
-				m_visibility_data[index * 26 + i] = 0.0f;
+				for (int x = 0; x < vis_res; x++)
+				{
+					float dis = f_visibility[(x % vis_res) + (y % vis_res) * vis_res + index * vis_res * vis_res];
+					unsigned short udis = (unsigned short)(dis * 65535.0f);
+					int out_x = (index % pack_size) * (vis_res + 2) + x + 1;
+					int out_y = (index / pack_size) * (vis_res + 2) + y + 1;
+					m_visibility_data[out_x + out_y * pack_res] = udis;
+				}
 			}
-		}*/		
+			{
+				float dis = f_visibility[(vis_res - 1) + (vis_res - 1) * vis_res + index * vis_res * vis_res];
+				unsigned short udis = (unsigned short)(dis * 65535.0f);
+				int out_x = (index % pack_size) * (vis_res + 2);
+				int out_y = (index / pack_size) * (vis_res + 2);
+				m_visibility_data[out_x + out_y * pack_res] = udis;
+			}
+			{
+				float dis = f_visibility[(vis_res - 1) * vis_res + index * vis_res * vis_res];
+				unsigned short udis = (unsigned short)(dis * 65535.0f);
+				int out_x = (index % pack_size) * (vis_res + 2) + vis_res + 1;
+				int out_y = (index / pack_size) * (vis_res + 2);
+				m_visibility_data[out_x + out_y * pack_res] = udis;
+			}
+			{
+				float dis = f_visibility[(vis_res - 1) + index * vis_res * vis_res];
+				unsigned short udis = (unsigned short)(dis * 65535.0f);
+				int out_x = (index % pack_size) * (vis_res + 2);
+				int out_y = (index / pack_size) * (vis_res + 2) + vis_res + 1;
+				m_visibility_data[out_x + out_y * pack_res] = udis;
+			}
+
+			{
+				float dis = f_visibility[index * vis_res * vis_res];
+				unsigned short udis = (unsigned short)(dis * 65535.0f);
+				int out_x = (index % pack_size) * (vis_res + 2) + vis_res + 1;
+				int out_y = (index / pack_size) * (vis_res + 2) + vis_res + 1;
+				m_visibility_data[out_x + out_y * pack_res] = udis;
+			}
+
+			for (int x = 0; x < vis_res; x++)
+			{
+				{
+					float dis = f_visibility[(vis_res - 1 - x) + index * vis_res * vis_res];
+					unsigned short udis = (unsigned short)(dis * 65535.0f);
+					int out_x = (index % pack_size) * (vis_res + 2) + x + 1;
+					int out_y = (index / pack_size) * (vis_res + 2);
+					m_visibility_data[out_x + out_y * pack_res] = udis;
+				}
+				{
+					float dis = f_visibility[(vis_res - 1 - x) + (vis_res - 1) * vis_res + index * vis_res * vis_res];
+					unsigned short udis = (unsigned short)(dis * 65535.0f);
+					int out_x = (index % pack_size) * (vis_res + 2) + x + 1;
+					int out_y = (index / pack_size) * (vis_res + 2) + vis_res + 1;
+					m_visibility_data[out_x + out_y * pack_res] = udis;
+				}
+			}
+			for (int y = 0; y < vis_res; y++)
+			{
+				{
+					float dis = f_visibility[(vis_res - 1 - y) * vis_res + index * vis_res * vis_res];
+					unsigned short udis = (unsigned short)(dis * 65535.0f);
+					int out_x = (index % pack_size) * (vis_res + 2);
+					int out_y = (index / pack_size) * (vis_res + 2) + y + 1;
+					m_visibility_data[out_x + out_y * pack_res] = udis;
+				}
+
+				{
+					float dis = f_visibility[(vis_res - 1) + (vis_res - 1 - y) * vis_res + index * vis_res * vis_res];
+					unsigned short udis = (unsigned short)(dis * 65535.0f);
+					int out_x = (index % pack_size) * (vis_res + 2) + vis_res + 1;
+					int out_y = (index / pack_size) * (vis_res + 2) + y + 1;
+					m_visibility_data[out_x + out_y * pack_res] = udis;
+				}
+			}
+		}
+
+		/*FILE* fp = fopen("vis16_dmp.raw", "wb");
+		fwrite(m_visibility_data.data(), 2, m_visibility_data.size(), fp);
+		fclose(fp);*/
 	}
 
-	m_visibility_buf->upload(m_visibility_data.data());
-
+	glBindTexture(GL_TEXTURE_2D, m_tex_visibility->tex_id);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, pack_res, pack_res, 0, GL_RED, GL_UNSIGNED_SHORT, m_visibility_data.data());
+	glBindTexture(GL_TEXTURE_2D, 0);
 }
 

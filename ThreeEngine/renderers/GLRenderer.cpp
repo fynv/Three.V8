@@ -679,22 +679,14 @@ void GLRenderer::render_widget(Camera* p_camera, LODProbeGridWidget* widget)
 
 	if (widget->probe_grid == nullptr) return;
 
+	glColor3f(1.0f, 0.2f, 1.0f);
+
 	size_t num_probes = widget->probe_grid->getNumberOfProbes();
 	for (size_t i = 0; i < num_probes; i++)
 	{
 		glm::vec4 pos_level = widget->probe_grid->m_probe_data[i * 10];
 		glm::vec3 pos = glm::vec3(pos_level);
 		float level = pos_level.w;
-
-		float vis = widget->probe_grid->m_visibility_data[i * 26];
-		if (vis > 0.0f)
-		{
-			glColor3f(1.0f, 0.2f, 1.0f);
-		}
-		else
-		{
-			glColor3f(0.7f, 0.7f, 0.7f);
-		}
 		draw_round(pos, 0.05 * powf(0.5f, level), p_camera);
 	}
 

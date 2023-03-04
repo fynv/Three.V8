@@ -89,7 +89,7 @@ private:
 		int binding_environment_map;
 		int binding_probe_grid;
 		int binding_probes;
-		int binding_probe_visibility;
+		int location_tex_visibility;
 		int binding_probe_references;
 		int binding_lod_probe_grid;
 		int binding_lod_probes;

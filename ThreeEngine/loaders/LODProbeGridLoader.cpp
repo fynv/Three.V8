@@ -17,22 +17,19 @@ void LODProbeGridLoader::LoadFile(LODProbeGrid* probe_grid, const char* fn)
 	fread(&num_probes, sizeof(int), 1, fp);
 	fread(&num_indices, sizeof(int), 1, fp);
 
+	fread(&probe_grid->vis_res, sizeof(int), 1, fp);
+	fread(&probe_grid->pack_size, sizeof(int), 1, fp);
+	fread(&probe_grid->pack_res, sizeof(int), 1, fp);
+
 	probe_grid->m_probe_data.resize(num_probes * 10);
 	fread(probe_grid->m_probe_data.data(), sizeof(glm::vec4), num_probes * 10, fp);
 
 	probe_grid->m_sub_index.resize(num_indices);
 	fread(probe_grid->m_sub_index.data(), sizeof(int), num_indices, fp);
 
-	size_t pos = (size_t)ftell(fp);
-	if (size - pos >= sizeof(float) * 26 * num_probes)
-	{
-		probe_grid->m_visibility_data.resize(num_probes * 26);
-		fread(probe_grid->m_visibility_data.data(), sizeof(float), num_probes * 26, fp);
-	}
-	else
-	{
-		probe_grid->m_visibility_data.clear();
-	}
+	int pack_res = probe_grid->pack_res;
+	probe_grid->m_visibility_data.resize(pack_res * pack_res);
+	fread(probe_grid->m_visibility_data.data(), sizeof(unsigned short), probe_grid->m_visibility_data.size(), fp);
 
 	probe_grid->updateBuffers();
 	fclose(fp);
@@ -49,6 +46,9 @@ void LODProbeGridLoader::LoadMemory(LODProbeGrid* probe_grid, unsigned char* dat
 	probe_grid->sub_division_level = *(int*)ptr; ptr += sizeof(int);
 	int num_probes = *(int*)ptr; ptr += sizeof(int);
 	int num_indices = *(int*)ptr; ptr += sizeof(int);
+	probe_grid->vis_res = *(int*)ptr; ptr += sizeof(int);
+	probe_grid->pack_size = *(int*)ptr; ptr += sizeof(int);
+	probe_grid->pack_res = *(int*)ptr; ptr += sizeof(int);
 
 	probe_grid->m_probe_data.resize(num_probes * 10);	
 	memcpy(probe_grid->m_probe_data.data(), ptr, sizeof(glm::vec4) * num_probes * 10);
@@ -58,16 +58,9 @@ void LODProbeGridLoader::LoadMemory(LODProbeGrid* probe_grid, unsigned char* dat
 	memcpy(probe_grid->m_sub_index.data(), ptr, sizeof(int) * num_indices);
 	ptr += sizeof(int) * num_indices;
 
-	size_t pos = ptr - data;
-	if (size - pos >= sizeof(float) * 26 * num_probes)
-	{
-		probe_grid->m_visibility_data.resize(num_probes * 26);
-		memcpy(probe_grid->m_visibility_data.data(), ptr, sizeof(float) * 26 * num_probes);
-	}
-	else
-	{
-		probe_grid->m_visibility_data.clear();
-	}
+	int pack_res = probe_grid->pack_res;
+	probe_grid->m_visibility_data.resize(pack_res * pack_res);
+	memcpy(probe_grid->m_visibility_data.data(), ptr, sizeof(unsigned short) * probe_grid->m_visibility_data.size());
 
 	probe_grid->updateBuffers();
 }
