@@ -83,9 +83,10 @@ layout (std430, binding = 5) buffer ProbeVisibility
 float quantize_vis(float limit, float dis)
 {
 	if (limit == 0.0) return 0.0;
-	float x = dis-0.9*limit;
+	/*float x = dis-0.9*limit;
 	if (x<0.0) x = 0.0;
-	return pow(0.01, x);
+	return pow(0.01, x);*/
+	return clamp(1.0 - (dis - 0.9 * limit)/(0.2*limit), 0.0, 1.0);
 }
 
 float get_visibility_common(in vec3 pos_world, vec3 spacing, int idx, in vec3 vert_world)

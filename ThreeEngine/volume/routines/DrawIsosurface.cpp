@@ -309,12 +309,13 @@ layout (std430, binding = BINDING_PROBE_VISIBILITY) buffer ProbeVisibility
 float quantize_vis(float limit, float dis)
 {
 	if (limit == 0.0) return 0.0;
-	float x = dis-0.9*limit;
+	/*float x = dis-0.9*limit;
 	if (x<0.0) x = 0.0;
-	return pow(0.01, x);
+	return pow(0.01, x);*/
+	return clamp(1.0 - (dis - 0.9 * limit)/(0.2*limit), 0.0, 1.0);
 }
 
-float get_visibility_common(in vec3 world_pos, in vec3 spacing, int idx, in vec3 vert_world)
+float get_visibility_common(in vec3 wpos, in vec3 spacing, int idx, in vec3 vert_world)
 {
 	float len_xyz = length(spacing);
 	float len_xy = length(vec2(spacing.x, spacing.y));
@@ -322,7 +323,7 @@ float get_visibility_common(in vec3 world_pos, in vec3 spacing, int idx, in vec3
 	float len_zx = length(vec2(spacing.z, spacing.x));
 	
 	int offset = idx*26;
-	vec3 dir = world_pos - vert_world;	
+	vec3 dir = wpos - vert_world;	
 	vec3 dir_abs = abs(dir)/spacing;
 	int major_dir = 0;
 	if (dir_abs.y>dir_abs.x)
@@ -644,7 +645,7 @@ layout (std430, binding = BINDING_PROBE_REFERENCES) buffer ProbeReferences
 };
 #endif
 
-float get_visibility(in vec3 world_pos, in ivec3 vert, in vec3 vert_world)
+float get_visibility(in vec3 wpos, in ivec3 vert, in vec3 vert_world)
 {
 	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
 	vec3 spacing = size_grid/vec3(uDivisions);
@@ -654,7 +655,7 @@ float get_visibility(in vec3 world_pos, in ivec3 vert, in vec3 vert_world)
 	spacing.y = (y1-y0)*size_grid.y;
 	
 	int idx = vert.x + (vert.y + vert.z*uDivisions.y)*uDivisions.x;
-	return get_visibility_common(world_pos, spacing, idx, vert_world);
+	return get_visibility_common(wpos, spacing, idx, vert_world);
 }
 
 
@@ -673,8 +674,14 @@ void acc_coeffs(inout vec4 coeffs[9], in ivec3 vert, in float weight)
 
 vec3 getIrradiance(in vec3 world_pos, in vec3 normal)
 {
+	vec3 viewDir = normalize(uEyePos - pos_world.xyz);
 	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
-	vec3 pos_normalized = (world_pos - uCoverageMin.xyz)/size_grid;
+	vec3 spacing = size_grid/vec3(uDivisions);
+	float len_spacing = length(spacing);
+	
+	vec3 wpos = world_pos + (normal + 3.0 * viewDir) * 0.05 * spacing;
+
+	vec3 pos_normalized = (wpos - uCoverageMin.xyz)/size_grid;
 	pos_normalized.y = pow(pos_normalized.y, 1.0/uYpower);	
 	vec3 pos_voxel = pos_normalized * vec3(uDivisions) - vec3(0.5);
 	pos_voxel = clamp(pos_voxel, vec3(0.0), vec3(uDivisions) - vec3(1.0));
@@ -700,11 +707,11 @@ vec3 getIrradiance(in vec3 world_pos, in vec3 normal)
 					vec3 vert_normalized = (vec3(vert) + vec3(0.5))/vec3(uDivisions);
 					vert_normalized.y = pow(vert_normalized.y, uYpower); 
 					vec3 vert_world = vert_normalized * size_grid + uCoverageMin.xyz;
-					vec3 dir = normalize(vert_world - world_pos);
+					vec3 dir = normalize(vert_world - wpos);
 					float dotDirN = dot(dir, normal);
 					float k = 0.9;
 					dotDirN = (k*dotDirN + sqrt(1.0 - (1.0-dotDirN*dotDirN)*k*k))/(k+1.0);
-					weight*= dotDirN * get_visibility(world_pos, vert,vert_world);
+					weight*= dotDirN * get_visibility(wpos, vert,vert_world);
 					sum_weight += weight;
 					acc_coeffs(coeffs, vert, weight);
 				}
@@ -762,11 +769,11 @@ layout (std430, binding = BINDING_LOD_PROBE_INDICES) buffer ProbeIndex
 };
 
 
-float get_visibility(in vec3 world_pos, int idx, in vec3 vert_world)
+float get_visibility(in vec3 wpos, int idx, in vec3 vert_world)
 {
 	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
 	vec3 spacing = size_grid/vec3(uBaseDivisions);
-	return get_visibility_common(world_pos, spacing, idx, vert_world);
+	return get_visibility_common(wpos, spacing, idx, vert_world);
 }
 
 int get_probe_lod_i(in ivec3 ipos)
@@ -888,12 +895,12 @@ void acc_coeffs(inout vec4 coeffs[9], int idx, in float weight)
 	}
 }
 
-void accCoeffsLod(in vec3 world_pos, in vec3 normal, int lod, inout vec4 coeffs[9], inout float sum_weight, float level_weight)
+void accCoeffsLod(in vec3 wpos, in vec3 normal, int lod, inout vec4 coeffs[9], inout float sum_weight, float level_weight)
 {
 	ivec3 divs = uBaseDivisions.xyz * (1<<lod);
 
 	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
-	vec3 pos_normalized = (world_pos - uCoverageMin.xyz)/size_grid;	
+	vec3 pos_normalized = (wpos - uCoverageMin.xyz)/size_grid;	
 	vec3 pos_voxel = pos_normalized * vec3(divs) - vec3(0.5);
 	pos_voxel = clamp(pos_voxel, vec3(0.0), vec3(divs) - vec3(1.0));
 
@@ -910,12 +917,12 @@ void accCoeffsLod(in vec3 world_pos, in vec3 normal, int lod, inout vec4 coeffs[
 				ivec3 vert = i_voxel + ivec3(x,y,z);
 				int idx_probe = get_probe_idx_lod(vert, lod);
 				vec3 probe_world = bProbeData[idx_probe*10].xyz;
-				weight *= get_visibility(world_pos, idx_probe, probe_world);						
+				weight *= get_visibility(wpos, idx_probe, probe_world);						
 				if (weight>0.0)
 				{
 					vec3 w = vec3(1.1) - abs(vec3(x,y,z) - frac_voxel);
 					weight *= w.x * w.y * w.z; 					
-					vec3 dir = normalize(probe_world - world_pos);
+					vec3 dir = normalize(probe_world - wpos);
 					float dotDirN = dot(dir, normal);
 					float k = 0.9;
 					dotDirN = (k*dotDirN + sqrt(1.0 - (1.0-dotDirN*dotDirN)*k*k))/(k+1.0);
@@ -930,6 +937,12 @@ void accCoeffsLod(in vec3 world_pos, in vec3 normal, int lod, inout vec4 coeffs[
 
 vec3 getIrradiance(in vec3 world_pos, in vec3 normal)
 {
+	vec3 viewDir = normalize(uEyePos - pos_world.xyz);
+	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;	
+	vec3 spacing = size_grid/vec3(uBaseDivisions);
+	float len_spacing = length(spacing);	
+	vec3 wpos = world_pos + (normal+ 3.0 * viewDir) * 0.05 * spacing;
+
 	vec4 coeffs[9];
 	for (int i=0; i<9; i++) 
 	{
@@ -938,27 +951,27 @@ vec3 getIrradiance(in vec3 world_pos, in vec3 normal)
 
 	float sum_weight = 0.0;
 
-	float f_lod = get_probe_lod_f(world_pos);	
+	float f_lod = get_probe_lod_f(wpos);	
 
 	int i_lod = clamp(int(ceil(f_lod)), 0, uSubDivisionLevel);	
 	float level_weight = 1.0 + f_lod - float(i_lod);
 
 	if (level_weight>0.0)
 	{
-		accCoeffsLod(world_pos, normal, i_lod, coeffs, sum_weight, level_weight);
+		accCoeffsLod(wpos, normal, i_lod, coeffs, sum_weight, level_weight);
 	}
 	
 	if (i_lod>0 && level_weight<1.0)
 	{
 		i_lod--;
 		level_weight = 1.0 - level_weight;
-		accCoeffsLod(world_pos, normal, i_lod, coeffs, sum_weight, level_weight);
+		accCoeffsLod(wpos, normal, i_lod, coeffs, sum_weight, level_weight);
 	}
 
 	while(i_lod>0 && sum_weight <=0.0)
 	{
 		i_lod--;
-		accCoeffsLod(world_pos, normal, i_lod, coeffs, sum_weight, 1.0);
+		accCoeffsLod(wpos, normal, i_lod, coeffs, sum_weight, 1.0);
 	}
 
 	if (sum_weight > 0.0)	

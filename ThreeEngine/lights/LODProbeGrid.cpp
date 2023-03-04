@@ -507,13 +507,13 @@ void LODProbeGrid::construct_visibility(Scene& scene)
 			}
 			m_visibility_data[index * 26 + i] = vis;
 		}
-		if (count_bad > 0)
+		/*if (count_bad > 0)
 		{			
 			for (int i = 0; i < 26; i++)
 			{
 				m_visibility_data[index * 26 + i] = 0.0f;
 			}
-		}		
+		}*/		
 	}
 
 	m_visibility_buf->upload(m_visibility_data.data());

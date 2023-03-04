@@ -2429,9 +2429,10 @@ void GLRenderer::updateProbe(Scene& scene, CubeRenderTarget& target, LODProbeGri
 	if (vis <= 0.0f) return;
 
 	bool full_update = true;
-	glm::vec4* dest_coeffs = &probe_grid.m_probe_data[idx * 10 + 1];	
 
-	if (idx < probe_grid.m_sub_index.size())
+	glm::vec4* dest_coeffs = &probe_grid.m_probe_data[idx * 10 + 1];
+
+	/*if (idx < probe_grid.m_sub_index.size())
 	{
 		int sub_idx = probe_grid.m_sub_index[idx];
 		if (sub_idx >= 0)
@@ -2467,7 +2468,7 @@ void GLRenderer::updateProbe(Scene& scene, CubeRenderTarget& target, LODProbeGri
 			}			
 		}
 
-	}
+	}*/
 
 	if (full_update)
 	{
@@ -2480,8 +2481,7 @@ void GLRenderer::updateProbe(Scene& scene, CubeRenderTarget& target, LODProbeGri
 
 		glm::vec4 coeffs[9];
 		EnvironmentMapCreator::CreateSH(coeffs, target.m_cube_map->tex_id, target.m_width, rotation);
-
-		glm::vec4* dest_coeffs = &probe_grid.m_probe_data[idx * 10 + 1];
+		
 		for (int i = 0; i < 9; i++)
 		{
 			dest_coeffs[i] = (1.0f - k) * dest_coeffs[i] + k * coeffs[i];

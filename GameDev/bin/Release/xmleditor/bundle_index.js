@@ -5045,7 +5045,7 @@ class LODProbeGridBaker
         }
         while(now()-frame_time<10)
         {
-            renderer.updateProbe(this.doc.scene, this.cube_target, this.probe_grid, this.probe_count - this.probe_idx - 1);
+            renderer.updateProbe(this.doc.scene, this.cube_target, this.probe_grid, this.probe_idx);
             this.probe_idx++;
             if (this.probe_idx>=this.probe_count)
             {
