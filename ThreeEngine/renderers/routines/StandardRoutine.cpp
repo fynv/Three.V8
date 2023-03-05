@@ -662,9 +662,9 @@ vec2 vec3_to_oct(in vec3 v)
 float quantize_vis(float limit, float dis)
 {
 	if (limit == 0.0) return 0.0;
-	float x = dis-limit;
+	float x = dis-limit*0.95;
 	if (x<0.0) x = 0.0;
-	return pow(0.1, x * 5.0);
+	return pow(0.1, x * 10.0);
 	// return clamp(1.0 - (dis - 0.9 * limit)/(0.2*limit), 0.0, 1.0);
 }
 
@@ -753,12 +753,9 @@ vec3 getIrradiance(in vec3 normal)
 	vec3 dy = dFdy(vWorldPos);
 	vec3 N = normalize(cross(dx, dy));
 	vec3 viewDir = normalize(vViewDir);
+	vec3 wpos = vWorldPos + (N + 3.0 * viewDir) * 0.2;
+	
 	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
-	vec3 spacing = size_grid/vec3(uDivisions);
-	float len_spacing = length(spacing);
-	
-	vec3 wpos = vWorldPos + (N + 3.0 * viewDir) * 0.05 * len_spacing;
-	
 	vec3 pos_normalized = (wpos - uCoverageMin.xyz)/size_grid;
 	pos_normalized.y = pow(pos_normalized.y, 1.0/uYpower);	
 	vec3 pos_voxel = pos_normalized * vec3(uDivisions) - vec3(0.5);
@@ -989,11 +986,8 @@ vec3 getIrradiance(in vec3 normal)
 	vec3 dx = dFdx(vWorldPos);
 	vec3 dy = dFdy(vWorldPos);
 	vec3 N = normalize(cross(dx, dy));
-	vec3 viewDir = normalize(vViewDir);	
-	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;	
-	vec3 spacing = size_grid/vec3(uBaseDivisions);
-	float len_spacing = length(spacing);	
-	vec3 wpos = vWorldPos + (N + 3.0 * viewDir) * 0.05 * len_spacing;
+	vec3 viewDir = normalize(vViewDir);		
+	vec3 wpos = vWorldPos + (N + 3.0 * viewDir) * 0.2;
 
 	vec4 coeffs[9];
 	for (int i=0; i<9; i++) 
@@ -1382,7 +1376,7 @@ void main()
 #if !IS_HIGHTLIGHT
 	col += diffuse;
 #endif
-	// col = clamp(col, 0.0, 1.0);	
+//	col = clamp(col, 0.0, 1.0);	
 
 #if ALPHA_BLEND
 	float alpha = base_color.w;

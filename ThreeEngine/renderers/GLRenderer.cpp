@@ -2417,8 +2417,8 @@ void GLRenderer::updateProbe(Scene& scene, CubeRenderTarget& target, ProbeGrid& 
 
 void GLRenderer::updateProbe(Scene& scene, CubeRenderTarget& target, LODProbeGrid& probe_grid, int idx, float zNear, float zFar, float k)
 {
-	float vis = probe_grid.m_visibility_data[idx * 26];
-	if (vis <= 0.0f) return;
+	/*float vis = probe_grid.m_visibility_data[idx * 26];
+	if (vis <= 0.0f) return;*/
 
 	bool full_update = true;
 

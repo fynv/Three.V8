@@ -1430,6 +1430,7 @@ const initialize_lod_probe_grid = (doc, obj, input) =>{
         
     if (changed)
     {
+        doc.lod_probe_grid_bake = null;
         probe_grid.setBaseDivisions(obj.baseDivisions);
         probe_grid.setCoverageMin(obj.coverageMin);
         probe_grid.setCoverageMax(obj.coverageMax);

@@ -155,9 +155,9 @@ vec2 vec3_to_oct(in vec3 v)
 float quantize_vis(float limit, float dis)
 {
 	if (limit == 0.0) return 0.0;
-	float x = dis-limit;
+	float x = dis-limit*0.95;
 	if (x<0.0) x = 0.0;
-	return pow(0.1, x * 5.0);
+	return pow(0.1, x * 10.0);
 	// return clamp(1.0 - (dis - 0.9 * limit)/(0.2*limit), 0.0, 1.0);
 }
 

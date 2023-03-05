@@ -608,15 +608,14 @@ void EnvironmentMapCreator::CreateSH(glm::vec4 shCoefficients[9], unsigned tex_i
 					coord = { -col, -row, -1 };
 					break;
 				}
-				float lengthSq = glm::dot(coord, coord);
-				weight[k] = 4.0f / (sqrtf(lengthSq) * lengthSq);
-				totalWeight += weight[k];
 				glm::vec3 dir = glm::normalize(coord);
-				dir = rotation* dir;
+				dir = rotation * dir;
 				dir_x[k] = dir.x;
 				dir_y[k] = dir.y;
 				dir_z[k] = dir.z;
 
+				float lengthSq = glm::dot(coord, coord);
+				weight[k] = 4.0f / (sqrtf(lengthSq) * lengthSq);
 				const float* pixel = &face[(size_t)pixelIndex * 4];
 				color[k] = { pixel[0], pixel[1], pixel[2] };
 				glm::bvec3 nan = glm::isnan(color[k]);
@@ -626,6 +625,9 @@ void EnvironmentMapCreator::CreateSH(glm::vec4 shCoefficients[9], unsigned tex_i
 					color[k] = { 0.0f, 0.0f, 0.0f };
 					weight[k] = 0.0f;
 				}
+
+				totalWeight += weight[k];					
+				
 			}
 
 #if 1
@@ -654,10 +656,12 @@ void EnvironmentMapCreator::CreateSH(glm::vec4 shCoefficients[9], unsigned tex_i
 	}
 
 	float norm = (4.0f * PI) / totalWeight;
-
+	float order[9] = { 0.0f, 1.0f, 1.0f, 1.0f, 2.0f, 2.0f, 2.0f,2.0f, 2.0f};
 	for (int k = 0; k < 9; k++)
 	{
-		shCoefficients[k] *= norm;
+		float x = order[k] / 3.0f;
+		float filtering = expf(-x * x); // gauss
+		shCoefficients[k] *= norm * filtering;
 	}
 }
 
