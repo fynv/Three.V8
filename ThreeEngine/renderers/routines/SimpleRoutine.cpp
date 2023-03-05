@@ -406,7 +406,7 @@ float quantize_vis(float limit, float dis)
 	if (limit == 0.0) return 0.0;
 	float x = dis-limit;
 	if (x<0.0) x = 0.0;
-	return pow(0.01, x);
+	return pow(0.1, x * 5.0);
 	// return clamp(1.0 - (dis - 0.9 * limit)/(0.2*limit), 0.0, 1.0);
 }
 
@@ -499,7 +499,7 @@ vec3 getIrradiance(in vec3 normal)
 	vec3 spacing = size_grid/vec3(uDivisions);
 	float len_spacing = length(spacing);
 	
-	vec3 wpos = vWorldPos + (N + 3.0 * viewDir) * 0.05 * spacing;
+	vec3 wpos = vWorldPos + (N + 3.0 * viewDir) * 0.05 * len_spacing;
 
 	vec3 pos_normalized = (wpos - uCoverageMin.xyz)/size_grid;
 	pos_normalized.y = pow(pos_normalized.y, 1.0/uYpower);	
@@ -703,7 +703,7 @@ vec3 getIrradiance(in vec3 normal)
 	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;	
 	vec3 spacing = size_grid/vec3(uBaseDivisions);
 	float len_spacing = length(spacing);	
-	vec3 wpos = vWorldPos + (N + 3.0 * viewDir) * 0.05 * spacing;
+	vec3 wpos = vWorldPos + (N + 3.0 * viewDir) * 0.05 * len_spacing;
 
 	vec4 coeffs[9];
 	for (int i=0; i<9; i++) 
