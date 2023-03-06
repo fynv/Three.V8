@@ -17,7 +17,7 @@ void ProbeGridLoader::LoadFile(ProbeGrid* probe_grid, const char* fn)
 	fread(probe_grid->m_probe_data.data(), sizeof(glm::vec4), count * 9, fp);
 	
 	int pack_res = probe_grid->pack_res;
-	probe_grid->m_visibility_data.resize(pack_res * pack_res);
+	probe_grid->m_visibility_data.resize(pack_res * pack_res * 2);
 	fread(probe_grid->m_visibility_data.data(), sizeof(unsigned short), probe_grid->m_visibility_data.size(), fp);
 
 	probe_grid->allocate_probes();
@@ -41,7 +41,7 @@ void ProbeGridLoader::LoadMemory(ProbeGrid* probe_grid, unsigned char* data, siz
 	ptr += sizeof(glm::vec4) * count * 9;
 	
 	int pack_res = probe_grid->pack_res;
-	probe_grid->m_visibility_data.resize(pack_res * pack_res);
+	probe_grid->m_visibility_data.resize(pack_res * pack_res * 2);
 	memcpy(probe_grid->m_visibility_data.data(), ptr, sizeof(unsigned short) * probe_grid->m_visibility_data.size());
 	
 	probe_grid->allocate_probes();

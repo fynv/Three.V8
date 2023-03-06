@@ -153,15 +153,6 @@ vec2 vec3_to_oct(in vec3 v)
 	return (v.z <= 0.0) ? ((1.0 - abs(p.yx)) * signNotZero(p)) : p;
 }
 
-float quantize_vis(float limit, float dis)
-{
-	if (limit == 0.0) return 0.0;
-	float x = dis-limit*0.95;
-	if (x<0.0) x = 0.0;
-	return pow(0.1, x * 10.0);
-	// return clamp(1.0 - (dis - 0.9 * limit)/(0.2*limit), 0.0, 1.0);
-}
-
 float get_visibility_common(in vec3 pos_world, in vec3 spacing, int idx, in vec3 vert_world)
 {
 	vec3 dir = pos_world - vert_world;	
@@ -208,9 +199,13 @@ float get_visibility_common(in vec3 pos_world, in vec3 spacing, int idx, in vec3
 	int pack_x = idx % uPackSize;
 	int pack_y = idx / uPackSize;
 	vec2 uv = (vec2(pack_x, pack_y) * float(uVisRes + 2) + (probe_uv * float(uVisRes) + 1.0))/float(uPackRes);
-	float limit = max_dis * texture(uTexVis, uv).x;
-
-	return quantize_vis(limit, dis);
+	vec2 mean_dis_var = max_dis * texture(uTexVis, uv).xy;
+	float mean_dis = mean_dis_var.x;
+	float mean_var = mean_dis_var.y;
+	float mean_var2 = mean_var * mean_var;
+	float delta = max(dis - mean_dis, 0.0);
+	float delta2 = delta*delta;	
+	return mean_var2/(mean_var2 + delta2);
 }
 
 #endif
@@ -261,15 +256,20 @@ vec3 getIrradiance(in vec3 pos_world)
 		{
 			for (int x=0;x<2;x++)
 			{				
+				ivec3 vert = i_voxel + ivec3(x,y,z);
+				vec3 vert_normalized = (vec3(vert) + vec3(0.5))/vec3(uDivisions);
+				vert_normalized.y = pow(vert_normalized.y, uYpower); 
+				vec3 vert_world = vert_normalized * size_grid + uCoverageMin.xyz;
+				float weight = get_visibility(pos_world, vert,vert_world);	
+				const float crushThreshold = 0.2;
+				if (weight < crushThreshold) {
+					weight *= weight * weight / (crushThreshold*crushThreshold); 
+				}			
+	
 				vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
-				float weight = w.x * w.y * w.z;
+				weight *= w.x * w.y * w.z;
 				if (weight>0.0)
-				{
-					ivec3 vert = i_voxel + ivec3(x,y,z);
-					vec3 vert_normalized = (vec3(vert) + vec3(0.5))/vec3(uDivisions);
-					vert_normalized.y = pow(vert_normalized.y, uYpower); 
-					vec3 vert_world = vert_normalized * size_grid + uCoverageMin.xyz;		
-					weight*= get_visibility(pos_world, vert, vert_world);
+				{					
 					sum_weight += weight;					
 					acc_coeffs(coeffs0, vert, weight);
 				}
@@ -402,16 +402,17 @@ void accCoeffsLod(in vec3 pos_world, int lod, inout vec4 coeffs0, inout float su
 				ivec3 vert = i_voxel + ivec3(x,y,z);					
 				int idx_probe = get_probe_idx_lod(vert, lod);
 				vec3 probe_world = bProbeData[idx_probe*10].xyz;
-				weight*= get_visibility(pos_world, idx_probe, probe_world);							
-				if (weight>0.0)
+				weight*= get_visibility(pos_world, idx_probe, probe_world);
+				const float crushThreshold = 0.2;
+				if (weight < crushThreshold) {
+					weight *= weight * weight / (crushThreshold*crushThreshold); 
+				}
+				vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
+				weight *= w.x * w.y * w.z;
+				if (weight > 0.0)
 				{
-					vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
-					weight *= w.x * w.y * w.z;
-					if (weight > 0.0)
-					{
-						sum_weight += weight;
-						acc_coeffs(coeffs0, idx_probe, weight);
-					}
+					sum_weight += weight;
+					acc_coeffs(coeffs0, idx_probe, weight);
 				}
 			}
 		}

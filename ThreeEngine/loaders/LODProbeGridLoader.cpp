@@ -28,7 +28,7 @@ void LODProbeGridLoader::LoadFile(LODProbeGrid* probe_grid, const char* fn)
 	fread(probe_grid->m_sub_index.data(), sizeof(int), num_indices, fp);
 
 	int pack_res = probe_grid->pack_res;
-	probe_grid->m_visibility_data.resize(pack_res * pack_res);
+	probe_grid->m_visibility_data.resize(pack_res * pack_res * 2);
 	fread(probe_grid->m_visibility_data.data(), sizeof(unsigned short), probe_grid->m_visibility_data.size(), fp);
 
 	probe_grid->updateBuffers();
@@ -59,7 +59,7 @@ void LODProbeGridLoader::LoadMemory(LODProbeGrid* probe_grid, unsigned char* dat
 	ptr += sizeof(int) * num_indices;
 
 	int pack_res = probe_grid->pack_res;
-	probe_grid->m_visibility_data.resize(pack_res * pack_res);
+	probe_grid->m_visibility_data.resize(pack_res * pack_res * 2);
 	memcpy(probe_grid->m_visibility_data.data(), ptr, sizeof(unsigned short) * probe_grid->m_visibility_data.size());
 
 	probe_grid->updateBuffers();
