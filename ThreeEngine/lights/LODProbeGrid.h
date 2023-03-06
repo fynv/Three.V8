@@ -17,6 +17,7 @@ public:
 	glm::vec3 coverage_max = { 10.0f, 10.0f, 10.0f };
 	glm::ivec3 base_divisions = { 10, 5, 10 };
 	int sub_division_level = 2;
+	float normal_bias = 0.2f;
 	int vis_res = 16;
 	int pack_size = 0;
 	int pack_res = 0;

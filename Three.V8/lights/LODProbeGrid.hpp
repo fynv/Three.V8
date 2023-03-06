@@ -27,6 +27,9 @@ public:
 
 	static void GetNumberOfProbes(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 
+	static void GetNormalBias(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void SetNormalBias(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
+
 	static void Initialize(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void ConstructVisibility(const v8::FunctionCallbackInfo<v8::Value>& info);
 
@@ -50,6 +53,8 @@ v8::Local<v8::FunctionTemplate> WrapperLODProbeGrid::create_template(v8::Isolate
 
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "subDivisionLevel").ToLocalChecked(), GetSubDivisionLevel, SetSubDivisionLevel);
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "numberOfProbes").ToLocalChecked(), GetNumberOfProbes, 0);
+
+	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "normalBias").ToLocalChecked(), GetNormalBias, SetNormalBias);
 
 	templ->InstanceTemplate()->Set(isolate, "initialize", v8::FunctionTemplate::New(isolate, Initialize));
 	templ->InstanceTemplate()->Set(isolate, "constructVisibility", v8::FunctionTemplate::New(isolate, ConstructVisibility));
@@ -205,6 +210,21 @@ void WrapperLODProbeGrid::GetNumberOfProbes(v8::Local<v8::String> property, cons
 	info.GetReturnValue().Set(lctx.num_to_jnum(self->getNumberOfProbes()));
 }
 
+
+void WrapperLODProbeGrid::GetNormalBias(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	LODProbeGrid* self = lctx.self<LODProbeGrid>();
+	info.GetReturnValue().Set(lctx.num_to_jnum(self->normal_bias));
+}
+
+void WrapperLODProbeGrid::SetNormalBias(v8::Local<v8::String> property, v8::Local<v8::Value> value,
+	const v8::PropertyCallbackInfo<void>& info)
+{
+	LocalContext lctx(info);
+	LODProbeGrid* self = lctx.self<LODProbeGrid>();
+	lctx.jnum_to_num(value, self->normal_bias);
+}
 
 void WrapperLODProbeGrid::ConstructVisibility(const v8::FunctionCallbackInfo<v8::Value>& info)
 {

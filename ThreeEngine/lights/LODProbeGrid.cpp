@@ -21,6 +21,7 @@ struct LODProbeGridConst
 	glm::vec4 coverageMax;
 	glm::ivec4 baseDivisions;	
 	int subDivisionLevel;
+	float normalBias;
 	int visRes;
 	int packSize;
 	int packRes;
@@ -77,6 +78,7 @@ void LODProbeGrid::updateConstant()
 	c.coverageMax = glm::vec4(coverage_max, 0.0f);
 	c.baseDivisions = glm::ivec4(base_divisions, 0);
 	c.subDivisionLevel = sub_division_level;
+	c.normalBias = normal_bias;
 	c.visRes = vis_res;
 	c.packSize = pack_size;
 	c.packRes = pack_res;

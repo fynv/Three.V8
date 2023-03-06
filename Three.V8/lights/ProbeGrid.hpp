@@ -25,6 +25,9 @@ public:
 	static void GetYpower(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void SetYpower(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
 
+	static void GetNormalBias(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void SetNormalBias(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
+
 	static void GetRecordReferences(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void SetRecordReferences(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
 	static void GetReferences(const v8::FunctionCallbackInfo<v8::Value>& info);
@@ -49,6 +52,8 @@ v8::Local<v8::FunctionTemplate> WrapperProbeGrid::create_template(v8::Isolate* i
 	templ->InstanceTemplate()->Set(isolate, "setDivisions", v8::FunctionTemplate::New(isolate, SetDivisions));
 
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "ypower").ToLocalChecked(), GetYpower, SetYpower);
+
+	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "normalBias").ToLocalChecked(), GetNormalBias, SetNormalBias);
 
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "recordReferences").ToLocalChecked(), GetRecordReferences, SetRecordReferences);
 	templ->InstanceTemplate()->Set(isolate, "getReferences", v8::FunctionTemplate::New(isolate, GetReferences));
@@ -184,6 +189,23 @@ void WrapperProbeGrid::SetYpower(v8::Local<v8::String> property, v8::Local<v8::V
 	ProbeGrid* self = lctx.self<ProbeGrid>();	
 	lctx.jnum_to_num(value, self->ypower);
 }
+
+
+void WrapperProbeGrid::GetNormalBias(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	ProbeGrid* self = lctx.self<ProbeGrid>();
+	info.GetReturnValue().Set(lctx.num_to_jnum(self->normal_bias));
+}
+
+void WrapperProbeGrid::SetNormalBias(v8::Local<v8::String> property, v8::Local<v8::Value> value,
+	const v8::PropertyCallbackInfo<void>& info)
+{
+	LocalContext lctx(info);
+	ProbeGrid* self = lctx.self<ProbeGrid>();
+	lctx.jnum_to_num(value, self->normal_bias);
+}
+
 
 void WrapperProbeGrid::GetRecordReferences(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {

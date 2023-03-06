@@ -591,6 +591,7 @@ layout (std140, binding = BINDING_PROBE_GRID) uniform ProbeGrid
 	vec4 uCoverageMax;
 	ivec4 uDivisions;	
 	float uYpower;
+	float uNormalBias;
 	int uVisRes;
 	int uPackSize;
 	int uPackRes;
@@ -623,6 +624,7 @@ layout (std140, binding = BINDING_LOD_PROBE_GRID) uniform ProbeGrid
 	vec4 uCoverageMax;
 	ivec4 uBaseDivisions;	
 	int uSubDivisionLevel;
+	float uNormalBias;
 	int uVisRes;
 	int uPackSize;
 	int uPackRes;
@@ -752,7 +754,7 @@ vec3 getIrradiance(in vec3 normal)
 	vec3 dy = dFdy(vWorldPos);
 	vec3 N = normalize(cross(dx, dy));
 	vec3 viewDir = normalize(vViewDir);
-	vec3 wpos = vWorldPos + (N + 3.0 * viewDir) * 0.2;
+	vec3 wpos = vWorldPos + (N + 3.0 * viewDir) * uNormalBias;
 	
 	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
 	vec3 pos_normalized = (wpos - uCoverageMin.xyz)/size_grid;
@@ -994,7 +996,7 @@ vec3 getIrradiance(in vec3 normal)
 	vec3 dy = dFdy(vWorldPos);
 	vec3 N = normalize(cross(dx, dy));
 	vec3 viewDir = normalize(vViewDir);		
-	vec3 wpos = vWorldPos + (N + 3.0 * viewDir) * 0.2;
+	vec3 wpos = vWorldPos + (N + 3.0 * viewDir) * uNormalBias;
 
 	vec4 coeffs[9];
 	for (int i=0; i<9; i++) 

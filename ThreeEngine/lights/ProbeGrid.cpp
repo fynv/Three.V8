@@ -12,6 +12,7 @@ struct ProbeGridConst
 	glm::vec4 coverageMax;
 	glm::ivec4 divisions;
 	float ypower;
+	float normalBias;
 	int visRes;
 	int packSize;
 	int packRes;
@@ -68,6 +69,7 @@ void ProbeGrid::updateConstant()
 	c.coverageMax = glm::vec4(coverage_max, 0.0f);
 	c.divisions = glm::ivec4(divisions, 0);
 	c.ypower = ypower;
+	c.normalBias = normal_bias;
 	c.visRes = vis_res;
 	c.packSize = pack_size;
 	c.packRes = pack_res;

@@ -5713,6 +5713,12 @@ const create_probe_grid = (doc, props) => {
         props.coverage_max = `${probe_grid.coverageMax.x}, ${probe_grid.coverageMax.y}, ${probe_grid.coverageMax.z}`;
         props.ypower = `${probe_grid.ypower}`;
     }
+
+    if (props.hasOwnProperty('normal_bias'))
+    {
+        probe_grid.normalBias = parseFloat(props.normal_bias);
+    }
+    
     doc.scene.indirectLight = probe_grid;
     
     return proxy;
@@ -5777,6 +5783,11 @@ const create_lod_probe_grid = (doc, props) => {
     }
     probe_grid.probe_budget = proxy.probe_budget;
     proxy.probeGrid = probe_grid;
+
+    if (props.hasOwnProperty('normal_bias'))
+    {
+        probe_grid.normalBias = parseFloat(props.normal_bias);
+    }
     
     doc.scene.indirectLight = probe_grid;
     
@@ -6046,6 +6057,12 @@ const tuning_probe_grid =  (doc, obj, input) =>{
         props.ypower = input.ypower;
         obj.ypower = parseFloat(input.ypower);
     }
+
+    if ("normal_bias" in input)
+    {
+        props.normal_bias = input.normal_bias;
+        doc.scene.indirectLight.normalBias = parseFloat(input.normal_bias);
+    }
     
     return "";
     
@@ -6124,6 +6141,12 @@ const tuning_lod_probe_grid =  (doc, obj, input) =>{
     {
         props.probe_budget  = input.probe_budget;
         obj.probe_budget = parseInt(input.probe_budget);
+    }
+
+    if ("normal_bias" in input)
+    {
+        props.normal_bias = input.normal_bias;
+        obj.probeGrid.normalBias = parseFloat(input.normal_bias);
     }
     
     return "";

@@ -81,6 +81,7 @@ layout (std140, binding = 2) uniform ProbeGrid
 	vec4 uCoverageMax;
 	ivec4 uDivisions;
 	float uYpower;
+	float uNormalBias;
 	int uVisRes;
 	int uPackSize;
 	int uPackRes;
@@ -113,6 +114,7 @@ layout (std140, binding = 2) uniform ProbeGrid
 	vec4 uCoverageMax;
 	ivec4 uBaseDivisions;	
 	int uSubDivisionLevel;
+	float uNormalBias;
 	int uVisRes;
 	int uPackSize;
 	int uPackRes;
