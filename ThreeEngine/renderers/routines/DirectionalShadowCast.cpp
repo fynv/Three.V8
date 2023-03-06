@@ -13,12 +13,29 @@ layout (std140, binding = BINDING_SHADOW) uniform Shadow
 	mat4 uVPSBMat;
 	mat4 uProjMat;
 	mat4 uViewMat;	
+    vec2 uLeftRight;
+	vec2 uBottomTop;
+	vec2 uNearFar;
+	float uLightRadius;
+	float uBias;
 };
 
 layout (std140, binding = BINDING_MODEL) uniform Model
 {
 	mat4 uModelMat;
 	mat4 uNormalMat;
+};
+
+layout (std140, binding = BINDING_MATERIAL) uniform Material
+{
+	vec4 uColor;
+	vec4 uEmissive;
+	vec4 uSpecularGlossiness;
+	vec2 uNormalScale;
+	float uMetallicFactor;
+	float uRoughnessFactor;
+	float uAlphaCutoff;
+	int uDoubleSided;
 };
 
 #if ALPHA
@@ -36,7 +53,12 @@ layout (location = LOCATION_VARYING_UV) out vec2 vUV;
 void main()
 {
 	vec4 wolrd_pos = uModelMat * vec4(aPos, 1.0);
-	gl_Position = uProjMat*(uViewMat*wolrd_pos);	
+	gl_Position = uProjMat*(uViewMat*wolrd_pos);
+
+	if (uDoubleSided!=0)
+	{
+		gl_Position.z += uBias * gl_Position.w;
+	}
 	
 #if ALPHA
 #if HAS_COLOR
@@ -152,24 +174,23 @@ void DirectionalShadowCast::s_generate_shaders(const Options& options, Bindings&
 			defines += line;
 		}
 	}	
+
+	{
+		bindings.binding_material = bindings.binding_model + 1;
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_MATERIAL %d\n", bindings.binding_material);
+			defines += line;
+		}
+	}
 	
 	if (options.alpha_mode == AlphaMode::Opaque)
 	{
-		defines += "#define ALPHA 0\n";
-		bindings.binding_material = bindings.binding_model;
+		defines += "#define ALPHA 0\n";		
 	}
 	else
 	{
-		defines += "#define ALPHA 1\n";
-
-		{
-			bindings.binding_material = bindings.binding_model + 1;
-			{
-				char line[64];
-				sprintf(line, "#define BINDING_MATERIAL %d\n", bindings.binding_material);
-				defines += line;
-			}
-		}
+		defines += "#define ALPHA 1\n";		
 
 		if (options.alpha_mode == AlphaMode::Mask)
 		{
@@ -278,7 +299,8 @@ void DirectionalShadowCast::render(const RenderParams& params)
 
 	glUseProgram(m_prog->m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_shadow, params.constant_shadow->m_id);
-	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_model, params.constant_model->m_id);
+	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_model, params.constant_model->m_id);	
+	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_material, material.constant_material.m_id);
 
 	if (m_options.alpha_mode != AlphaMode::Opaque)
 	{

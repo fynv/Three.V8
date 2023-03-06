@@ -37,6 +37,10 @@
                 <Button x:Name="btn_initialize" Margin="5" Click="btn_initialize_Click">Initialize</Button>
                 <TextBlock x:Name="text_num_probes" VerticalAlignment="Center"/>
             </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Normal Bias:" VerticalAlignment="Center"/>
+                <local:NumberTuner x:Name="tuner_normal_bias" Margin="5" ValueChanged="tuner_normal_bias_ValueChanged"/>
+            </StackPanel>
             <GroupBox Header="Baking">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">

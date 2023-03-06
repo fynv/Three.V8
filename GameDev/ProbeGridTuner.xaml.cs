@@ -68,6 +68,14 @@ namespace GameDev
             {
                 tuner_ypower.value = float.Parse(att["ypower"].ToString());
             }
+
+            tuner_normal_bias.value = 0.2f;
+            tuner_normal_bias.step = 0.05f;
+            if (att.ContainsKey("normal_bias"))
+            {
+                tuner_normal_bias.value = float.Parse(att["normal_bias"].ToString());
+            }
+
             tuner_iterations.value = 6;
         }
 
@@ -201,6 +209,17 @@ namespace GameDev
             game_player.SendMessageToUser("tuning", tuning.ToString());
         }
 
+        private void tuner_normal_bias_ValueChanged(object sender, EventArgs e)
+        {
+            JObject tuning = new JObject();
+            tuning["normal_bias"] = $"{tuner_normal_bias.value}";
+
+            var att = (JObject)jobj["attributes"];
+            att["normal_bias"] = tuning["normal_bias"];
+
+            game_player.SendMessageToUser("tuning", tuning.ToString());
+        }
+
         private void btn_start_Click(object sender, RoutedEventArgs e)
         {
             JObject tuning = new JObject();
@@ -208,6 +227,6 @@ namespace GameDev
             game_player.SendMessageToUser("generate", tuning.ToString());
         }
 
-       
+        
     }
 }

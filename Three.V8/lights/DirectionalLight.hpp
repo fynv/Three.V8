@@ -3,7 +3,7 @@
 #include "WrapperUtils.hpp"
 #include "lights/Light.hpp"
 #include <lights/DirectionalLight.h>
-
+#include <lights/DirectionalLightShadow.h>
 
 class WrapperDirectionalLight
 {
@@ -17,6 +17,9 @@ private:
 	static void SetShadow(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void SetShadowProjection(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void SetShadowRadius(const v8::FunctionCallbackInfo<v8::Value>& info);
+
+	static void GetBias(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void SetBias(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
 };
 
 
@@ -27,6 +30,7 @@ v8::Local<v8::FunctionTemplate> WrapperDirectionalLight::create_template(v8::Iso
 	templ->InstanceTemplate()->Set(isolate, "setShadow", v8::FunctionTemplate::New(isolate, SetShadow));
 	templ->InstanceTemplate()->Set(isolate, "setShadowProjection", v8::FunctionTemplate::New(isolate, SetShadowProjection));
 	templ->InstanceTemplate()->Set(isolate, "setShadowRadius", v8::FunctionTemplate::New(isolate, SetShadowRadius));
+	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "bias").ToLocalChecked(), GetBias, SetBias);
 	return templ;
 }
 
@@ -111,3 +115,26 @@ void  WrapperDirectionalLight::SetShadowRadius(const v8::FunctionCallbackInfo<v8
 	self->SetShadowRadius(radius);
 }
 
+
+void WrapperDirectionalLight::GetBias(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	DirectionalLight* self = lctx.self<DirectionalLight>();
+	float bias = 0.001f;
+	if (self->shadow != nullptr)
+	{
+		bias = self->shadow->m_bias;
+	}
+	info.GetReturnValue().Set(lctx.num_to_jnum(bias));
+}
+
+void WrapperDirectionalLight::SetBias(v8::Local<v8::String> property, v8::Local<v8::Value> value,
+	const v8::PropertyCallbackInfo<void>& info)
+{
+	LocalContext lctx(info);
+	DirectionalLight* self = lctx.self<DirectionalLight>();
+	if (self->shadow != nullptr)
+	{
+		lctx.jnum_to_num(value, self->shadow->m_bias);
+	}
+}

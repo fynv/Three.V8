@@ -2023,6 +2023,11 @@ const directional_light = {
                 let radius = parseFloat(props.radius);
                 light.setShadowRadius(radius);
             }
+            
+            if (props.hasOwnProperty('bias'))
+            {
+                light.bias = parseFloat(props.bias);
+            }
         }
 
         if (parent != null) {
@@ -2099,6 +2104,12 @@ const directional_light = {
             props.radius = input.radius;
             let radius = parseFloat(input.radius);
             obj.setShadowRadius(radius);
+        }
+        
+        if ("bias" in input)
+        {
+            props.bias = input.bias;
+            obj.bias = parseFloat(input.bias);
         }
         
         tuning_object3d(doc, obj, input);

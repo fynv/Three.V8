@@ -286,10 +286,6 @@ float borderDepthTexture(sampler2D shadowTex, vec2 uv)
 
 float borderPCFTexture(sampler2DShadow shadowTex, vec3 uvz)
 {
-	if (uDoubleSided!=0)
-	{
-		uvz.z = max(0.0, uvz.z - 0.0005);
-	}
 	return ((uvz.x <= 1.0) && (uvz.y <= 1.0) &&
 	 (uvz.x >= 0.0) && (uvz.y >= 0.0)) ? texture(shadowTex, uvz) : 
 	 ((uvz.z <= 1.0) ? 1.0 : 0.0);

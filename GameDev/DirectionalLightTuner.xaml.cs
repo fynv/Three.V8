@@ -93,6 +93,12 @@ namespace GameDev
                 tuner_radius.value = float.Parse(att["radius"].ToString());
             }
 
+            tuner_bias.value = 0.001f;
+            tuner_bias.step = 0.001f;
+            if (att.ContainsKey("bias"))
+            {
+                tuner_bias.value = float.Parse(att["bias"].ToString());
+            }
             obj3d_tuner = new Object3DTuner(game_player, jobj);
             stack.Children.Add(obj3d_tuner);
 
@@ -163,6 +169,7 @@ namespace GameDev
             {
                 tuning["area"] = $"{tuner_left.value}, {tuner_right.value}, {tuner_bottom.value}, {tuner_top.value}, {tuner_near.value}, {tuner_far.value}";
                 tuning["radius"] = $"{tuner_radius.value}";
+                tuning["bias"] = $"{tuner_bias.value}";
 
                 att["area"] = tuning["area"];
                 att["radius"] = tuning["radius"];
@@ -210,7 +217,15 @@ namespace GameDev
 
         }
 
+        private void tuner_bias_ValueChanged(object sender, EventArgs e)
+        {
+            JObject tuning = new JObject();
+            var att = (JObject)jobj["attributes"];
 
+            tuning["bias"] = $"{tuner_bias.value}";
+            att["bias"] = tuning["bias"];
 
+            game_player.SendMessageToUser("tuning", tuning.ToString());
+        }
     }
 }

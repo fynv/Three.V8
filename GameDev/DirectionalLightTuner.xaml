@@ -48,6 +48,10 @@
                         <TextBlock Text="Radius:" VerticalAlignment="Center"/>
                         <local:NumberTuner x:Name="tuner_radius" Margin="5" ValueChanged="tuner_radius_ValueChanged"/>
                     </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Bias:" VerticalAlignment="Center"/>
+                        <local:NumberTuner x:Name="tuner_bias" Margin="5" ValueChanged="tuner_bias_ValueChanged"/>
+                    </StackPanel>
                 </StackPanel>
             </GroupBox>
         </StackPanel>

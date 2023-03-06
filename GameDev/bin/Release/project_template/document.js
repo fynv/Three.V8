@@ -1174,6 +1174,11 @@ const directional_light = {
                 let radius = parseFloat(props.radius);
                 light.setShadowRadius(radius);
             }
+            
+            if (props.hasOwnProperty('bias'))
+            {
+                light.bias = parseFloat(props.bias);
+            }
         }
 
         if (parent != null) {
@@ -1375,7 +1380,10 @@ export class Document
         
         for (const object of this.updatables) 
         {
-            object.tick(this, object, delta);
+            if (object.tick)
+            {
+                object.tick(this, object, delta);
+            }
         }
     }
     
