@@ -707,7 +707,8 @@ vec3 getIrradiance(in vec3 normal)
 
 	float sum_weight = 0.0;
 
-	ivec3 divs = uBaseDivisions.xyz * (1<<uSubDivisionLevel);		
+	ivec3 divs = uBaseDivisions.xyz * (1<<uSubDivisionLevel);	
+	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;	
 	vec3 pos_normalized = (wpos - uCoverageMin.xyz)/size_grid;	
 	vec3 pos_voxel = pos_normalized * vec3(divs);
 	pos_voxel = clamp(pos_voxel, vec3(0.0), vec3(divs));
