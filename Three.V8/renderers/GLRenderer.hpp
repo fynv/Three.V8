@@ -130,7 +130,7 @@ void WrapperGLRenderer::UpdateProbe(const v8::FunctionCallbackInfo<v8::Value>& i
 	Scene* scene = lctx.jobj_to_obj<Scene>(info[0]);
 	CubeRenderTarget* target = lctx.jobj_to_obj<CubeRenderTarget>(info[1]);
 
-	float zNear = 0.1f;
+	float zNear = 0.01f;
 	float zFar = 100.0f;
 	if (info.Length() > 4)
 	{
