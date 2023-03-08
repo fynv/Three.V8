@@ -85,6 +85,8 @@ layout (std140, binding = 2) uniform ProbeGrid
 	int uVisRes;
 	int uPackSize;
 	int uPackRes;
+	int uIrrRes;
+	int uIrrPackRes;
 	float uDiffuseThresh;
 	float uDiffuseHigh;
 	float uDiffuseLow;
@@ -118,6 +120,8 @@ layout (std140, binding = 2) uniform ProbeGrid
 	int uVisRes;
 	int uPackSize;
 	int uPackRes;
+	int uIrrRes;
+	int uIrrPackRes;
 	float uDiffuseThresh;
 	float uDiffuseHigh;
 	float uDiffuseLow;
@@ -298,6 +302,8 @@ R"(
 
 #if HAS_LOD_PROBE_GRID
 
+layout (location = 2) uniform sampler3D uTexLOD;
+
 float get_visibility(in vec3 pos_world, int idx, in vec3 vert_world)
 {
 	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
@@ -339,6 +345,13 @@ int get_probe_lod_i(in ivec3 ipos)
 		digit_mask >>=1;		
 	}	
 	return lod;
+}
+
+float get_probe_lod_f_tex(in vec3 pos)
+{
+	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
+	vec3 pos_normalized = (pos - uCoverageMin.xyz)/size_grid;	
+	return texture(uTexLOD, pos_normalized).x * 255.0;	
 }
 
 int get_probe_idx_lod(in ivec3 ipos, int target_lod)
@@ -433,8 +446,8 @@ vec3 getIrradiance(in vec3 pos_world)
 	pos_voxel = clamp(pos_voxel, vec3(0.0), vec3(divs));
 	ivec3 i_voxel = clamp(ivec3(pos_voxel), ivec3(0), ivec3(divs) - ivec3(1));
 	
-	int lod = get_probe_lod_i(i_voxel);
-	//int lod = uSubDivisionLevel;
+	float f_lod = get_probe_lod_f_tex(pos_world);
+	int lod = int(round(f_lod));	
 	accCoeffsLod(pos_world, lod, coeffs, sum_weight, 1.0);
 	
 	while(lod>0 && sum_weight <=0.0)
@@ -625,6 +638,10 @@ void SimpleFogRayMarchingEnv::render(const RenderParams& params)
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, params.lights->lod_probe_grid->m_tex_visibility->tex_id);
 		glUniform1i(1, 1);
+
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_3D, params.lights->lod_probe_grid->m_tex_lod->tex_id);
+		glUniform1i(2, 2);
 	}
 
 	glDrawArrays(GL_TRIANGLES, 0, 3);

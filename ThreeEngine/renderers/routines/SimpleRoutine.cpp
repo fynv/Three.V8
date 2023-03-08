@@ -334,6 +334,8 @@ layout (std140, binding = BINDING_PROBE_GRID) uniform ProbeGrid
 	int uVisRes;
 	int uPackSize;
 	int uPackRes;
+	int uIrrRes;
+	int uIrrPackRes;
 	float uDiffuseThresh;
 	float uDiffuseHigh;
 	float uDiffuseLow;
@@ -367,6 +369,8 @@ layout (std140, binding = BINDING_LOD_PROBE_GRID) uniform ProbeGrid
 	int uVisRes;
 	int uPackSize;
 	int uPackRes;
+	int uIrrRes;
+	int uIrrPackRes;
 	float uDiffuseThresh;
 	float uDiffuseHigh;
 	float uDiffuseLow;
@@ -390,6 +394,7 @@ layout (std430, binding = BINDING_LOD_PROBE_INDICES) buffer ProbeIndex
 
 #if HAS_PROBE_GRID || HAS_LOD_PROBE_GRID
 
+layout (location = LOCATION_TEX_IRRADIANCE) uniform sampler2D uTexIrr;
 layout (location = LOCATION_TEX_VISIBILITY) uniform sampler2D uTexVis;
 
 vec2 signNotZero(in vec2 v)
@@ -401,6 +406,15 @@ vec2 vec3_to_oct(in vec3 v)
 {
 	vec2 p = v.xy * (1.0/ (abs(v.x) + abs(v.y) + abs(v.z)));
 	return (v.z <= 0.0) ? ((1.0 - abs(p.yx)) * signNotZero(p)) : p;
+}
+
+vec3 get_irradiance_common(int idx, in vec3 dir)
+{
+	vec2 probe_uv = vec3_to_oct(dir)*0.5 + 0.5;
+	int pack_x = idx % uPackSize;
+	int pack_y = idx / uPackSize;
+	vec2 uv = (vec2(pack_x, pack_y) * float(uIrrRes + 2) + (probe_uv * float(uIrrRes) + 1.0))/float(uIrrPackRes);
+	return texture(uTexIrr, uv).xyz;
 }
 
 float get_visibility_common(in vec3 wpos, in vec3 spacing, int idx, in vec3 vert_world)
@@ -473,17 +487,13 @@ float get_visibility(in vec3 wpos, in ivec3 vert, in vec3 vert_world)
 	return get_visibility_common(wpos, spacing, idx, vert_world);
 }
 
-void acc_coeffs(inout vec4 coeffs[9], in ivec3 vert, in float weight)
+vec3 get_irradiance(in ivec3 vert, in vec3 dir)
 {
 	int idx = vert.x + (vert.y + vert.z*uDivisions.y)*uDivisions.x;
-	int offset = idx*9;
-	for (int i=0;i<9;i++)
-	{
-		coeffs[i]+=bSHCoefficients[offset+i]*weight;
-	}
 #if PROBE_REFERENCE_RECORDED
 	bReferenced[idx] = 1;
 #endif
+	return get_irradiance_common(idx, dir);
 }
 
 vec3 getIrradiance(in vec3 normal)
@@ -504,8 +514,7 @@ vec3 getIrradiance(in vec3 normal)
 	vec3 frac_voxel = pos_voxel - vec3(i_voxel);
 
 	float sum_weight = 0.0;
-	vec4 coeffs[9];
-	for (int i=0; i<9; i++) coeffs[i] = vec4(0.0);
+	vec3 irr = vec3(0.0);
 
 	for (int z=0;z<2;z++)
 	{
@@ -532,8 +541,8 @@ vec3 getIrradiance(in vec3 normal)
 				weight *= w.x * w.y * w.z;		
 				if (weight> 0.0)
 				{					
-					sum_weight += weight;
-					acc_coeffs(coeffs, vert, weight);						
+					sum_weight += weight;					
+					irr += get_irradiance(vert, normal) * weight;
 				}
 			}
 		}
@@ -541,8 +550,7 @@ vec3 getIrradiance(in vec3 normal)
 
 	if (sum_weight>0.0)
 	{
-		for (int i=0; i<9; i++) coeffs[i]/=sum_weight;
-		return shGetIrradianceAt(normal, coeffs);
+		return irr/sum_weight;
 	}	
 
 	return vec3(0.0);
@@ -561,6 +569,8 @@ static std::string g_frag_part2 =
 R"(
 
 #if HAS_LOD_PROBE_GRID
+
+layout (location = LOCATION_TEX_LOD) uniform sampler3D uTexLOD;
 
 float get_visibility(in vec3 wpos, int idx, in vec3 vert_world)
 {
@@ -605,6 +615,13 @@ int get_probe_lod_i(in ivec3 ipos)
 	return lod;
 }
 
+float get_probe_lod_f_tex(in vec3 pos)
+{
+	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
+	vec3 pos_normalized = (pos - uCoverageMin.xyz)/size_grid;	
+	return texture(uTexLOD, pos_normalized).x * 255.0;	
+}
+
 int get_probe_idx_lod(in ivec3 ipos, int target_lod)
 {
 	ivec3 ipos_base = ipos / (1<<target_lod);
@@ -639,16 +656,7 @@ int get_probe_idx_lod(in ivec3 ipos, int target_lod)
 	return probe_idx;
 }
 
-void acc_coeffs(inout vec4 coeffs[9], int idx, in float weight)
-{
-	int offset = idx*10 + 1;
-	for (int i=0;i<9;i++)
-	{
-		coeffs[i]+=bProbeData[offset+i]*weight;
-	}
-}
-
-void accCoeffsLod(in vec3 wpos, int lod, inout vec4 coeffs[9], inout float sum_weight, float level_weight)
+void accIrrLod(in vec3 wpos, int lod, in vec3 normal, inout vec3 irr, inout float sum_weight, float level_weight)
 {	
 	ivec3 divs = uBaseDivisions.xyz * (1<<lod);
 
@@ -690,7 +698,7 @@ void accCoeffsLod(in vec3 wpos, int lod, inout vec4 coeffs[9], inout float sum_w
 				if (weight>0.0)
 				{						
 					sum_weight += weight;
-					acc_coeffs(coeffs, idx_probe, weight);
+					irr += get_irradiance_common(idx_probe, normal) * weight;
 				}
 			}
 		}
@@ -704,38 +712,22 @@ vec3 getIrradiance(in vec3 normal)
 	vec3 viewDir = normalize(vViewDir);	
 	vec3 wpos = vWorldPos + (N + 3.0 * viewDir) * uNormalBias;
 
-	vec4 coeffs[9];
-	for (int i=0; i<9; i++) 
-	{
-		coeffs[i] = vec4(0.0);
-	}
-
+	vec3 irr = vec3(0.0);
 	float sum_weight = 0.0;
 
-	ivec3 divs = uBaseDivisions.xyz * (1<<uSubDivisionLevel);	
-	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;	
-	vec3 pos_normalized = (wpos - uCoverageMin.xyz)/size_grid;	
-	vec3 pos_voxel = pos_normalized * vec3(divs);
-	pos_voxel = clamp(pos_voxel, vec3(0.0), vec3(divs));
-	ivec3 i_voxel = clamp(ivec3(pos_voxel), ivec3(0), ivec3(divs) - ivec3(1));
-	
-	int lod = get_probe_lod_i(i_voxel);
-	//int lod = uSubDivisionLevel;
-	accCoeffsLod(wpos, lod, coeffs, sum_weight, 1.0);
+	float f_lod = get_probe_lod_f_tex(wpos);
+	int lod = int(round(f_lod));	
+	accIrrLod(wpos, lod, normal, irr, sum_weight, 1.0);
 
 	while(lod>0 && sum_weight <=0.0)
 	{
 		lod--;
-		accCoeffsLod(wpos, lod, coeffs, sum_weight, 1.0);
+		accIrrLod(wpos, lod, normal, irr, sum_weight, 1.0);
 	}
 
 	if (sum_weight > 0.0)	
 	{
-		for (int i=0; i<9; i++)
-		{
-			coeffs[i] /= sum_weight;
-		}
-		return shGetIrradianceAt(normal, coeffs);
+		return irr/sum_weight;
 	}
 	return vec3(0.0);
 }
@@ -1403,7 +1395,13 @@ void SimpleRoutine::s_generate_shaders(const Options& options, Bindings& binding
 
 	if (options.has_probe_grid || options.has_lod_probe_grid)
 	{
-		bindings.location_tex_visibility = bindings.location_tex_directional_shadow + 1;
+		bindings.location_tex_irradiance = bindings.location_tex_directional_shadow + 1;
+		bindings.location_tex_visibility = bindings.location_tex_irradiance + 1;
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_TEX_IRRADIANCE %d\n", bindings.location_tex_irradiance);
+			defines += line;
+		}
 		{
 			char line[64];
 			sprintf(line, "#define LOCATION_TEX_VISIBILITY %d\n", bindings.location_tex_visibility);
@@ -1412,8 +1410,24 @@ void SimpleRoutine::s_generate_shaders(const Options& options, Bindings& binding
 	}
 	else
 	{
+		bindings.location_tex_irradiance = bindings.location_tex_directional_shadow;
 		bindings.location_tex_visibility = bindings.location_tex_directional_shadow;
 	}
+
+	if (options.has_lod_probe_grid)
+	{
+		bindings.location_tex_lod = bindings.location_tex_visibility + 1;
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_TEX_LOD %d\n", bindings.location_tex_lod);
+			defines += line;
+		}
+	}
+	else
+	{
+		bindings.location_tex_lod = bindings.location_tex_visibility;
+	}
+
 
 	if (options.has_ambient_light)
 	{
@@ -1656,6 +1670,11 @@ void SimpleRoutine::render(const RenderParams& params)
 		glBindTexture(GL_TEXTURE_2D, params.lights->probe_grid->m_tex_visibility->tex_id);
 		glUniform1i(m_bindings.location_tex_visibility, texture_idx);
 		texture_idx++;
+
+		glActiveTexture(GL_TEXTURE0 + texture_idx);
+		glBindTexture(GL_TEXTURE_2D, params.lights->probe_grid->m_tex_irradiance->tex_id);
+		glUniform1i(m_bindings.location_tex_irradiance, texture_idx);
+		texture_idx++;
 	}
 
 	if (m_options.has_lod_probe_grid)
@@ -1663,6 +1682,16 @@ void SimpleRoutine::render(const RenderParams& params)
 		glActiveTexture(GL_TEXTURE0 + texture_idx);
 		glBindTexture(GL_TEXTURE_2D, params.lights->lod_probe_grid->m_tex_visibility->tex_id);
 		glUniform1i(m_bindings.location_tex_visibility, texture_idx);
+		texture_idx++;
+
+		glActiveTexture(GL_TEXTURE0 + texture_idx);
+		glBindTexture(GL_TEXTURE_2D, params.lights->lod_probe_grid->m_tex_irradiance->tex_id);
+		glUniform1i(m_bindings.location_tex_irradiance, texture_idx);
+		texture_idx++;
+
+		glActiveTexture(GL_TEXTURE0 + texture_idx);
+		glBindTexture(GL_TEXTURE_3D, params.lights->lod_probe_grid->m_tex_lod->tex_id);
+		glUniform1i(m_bindings.location_tex_lod, texture_idx);
 		texture_idx++;
 	}
 

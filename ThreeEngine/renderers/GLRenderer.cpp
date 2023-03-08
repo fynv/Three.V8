@@ -2419,6 +2419,8 @@ void GLRenderer::updateProbe(Scene& scene, CubeRenderTarget& target, ProbeGrid& 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, probe_grid.m_probe_buf->m_id);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, index * sizeof(glm::vec4)*9, sizeof(glm::vec4) * 9, dest_coeffs);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	probe_grid.presample_probe(index);
 }
 
 void GLRenderer::updateProbe(Scene& scene, CubeRenderTarget& target, LODProbeGrid& probe_grid, int idx, float zNear, float zFar, float k)
@@ -2489,6 +2491,8 @@ void GLRenderer::updateProbe(Scene& scene, CubeRenderTarget& target, LODProbeGri
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, probe_grid.m_probe_buf->m_id);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, sizeof(glm::vec4) * (idx * 10 + 1), sizeof(glm::vec4) * 9, dest_coeffs);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	probe_grid.presample_probe(idx);
 
 }
 

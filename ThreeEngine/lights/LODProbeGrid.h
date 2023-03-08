@@ -21,16 +21,21 @@ public:
 	int vis_res = 16;
 	int pack_size = 0;
 	int pack_res = 0;
+	int irr_res = 8;	
+	int irr_pack_res = 0;
 
 	std::vector<int> m_sub_index;
 	std::unique_ptr<GLBuffer> m_sub_index_buf;
+	std::unique_ptr<GLTexture3D> m_tex_lod;
 
 	std::vector<glm::vec4> m_probe_data;	
 	std::unique_ptr<GLBuffer> m_probe_buf;
+	std::unique_ptr<GLTexture2D> m_tex_irradiance;
 
 	std::vector<unsigned short> m_visibility_data;
 	std::unique_ptr<GLTexture2D> m_tex_visibility;
 	void updateBuffers();
+	void presample_probe(int idx);
 
 	int getNumberOfProbes() const;
 
@@ -42,5 +47,6 @@ public:
 	
 private:
 	void _initialize(GLRenderer& renderer, Scene& scene, int probe_budget);
-
+	void _create_lod_tex();
+	void _presample_irradiance();
 };

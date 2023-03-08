@@ -22,6 +22,7 @@ public:
 	~EnvironmentMapCreator();
 
 	static void CreateSH(glm::vec4 shCoefficients[9], unsigned tex_id, int tex_dim = 128, const glm::quat& rotation = glm::identity<glm::quat>());
+	static void PresampleSH(const glm::vec4 shCoefficients[9], glm::vec3* tex_data, int res);
 	void CreateReflection(ReflectionMap& reflection, const GLCubemap* cubemap);
 	
 	void Create(const CubeImage* image, EnvironmentMap* envMap);

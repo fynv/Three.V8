@@ -665,6 +665,52 @@ void EnvironmentMapCreator::CreateSH(glm::vec4 shCoefficients[9], unsigned tex_i
 	}
 }
 
+inline glm::vec2 signNotZero(const glm::vec2& v)
+{
+	return glm::vec2((v.x >= 0.0f) ? 1.0f : -1.0f, (v.y >= 0.0f) ? 1.0f : -1.0f);
+}
+
+inline glm::vec3 oct_to_vec3(const glm::vec2& e)
+{
+	glm::vec3 v = glm::vec3(glm::vec2(e.x, e.y), 1.0f - fabsf(e.x) - fabsf(e.y));
+	if (v.z < 0.0f)
+	{
+		glm::vec2 tmp = (1.0f - glm::abs(glm::vec2(v.y, v.x))) * signNotZero(glm::vec2(v.x, v.y));
+		v.x = tmp.x;
+		v.y = tmp.y;
+	}
+	return glm::normalize(v);
+}
+
+void EnvironmentMapCreator::PresampleSH(const glm::vec4 shCoefficients[9], glm::vec3* tex_data, int res)
+{
+	for (int y = 0; y < res; y++)
+	{
+		for (int x = 0; x < res; x++)
+		{
+			glm::vec2 v2 = glm::vec2(float(x) + 0.5f, float(y) + 0.5f) / float(res) * 2.0f - 1.0f;
+			glm::vec3 dir = oct_to_vec3(v2);
+			
+			// band 0
+			glm::vec4 irr = shCoefficients[0] * 0.886227f;
+
+			// band 1
+			irr += shCoefficients[1] * 2.0f * 0.511664f * dir.y;
+			irr += shCoefficients[2] * 2.0f * 0.511664f * dir.z;
+			irr += shCoefficients[3] * 2.0f * 0.511664f * dir.x;
+
+			// band 2
+			irr += shCoefficients[4] * 2.0f * 0.429043f * dir.x * dir.y;
+			irr += shCoefficients[5] * 2.0f * 0.429043f * dir.y * dir.z;
+			irr += shCoefficients[6] * (0.743125f * dir.z * dir.z - 0.247708f);
+			irr += shCoefficients[7] * 2.0f * 0.429043f * dir.x * dir.z;
+			irr += shCoefficients[8] * 0.429043f * (dir.x * dir.x - dir.y * dir.y);
+
+			tex_data[x + y * res] = irr;
+		}
+	}
+}
+
 void EnvironmentMapCreator::CreateReflection(ReflectionMap& reflection, const GLCubemap* cubemap)
 {
 	// downsample pass

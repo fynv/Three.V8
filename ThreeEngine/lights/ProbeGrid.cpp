@@ -6,6 +6,8 @@
 #include "models/GLTFModel.h"
 #include "core/BoundingVolumeHierarchy.h"
 
+#include "EnvironmentMapCreator.h"
+
 struct ProbeGridConst
 {
 	glm::vec4 coverageMin;
@@ -16,6 +18,8 @@ struct ProbeGridConst
 	int visRes;
 	int packSize;
 	int packRes;
+	int irrRes;
+	int irrPackRes;
 	float diffuseThresh;
 	float diffuseHigh;
 	float diffuseLow;
@@ -26,6 +30,7 @@ struct ProbeGridConst
 
 ProbeGrid::ProbeGrid() : m_constant(sizeof(ProbeGridConst), GL_UNIFORM_BUFFER)
 {
+	m_tex_irradiance = std::unique_ptr<GLTexture2D>(new GLTexture2D);
 	m_tex_visibility = std::unique_ptr<GLTexture2D>(new GLTexture2D);
 }
 
@@ -33,6 +38,99 @@ ProbeGrid::ProbeGrid() : m_constant(sizeof(ProbeGridConst), GL_UNIFORM_BUFFER)
 ProbeGrid::~ProbeGrid()
 {
 
+}
+
+
+void ProbeGrid::_presample_irradiance()
+{
+	int num_probes = (int)(divisions.x * divisions.y * divisions.z);
+	int pack_size = int(ceilf(sqrtf(float(num_probes))));
+	irr_pack_res = pack_size * (irr_res + 2);
+
+	std::vector<glm::vec3> irradiance_img(irr_pack_res * irr_pack_res);
+
+	for (int index = 0; index < num_probes; index++)
+	{
+		std::vector<glm::vec3> tex_data(irr_res * irr_res);
+		EnvironmentMapCreator::PresampleSH(m_probe_data.data() + index * 9, tex_data.data(), irr_res);
+		for (int y = 0; y < irr_res; y++)
+		{
+			for (int x = 0; x < irr_res; x++)
+			{
+				glm::vec3 irr = tex_data[x + y * irr_res];
+				int out_x = (index % pack_size) * (irr_res + 2) + x + 1;
+				int out_y = (index / pack_size) * (irr_res + 2) + y + 1;
+				irradiance_img[out_x + out_y * irr_pack_res] = irr;
+			}
+		}
+
+		{
+			glm::vec3 irr = tex_data[(irr_res - 1) + (irr_res - 1) * irr_res];
+			int out_x = (index % pack_size) * (irr_res + 2);
+			int out_y = (index / pack_size) * (irr_res + 2);
+			irradiance_img[out_x + out_y * irr_pack_res] = irr;
+		}
+		{
+			glm::vec3 irr = tex_data[(irr_res - 1) * irr_res];
+			int out_x = (index % pack_size) * (irr_res + 2) + irr_res + 1;
+			int out_y = (index / pack_size) * (irr_res + 2);
+			irradiance_img[out_x + out_y * irr_pack_res] = irr;
+		}
+
+		{
+			glm::vec3 irr = tex_data[irr_res - 1];
+			int out_x = (index % pack_size) * (irr_res + 2);
+			int out_y = (index / pack_size) * (irr_res + 2) + irr_res + 1;
+			irradiance_img[out_x + out_y * irr_pack_res] = irr;
+		}
+
+		{
+			glm::vec3 irr = tex_data[0];
+			int out_x = (index % pack_size) * (irr_res + 2) + irr_res + 1;
+			int out_y = (index / pack_size) * (irr_res + 2) + irr_res + 1;
+			irradiance_img[out_x + out_y * irr_pack_res] = irr;
+		}
+
+		for (int x = 0; x < irr_res; x++)
+		{
+			{
+				glm::vec3 irr = tex_data[irr_res - 1 - x];
+				int out_x = (index % pack_size) * (irr_res + 2) + x + 1;
+				int out_y = (index / pack_size) * (irr_res + 2);
+				irradiance_img[out_x + out_y * irr_pack_res] = irr;
+			}
+			{
+				glm::vec3 irr = tex_data[(irr_res - 1 - x) + (irr_res - 1) * irr_res];
+				int out_x = (index % pack_size) * (irr_res + 2) + x + 1;
+				int out_y = (index / pack_size) * (irr_res + 2) + irr_res + 1;
+				irradiance_img[out_x + out_y * irr_pack_res] = irr;
+			}
+		}
+		for (int y = 0; y < irr_res; y++)
+		{
+			{
+				glm::vec3 irr = tex_data[(irr_res - 1 - y) * irr_res];
+				int out_x = (index % pack_size) * (irr_res + 2);
+				int out_y = (index / pack_size) * (irr_res + 2) + y + 1;
+				irradiance_img[out_x + out_y * irr_pack_res] = irr;
+			}
+
+			{
+				glm::vec3 irr = tex_data[(irr_res - 1) + (irr_res - 1 - y) * irr_res];
+				int out_x = (index % pack_size) * (irr_res + 2) + irr_res + 1;
+				int out_y = (index / pack_size) * (irr_res + 2) + y + 1;
+				irradiance_img[out_x + out_y * irr_pack_res] = irr;
+			}
+		}
+	}
+
+	glBindTexture(GL_TEXTURE_2D, m_tex_irradiance->tex_id);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, irr_pack_res, irr_pack_res, 0, GL_RGB, GL_FLOAT, irradiance_img.data());
+	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void ProbeGrid::allocate_probes()
@@ -45,6 +143,7 @@ void ProbeGrid::allocate_probes()
 		m_probe_data.resize(9 * num, glm::vec4(0.0f));
 		m_probe_buf->upload(m_probe_data.data());
 	}
+	_presample_irradiance();
 	{	
 		pack_size = int(ceilf(sqrtf(float(num))));
 		pack_res = pack_size * (vis_res + 2);
@@ -62,6 +161,90 @@ void ProbeGrid::allocate_probes()
 	m_ref_buf = nullptr;
 }
 
+void ProbeGrid::presample_probe(int index)
+{	
+	std::vector<glm::vec3> irradiance_img((irr_res + 2) * (irr_res + 2));
+
+	std::vector<glm::vec3> tex_data(irr_res * irr_res);
+	EnvironmentMapCreator::PresampleSH(m_probe_data.data() + index * 9, tex_data.data(), irr_res);
+	for (int y = 0; y < irr_res; y++)
+	{
+		for (int x = 0; x < irr_res; x++)
+		{
+			glm::vec3 irr = tex_data[x + y * irr_res];
+			int out_x = x + 1;
+			int out_y = y + 1;
+			irradiance_img[out_x + out_y * (irr_res + 2)] = irr;
+		}
+	}
+
+	{
+		glm::vec3 irr = tex_data[(irr_res - 1) + (irr_res - 1) * irr_res];
+		int out_x = 0;
+		int out_y = 0;
+		irradiance_img[out_x + out_y * (irr_res + 2)] = irr;
+	}
+	{
+		glm::vec3 irr = tex_data[(irr_res - 1) * irr_res];
+		int out_x = irr_res + 1;
+		int out_y = 0;
+		irradiance_img[out_x + out_y * (irr_res + 2)] = irr;
+	}
+
+	{
+		glm::vec3 irr = tex_data[irr_res - 1];
+		int out_x = 0;
+		int out_y = irr_res + 1;
+		irradiance_img[out_x + out_y * (irr_res + 2)] = irr;
+	}
+
+	{
+		glm::vec3 irr = tex_data[0];
+		int out_x = irr_res + 1;
+		int out_y = irr_res + 1;
+		irradiance_img[out_x + out_y * (irr_res + 2)] = irr;
+	}
+
+	for (int x = 0; x < irr_res; x++)
+	{
+		{
+			glm::vec3 irr = tex_data[irr_res - 1 - x];
+			int out_x = x + 1;
+			int out_y = 0;
+			irradiance_img[out_x + out_y * (irr_res + 2)] = irr;
+		}
+		{
+			glm::vec3 irr = tex_data[(irr_res - 1 - x) + (irr_res - 1) * irr_res];
+			int out_x = x + 1;
+			int out_y = irr_res + 1;
+			irradiance_img[out_x + out_y * (irr_res + 2)] = irr;
+		}
+	}
+	for (int y = 0; y < irr_res; y++)
+	{
+		{
+			glm::vec3 irr = tex_data[(irr_res - 1 - y) * irr_res];
+			int out_x = 0;
+			int out_y = y + 1;
+			irradiance_img[out_x + out_y * (irr_res + 2)] = irr;
+		}
+
+		{
+			glm::vec3 irr = tex_data[(irr_res - 1) + (irr_res - 1 - y) * irr_res];
+			int out_x = irr_res + 1;
+			int out_y = y + 1;
+			irradiance_img[out_x + out_y * (irr_res + 2)] = irr;
+		}
+	}
+
+	int offset_x = (index % pack_size) * (irr_res + 2);
+	int offset_y = (index / pack_size) * (irr_res + 2);
+	
+	glBindTexture(GL_TEXTURE_2D, m_tex_irradiance->tex_id);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, offset_x, offset_y, irr_res + 2, irr_res + 2, GL_RGB, GL_FLOAT, irradiance_img.data());
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
 void ProbeGrid::updateConstant()
 {
 	ProbeGridConst c;
@@ -73,6 +256,8 @@ void ProbeGrid::updateConstant()
 	c.visRes = vis_res;
 	c.packSize = pack_size;
 	c.packRes = pack_res;
+	c.irrRes = irr_res;
+	c.irrPackRes = irr_pack_res;
 	c.diffuseThresh = diffuse_thresh;
 	c.diffuseHigh = diffuse_high;
 	c.diffuseLow = diffuse_low;
@@ -561,9 +746,9 @@ void ProbeGrid::construct_visibility(Scene& scene)
 			{
 				for (int x = 0; x < vis_res; x++)
 				{
-					float dis = f_mean_dis[(x % vis_res) + (y % vis_res) * vis_res + index * vis_res * vis_res];
+					float dis = f_mean_dis[x + y * vis_res + index * vis_res * vis_res];
 					unsigned short udis = (unsigned short)(dis * 65535.0f);
-					float mean_var = f_mean_var[(x % vis_res) + (y % vis_res) * vis_res + index * vis_res * vis_res];
+					float mean_var = f_mean_var[x + y * vis_res + index * vis_res * vis_res];
 					unsigned short uvar = (unsigned short)std::max(mean_var * 65535.0f, 1.0f);
 					int out_x = (index % pack_size) * (vis_res + 2) + x + 1;
 					int out_y = (index / pack_size) * (vis_res + 2) + y + 1;
