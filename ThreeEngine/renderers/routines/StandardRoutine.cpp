@@ -898,7 +898,7 @@ float get_probe_lod_f_tex(in vec3 pos)
 	return texture(uTexLOD, pos_normalized).x * 255.0;	
 }
 
-int get_probe_idx_lod(in ivec3 ipos, int target_lod)
+int get_probe_idx_lod(in ivec3 ipos, int target_lod, bool strict)
 {
 	ivec3 ipos_base = ipos / (1<<target_lod);
 	int probe_idx = ipos_base.x + (ipos_base.y + ipos_base.z * uBaseDivisions.y) * uBaseDivisions.x;
@@ -928,11 +928,11 @@ int get_probe_idx_lod(in ivec3 ipos, int target_lod)
 		}
 		lod++;
 		digit_mask >>=1;
-	}
-	return probe_idx;
+	}	
+	return strict? (lod ==target_lod ? probe_idx : -1) : probe_idx;
 }
 
-void accIrrLod(in vec3 wpos, int lod, in vec3 normal, inout vec3 irr, inout float sum_weight, float level_weight)
+void accIrrLod(in vec3 wpos, int lod, in vec3 normal, inout vec3 irr, inout float sum_weight, float level_weight, bool strict)
 {
 	ivec3 divs = uBaseDivisions.xyz * (1<<lod);
 
@@ -955,7 +955,9 @@ void accIrrLod(in vec3 wpos, int lod, in vec3 normal, inout vec3 irr, inout floa
 			for (int x=0;x<2;x++)
 			{				
 				ivec3 vert = i_voxel + ivec3(x,y,z);
-				int idx_probe = get_probe_idx_lod(vert, lod);
+				int idx_probe = get_probe_idx_lod(vert, lod, strict);
+				if (idx_probe <0) continue;
+
 				vec3 probe_world = bProbeData[idx_probe*10].xyz;
 				vec3 dir = normalize(probe_world - vWorldPos);					
 				float dotDirN = dot(dir, N);
@@ -999,20 +1001,20 @@ vec3 getIrradiance(in vec3 normal)
 		
 	if (level_weight>0.0)
 	{
-		accIrrLod(wpos, i_lod, normal, irr, sum_weight, level_weight);
+		accIrrLod(wpos, i_lod, normal, irr, sum_weight, level_weight, level_weight<1.0);
 	}	
 
 	if (i_lod>0 && level_weight<1.0)
 	{
 		i_lod--;
 		level_weight = 1.0 - level_weight;
-		accIrrLod(wpos, i_lod, normal, irr, sum_weight, level_weight);
+		accIrrLod(wpos, i_lod, normal, irr, sum_weight, level_weight, false);
 	}
 	
 	while(i_lod>0 && sum_weight <=0.0)
 	{
 		i_lod--;
-		accIrrLod(wpos, i_lod, normal, irr, sum_weight, 1.0);
+		accIrrLod(wpos, i_lod, normal, irr, sum_weight, 1.0, false);
 	}
 	
 	if (sum_weight > 0.0)	
