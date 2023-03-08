@@ -932,7 +932,7 @@ int get_probe_idx_lod(in ivec3 ipos, int target_lod, bool strict)
 	return strict? (lod ==target_lod ? probe_idx : -1) : probe_idx;
 }
 
-void accIrrLod(in vec3 wpos, int lod, in vec3 normal, inout vec3 irr, inout float sum_weight, float level_weight, bool strict)
+float accIrrLod(in vec3 wpos, int lod, in vec3 normal, inout vec3 irr, inout float sum_weight, float level_weight, bool strict)
 {
 	ivec3 divs = uBaseDivisions.xyz * (1<<lod);
 
@@ -948,15 +948,23 @@ void accIrrLod(in vec3 wpos, int lod, in vec3 normal, inout vec3 irr, inout floa
 	vec3 dy = dFdy(vWorldPos);
 	vec3 N = normalize(cross(dx, dy));
 	
+	float leak = 0.0;
 	for (int z=0;z<2;z++)
 	{
 		for (int y=0;y<2;y++)
 		{
 			for (int x=0;x<2;x++)
-			{				
+			{	
+				vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
+				float weight_base = level_weight * w.x * w.y * w.z;
+			
 				ivec3 vert = i_voxel + ivec3(x,y,z);
 				int idx_probe = get_probe_idx_lod(vert, lod, strict);
-				if (idx_probe <0) continue;
+				if (idx_probe <0) 
+				{
+					leak+=weight_base;
+					continue;
+				}
 
 				vec3 probe_world = bProbeData[idx_probe*10].xyz;
 				vec3 dir = normalize(probe_world - vWorldPos);					
@@ -970,8 +978,7 @@ void accIrrLod(in vec3 wpos, int lod, in vec3 normal, inout vec3 irr, inout floa
 					weight *= weight * weight / (crushThreshold*crushThreshold); 
 				}
 
-				vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
-				weight *= level_weight * w.x * w.y * w.z;
+				weight *= weight_base;
 				if (weight>0.0)
 				{						
 					sum_weight += weight;
@@ -980,7 +987,7 @@ void accIrrLod(in vec3 wpos, int lod, in vec3 normal, inout vec3 irr, inout floa
 			}
 		}
 	}	
-
+	return leak;
 }
 
 vec3 getIrradiance(in vec3 normal)
@@ -1001,7 +1008,8 @@ vec3 getIrradiance(in vec3 normal)
 		
 	if (level_weight>0.0)
 	{
-		accIrrLod(wpos, i_lod, normal, irr, sum_weight, level_weight, level_weight<1.0);
+		float leak = accIrrLod(wpos, i_lod, normal, irr, sum_weight, level_weight, true);
+		level_weight -= leak;
 	}	
 
 	if (i_lod>0 && level_weight<1.0)
