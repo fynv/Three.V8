@@ -411,18 +411,17 @@ void accCoeffsLod(in vec3 pos_world, int lod, inout vec4 coeffs0, inout float su
 		for (int y=0;y<2;y++)
 		{
 			for (int x=0;x<2;x++)
-			{
-				float weight = level_weight;
+			{				
 				ivec3 vert = i_voxel + ivec3(x,y,z);					
 				int idx_probe = get_probe_idx_lod(vert, lod);
 				vec3 probe_world = bProbeData[idx_probe*10].xyz;
-				weight *= get_visibility(pos_world, idx_probe, probe_world);		
+				float weight = get_visibility(pos_world, idx_probe, probe_world);		
 				const float crushThreshold = 0.2;
 				if (weight < crushThreshold) {
 					weight *= weight * weight / (crushThreshold*crushThreshold); 
 				}
 				vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
-				weight *= w.x * w.y * w.z;
+				weight *= level_weight * w.x * w.y * w.z;
 				if (weight>0.0)
 				{
 					sum_weight += weight;

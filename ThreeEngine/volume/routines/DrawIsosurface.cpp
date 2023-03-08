@@ -662,8 +662,7 @@ void accIrrLod(in vec3 wpos, int lod, in vec3 normal, inout vec3 irr, inout floa
 		for (int y=0;y<2;y++)
 		{
 			for (int x=0;x<2;x++)
-			{
-				float weight = level_weight;
+			{				
 				ivec3 vert = i_voxel + ivec3(x,y,z);
 				int idx_probe = get_probe_idx_lod(vert, lod);
 				vec3 probe_world = bProbeData[idx_probe*10].xyz;
@@ -671,7 +670,7 @@ void accIrrLod(in vec3 wpos, int lod, in vec3 normal, inout vec3 irr, inout floa
 				float dotDirN = dot(dir, normal);
 				float k = 0.9;
 				dotDirN = (k*dotDirN + sqrt(1.0 - (1.0-dotDirN*dotDirN)*k*k))/(k+1.0);
-				weight *= dotDirN * get_visibility(wpos, idx_probe, probe_world);	
+				float weight = dotDirN * get_visibility(wpos, idx_probe, probe_world);	
 					
 				const float crushThreshold = 0.2;
 				if (weight < crushThreshold) {
@@ -679,7 +678,7 @@ void accIrrLod(in vec3 wpos, int lod, in vec3 normal, inout vec3 irr, inout floa
 				}
 
 				vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
-				weight *= w.x * w.y * w.z; 					
+				weight *= level_weight * w.x * w.y * w.z; 					
 				if (weight>0.0)
 				{	
 					sum_weight += weight;
