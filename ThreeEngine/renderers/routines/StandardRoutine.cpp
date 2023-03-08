@@ -988,7 +988,7 @@ vec3 getIrradiance(in vec3 normal)
 
 	float sum_weight = 0.0;
 	
-	/*float f_lod = get_probe_lod_f(wpos);	
+	float f_lod = get_probe_lod_f(wpos);	
 
 	int i_lod = clamp(int(ceil(f_lod)), 0, uSubDivisionLevel);	
 	float level_weight = 1.0 + f_lod - float(i_lod);
@@ -1003,10 +1003,10 @@ vec3 getIrradiance(in vec3 normal)
 		i_lod--;
 		level_weight = 1.0 - level_weight;
 		accCoeffsLod(wpos, i_lod, coeffs, sum_weight, level_weight);
-	}*/
+	}
 
-	int i_lod = uSubDivisionLevel;
-	accCoeffsLod(wpos, i_lod, coeffs, sum_weight, 1.0);
+	/*int i_lod = uSubDivisionLevel;
+	accCoeffsLod(wpos, i_lod, coeffs, sum_weight, 1.0);*/
 
 	while(i_lod>0 && sum_weight <=0.0)
 	{

@@ -595,18 +595,6 @@ float get_probe_lod_f(in vec3 pos)
 	return clamp(acc_lod, 0.0, float(uSubDivisionLevel));
 }
 
-
-int get_lod(in vec3 pos)
-{
-	int lod = uSubDivisionLevel;
-	while(lod>0)
-	{
-		if (try_lod_f(lod, pos)) break;
-		lod--;
-	}
-	return lod;
-}
-
 int get_probe_idx_lod(in ivec3 ipos, int target_lod)
 {
 	ivec3 ipos_base = ipos / (1<<target_lod);
@@ -708,7 +696,7 @@ vec3 getIrradiance(in vec3 world_pos, in vec3 normal)
 
 	float sum_weight = 0.0;
 
-	/*float f_lod = get_probe_lod_f(wpos);	
+	float f_lod = get_probe_lod_f(wpos);	
 
 	int i_lod = clamp(int(ceil(f_lod)), 0, uSubDivisionLevel);	
 	float level_weight = 1.0 + f_lod - float(i_lod);
@@ -723,10 +711,10 @@ vec3 getIrradiance(in vec3 world_pos, in vec3 normal)
 		i_lod--;
 		level_weight = 1.0 - level_weight;
 		accCoeffsLod(wpos, normal, i_lod, coeffs, sum_weight, level_weight);
-	}*/
+	}
 
-	int i_lod = uSubDivisionLevel;
-	accCoeffsLod(wpos, i_lod, coeffs, sum_weight, 1.0);
+	/*int i_lod = uSubDivisionLevel;
+	accCoeffsLod(wpos, i_lod, coeffs, sum_weight, 1.0);*/
 
 	while(i_lod>0 && sum_weight <=0.0)
 	{
