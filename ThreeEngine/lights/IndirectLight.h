@@ -23,6 +23,7 @@ public:
 
 
 	bool dynamic_map = false;
+	glm::vec3 camera_position = glm::vec3(0.0f);
 	glm::vec3 probe_position = glm::vec3(0.0f);
 	std::unique_ptr<GLSpaceProbeTarget> probe_target;
 	std::unique_ptr<PerspectiveCamera> probe_camera;

@@ -432,9 +432,11 @@ vec3 getIrradiance(in vec3 pos_world)
 	vec3 pos_voxel = pos_normalized * vec3(divs);
 	pos_voxel = clamp(pos_voxel, vec3(0.0), vec3(divs));
 	ivec3 i_voxel = clamp(ivec3(pos_voxel), ivec3(0), ivec3(divs) - ivec3(1));
-	int lod = get_probe_lod_i(i_voxel);
-
+	
+	//int lod = get_probe_lod_i(i_voxel);
+	int lod = uSubDivisionLevel;
 	accCoeffsLod(pos_world, lod, coeffs, sum_weight, 1.0);
+	
 	while(lod>0 && sum_weight <=0.0)
 	{
 		lod--;

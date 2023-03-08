@@ -547,7 +547,7 @@ vec3 GetReflectionAt(in vec3 reflectVec, in samplerCube reflectMap, float roughn
 	return textureLod(reflectMap, reflectVec, mip).xyz;
 }
 
-vec3 getRadiance(in vec3 reflectVec, float roughness)
+vec3 getReflRadiance(in vec3 reflectVec, float roughness)
 {
 	return GetReflectionAt(reflectVec, uReflectionMap, roughness);
 }
@@ -570,13 +570,6 @@ vec3 getIrradiance(in vec3 normal)
 {
 	return shGetIrradianceAt(normal, uSHCoefficients);
 }
-
-#if !HAS_REFLECTION_MAP
-vec3 getRadiance(in vec3 reflectVec, float roughness)
-{
-	return shGetIrradianceAt(reflectVec, uSHCoefficients) * RECIPROCAL_PI;
-}
-#endif
 
 #endif
 
@@ -806,13 +799,6 @@ vec3 getIrradiance(in vec3 normal)
 	return vec3(0.0);
 }
 
-#if !HAS_REFLECTION_MAP
-vec3 getRadiance(in vec3 reflectVec, float roughness)
-{
-	return getIrradiance(reflectVec) * RECIPROCAL_PI;
-}
-#endif
-
 #endif
 
 )";
@@ -1002,7 +988,7 @@ vec3 getIrradiance(in vec3 normal)
 
 	float sum_weight = 0.0;
 	
-	float f_lod = get_probe_lod_f(wpos);	
+	/*float f_lod = get_probe_lod_f(wpos);	
 
 	int i_lod = clamp(int(ceil(f_lod)), 0, uSubDivisionLevel);	
 	float level_weight = 1.0 + f_lod - float(i_lod);
@@ -1017,7 +1003,10 @@ vec3 getIrradiance(in vec3 normal)
 		i_lod--;
 		level_weight = 1.0 - level_weight;
 		accCoeffsLod(wpos, i_lod, coeffs, sum_weight, level_weight);
-	}
+	}*/
+
+	int i_lod = uSubDivisionLevel;
+	accCoeffsLod(wpos, i_lod, coeffs, sum_weight, 1.0);
 
 	while(i_lod>0 && sum_weight <=0.0)
 	{
@@ -1035,13 +1024,6 @@ vec3 getIrradiance(in vec3 normal)
 	}
 	return vec3(0.0);
 }
-
-#if !HAS_REFLECTION_MAP
-vec3 getRadiance(in vec3 reflectVec, float roughness)
-{
-	return getIrradiance(reflectVec) * RECIPROCAL_PI;
-}
-#endif
 
 #endif
 
@@ -1062,14 +1044,6 @@ vec3 getIrradiance(in vec3 normal)
 {
 	return uAmbientColor.xyz * PI;
 }
-
-#if !HAS_REFLECTION_MAP
-vec3 getRadiance(in vec3 reflectVec, float roughness)
-{
-	return uAmbientColor.xyz;
-}
-#endif
-
 #endif
 
 #if HAS_HEMISPHERE_LIGHT
@@ -1095,14 +1069,35 @@ vec3 getIrradiance(in vec3 normal)
 {
 	return HemisphereColor(normal) * PI;
 }
-
-#if !HAS_REFLECTION_MAP
-vec3 getRadiance(in vec3 reflectVec, float roughness)
-{
-	return HemisphereColor(reflectVec);
-}
 #endif
 
+
+#if HAS_INDIRECT_LIGHT
+#if HAS_REFLECTION_MAP
+vec3 getRadiance(in vec3 reflectVec, float roughness)
+{
+	vec3 rad = getReflRadiance(reflectVec, roughness);
+	if (roughness > 0.053)
+	{
+		vec3 rad2 = getIrradiance(reflectVec) * RECIPROCAL_PI;
+		float lum1 = luminance(rad);
+		if (lum1>0.0)
+		{
+			float lum2 = luminance(rad2);			
+			float r2 = roughness*roughness;
+			float r4 = r2*r2;
+			float gloss = log(2.0/r4 - 1.0)/log(2.0)/18.0;
+			rad *= gloss + lum2/lum1 * (1.0-gloss);
+		}
+	}
+	return rad;
+}
+#else
+vec3 getRadiance(in vec3 reflectVec, float roughness)
+{
+	return getIrradiance(reflectVec) * RECIPROCAL_PI;
+}
+#endif
 #endif
 
 #if HAS_FOG
