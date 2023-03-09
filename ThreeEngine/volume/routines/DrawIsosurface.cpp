@@ -611,7 +611,7 @@ float get_probe_lod_f_tex(in vec3 pos)
 	return texture(uTexLOD, pos_normalized).x * 255.0;	
 }
 
-int get_probe_idx_lod(in ivec3 ipos, int target_lod, bool strict)
+int get_probe_idx_lod(in ivec3 ipos, int target_lod)
 {
 	ivec3 ipos_base = ipos / (1<<target_lod);
 	int probe_idx = ipos_base.x + (ipos_base.y + ipos_base.z * uBaseDivisions.y) * uBaseDivisions.x;
@@ -642,10 +642,10 @@ int get_probe_idx_lod(in ivec3 ipos, int target_lod, bool strict)
 		lod++;
 		digit_mask >>=1;
 	}
-	return strict? (lod ==target_lod ? probe_idx : -1) : probe_idx;
+	return probe_idx;
 }
 
-float accIrrLod(in vec3 wpos, int lod, in vec3 normal, inout vec3 irr, inout float sum_weight, float level_weight, bool strict)
+void accIrrLod(in vec3 wpos, int lod, in vec3 normal, inout vec3 irr, inout float sum_weight, float level_weight)
 {
 	ivec3 divs = uBaseDivisions.xyz * (1<<lod);
 
@@ -657,24 +657,14 @@ float accIrrLod(in vec3 wpos, int lod, in vec3 normal, inout vec3 irr, inout flo
 	ivec3 i_voxel = clamp(ivec3(pos_voxel), ivec3(0), ivec3(divs) - ivec3(2));
 	vec3 frac_voxel = pos_voxel - vec3(i_voxel);
 
-	float leak = 0.0;
 	for (int z=0;z<2;z++)
 	{
 		for (int y=0;y<2;y++)
 		{
 			for (int x=0;x<2;x++)
-			{			
-				vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
-				float weight_base = level_weight * w.x * w.y * w.z;
-	
+			{				
 				ivec3 vert = i_voxel + ivec3(x,y,z);
-				int idx_probe = get_probe_idx_lod(vert, lod, strict);
-				if (idx_probe <0) 
-				{
-					leak+=weight_base;
-					continue;
-				}
-
+				int idx_probe = get_probe_idx_lod(vert, lod);
 				vec3 probe_world = bProbeData[idx_probe*10].xyz;
 				vec3 dir = normalize(probe_world - wpos);
 				float dotDirN = dot(dir, normal);
@@ -687,7 +677,8 @@ float accIrrLod(in vec3 wpos, int lod, in vec3 normal, inout vec3 irr, inout flo
 					weight *= weight * weight / (crushThreshold*crushThreshold); 
 				}
 
-				weight *= weight_base;			
+				vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
+				weight *= level_weight * w.x * w.y * w.z; 					
 				if (weight>0.0)
 				{	
 					sum_weight += weight;
@@ -696,7 +687,6 @@ float accIrrLod(in vec3 wpos, int lod, in vec3 normal, inout vec3 irr, inout flo
 			}
 		}
 	}
-	return leak;
 }
 
 vec3 getIrradiance(in vec3 world_pos, in vec3 normal)
@@ -714,22 +704,24 @@ vec3 getIrradiance(in vec3 world_pos, in vec3 normal)
 	float level_weight = 1.0 + f_lod - float(i_lod);
 
 	if (level_weight>0.0)
-	{		
-		float leak = accIrrLod(wpos, i_lod, normal, irr, sum_weight, level_weight, true);
-		level_weight -= leak;
+	{
+		accIrrLod(wpos, i_lod, normal, irr, sum_weight, level_weight);
 	}
 	
 	if (i_lod>0 && level_weight<1.0)
 	{
 		i_lod--;
 		level_weight = 1.0 - level_weight;
-		accIrrLod(wpos, i_lod, normal, irr, sum_weight, level_weight, false);
+		accIrrLod(wpos, i_lod, normal, irr, sum_weight, level_weight);
 	}
+
+	/*int i_lod = uSubDivisionLevel;
+	accCoeffsLod(wpos, i_lod, coeffs, sum_weight, 1.0);*/
 
 	while(i_lod>0 && sum_weight <=0.0)
 	{
 		i_lod--;
-		accIrrLod(wpos, i_lod, normal, irr, sum_weight, 1.0, false);
+		accIrrLod(wpos, i_lod, normal, irr, sum_weight, 1.0);
 	}
 
 	if (sum_weight > 0.0)	
