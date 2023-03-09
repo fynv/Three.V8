@@ -1171,3 +1171,671 @@ void LODProbeGrid::construct_visibility(Scene& scene)
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+void LODProbeGrid::ToProbeGrid(ProbeGrid* grid_out, Scene& scene)
+{
+	grid_out->coverage_min = coverage_min;
+	grid_out->coverage_max = coverage_max;
+	grid_out->divisions = base_divisions * (1 << sub_division_level);
+	grid_out->normal_bias = normal_bias;
+
+	glm::ivec3 divs_out = grid_out->divisions;
+	size_t num_out = divs_out.x * divs_out.y * divs_out.z;
+
+	grid_out->vis_res = vis_res;
+	int pack_size_out = int(ceilf(sqrtf(float(num_out))));
+	int pack_res_out = pack_size_out * (vis_res + 2);
+	grid_out->pack_size = pack_size_out;
+	grid_out->pack_res = pack_res_out;
+
+	grid_out->m_probe_data.resize(num_out * 9);
+	grid_out->m_visibility_data.resize(pack_res_out * pack_res_out * 2);
+
+	// build mapping;
+	std::vector<int> indices(num_out);
+	std::vector<int> levels(num_out);
+	{
+		struct Node
+		{
+			int idx;
+			int level;
+			glm::ivec3 ipos;
+		};
+
+		std::queue<Node> queue;
+
+		for (int z = 0; z < base_divisions.z; z++)
+		{
+			for (int y = 0; y < base_divisions.y; y++)
+			{
+				for (int x = 0; x < base_divisions.x; x++)
+				{
+					int i = x + (y + z * base_divisions.y) * base_divisions.x;
+					Node node;
+					node.idx = m_sub_index[i];
+					node.level = 0;
+					node.ipos = { x,y,z };
+					queue.push(node);
+				}
+			}
+		}
+
+		int num_probes = getNumberOfProbes();
+		int base_offset = base_divisions.x * base_divisions.y * base_divisions.z;
+
+		while (queue.size() > 0)
+		{
+			Node node = queue.front();
+			queue.pop();
+
+			int idx = node.idx;
+			glm::ivec3 ipos = node.ipos;
+			int level = node.level;
+			if (idx < num_probes)
+			{
+				int range = 1 << (sub_division_level - level);
+				glm::ivec3 offset = ipos * range;
+				for (int z = 0; z < range; z++)
+				{
+					for (int y = 0; y < range; y++)
+					{
+						for (int x = 0; x < range; x++)
+						{
+							glm::ivec3 ipos_high = offset + glm::ivec3(x, y, z);
+							int i = ipos_high.x + (ipos_high.y + ipos_high.z * divs_out.y) * divs_out.x;
+							indices[i] = idx;
+							levels[i] = level;
+						}
+					}
+				}
+			}
+			else
+			{
+				idx -= num_probes;
+				int offset = base_offset + idx * 8;
+				for (int z = 0; z < 2; z++)
+				{
+					for (int y = 0; y < 2; y++)
+					{
+						for (int x = 0; x < 2; x++)
+						{
+							int i = x + y * 2 + z * 4;
+							glm::ivec3 delta = { x,y,z };
+							glm::ivec3 ipos_sub = ipos * 2 + delta;
+							int level_sub = level + 1;
+							glm::ivec3 sub_div = base_divisions * (1 << level_sub);
+							Node sub;
+							sub.idx = m_sub_index[offset + i];
+							sub.level = level_sub;
+							sub.ipos = ipos_sub;
+							queue.push(sub);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	std::vector<Object3D*> objects;
+	auto* p_objects = &objects;
+
+	scene.traverse([p_objects](Object3D* obj) {
+		do
+		{
+			{
+				SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
+				if (model)
+				{
+					p_objects->push_back(model);
+					break;
+				}
+			}
+			{
+				GLTFModel* model = dynamic_cast<GLTFModel*>(obj);
+				if (model)
+				{
+					p_objects->push_back(model);
+					break;
+				}
+			}
+		} while (false);
+		});
+	BoundingVolumeHierarchy bvh(objects);
+
+	glm::vec3 size_grid = coverage_max - coverage_min;
+	glm::vec3 spacing = size_grid / glm::vec3(divs_out);
+	float max_visibility = glm::length(spacing);
+
+	for (int gz = 0; gz < divs_out.z; gz++)
+	{
+		for (int gy = 0; gy < divs_out.y; gy++)
+		{
+			for (int gx = 0; gx < divs_out.x; gx++)
+			{
+				int i = gx + (gy + gz * divs_out.y) * divs_out.x;
+				int idx = indices[i];
+				int level = levels[i];
+				memcpy(grid_out->m_probe_data.data() + i * 9, m_probe_data.data() + idx * 10 + 1, sizeof(glm::vec4) * 9);
+
+				if (level == sub_division_level)
+				{
+					// copy visibility
+					for (int y = 0; y < vis_res + 2; y++)
+					{
+						for (int x = 0; x < vis_res + 2; x++)
+						{
+							int in_x = (idx % pack_size) * (vis_res + 2) + x;
+							int in_y = (idx / pack_size) * (vis_res + 2) + y;
+							int out_x = (i % pack_size_out) * (vis_res + 2) + x;
+							int out_y = (i / pack_size_out) * (vis_res + 2) + y;
+							const unsigned short* p_in = m_visibility_data.data() + (in_x + in_y * pack_res) * 2;
+							unsigned short* p_out = grid_out->m_visibility_data.data() + (out_x + out_y * pack_res_out) * 2;
+							p_out[0] = p_in[0];
+							p_out[1] = p_in[1];
+						}
+					}
+				}
+				else
+				{
+					// reconstruct visibility
+					glm::ivec3 idx(gx, gy, gz);
+					glm::vec3 pos_normalized = (glm::vec3(idx) + 0.5f) / glm::vec3(divs_out);
+					glm::vec3 pos = coverage_min + pos_normalized * size_grid;
+
+					bvh::Ray<float> bvh_ray = {
+						bvh::Vector3<float>(pos.x, pos.y, pos.z),
+						bvh::Vector3<float>(0.0f, 0.0f, 0.0f),
+						0.0f,
+						max_visibility
+					};
+
+					std::vector<float> distance(vis_res* vis_res);
+					std::vector<float> sqr_dis(vis_res* vis_res);
+					for (int y = 0; y < vis_res; y++)
+					{
+						for (int x = 0; x < vis_res; x++)
+						{
+							glm::vec2 v2 = glm::vec2(float(x) + 0.5f, float(y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
+							glm::vec3 dir = oct_to_vec3(v2);						
+							glm::vec3 dir_abs = glm::abs(dir) / spacing;
+
+							int major_dir = 0;
+							if (dir_abs.y > dir_abs.x)
+							{
+								if (dir_abs.z > dir_abs.y)
+								{
+									major_dir = 2;
+								}
+								else
+								{
+									major_dir = 1;
+								}
+							}
+							else
+							{
+								if (dir_abs.z > dir_abs.x)
+								{
+									major_dir = 2;
+								}
+							}
+
+							if (major_dir == 0)
+							{
+								dir_abs *= spacing.x / dir_abs.x;
+							}
+							else if (major_dir == 1)
+							{
+								dir_abs *= spacing.y / dir_abs.y;
+							}
+							else if (major_dir == 2)
+							{
+								dir_abs *= spacing.z / dir_abs.z;
+							}
+
+							float max_dis = glm::length(dir_abs);
+							float dis = max_dis;
+
+							bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
+							bvh_ray.tmax = max_dis;
+
+							auto intersection = bvh.intersect(bvh_ray);
+							if (intersection.has_value())
+							{
+								dis = intersection->distance();
+							}
+							distance[x + y * vis_res] = dis;
+							sqr_dis[x + y * vis_res] = dis * dis;
+						}
+					}
+
+					// filtering
+					float power = 50.0f;
+					std::vector<float> filtered_distance(vis_res* vis_res);
+					std::vector<float> filtered_sqr_dis(vis_res* vis_res);
+					for (int y = 0; y < vis_res; y++)
+					{
+						for (int x = 0; x < vis_res; x++)
+						{
+							float sum_dis = 0.0f;
+							float sum_sqr_dis = 0.0f;
+							float sum_weight = 0.0f;
+
+							glm::vec2 v2_0 = glm::vec2(float(x) + 0.5f, float(y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
+							glm::vec3 dir_0 = oct_to_vec3(v2_0);
+							{
+								sum_dis += distance[x + y * vis_res];
+								sum_sqr_dis += sqr_dis[x + y * vis_res];
+								sum_weight += 1.0f;
+							}
+
+							if (x > 0)
+							{
+								{
+									glm::vec2 v2_1 = glm::vec2(float(x - 1) + 0.5f, float(y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
+									glm::vec3 dir_1 = oct_to_vec3(v2_1);
+									float weight = powf(glm::dot(dir_0, dir_1), power);
+									sum_dis += distance[(x - 1) + y * vis_res] * weight;
+									sum_sqr_dis += sqr_dis[(x - 1) + y * vis_res] * weight;
+									sum_weight += weight;
+								}
+
+								if (y > 0)
+								{
+									glm::vec2 v2_1 = glm::vec2(float(x - 1) + 0.5f, float(y - 1) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
+									glm::vec3 dir_1 = oct_to_vec3(v2_1);
+									float weight = powf(glm::dot(dir_0, dir_1), power);
+									sum_dis += distance[(x - 1) + (y - 1) * vis_res] * weight;
+									sum_sqr_dis += sqr_dis[(x - 1) + (y - 1) * vis_res] * weight;
+									sum_weight += weight;
+								}
+								else
+								{
+									glm::vec2 v2_1 = glm::vec2(float(vis_res - x) + 0.5f, float(y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
+									glm::vec3 dir_1 = oct_to_vec3(v2_1);
+									float weight = powf(glm::dot(dir_0, dir_1), power);
+									sum_dis += distance[(vis_res - x) + y * vis_res] * weight;
+									sum_sqr_dis += sqr_dis[(vis_res - x) + y * vis_res] * weight;
+									sum_weight += weight;
+								}
+
+								if (y < vis_res - 1)
+								{
+									glm::vec2 v2_1 = glm::vec2(float(x - 1) + 0.5f, float(y + 1) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
+									glm::vec3 dir_1 = oct_to_vec3(v2_1);
+									float weight = powf(glm::dot(dir_0, dir_1), power);
+									sum_dis += distance[(x - 1) + (y + 1) * vis_res] * weight;
+									sum_sqr_dis += sqr_dis[(x - 1) + (y + 1) * vis_res] * weight;
+									sum_weight += weight;
+								}
+								else
+								{
+									glm::vec2 v2_1 = glm::vec2(float(vis_res - x) + 0.5f, float(y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
+									glm::vec3 dir_1 = oct_to_vec3(v2_1);
+									float weight = powf(glm::dot(dir_0, dir_1), power);
+									sum_dis += distance[(vis_res - x) + y * vis_res] * weight;
+									sum_sqr_dis += sqr_dis[(vis_res - x) + y * vis_res] * weight;
+									sum_weight += weight;
+								}
+							}
+							else
+							{
+								{
+									glm::vec2 v2_1 = glm::vec2(float(x) + 0.5f, float(vis_res - 1 - y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
+									glm::vec3 dir_1 = oct_to_vec3(v2_1);
+									float weight = powf(glm::dot(dir_0, dir_1), power);
+									sum_dis += distance[x + (vis_res - 1 - y) * vis_res] * weight;
+									sum_sqr_dis += sqr_dis[x + (vis_res - 1 - y) * vis_res] * weight;
+									sum_weight += weight;
+								}
+
+								if (y > 0)
+								{
+									glm::vec2 v2_1 = glm::vec2(float(x) + 0.5f, float(vis_res - y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
+									glm::vec3 dir_1 = oct_to_vec3(v2_1);
+									float weight = powf(glm::dot(dir_0, dir_1), power);
+									sum_dis += distance[x + (vis_res - y) * vis_res] * weight;
+									sum_sqr_dis += sqr_dis[x + (vis_res - y) * vis_res] * weight;
+									sum_weight += weight;
+								}
+								else
+								{
+									glm::vec2 v2_1 = glm::vec2(float(vis_res - 1) + 0.5f, float(vis_res - 1) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
+									glm::vec3 dir_1 = oct_to_vec3(v2_1);
+									float weight = powf(glm::dot(dir_0, dir_1), power);
+									sum_dis += distance[(vis_res - 1) + (vis_res - 1) * vis_res] * weight;
+									sum_sqr_dis += sqr_dis[(vis_res - 1) + (vis_res - 1) * vis_res] * weight;
+									sum_weight += weight;
+								}
+
+								if (y < vis_res - 1)
+								{
+									glm::vec2 v2_1 = glm::vec2(float(x) + 0.5f, float(vis_res - 1 - (y + 1)) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
+									glm::vec3 dir_1 = oct_to_vec3(v2_1);
+									float weight = powf(glm::dot(dir_0, dir_1), power);
+									sum_dis += distance[x + (vis_res - 1 - (y + 1)) * vis_res] * weight;
+									sum_sqr_dis += sqr_dis[x + (vis_res - 1 - (y + 1)) * vis_res] * weight;
+									sum_weight += weight;
+								}
+								else
+								{
+									glm::vec2 v2_1 = glm::vec2(float(vis_res - 1) + 0.5f, 0.5f) / float(vis_res) * 2.0f - 1.0f;
+									glm::vec3 dir_1 = oct_to_vec3(v2_1);
+									float weight = powf(glm::dot(dir_0, dir_1), power);
+									sum_dis += distance[vis_res - 1] * weight;
+									sum_sqr_dis += sqr_dis[vis_res - 1] * weight;
+									sum_weight += weight;
+								}
+							}
+
+							if (x < vis_res - 1)
+							{
+								{
+									glm::vec2 v2_1 = glm::vec2(float(x + 1) + 0.5f, float(y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
+									glm::vec3 dir_1 = oct_to_vec3(v2_1);
+									float weight = powf(glm::dot(dir_0, dir_1), power);
+									sum_dis += distance[(x + 1) + y * vis_res] * weight;
+									sum_sqr_dis += sqr_dis[(x + 1) + y * vis_res] * weight;
+									sum_weight += weight;
+								}
+
+								if (y > 0)
+								{
+									glm::vec2 v2_1 = glm::vec2(float(x + 1) + 0.5f, float(y - 1) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
+									glm::vec3 dir_1 = oct_to_vec3(v2_1);
+									float weight = powf(glm::dot(dir_0, dir_1), power);
+									sum_dis += distance[(x + 1) + (y - 1) * vis_res] * weight;
+									sum_sqr_dis += sqr_dis[(x + 1) + (y - 1) * vis_res] * weight;
+									sum_weight += weight;
+								}
+								else
+								{
+									glm::vec2 v2_1 = glm::vec2(float(vis_res - 1 - (x + 1)) + 0.5f, float(y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
+									glm::vec3 dir_1 = oct_to_vec3(v2_1);
+									float weight = powf(glm::dot(dir_0, dir_1), power);
+									sum_dis += distance[(vis_res - 1 - (x + 1)) + y * vis_res] * weight;
+									sum_sqr_dis += sqr_dis[(vis_res - 1 - (x + 1)) + y * vis_res] * weight;
+									sum_weight += weight;
+								}
+
+								if (y < vis_res - 1)
+								{
+									glm::vec2 v2_1 = glm::vec2(float(x + 1) + 0.5f, float(y + 1) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
+									glm::vec3 dir_1 = oct_to_vec3(v2_1);
+									float weight = powf(glm::dot(dir_0, dir_1), power);
+									sum_dis += distance[(x + 1) + (y + 1) * vis_res] * weight;
+									sum_sqr_dis += sqr_dis[(x + 1) + (y + 1) * vis_res] * weight;
+									sum_weight += weight;
+								}
+								else
+								{
+									glm::vec2 v2_1 = glm::vec2(float(vis_res - 1 - (x + 1)) + 0.5f, float(y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
+									glm::vec3 dir_1 = oct_to_vec3(v2_1);
+									float weight = powf(glm::dot(dir_0, dir_1), power);
+									sum_dis += distance[(vis_res - 1 - (x + 1)) + y * vis_res] * weight;
+									sum_sqr_dis += sqr_dis[(vis_res - 1 - (x + 1)) + y * vis_res] * weight;
+									sum_weight += weight;
+								}
+							}
+							else
+							{
+								{
+									glm::vec2 v2_1 = glm::vec2(float(x) + 0.5f, float(vis_res - 1 - y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
+									glm::vec3 dir_1 = oct_to_vec3(v2_1);
+									float weight = powf(glm::dot(dir_0, dir_1), power);
+									sum_dis += distance[x + (vis_res - 1 - y) * vis_res] * weight;
+									sum_sqr_dis += sqr_dis[x + (vis_res - 1 - y) * vis_res] * weight;
+									sum_weight += weight;
+								}
+
+								if (y > 0)
+								{
+									glm::vec2 v2_1 = glm::vec2(float(x) + 0.5f, float(vis_res - y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
+									glm::vec3 dir_1 = oct_to_vec3(v2_1);
+									float weight = powf(glm::dot(dir_0, dir_1), power);
+									sum_dis += distance[x + (vis_res - y) * vis_res] * weight;
+									sum_sqr_dis += sqr_dis[x + (vis_res - y) * vis_res] * weight;
+									sum_weight += weight;
+								}
+								else
+								{
+									glm::vec2 v2_1 = glm::vec2(0.5f, float(vis_res - 1) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
+									glm::vec3 dir_1 = oct_to_vec3(v2_1);
+									float weight = powf(glm::dot(dir_0, dir_1), power);
+									sum_dis += distance[(vis_res - 1) * vis_res] * weight;
+									sum_sqr_dis += sqr_dis[(vis_res - 1) * vis_res] * weight;
+									sum_weight += weight;
+								}
+
+								if (y < vis_res - 1)
+								{
+									glm::vec2 v2_1 = glm::vec2(float(x) + 0.5f, float(vis_res - 1 - (y + 1)) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
+									glm::vec3 dir_1 = oct_to_vec3(v2_1);
+									float weight = powf(glm::dot(dir_0, dir_1), power);
+									sum_dis += distance[x + (vis_res - 1 - (y + 1)) * vis_res] * weight;
+									sum_sqr_dis += sqr_dis[x + (vis_res - 1 - (y + 1)) * vis_res] * weight;
+									sum_weight += weight;
+								}
+								else
+								{
+									glm::vec2 v2_1 = glm::vec2(0.5f, 0.5f) / float(vis_res) * 2.0f - 1.0f;
+									glm::vec3 dir_1 = oct_to_vec3(v2_1);
+									float weight = powf(glm::dot(dir_0, dir_1), power);
+									sum_dis += distance[0] * weight;
+									sum_sqr_dis += sqr_dis[0] * weight;
+									sum_weight += weight;
+								}
+							}
+
+							if (y > 0)
+							{
+								glm::vec2 v2_1 = glm::vec2(float(x) + 0.5f, float(y - 1) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
+								glm::vec3 dir_1 = oct_to_vec3(v2_1);
+								float weight = powf(glm::dot(dir_0, dir_1), power);
+								sum_dis += distance[x + (y - 1) * vis_res] * weight;
+								sum_sqr_dis += sqr_dis[x + (y - 1) * vis_res] * weight;
+								sum_weight += weight;
+							}
+							else
+							{
+								glm::vec2 v2_1 = glm::vec2(float(vis_res - 1 - x) + 0.5f, float(y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
+								glm::vec3 dir_1 = oct_to_vec3(v2_1);
+								float weight = powf(glm::dot(dir_0, dir_1), power);
+								sum_dis += distance[(vis_res - 1 - x) + y * vis_res] * weight;
+								sum_sqr_dis += sqr_dis[(vis_res - 1 - x) + y * vis_res] * weight;
+								sum_weight += weight;
+							}
+
+							if (y < vis_res - 1)
+							{
+								glm::vec2 v2_1 = glm::vec2(float(x) + 0.5f, float(y + 1) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
+								glm::vec3 dir_1 = oct_to_vec3(v2_1);
+								float weight = powf(glm::dot(dir_0, dir_1), power);
+								sum_dis += distance[x + (y + 1) * vis_res] * weight;
+								sum_sqr_dis += sqr_dis[x + (y + 1) * vis_res] * weight;
+								sum_weight += weight;
+							}
+							else
+							{
+								glm::vec2 v2_1 = glm::vec2(float(vis_res - 1 - x) + 0.5f, float(y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
+								glm::vec3 dir_1 = oct_to_vec3(v2_1);
+								float weight = powf(glm::dot(dir_0, dir_1), power);
+								sum_dis += distance[(vis_res - 1 - x) + y * vis_res] * weight;
+								sum_sqr_dis += sqr_dis[(vis_res - 1 - x) + y * vis_res] * weight;
+								sum_weight += weight;
+							}
+
+							filtered_distance[x + y * vis_res] = sum_dis / sum_weight;
+							filtered_sqr_dis[x + y * vis_res] = sum_sqr_dis / sum_weight;
+						}
+					}
+
+					std::vector<float> f_mean_dis(vis_res* vis_res, max_visibility);
+					std::vector<float> f_mean_var(vis_res* vis_res, max_visibility);
+
+					for (int y = 0; y < vis_res; y++)
+					{
+						for (int x = 0; x < vis_res; x++)
+						{
+							glm::vec2 v2 = glm::vec2(float(x) + 0.5f, float(y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
+							glm::vec3 dir = oct_to_vec3(v2);							
+							glm::vec3 dir_abs = glm::abs(dir) / spacing;
+
+							int major_dir = 0;
+							if (dir_abs.y > dir_abs.x)
+							{
+								if (dir_abs.z > dir_abs.y)
+								{
+									major_dir = 2;
+								}
+								else
+								{
+									major_dir = 1;
+								}
+							}
+							else
+							{
+								if (dir_abs.z > dir_abs.x)
+								{
+									major_dir = 2;
+								}
+							}
+
+							if (major_dir == 0)
+							{
+								dir_abs *= spacing.x / dir_abs.x;
+							}
+							else if (major_dir == 1)
+							{
+								dir_abs *= spacing.y / dir_abs.y;
+							}
+							else if (major_dir == 2)
+							{
+								dir_abs *= spacing.z / dir_abs.z;
+							}
+
+							float max_dis = glm::length(dir_abs);
+
+							float mean_dis = filtered_distance[x + y * vis_res];
+							float mean_sqr_dis = filtered_sqr_dis[x + y * vis_res];
+							float mean_var = sqrtf(mean_sqr_dis - mean_dis * mean_dis);
+
+							f_mean_dis[x + y * vis_res] = glm::clamp(mean_dis / max_dis, 0.0f, 1.0f);
+							f_mean_var[x + y * vis_res] = glm::clamp(mean_var / max_dis, 0.0f, 1.0f);
+
+						}
+					}
+
+					for (int y = 0; y < vis_res; y++)
+					{
+						for (int x = 0; x < vis_res; x++)
+						{
+							float dis = f_mean_dis[x + y * vis_res];
+							unsigned short udis = (unsigned short)(dis * 65535.0f);
+							float mean_var = f_mean_var[x + y * vis_res];
+							unsigned short uvar = (unsigned short)std::max(mean_var * 65535.0f, 1.0f);
+							int out_x = (i % pack_size_out) * (vis_res + 2) + x + 1;
+							int out_y = (i / pack_size_out) * (vis_res + 2) + y + 1;
+							grid_out->m_visibility_data[(out_x + out_y * pack_res_out) * 2] = udis;
+							grid_out->m_visibility_data[(out_x + out_y * pack_res_out) * 2 + 1] = uvar;
+						}
+					}
+
+					{
+						float dis = f_mean_dis[(vis_res - 1) + (vis_res - 1) * vis_res];
+						unsigned short udis = (unsigned short)(dis * 65535.0f);
+						float mean_var = f_mean_var[(vis_res - 1) + (vis_res - 1) * vis_res];
+						unsigned short uvar = (unsigned short)std::max(mean_var * 65535.0f, 1.0f);
+						int out_x = (i % pack_size_out) * (vis_res + 2);
+						int out_y = (i / pack_size_out) * (vis_res + 2);
+						grid_out->m_visibility_data[(out_x + out_y * pack_res_out) * 2] = udis;
+						grid_out->m_visibility_data[(out_x + out_y * pack_res_out) * 2 + 1] = uvar;
+					}
+					{
+						float dis = f_mean_dis[(vis_res - 1) * vis_res];
+						unsigned short udis = (unsigned short)(dis * 65535.0f);
+						float mean_var = f_mean_var[(vis_res - 1) * vis_res];
+						unsigned short uvar = (unsigned short)std::max(mean_var * 65535.0f, 1.0f);
+						int out_x = (i % pack_size_out) * (vis_res + 2) + vis_res + 1;
+						int out_y = (i / pack_size_out) * (vis_res + 2);
+						grid_out->m_visibility_data[(out_x + out_y * pack_res_out) * 2] = udis;
+						grid_out->m_visibility_data[(out_x + out_y * pack_res_out) * 2 + 1] = uvar;
+					}
+
+					{
+						float dis = f_mean_dis[(vis_res - 1)];
+						unsigned short udis = (unsigned short)(dis * 65535.0f);
+						float mean_var = f_mean_var[(vis_res - 1)];
+						unsigned short uvar = (unsigned short)std::max(mean_var * 65535.0f, 1.0f);
+						int out_x = (i % pack_size_out) * (vis_res + 2);
+						int out_y = (i / pack_size_out) * (vis_res + 2) + vis_res + 1;
+						grid_out->m_visibility_data[(out_x + out_y * pack_res_out) * 2] = udis;
+						grid_out->m_visibility_data[(out_x + out_y * pack_res_out) * 2 + 1] = uvar;
+					}
+
+					{
+						float dis = f_mean_dis[0];
+						unsigned short udis = (unsigned short)(dis * 65535.0f);
+						float mean_var = f_mean_var[0];
+						unsigned short uvar = (unsigned short)std::max(mean_var * 65535.0f, 1.0f);
+						int out_x = (i % pack_size_out) * (vis_res + 2) + vis_res + 1;
+						int out_y = (i / pack_size_out) * (vis_res + 2) + vis_res + 1;
+						grid_out->m_visibility_data[(out_x + out_y * pack_res_out) * 2] = udis;
+						grid_out->m_visibility_data[(out_x + out_y * pack_res_out) * 2 + 1] = uvar;
+					}
+
+					for (int x = 0; x < vis_res; x++)
+					{
+						{
+							float dis = f_mean_dis[(vis_res - 1 - x) ];
+							unsigned short udis = (unsigned short)(dis * 65535.0f);
+							float mean_var = f_mean_var[(vis_res - 1 - x)];
+							unsigned short uvar = (unsigned short)std::max(mean_var * 65535.0f, 1.0f);
+							int out_x = (i % pack_size_out) * (vis_res + 2) + x + 1;
+							int out_y = (i / pack_size_out) * (vis_res + 2);
+							grid_out->m_visibility_data[(out_x + out_y * pack_res_out) * 2] = udis;
+							grid_out->m_visibility_data[(out_x + out_y * pack_res_out) * 2 + 1] = uvar;
+						}
+						{
+							float dis = f_mean_dis[(vis_res - 1 - x) + (vis_res - 1) * vis_res];
+							unsigned short udis = (unsigned short)(dis * 65535.0f);
+							float mean_var = f_mean_var[(vis_res - 1 - x) + (vis_res - 1) * vis_res];
+							unsigned short uvar = (unsigned short)std::max(mean_var * 65535.0f, 1.0f);
+							int out_x = (i % pack_size_out) * (vis_res + 2) + x + 1;
+							int out_y = (i / pack_size_out) * (vis_res + 2) + vis_res + 1;
+							grid_out->m_visibility_data[(out_x + out_y * pack_res_out) * 2] = udis;
+							grid_out->m_visibility_data[(out_x + out_y * pack_res_out) * 2 + 1] = uvar;
+						}
+					}
+
+					for (int y = 0; y < vis_res; y++)
+					{
+						{
+							float dis = f_mean_dis[(vis_res - 1 - y) * vis_res];
+							unsigned short udis = (unsigned short)(dis * 65535.0f);
+							float mean_var = f_mean_var[(vis_res - 1 - y) * vis_res];
+							unsigned short uvar = (unsigned short)std::max(mean_var * 65535.0f, 1.0f);
+							int out_x = (i % pack_size_out) * (vis_res + 2);
+							int out_y = (i / pack_size_out) * (vis_res + 2) + y + 1;
+							grid_out->m_visibility_data[(out_x + out_y * pack_res_out) * 2] = udis;
+							grid_out->m_visibility_data[(out_x + out_y * pack_res_out) * 2 + 1] = uvar;
+						}
+
+						{
+							float dis = f_mean_dis[(vis_res - 1) + (vis_res - 1 - y) * vis_res];
+							unsigned short udis = (unsigned short)(dis * 65535.0f);
+							float mean_var = f_mean_var[(vis_res - 1) + (vis_res - 1 - y) * vis_res];
+							unsigned short uvar = (unsigned short)std::max(mean_var * 65535.0f, 1.0f);
+							int out_x = (i % pack_size_out) * (vis_res + 2) + vis_res + 1;
+							int out_y = (i / pack_size_out) * (vis_res + 2) + y + 1;
+							grid_out->m_visibility_data[(out_x + out_y * pack_res_out) * 2] = udis;
+							grid_out->m_visibility_data[(out_x + out_y * pack_res_out) * 2 + 1] = uvar;
+						}
+					}
+				}
+				
+			}
+		}
+	}
+
+	grid_out->allocate_probes();
+}
+

@@ -7,6 +7,7 @@
 
 class GLRenderer;
 class Scene;
+class ProbeGrid;
 class LODProbeGrid : public IndirectLight
 {
 public:
@@ -43,6 +44,8 @@ public:
 	
 	void initialize(GLRenderer& renderer, Scene& scene);
 	void construct_visibility(Scene& scene);
+
+	void ToProbeGrid(ProbeGrid* grid_out, Scene& scene);
 	
 private:		
 	void _presample_irradiance();

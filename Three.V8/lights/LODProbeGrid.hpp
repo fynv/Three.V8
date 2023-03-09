@@ -33,6 +33,8 @@ public:
 	static void Initialize(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void ConstructVisibility(const v8::FunctionCallbackInfo<v8::Value>& info);
 
+	static void ToProbeGrid(const v8::FunctionCallbackInfo<v8::Value>& info);
+
 };
 
 v8::Local<v8::FunctionTemplate> WrapperLODProbeGrid::create_template(v8::Isolate* isolate, v8::FunctionCallback constructor)
@@ -58,6 +60,8 @@ v8::Local<v8::FunctionTemplate> WrapperLODProbeGrid::create_template(v8::Isolate
 
 	templ->InstanceTemplate()->Set(isolate, "initialize", v8::FunctionTemplate::New(isolate, Initialize));
 	templ->InstanceTemplate()->Set(isolate, "constructVisibility", v8::FunctionTemplate::New(isolate, ConstructVisibility));
+
+	templ->InstanceTemplate()->Set(isolate, "toProbeGrid", v8::FunctionTemplate::New(isolate, ToProbeGrid));
 
 	return templ;
 }
@@ -227,4 +231,16 @@ void WrapperLODProbeGrid::ConstructVisibility(const v8::FunctionCallbackInfo<v8:
 	LODProbeGrid* self = lctx.self<LODProbeGrid>();
 	Scene* scene = lctx.jobj_to_obj<Scene>(info[0]);
 	self->construct_visibility(*scene);
+}
+
+void WrapperLODProbeGrid::ToProbeGrid(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	LODProbeGrid* self = lctx.self<LODProbeGrid>();
+
+	v8::Local<v8::Object> holder_out = lctx.instantiate("ProbeGrid");
+	ProbeGrid* grid_out = lctx.jobj_to_obj<ProbeGrid>(holder_out);
+	Scene* scene = lctx.jobj_to_obj<Scene>(info[0]);
+	self->ToProbeGrid(grid_out, *scene);
+	info.GetReturnValue().Set(holder_out);
 }
