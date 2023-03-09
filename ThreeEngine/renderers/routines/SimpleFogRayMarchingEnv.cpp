@@ -303,13 +303,12 @@ R"(
 
 #if HAS_LOD_PROBE_GRID
 
-float get_visibility(in vec3 pos_world, int idx, in vec3 vert_world)
+float get_visibility(in vec3 wpos, int idx, int lod, in vec3 vert_world)
 {
 	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
-	vec3 spacing = size_grid/vec3(uBaseDivisions);
-	int lod = int(bProbeData[idx*10].w);
+	vec3 spacing = size_grid/vec3(uBaseDivisions);	
 	spacing *= 1.0 / float(1 << lod);
-	return get_visibility_common(pos_world, spacing, idx, vert_world);
+	return get_visibility_common(wpos, spacing, idx, vert_world);
 }
 
 
@@ -370,8 +369,9 @@ vec3 getIrradiance(in vec3 pos_world)
 			{				
 				ivec3 vert = i_voxel + ivec3(x,y,z);					
 				int idx_probe = get_probe_idx(vert);
-				vec3 probe_world = bProbeData[idx_probe*10].xyz;
-				float weight = get_visibility(pos_world, idx_probe, probe_world);
+				vec4 pos_lod = bProbeData[idx_probe*10];
+				vec3 probe_world = pos_lod.xyz;
+				float weight = get_visibility(pos_world, idx_probe, int(pos_lod.w), probe_world);
 				const float crushThreshold = 0.2;
 				if (weight < crushThreshold) {
 					weight *= weight * weight / (crushThreshold*crushThreshold); 

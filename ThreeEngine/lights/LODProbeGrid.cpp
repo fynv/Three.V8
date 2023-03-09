@@ -153,6 +153,103 @@ void LODProbeGrid::_presample_irradiance()
 
 }
 
+#if 0
+void LODProbeGrid::_create_index_tex()
+{
+	glm::ivec3 vol_div = base_divisions * (1 << sub_division_level);
+	std::vector<uint16_t> indices(vol_div.x * vol_div.y * vol_div.z);
+
+	struct Node
+	{
+		int idx;
+		int level;
+		glm::ivec3 ipos;
+	};
+
+	std::queue<Node> queue;
+	
+	for (int z = 0; z < base_divisions.z; z++)
+	{
+		for (int y = 0; y < base_divisions.y; y++)
+		{
+			for (int x = 0; x < base_divisions.x; x++)
+			{
+				int i = x + (y + z * base_divisions.y) * base_divisions.x;
+				Node node;
+				node.idx = m_sub_index[i];
+				node.level = 0;
+				node.ipos = { x,y,z };
+				queue.push(node);
+			}
+		}
+	}
+
+	int num_probes = getNumberOfProbes();
+	int base_offset = base_divisions.x * base_divisions.y * base_divisions.z;
+
+	while (queue.size() > 0)
+	{
+		Node node = queue.front();
+		queue.pop();
+
+		int idx = node.idx;
+		glm::ivec3 ipos = node.ipos;
+		int level = node.level;
+		if (idx < num_probes)
+		{
+			int range = 1 << (sub_division_level - level);
+			glm::ivec3 offset = ipos * range;
+			for (int z = 0; z < range; z++)
+			{
+				for (int y = 0; y < range; y++)
+				{
+					for (int x = 0; x < range; x++)
+					{
+						glm::ivec3 ipos_high = offset + glm::ivec3(x, y, z);
+						int i = ipos_high.x + (ipos_high.y + ipos_high.z * vol_div.y) * vol_div.x;
+						indices[i] = idx;
+					}
+				}
+			}
+		}
+		else
+		{
+			idx -= num_probes;
+			int offset = base_offset + idx * 8;
+			for (int z = 0; z < 2; z++)
+			{
+				for (int y = 0; y < 2; y++)
+				{
+					for (int x = 0; x < 2; x++)
+					{
+						int i = x + y * 2 + z * 4;
+						glm::ivec3 delta = { x,y,z };
+						glm::ivec3 ipos_sub = ipos * 2 + delta;
+						int level_sub = level + 1;
+						glm::ivec3 sub_div = base_divisions * (1 << level_sub);
+						Node sub;
+						sub.idx = m_sub_index[offset + i];
+						sub.level = level_sub;
+						sub.ipos = ipos_sub;
+						queue.push(sub);
+					}
+				}
+			}
+		}
+	}
+
+	glBindTexture(GL_TEXTURE_3D, m_tex_index->tex_id);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);	
+	glTexImage3D(GL_TEXTURE_3D, 0, GL_R16UI, vol_div.x, vol_div.y, vol_div.z, 0, GL_RED_INTEGER, GL_UNSIGNED_SHORT, indices.data());	
+	glBindTexture(GL_TEXTURE_3D, 0);
+
+}
+#endif
+
 void LODProbeGrid::updateBuffers()
 {
 	m_sub_index_buf = std::unique_ptr<GLBuffer>(new GLBuffer(sizeof(int) * m_sub_index.size(), GL_SHADER_STORAGE_BUFFER));
@@ -467,8 +564,7 @@ void LODProbeGrid::initialize(GLRenderer& renderer, Scene& scene)
 					{
 						glm::ivec3 delta = { x,y,z };
 						glm::ivec3 ipos_sub = ipos * 2 + delta;
-						int level_sub = level + 1;
-						glm::ivec3 sub_div = base_divisions * (1 << level_sub);
+						int level_sub = level + 1;						
 						ToDivide td;						
 						td.level = level_sub;
 						td.ipos = ipos_sub;
