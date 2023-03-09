@@ -366,6 +366,7 @@ layout (std140, binding = BINDING_LOD_PROBE_GRID) uniform ProbeGrid
 	ivec4 uBaseDivisions;	
 	int uSubDivisionLevel;
 	float uNormalBias;
+	int uNumProbes;
 	int uVisRes;
 	int uPackSize;
 	int uPackRes;
@@ -578,37 +579,32 @@ float get_visibility(in vec3 wpos, int idx, in vec3 vert_world)
 	spacing *= 1.0 / float(1 << lod);
 	return get_visibility_common(wpos, spacing, idx, vert_world);
 }
+
+
 int get_probe_idx(in ivec3 ipos)
 {
-	ivec3 ipos_base = ipos / (1<<uSubDivisionLevel);
-	int probe_idx = ipos_base.x + (ipos_base.y + ipos_base.z * uBaseDivisions.y) * uBaseDivisions.x;
-	if (uSubDivisionLevel<1) return probe_idx;
-
-	int idx_sub = bIndexData[probe_idx];
 	int base_offset = uBaseDivisions.x * uBaseDivisions.y * uBaseDivisions.z;
+
+	ivec3 ipos_base = ipos / (1<<uSubDivisionLevel);
+	int node_idx = ipos_base.x + (ipos_base.y + ipos_base.z * uBaseDivisions.y) * uBaseDivisions.x;
+	int probe_idx = bIndexData[node_idx];
 
 	int lod = 0;
 	int digit_mask = 1 << (uSubDivisionLevel -1);
-	while(lod<uSubDivisionLevel && idx_sub>=0)
-	{
-		int offset = base_offset + idx_sub*8;
+	while(lod<uSubDivisionLevel && probe_idx>=uNumProbes)
+	{		
+		int offset = base_offset + (probe_idx - uNumProbes)*8;
 		int sub = 0;
 		if ((ipos.x & digit_mask) !=0) sub+=1;
 		if ((ipos.y & digit_mask) !=0) sub+=2;
 		if ((ipos.z & digit_mask) !=0) sub+=4;
-		probe_idx = offset + sub;
-		
-		if (lod < uSubDivisionLevel -1)
-		{
-			idx_sub = bIndexData[probe_idx];
-		}
-		else
-		{
-			idx_sub = -1;
-		}
+		node_idx = offset + sub;
+		probe_idx = bIndexData[node_idx];
+
 		lod++;
-		digit_mask >>=1;
+		digit_mask >>=1;	
 	}
+
 	return probe_idx;
 }
 
