@@ -301,8 +301,6 @@ R"(
 
 #if HAS_LOD_PROBE_GRID
 
-layout (location = 2) uniform sampler3D uTexLOD;
-
 float get_visibility(in vec3 pos_world, int idx, in vec3 vert_world)
 {
 	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
@@ -311,61 +309,18 @@ float get_visibility(in vec3 pos_world, int idx, in vec3 vert_world)
 	spacing *= 1.0 / float(1 << lod);
 	return get_visibility_common(pos_world, spacing, idx, vert_world);
 }
-
-
-int get_probe_lod_i(in ivec3 ipos)
-{	
-	if (uSubDivisionLevel<1) return 0;
-
+int get_probe_idx(in ivec3 ipos)
+{
 	ivec3 ipos_base = ipos / (1<<uSubDivisionLevel);
 	int probe_idx = ipos_base.x + (ipos_base.y + ipos_base.z * uBaseDivisions.y) * uBaseDivisions.x;
-	int idx_sub = bIndexData[probe_idx];
-	int base_offset = uBaseDivisions.x * uBaseDivisions.y * uBaseDivisions.z;
-	
-	int lod = 0;	
-	int digit_mask = 1 << (uSubDivisionLevel -1);
-	while(lod<uSubDivisionLevel && idx_sub>=0)
-	{
-		int offset = base_offset + idx_sub*8;
-		int sub = 0;
-		if ((ipos.x & digit_mask) !=0) sub+=1;
-		if ((ipos.y & digit_mask) !=0) sub+=2;
-		if ((ipos.z & digit_mask) !=0) sub+=4;
-		probe_idx = offset + sub;
-
-		if (lod<uSubDivisionLevel-1)
-		{			
-			idx_sub = bIndexData[probe_idx];
-		}
-		else
-		{
-			idx_sub = -1;
-		}
-		lod++;
-		digit_mask >>=1;		
-	}	
-	return lod;
-}
-
-float get_probe_lod_f_tex(in vec3 pos)
-{
-	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
-	vec3 pos_normalized = (pos - uCoverageMin.xyz)/size_grid;	
-	return texture(uTexLOD, pos_normalized).x * 255.0;	
-}
-
-int get_probe_idx_lod(in ivec3 ipos, int target_lod)
-{
-	ivec3 ipos_base = ipos / (1<<target_lod);
-	int probe_idx = ipos_base.x + (ipos_base.y + ipos_base.z * uBaseDivisions.y) * uBaseDivisions.x;
-	if (uSubDivisionLevel<1 || target_lod < 1) return probe_idx;
+	if (uSubDivisionLevel<1) return probe_idx;
 
 	int idx_sub = bIndexData[probe_idx];
 	int base_offset = uBaseDivisions.x * uBaseDivisions.y * uBaseDivisions.z;
 
 	int lod = 0;
-	int digit_mask = 1 << (target_lod -1);
-	while(lod<target_lod && idx_sub>=0)
+	int digit_mask = 1 << (uSubDivisionLevel -1);
+	while(lod<uSubDivisionLevel && idx_sub>=0)
 	{
 		int offset = base_offset + idx_sub*8;
 		int sub = 0;
@@ -394,9 +349,9 @@ void acc_coeffs(inout vec4 coeffs0, int idx, in float weight)
 	coeffs0+=bProbeData[offset]*weight;
 }
 
-void accCoeffsLod(in vec3 pos_world, int lod, inout vec4 coeffs0, inout float sum_weight, float level_weight)
+vec3 getIrradiance(in vec3 pos_world)
 {	
-	ivec3 divs = uBaseDivisions.xyz * (1<<lod);
+	ivec3 divs = uBaseDivisions.xyz * (1<<uSubDivisionLevel);
 
 	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
 	vec3 pos_normalized = (pos_world - uCoverageMin.xyz)/size_grid;	
@@ -406,6 +361,9 @@ void accCoeffsLod(in vec3 pos_world, int lod, inout vec4 coeffs0, inout float su
 	ivec3 i_voxel = clamp(ivec3(pos_voxel), ivec3(0), ivec3(divs) - ivec3(2));
 	vec3 frac_voxel = pos_voxel - vec3(i_voxel);
 
+	vec4 coeffs = vec4(0.0);
+	float sum_weight = 0.0;
+
 	for (int z=0;z<2;z++)
 	{
 		for (int y=0;y<2;y++)
@@ -413,7 +371,7 @@ void accCoeffsLod(in vec3 pos_world, int lod, inout vec4 coeffs0, inout float su
 			for (int x=0;x<2;x++)
 			{				
 				ivec3 vert = i_voxel + ivec3(x,y,z);					
-				int idx_probe = get_probe_idx_lod(vert, lod);
+				int idx_probe = get_probe_idx(vert);
 				vec3 probe_world = bProbeData[idx_probe*10].xyz;
 				float weight = get_visibility(pos_world, idx_probe, probe_world);		
 				const float crushThreshold = 0.2;
@@ -421,38 +379,15 @@ void accCoeffsLod(in vec3 pos_world, int lod, inout vec4 coeffs0, inout float su
 					weight *= weight * weight / (crushThreshold*crushThreshold); 
 				}
 				vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
-				weight *= level_weight * w.x * w.y * w.z;
+				weight *= w.x * w.y * w.z;
 				if (weight>0.0)
 				{
 					sum_weight += weight;
-					acc_coeffs(coeffs0, idx_probe, weight);
+					acc_coeffs(coeffs, idx_probe, weight);
 				}
 			}
 		}
 	}	
-}
-
-vec3 getIrradiance(in vec3 pos_world)
-{
-	vec4 coeffs = vec4(0.0);
-	float sum_weight = 0.0;
-
-	ivec3 divs = uBaseDivisions.xyz * (1<<uSubDivisionLevel);	
-	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
-	vec3 pos_normalized = (pos_world - uCoverageMin.xyz)/size_grid;	
-	vec3 pos_voxel = pos_normalized * vec3(divs);
-	pos_voxel = clamp(pos_voxel, vec3(0.0), vec3(divs));
-	ivec3 i_voxel = clamp(ivec3(pos_voxel), ivec3(0), ivec3(divs) - ivec3(1));
-	
-	float f_lod = get_probe_lod_f_tex(pos_world);
-	int lod = int(round(f_lod));	
-	accCoeffsLod(pos_world, lod, coeffs, sum_weight, 1.0);
-
-	while(lod>0 && sum_weight <=0.0)
-	{
-		lod--;
-		accCoeffsLod(pos_world, lod, coeffs, sum_weight, 1.0);
-	}
 
 	if (sum_weight > 0.0)	
 	{
@@ -637,10 +572,6 @@ void FogRayMarchingEnv::render(const RenderParams& params)
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, params.lights->lod_probe_grid->m_tex_visibility->tex_id);
 		glUniform1i(1, 1);
-
-		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_3D, params.lights->lod_probe_grid->m_tex_lod->tex_id);
-		glUniform1i(2, 2);
 	}
 
 	glDrawArrays(GL_TRIANGLES, 0, 3);

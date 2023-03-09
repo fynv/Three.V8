@@ -1035,12 +1035,7 @@ const create_lod_probe_grid = (doc, props) => {
     {
         proxy.subDivisionLevel = parseInt(props.sub_division_level);
     }
-    proxy.probe_budget = -1;
-    if (props.hasOwnProperty('probe_budget'))
-    {
-        proxy.probe_budget = parseInt(props.probe_budget);
-    }
-    
+
     doc.scene.addWidget(proxy);
     
     let probe_data = "assets/lod_probes.dat";
@@ -1070,7 +1065,6 @@ const create_lod_probe_grid = (doc, props) => {
         props.coverage_max = `${probe_grid.coverageMax.x}, ${probe_grid.coverageMax.y}, ${probe_grid.coverageMax.z}`;
         props.sub_division_level = `${probe_grid.subDivisionLevel}`;
     }
-    probe_grid.probe_budget = proxy.probe_budget;
     proxy.probeGrid = probe_grid;
 
     if (props.hasOwnProperty('normal_bias'))
@@ -1386,7 +1380,6 @@ const tuning_lod_probe_grid =  (doc, obj, input) =>{
             props.coverage_max = `${probe_grid.coverageMax.x}, ${probe_grid.coverageMax.y}, ${probe_grid.coverageMax.z}`;
             props.sub_division_level = `${probe_grid.subDivisionLevel}`;
         }
-        probe_grid.probe_budget = obj.probe_budget;
         obj.probeGrid = probe_grid;
         
         if (props.hasOwnProperty('dynamic_map'))
@@ -1425,12 +1418,6 @@ const tuning_lod_probe_grid =  (doc, obj, input) =>{
         props.sub_division_level = input.sub_division_level;
         obj.subDivisionLevel = parseInt(input.sub_division_level);
     }
-    
-    if ("probe_budget" in input)
-    {
-        props.probe_budget  = input.probe_budget;
-        obj.probe_budget = parseInt(input.probe_budget);
-    }
 
     if ("normal_bias" in input)
     {
@@ -1449,7 +1436,7 @@ const initialize_lod_probe_grid = (doc, obj, input) =>{
     let changed = (count == 0 || obj.coverageMin.x != probe_grid.coverageMin.x || obj.coverageMin.y != probe_grid.coverageMin.y || obj.coverageMin.z != probe_grid.coverageMin.z
         || obj.coverageMax.x != probe_grid.coverageMax.x || obj.coverageMax.y != probe_grid.coverageMax.y || obj.coverageMax.z != probe_grid.coverageMax.z
         || obj.baseDivisions.x != probe_grid.baseDivisions.x || obj.baseDivisions.y != probe_grid.baseDivisions.y || obj.baseDivisions.z != probe_grid.baseDivisions.z
-        || obj.subDivisionLevel != probe_grid.subDivisionLevel || obj.probe_budget != probe_grid.probe_budget);
+        || obj.subDivisionLevel != probe_grid.subDivisionLevel);
         
     if (changed)
     {
@@ -1458,8 +1445,7 @@ const initialize_lod_probe_grid = (doc, obj, input) =>{
         probe_grid.setCoverageMin(obj.coverageMin);
         probe_grid.setCoverageMax(obj.coverageMax);
         probe_grid.subDivisionLevel = obj.subDivisionLevel;
-        probe_grid.probe_budget = obj.probe_budget;
-        probe_grid.initialize(doc.renderer, doc.scene, obj.probe_budget);
+        probe_grid.initialize(doc.renderer, doc.scene);
         count = probe_grid.numberOfProbes;
     }
     return `${count}`;

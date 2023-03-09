@@ -39,8 +39,7 @@ struct LODProbeGridConst
 
 
 LODProbeGrid::LODProbeGrid() : m_constant(sizeof(LODProbeGridConst), GL_UNIFORM_BUFFER)
-{
-	m_tex_lod = std::unique_ptr<GLTexture3D>(new GLTexture3D);
+{	
 	m_tex_irradiance = std::unique_ptr<GLTexture2D>(new GLTexture2D);
 	m_tex_visibility = std::unique_ptr<GLTexture2D>(new GLTexture2D);
 }
@@ -153,58 +152,8 @@ void LODProbeGrid::_presample_irradiance()
 
 }
 
-void LODProbeGrid::_create_lod_tex()
-{
-	typedef std::vector<uint8_t> Volume;
-	glm::ivec3 vol_div = base_divisions * (1 << sub_division_level);
-	Volume lod_data(vol_div.x* vol_div.y* vol_div.z, 0);
-
-	for (int z = 0; z < vol_div.z; z++)
-	{
-		for (int y = 0; y < vol_div.y; y++)
-		{
-			for (int x = 0; x < vol_div.x; x++)
-			{
-				glm::ivec3 ipos = glm::ivec3(x, y, z);
-				glm::ivec3 ipos_base = ipos / (1 << sub_division_level);
-				int probe_idx = ipos_base.x + (ipos_base.y + ipos_base.z * base_divisions.y) * base_divisions.x;
-				int idx_sub = m_sub_index[probe_idx];
-				int base_offset = base_divisions.x * base_divisions.y * base_divisions.z;
-
-				int lod = 0;
-				int digit_mask = 1 << (sub_division_level - 1);
-				while (lod < sub_division_level && idx_sub >= 0)
-				{
-					int offset = base_offset + idx_sub * 8;
-					int sub = 0;
-					if ((ipos.x & digit_mask) != 0) sub += 1;
-					if ((ipos.y & digit_mask) != 0) sub += 2;
-					if ((ipos.z & digit_mask) != 0) sub += 4;
-					probe_idx = offset + sub;
-
-					if (lod < sub_division_level - 1)
-					{
-						idx_sub = m_sub_index[probe_idx];
-					}
-					else
-					{
-						idx_sub = -1;
-					}
-					lod++;
-					digit_mask >>= 1;
-				}
-				int idx = x + (y + z * vol_div.y) * vol_div.x;
-				lod_data[idx] = lod;
-			}
-		}
-	}
-	m_tex_lod->load_memory(vol_div.x, vol_div.y, vol_div.z, lod_data.data());
-}
-
 void LODProbeGrid::updateBuffers()
 {
-	_create_lod_tex();
-
 	m_sub_index_buf = std::unique_ptr<GLBuffer>(new GLBuffer(sizeof(int) * m_sub_index.size(), GL_SHADER_STORAGE_BUFFER));
 	m_sub_index_buf->upload(m_sub_index.data());
 
@@ -340,7 +289,7 @@ void LODProbeGrid::updateConstant()
 }
 
 
-void LODProbeGrid::_initialize(GLRenderer& renderer, Scene& scene, int probe_budget)
+void LODProbeGrid::initialize(GLRenderer& renderer, Scene& scene)
 {
 	m_sub_index.clear();
 	m_sub_index.resize(base_divisions.x * base_divisions.y * base_divisions.z, -1);
@@ -483,59 +432,6 @@ void LODProbeGrid::_initialize(GLRenderer& renderer, Scene& scene, int probe_bud
 			}
 		}
 
-		if (probe_budget > 0)
-		{
-			glm::ivec3 vol_div = base_divisions * (1 << (sub_division_level-1));
-			int count = 0;
-			Volume& vol = volumes[sub_division_level - 1];
-			for (int z = 0; z < vol_div.z; z++)
-			{
-				for (int y = 0; y < vol_div.y; y++)
-				{
-					for (int x = 0; x < vol_div.x; x++)
-					{
-						int idx = x + (y + z * vol_div.y) * vol_div.x;
-						if (vol[idx] > 0)
-						{
-							count++;
-						}
-					}
-				}
-			}
-
-			int base_count = base_divisions.x * base_divisions.y * base_divisions.z;
-			int root_count = 0;
-			for (int level = 0; level < sub_division_level; level++)
-			{
-				root_count += base_count * (1 << (3 * level));
-			}
-			int est_probes = root_count + (base_count * (1 << (3 * sub_division_level))) * count / (vol_div.x * vol_div.y * vol_div.z);
-
-			if (probe_budget < est_probes)
-			{
-				float pass_rate = float(probe_budget - root_count) / float(est_probes - root_count);
-				if (pass_rate < 0.0f) pass_rate = 0.0f;
-				for (int z = 0; z < vol_div.z; z++)
-				{
-					for (int y = 0; y < vol_div.y; y++)
-					{
-						for (int x = 0; x < vol_div.x; x++)
-						{
-							int idx = x + (y + z * vol_div.y) * vol_div.x;
-							if (vol[idx] > 0)
-							{
-								float r = rand01();
-								if (r > pass_rate)
-								{
-									vol[idx] = 0;
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-
 		struct ToDivide
 		{
 			int idx;
@@ -623,28 +519,11 @@ void LODProbeGrid::_initialize(GLRenderer& renderer, Scene& scene, int probe_bud
 		//int num_probes = getNumberOfProbes();
 		//printf("%d %d %d\n", num_probes, base_divisions.x* base_divisions.y* base_divisions.z, ref_idx*8);
 
-	}		
-	
-}
+	}	
 
-void LODProbeGrid::initialize(GLRenderer& renderer, Scene& scene, int probe_budget)
-{
-	if (probe_budget > 0)
-	{
-		int base_count = base_divisions.x * base_divisions.y * base_divisions.z;
-		int est_count = base_count;
-		int lod = 0;
-		while (est_count < probe_budget)
-		{
-			lod++;
-			est_count += base_count * (1 << (3 * lod));
-		}
-		sub_division_level = lod;
-	}
-	_initialize(renderer, scene, probe_budget);
-	
 	updateBuffers();
 }
+
 
 
 inline glm::vec2 signNotZero(const glm::vec2& v)

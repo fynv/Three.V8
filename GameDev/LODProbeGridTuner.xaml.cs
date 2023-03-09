@@ -68,14 +68,7 @@ namespace GameDev
             if (att.ContainsKey("sub_division_level"))
             {
                 tuner_sub_div.value = float.Parse(att["sub_division_level"].ToString());
-            }
-
-            tuner_probe_budget.value = -1;
-            tuner_probe_budget.step = 500;
-            if (att.ContainsKey("probe_budget"))
-            {
-                tuner_probe_budget.value = float.Parse(att["probe_budget"].ToString());
-            }
+            }         
 
             tuner_normal_bias.value = 0.2f;
             tuner_normal_bias.step = 0.05f;
@@ -215,17 +208,6 @@ namespace GameDev
 
             var att = (JObject)jobj["attributes"];
             att["sub_division_level"] = tuning["sub_division_level"];
-
-            game_player.SendMessageToUser("tuning", tuning.ToString());
-        }
-
-        private void tuner_probe_budget_ValueChanged(object sender, EventArgs e)
-        {
-            JObject tuning = new JObject();
-            tuning["probe_budget"] = $"{tuner_probe_budget.value}";
-
-            var att = (JObject)jobj["attributes"];
-            att["probe_budget"] = tuning["probe_budget"];
 
             game_player.SendMessageToUser("tuning", tuning.ToString());
         }

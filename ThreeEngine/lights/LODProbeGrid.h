@@ -25,8 +25,7 @@ public:
 	int irr_pack_res = 0;
 
 	std::vector<int> m_sub_index;
-	std::unique_ptr<GLBuffer> m_sub_index_buf;
-	std::unique_ptr<GLTexture3D> m_tex_lod;
+	std::unique_ptr<GLBuffer> m_sub_index_buf;	
 
 	std::vector<glm::vec4> m_probe_data;	
 	std::unique_ptr<GLBuffer> m_probe_buf;
@@ -42,11 +41,9 @@ public:
 	GLDynBuffer m_constant;
 	void updateConstant();
 	
-	void initialize(GLRenderer& renderer, Scene& scene, int probe_budget = -1);
+	void initialize(GLRenderer& renderer, Scene& scene);
 	void construct_visibility(Scene& scene);
 	
-private:
-	void _initialize(GLRenderer& renderer, Scene& scene, int probe_budget);
-	void _create_lod_tex();
+private:		
 	void _presample_irradiance();
 };
