@@ -1773,8 +1773,7 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 
 	if (has_opaque)
 	{
-		glDisable(GL_BLEND);
-		glDepthMask(GL_TRUE);
+		glDisable(GL_BLEND);	
 
 		// depth-prepass
 		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
@@ -1791,6 +1790,8 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 		}
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 	}
+
+	glDepthMask(GL_FALSE);
 
 	// SSAO
 	if (m_use_ssao)
@@ -1871,7 +1872,6 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 	{
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_ONE, GL_ONE);
-		glDepthMask(GL_FALSE);
 
 		for (size_t i = 0; i < simple_models.size(); i++)
 		{
@@ -2101,8 +2101,6 @@ void GLRenderer::_render_scene_simple(Scene& scene, Camera& camera, GLRenderTarg
 	if (has_opaque)
 	{
 		glDisable(GL_BLEND);
-		glDepthMask(GL_TRUE);
-
 		// depth-prepass
 		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 		for (size_t i = 0; i < simple_models.size(); i++)
@@ -2118,6 +2116,11 @@ void GLRenderer::_render_scene_simple(Scene& scene, Camera& camera, GLRenderTarg
 		}
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
+	}
+	glDepthMask(GL_FALSE);
+
+	if (has_opaque)
+	{
 		// opaque
 		for (size_t i = 0; i < simple_models.size(); i++)
 		{
@@ -2136,7 +2139,6 @@ void GLRenderer::_render_scene_simple(Scene& scene, Camera& camera, GLRenderTarg
 	{
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_ONE, GL_ONE);
-		glDepthMask(GL_FALSE);
 
 		for (size_t i = 0; i < simple_models.size(); i++)
 		{
