@@ -386,7 +386,7 @@ vec3 get_irradiance_common(int idx, in vec3 dir)
 	return texture(uTexIrr, uv).xyz;
 }
 
-float get_visibility_common(in vec3 wpos, in vec3 spacing, int idx, in vec3 vert_world)
+float get_visibility_common(in vec3 wpos, in vec3 spacing, int idx, in vec3 vert_world, float scale)
 {
 	vec3 dir = wpos - vert_world;	
 	float dis = length(dir);
@@ -436,7 +436,7 @@ float get_visibility_common(in vec3 wpos, in vec3 spacing, int idx, in vec3 vert
 	float mean_var = mean_dis_var.y;
 	float mean_var2 = mean_var * mean_var;
 	float delta = max(dis - mean_dis, 0.0);
-	float delta2 = delta*delta;	
+	float delta2 = delta*delta * scale * scale;	
 	return mean_var2/(mean_var2 + delta2);
 }
 
@@ -455,7 +455,7 @@ float get_visibility(in vec3 wpos, in ivec3 vert, in vec3 vert_world)
 	spacing.y = (y1-y0)*size_grid.y;
 	
 	int idx = vert.x + (vert.y + vert.z*uDivisions.y)*uDivisions.x;
-	return get_visibility_common(wpos, spacing, idx, vert_world);
+	return get_visibility_common(wpos, spacing, idx, vert_world, 1.0);
 }
 
 vec3 get_irradiance(in ivec3 vert, in vec3 dir)
@@ -535,7 +535,8 @@ float get_visibility(in vec3 wpos, int idx, int lod, in vec3 vert_world)
 	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
 	vec3 spacing = size_grid/vec3(uBaseDivisions);	
 	spacing *= 1.0 / float(1 << lod);
-	return get_visibility_common(wpos, spacing, idx, vert_world);
+	float scale = float(1<<(uBaseDivisions -lod));
+	return get_visibility_common(wpos, spacing, idx, vert_world, scale);
 }
 
 int get_probe_idx(in ivec3 ipos)
