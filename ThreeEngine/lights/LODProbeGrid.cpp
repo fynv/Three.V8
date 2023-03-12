@@ -40,9 +40,8 @@ struct LODProbeGridConst
 
 
 LODProbeGrid::LODProbeGrid() : m_constant(sizeof(LODProbeGridConst), GL_UNIFORM_BUFFER)
-{	
-	m_tex_irradiance = std::unique_ptr<GLTexture2D>(new GLTexture2D);
-	m_tex_visibility = std::unique_ptr<GLTexture2D>(new GLTexture2D);
+{		
+	
 }
 
 LODProbeGrid::~LODProbeGrid()
@@ -133,12 +132,14 @@ void LODProbeGrid::_presample_irradiance()
 		}
 	}
 
+	m_tex_irradiance = std::unique_ptr<GLTexture2D>(new GLTexture2D);
 	glBindTexture(GL_TEXTURE_2D, m_tex_irradiance->tex_id);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);	
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, irr_pack_res, irr_pack_res, 0, GL_RGB, GL_FLOAT, irradiance_img.data());	
+	glTexStorage2D(GL_TEXTURE_2D, 1, GL_R11F_G11F_B10F, irr_pack_res, irr_pack_res);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0,0, irr_pack_res, irr_pack_res, GL_RGB, GL_FLOAT, irradiance_img.data());	
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	/*std::vector<glm::u8vec3> dump(irr_pack_res * irr_pack_res);
@@ -265,12 +266,14 @@ void LODProbeGrid::updateBuffers()
 	pack_res = pack_size * (vis_res + 2);
 	m_visibility_data.resize(pack_res * pack_res * 2, 0);
 
+	m_tex_visibility = std::unique_ptr<GLTexture2D>(new GLTexture2D);
 	glBindTexture(GL_TEXTURE_2D, m_tex_visibility->tex_id);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16, pack_res, pack_res, 0, GL_RG, GL_UNSIGNED_SHORT, m_visibility_data.data());
+	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RG16, pack_res, pack_res);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0,0, pack_res, pack_res, GL_RG, GL_UNSIGNED_SHORT, m_visibility_data.data());
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
@@ -1167,7 +1170,7 @@ void LODProbeGrid::construct_visibility(Scene& scene)
 	}
 
 	glBindTexture(GL_TEXTURE_2D, m_tex_visibility->tex_id);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16, pack_res, pack_res, 0, GL_RG, GL_UNSIGNED_SHORT, m_visibility_data.data());
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, pack_res, pack_res, GL_RG, GL_UNSIGNED_SHORT, m_visibility_data.data());
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
