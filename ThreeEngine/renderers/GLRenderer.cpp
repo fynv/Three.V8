@@ -1789,9 +1789,7 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 			render_depth_model(&camera, model);
 		}
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-	}
-
-	glDepthMask(GL_FALSE);
+	}	
 
 	// SSAO
 	if (m_use_ssao)
@@ -1867,6 +1865,8 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 			} while (false);
 		}
 	}
+
+	glDepthMask(GL_FALSE);
 
 	if (has_alpha)
 	{
@@ -2116,8 +2116,7 @@ void GLRenderer::_render_scene_simple(Scene& scene, Camera& camera, GLRenderTarg
 		}
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
-	}
-	glDepthMask(GL_FALSE);
+	}	
 
 	if (has_opaque)
 	{
@@ -2134,6 +2133,8 @@ void GLRenderer::_render_scene_simple(Scene& scene, Camera& camera, GLRenderTarg
 			render_model_simple(&camera, lights, fog, model, Pass::Opaque);
 		}		
 	}
+
+	glDepthMask(GL_FALSE);
 
 	if (has_alpha)
 	{

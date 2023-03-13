@@ -1422,6 +1422,15 @@ void SimpleRoutine::render(const RenderParams& params)
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
 
+	if (m_options.alpha_mode == AlphaMode::Mask)
+	{
+		glDepthMask(GL_TRUE);
+	}
+	else
+	{
+		glDepthMask(GL_FALSE);
+	}
+
 	if (material.doubleSided)
 	{
 		glDisable(GL_CULL_FACE);
