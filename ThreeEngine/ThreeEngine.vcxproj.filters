@@ -115,6 +115,12 @@
     <Filter Include="Header Files\volume\routines">
       <UniqueIdentifier>{646422d6-db04-4945-aa34-ab1643e347e2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\JVB">
+      <UniqueIdentifier>{a6637a0a-1831-4794-87f6-5bf9513d6cec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\JVB">
+      <UniqueIdentifier>{932054e2-6e90-420a-b570-3564076c6009}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="scenes\Scene.cpp">
@@ -377,6 +383,24 @@
     </ClCompile>
     <ClCompile Include="savers\LODProbeGridSaver.cpp">
       <Filter>Source Files\savers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\thirdparty\JVB\AABB.cpp">
+      <Filter>Source Files\JVB</Filter>
+    </ClCompile>
+    <ClCompile Include="..\thirdparty\JVB\BVH.cpp">
+      <Filter>Source Files\JVB</Filter>
+    </ClCompile>
+    <ClCompile Include="..\thirdparty\JVB\BVH8Converter.cpp">
+      <Filter>Source Files\JVB</Filter>
+    </ClCompile>
+    <ClCompile Include="..\thirdparty\JVB\BVHPartitions.cpp">
+      <Filter>Source Files\JVB</Filter>
+    </ClCompile>
+    <ClCompile Include="..\thirdparty\JVB\SAHBuilder.cpp">
+      <Filter>Source Files\JVB</Filter>
+    </ClCompile>
+    <ClCompile Include="..\thirdparty\JVB\Triangle.cpp">
+      <Filter>Source Files\JVB</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -667,6 +691,42 @@
     </ClInclude>
     <ClInclude Include="savers\LODProbeGridSaver.h">
       <Filter>Header Files\savers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\JVB\AABB.h">
+      <Filter>Header Files\JVB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\JVB\BitArray.h">
+      <Filter>Header Files\JVB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\JVB\BVH.h">
+      <Filter>Header Files\JVB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\JVB\BVH8Converter.h">
+      <Filter>Header Files\JVB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\JVB\BVHPartitions.h">
+      <Filter>Header Files\JVB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\JVB\Compare.h">
+      <Filter>Header Files\JVB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\JVB\Constructors.h">
+      <Filter>Header Files\JVB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\JVB\Ray.h">
+      <Filter>Header Files\JVB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\JVB\SAHBuilder.h">
+      <Filter>Header Files\JVB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\JVB\Sort.h">
+      <Filter>Header Files\JVB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\JVB\Triangle.h">
+      <Filter>Header Files\JVB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\JVB\Util.h">
+      <Filter>Header Files\JVB</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

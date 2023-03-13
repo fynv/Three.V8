@@ -40,6 +40,7 @@ The Windows implementation requires Visual Studio 2022 to be built, becuase:
 * [crc64](https://github.com/srned/baselib): For state hashing.
 * [ffmpeg](https://ffmpeg.org): For multimedia codecs.
 * [PortAudio](http://www.portaudio.com/): For audio I/O.
+* [JVB](https://github.com/jan-van-bergen/GPU-Raytracer): source-code under "third-party/JVB" are transcribed from Jan Van Bergen's work.
 
 ## Building
 

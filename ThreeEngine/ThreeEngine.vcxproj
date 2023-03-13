@@ -116,7 +116,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS; GLEW_STATIC=1; GLM_ENABLE_EXPERIMENTAL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>.;../thirdparty;../thirdparty/glew/include;../thirdparty/glm/glm;../thirdparty/draco/include;../thirdparty/bvh/include;../thirdparty/nanovg</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;../thirdparty;../thirdparty/glew/include;../thirdparty/glm/glm;../thirdparty/draco/include;../thirdparty/bvh/include;../thirdparty/nanovg; ../thirdparty/JVB;</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -129,6 +129,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\thirdparty\crc64\crc64.cpp" />
+    <ClCompile Include="..\thirdparty\JVB\AABB.cpp" />
+    <ClCompile Include="..\thirdparty\JVB\BVH.cpp" />
+    <ClCompile Include="..\thirdparty\JVB\BVH8Converter.cpp" />
+    <ClCompile Include="..\thirdparty\JVB\BVHPartitions.cpp" />
+    <ClCompile Include="..\thirdparty\JVB\SAHBuilder.cpp" />
+    <ClCompile Include="..\thirdparty\JVB\Triangle.cpp" />
     <ClCompile Include="..\thirdparty\nanovg\nanovg.c" />
     <ClCompile Include="backgrounds\Background.cpp" />
     <ClCompile Include="backgrounds\BackgroundScene.cpp" />
@@ -218,6 +224,18 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\thirdparty\crc64\crc64.h" />
+    <ClInclude Include="..\thirdparty\JVB\AABB.h" />
+    <ClInclude Include="..\thirdparty\JVB\BitArray.h" />
+    <ClInclude Include="..\thirdparty\JVB\BVH.h" />
+    <ClInclude Include="..\thirdparty\JVB\BVH8Converter.h" />
+    <ClInclude Include="..\thirdparty\JVB\BVHPartitions.h" />
+    <ClInclude Include="..\thirdparty\JVB\Compare.h" />
+    <ClInclude Include="..\thirdparty\JVB\Constructors.h" />
+    <ClInclude Include="..\thirdparty\JVB\Ray.h" />
+    <ClInclude Include="..\thirdparty\JVB\SAHBuilder.h" />
+    <ClInclude Include="..\thirdparty\JVB\Sort.h" />
+    <ClInclude Include="..\thirdparty\JVB\Triangle.h" />
+    <ClInclude Include="..\thirdparty\JVB\Util.h" />
     <ClInclude Include="..\thirdparty\nanovg\fontstash.h" />
     <ClInclude Include="..\thirdparty\nanovg\nanovg.h" />
     <ClInclude Include="..\thirdparty\nanovg\nanovg_gl.h" />
