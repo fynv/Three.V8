@@ -29,6 +29,8 @@
 
 #include "renderers/routines/SceneToVolume.h"
 
+#include "BVHRenderer.h"
+
 class Scene;
 class Fog;
 class Camera;
@@ -170,5 +172,8 @@ private:
 	void scene_to_volume_model(SimpleModel* model, SceneToVolume::RenderParams& params);
 	void scene_to_volume_model(GLTFModel* model, SceneToVolume::RenderParams& params);
 
+
+	BVHRenderer bvh_renderer;
+	std::unique_ptr<BVHRenderTarget> bvh_target;
 };
 

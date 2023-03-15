@@ -414,7 +414,7 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 				{
 					primitive_out.type_indices = 4;
 				}
-				primitive_out.index_buf = Attribute(new GLBuffer((size_t)primitive_out.type_indices * (size_t)primitive_out.num_face * 3, GL_ELEMENT_ARRAY_BUFFER));
+				primitive_out.index_buf = Index(new IndexTextureBuffer((size_t)primitive_out.type_indices * (size_t)primitive_out.num_face * 3, primitive_out.type_indices));
 				primitive_out.index_buf->upload(p_indices);
 
 				primitive_out.cpu_indices = std::unique_ptr<std::vector<uint8_t>>(new std::vector<uint8_t>(primitive_out.index_buf->m_size));

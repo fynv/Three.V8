@@ -141,6 +141,7 @@
     <ClCompile Include="cameras\Camera.cpp" />
     <ClCompile Include="cameras\PerspectiveCamera.cpp" />
     <ClCompile Include="core\BoundingVolumeHierarchy.cpp" />
+    <ClCompile Include="core\CWBVH.cpp" />
     <ClCompile Include="core\Object3D.cpp" />
     <ClCompile Include="gui\UI3DViewer.cpp" />
     <ClCompile Include="gui\UIArea.cpp" />
@@ -182,6 +183,14 @@
     <ClCompile Include="models\SimpleModel.cpp" />
     <ClCompile Include="network\HttpClient.cpp" />
     <ClCompile Include="network\WSClient.cpp" />
+    <ClCompile Include="renderers\BVHRenderer.cpp" />
+    <ClCompile Include="renderers\BVHRenderTarget.cpp" />
+    <ClCompile Include="renderers\bvh_routines\CompHemisphere.cpp" />
+    <ClCompile Include="renderers\bvh_routines\CompSkyBox.cpp" />
+    <ClCompile Include="renderers\bvh_routines\BVHDepthOnly.cpp" />
+    <ClCompile Include="renderers\bvh_routines\BVHRoutine.cpp" />
+    <ClCompile Include="renderers\bvh_routines\CompWeightedOIT.cpp" />
+    <ClCompile Include="renderers\bvh_routines\PrimitiveBatch.cpp" />
     <ClCompile Include="renderers\CubeRenderTarget.cpp" />
     <ClCompile Include="renderers\GLPickingTarget.cpp" />
     <ClCompile Include="renderers\GLRenderer.cpp" />
@@ -245,6 +254,7 @@
     <ClInclude Include="cameras\Camera.h" />
     <ClInclude Include="cameras\PerspectiveCamera.h" />
     <ClInclude Include="core\BoundingVolumeHierarchy.h" />
+    <ClInclude Include="core\CWBVH.h" />
     <ClInclude Include="core\Object3D.h" />
     <ClInclude Include="gui\UI3DViewer.h" />
     <ClInclude Include="gui\UIArea.h" />
@@ -289,6 +299,14 @@
     <ClInclude Include="network\HttpClient.h" />
     <ClInclude Include="network\root_certificates.hpp" />
     <ClInclude Include="network\WSClient.h" />
+    <ClInclude Include="renderers\BVHRenderer.h" />
+    <ClInclude Include="renderers\BVHRenderTarget.h" />
+    <ClInclude Include="renderers\bvh_routines\CompHemisphere.h" />
+    <ClInclude Include="renderers\bvh_routines\CompSkyBox.h" />
+    <ClInclude Include="renderers\bvh_routines\BVHDepthOnly.h" />
+    <ClInclude Include="renderers\bvh_routines\BVHRoutine.h" />
+    <ClInclude Include="renderers\bvh_routines\CompWeightedOIT.h" />
+    <ClInclude Include="renderers\bvh_routines\PrimitiveBatch.h" />
     <ClInclude Include="renderers\CubeRenderTarget.h" />
     <ClInclude Include="renderers\GLPickingTarget.h" />
     <ClInclude Include="renderers\GLRenderer.h" />

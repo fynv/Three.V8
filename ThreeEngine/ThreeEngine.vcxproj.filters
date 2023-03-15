@@ -121,6 +121,12 @@
     <Filter Include="Source Files\JVB">
       <UniqueIdentifier>{932054e2-6e90-420a-b570-3564076c6009}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\renderers\bvh_routines">
+      <UniqueIdentifier>{1e50a684-f52f-4587-a55e-c73e2cceb570}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\renderers\bvh_routines">
+      <UniqueIdentifier>{7ccfff6d-d4c4-451c-a4ea-585638c0fe8d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="scenes\Scene.cpp">
@@ -401,6 +407,33 @@
     </ClCompile>
     <ClCompile Include="..\thirdparty\JVB\Triangle.cpp">
       <Filter>Source Files\JVB</Filter>
+    </ClCompile>
+    <ClCompile Include="core\CWBVH.cpp">
+      <Filter>Source Files\core</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\bvh_routines\BVHDepthOnly.cpp">
+      <Filter>Source Files\renderers\bvh_routines</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\BVHRenderTarget.cpp">
+      <Filter>Source Files\renderers</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\bvh_routines\BVHRoutine.cpp">
+      <Filter>Source Files\renderers\bvh_routines</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\BVHRenderer.cpp">
+      <Filter>Source Files\renderers</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\bvh_routines\CompSkyBox.cpp">
+      <Filter>Source Files\renderers\bvh_routines</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\bvh_routines\CompHemisphere.cpp">
+      <Filter>Source Files\renderers\bvh_routines</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\bvh_routines\PrimitiveBatch.cpp">
+      <Filter>Source Files\renderers\bvh_routines</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\bvh_routines\CompWeightedOIT.cpp">
+      <Filter>Source Files\renderers\bvh_routines</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -727,6 +760,33 @@
     </ClInclude>
     <ClInclude Include="..\thirdparty\JVB\Util.h">
       <Filter>Header Files\JVB</Filter>
+    </ClInclude>
+    <ClInclude Include="core\CWBVH.h">
+      <Filter>Header Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\bvh_routines\BVHDepthOnly.h">
+      <Filter>Header Files\renderers\bvh_routines</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\BVHRenderTarget.h">
+      <Filter>Header Files\renderers</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\bvh_routines\BVHRoutine.h">
+      <Filter>Header Files\renderers\bvh_routines</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\BVHRenderer.h">
+      <Filter>Header Files\renderers</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\bvh_routines\CompSkyBox.h">
+      <Filter>Header Files\renderers\bvh_routines</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\bvh_routines\CompHemisphere.h">
+      <Filter>Header Files\renderers\bvh_routines</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\bvh_routines\PrimitiveBatch.h">
+      <Filter>Header Files\renderers\bvh_routines</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\bvh_routines\CompWeightedOIT.h">
+      <Filter>Header Files\renderers\bvh_routines</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

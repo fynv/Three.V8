@@ -1,7 +1,10 @@
+#include <GL/glew.h>
 #include <list>
+#include <gtx/hash.hpp>
 
 #include "GLTFModel.h"
 #include "utils/Utils.h"
+#include "renderers/bvh_routines/PrimitiveBatch.h"
 
 void GLTFModel::calculate_bounding_box()
 {
@@ -135,6 +138,193 @@ void GLTFModel::updateNodes()
 
 	needUpdateSkinnedMeshes = num_skins>0;
 }
+
+template<typename T>
+inline void t_copy_indices(int num_face, int pos_offset, int face_offset, const uint8_t* p_indices_in, uint8_t* p_indices_out)
+{
+	const T* p_in = (const T*)p_indices_in;
+	int* p_out = (int*)p_indices_out;
+	for (int i = 0; i < num_face * 3; i++)
+	{
+		p_out[face_offset * 3 + i] = (int)(p_in[i]) + pos_offset;
+	}
+}
+
+inline void g_copy_indices(int num_face, int pos_offset, int face_offset, int type_indices, const uint8_t* p_indices_in, uint8_t* p_indices_out)
+{
+	if (type_indices == 1)
+	{
+		t_copy_indices<uint8_t>(num_face, pos_offset, face_offset, p_indices_in, p_indices_out);
+	}
+	if (type_indices == 2)
+	{
+		t_copy_indices<uint16_t>(num_face, pos_offset, face_offset, p_indices_in, p_indices_out);
+	}
+	else if (type_indices == 4)
+	{
+		t_copy_indices<uint32_t>(num_face, pos_offset, face_offset, p_indices_in, p_indices_out);
+	}
+
+}
+
+void GLTFModel::batch_primitives()
+{
+	struct BatchInfo
+	{
+		int num_pos = 0;
+		int num_face = 0;
+		bool has_color = false;
+		bool has_uv = false;
+		bool has_tangent = false;
+		std::vector<glm::ivec2> indices;
+	};
+
+	std::unordered_map<int, BatchInfo> primitive_map;
+
+	size_t num_meshes = m_meshs.size();
+	for (size_t i = 0; i < num_meshes; i++)
+	{
+		Mesh& mesh = m_meshs[i];
+
+		size_t num_prims = mesh.primitives.size();
+		for (size_t j = 0; j < num_prims; j++)
+		{
+			Primitive& prim = mesh.primitives[j];
+			BatchInfo& info = primitive_map[prim.material_idx];
+			info.num_pos += prim.num_pos;
+			info.num_face += prim.num_face;
+			info.has_color = info.has_color || prim.color_buf != nullptr;
+			info.has_uv = info.has_uv || prim.uv_buf != nullptr;
+			info.has_tangent = info.has_tangent || prim.geometry[0].tangent_buf != nullptr;
+			info.indices.push_back({ i,j });
+		}
+	}	
+
+	std::unique_ptr<PrimitiveBatch> batchers[8];
+	GLDynBuffer subModel(sizeof(ModelConst), GL_UNIFORM_BUFFER);
+
+	batched_mesh = std::unique_ptr<Mesh>(new Mesh);
+	{
+		ModelConst c;
+		c.ModelMat = matrixWorld;
+		c.NormalMat = glm::transpose(glm::inverse(matrixWorld));
+		batched_mesh->model_constant->upload(&c);
+	}
+
+
+	batched_mesh->primitives.resize(primitive_map.size());
+	int idx_prim = 0;
+
+	auto iter = primitive_map.begin();
+	while (iter != primitive_map.end())
+	{
+		BatchInfo info = iter->second;				
+		
+		Primitive& prim_batch = batched_mesh->primitives[idx_prim];
+		prim_batch.material_idx = iter->first;
+		prim_batch.type_indices = 4;
+		prim_batch.num_pos = info.num_pos;
+		prim_batch.num_face = info.num_face;		
+
+		bool has_color = info.has_color;
+		bool has_uv = info.has_uv;		
+		bool has_tangent = info.has_tangent;
+
+		int batcher_idx = (has_color ? 1 : 0) + (has_uv ? 2 : 0) + (has_tangent ? 4 : 0);
+		auto& batcher = batchers[batcher_idx];
+		if (batcher == nullptr)
+		{
+			batcher = std::unique_ptr<PrimitiveBatch>(new PrimitiveBatch( { has_color, has_uv, has_tangent }));
+		}
+
+		prim_batch.geometry.resize(1);
+		GeometrySet& geometry = prim_batch.geometry[0];
+
+		geometry.pos_buf = Attribute(new GLBuffer(sizeof(glm::vec4)* prim_batch.num_pos));	
+		geometry.normal_buf = Attribute(new GLBuffer(sizeof(glm::vec4) * prim_batch.num_pos));
+
+		if (has_color)
+		{
+			prim_batch.color_buf = Attribute(new GLBuffer(sizeof(glm::vec4) * prim_batch.num_pos));
+		}
+
+		if (has_uv)
+		{
+			prim_batch.uv_buf = Attribute(new GLBuffer(sizeof(glm::vec2) * prim_batch.num_pos));
+		}
+
+		if (has_tangent)
+		{
+			geometry.tangent_buf = Attribute(new GLBuffer(sizeof(glm::vec4) * prim_batch.num_pos));
+			geometry.bitangent_buf = Attribute(new GLBuffer(sizeof(glm::vec4) * prim_batch.num_pos));
+		}		
+
+		prim_batch.cpu_pos = std::unique_ptr<std::vector<glm::vec4>>(new std::vector<glm::vec4>(prim_batch.num_pos));
+		prim_batch.cpu_indices = std::unique_ptr<std::vector<uint8_t>>(new std::vector<uint8_t>(prim_batch.num_face * 3 * 4));
+
+		int pos_offset = 0;
+		int face_offset = 0;
+
+		const std::vector<glm::ivec2>& indices = info.indices;
+		for (size_t i = 0; i < indices.size(); i++)
+		{
+			int idx_mesh = indices[i].x;
+			int idx_prim = indices[i].y;
+			Mesh& mesh = m_meshs[idx_mesh];
+			Primitive& prim = mesh.primitives[idx_prim];
+
+			prim_batch.min_pos = glm::min(prim_batch.min_pos, prim.min_pos);
+			prim_batch.max_pos = glm::max(prim_batch.max_pos, prim.max_pos);
+
+			int num_pos = prim.num_pos;
+			for (int j = 0; j < num_pos; j++)
+			{
+				glm::vec4 pos = (*prim.cpu_pos)[j];
+				if (mesh.node_id >= 0 && mesh.skin_id < 0)
+				{
+					Node& node = m_nodes[mesh.node_id];
+					pos = node.g_trans * pos;
+				}
+				(*prim_batch.cpu_pos)[pos_offset + j] = pos;
+			}						
+
+			int num_face = prim.num_face;
+			g_copy_indices(num_face, pos_offset, face_offset, prim.type_indices, prim.cpu_indices->data(), prim_batch.cpu_indices->data());			
+
+			{
+				glm::mat4 matrix = glm::identity<glm::mat4>();
+				if (mesh.node_id >= 0 && mesh.skin_id < 0)
+				{
+					Node& node = m_nodes[mesh.node_id];
+					matrix = node.g_trans;
+				}
+
+				ModelConst c;
+				c.ModelMat = matrix;
+				c.NormalMat = glm::transpose(glm::inverse(matrix));
+				subModel.upload(&c);
+			}
+
+			PrimitiveBatch::Params params;
+			params.offset = pos_offset;
+			params.constant_model = &subModel;
+			params.primitive_in = &prim;
+			params.primitive_out = &prim_batch;
+			batcher->update(params);
+
+			pos_offset += num_pos;
+			face_offset += num_face;
+		}		
+
+		prim_batch.index_buf = Index(new IndexTextureBuffer(prim_batch.cpu_indices->size(), 4));
+		prim_batch.index_buf->upload(prim_batch.cpu_indices->data());		
+
+		iter++;
+		idx_prim++;
+	}
+
+}
+
 
 void GLTFModel::setAnimationFrame(const AnimationFrame& frame)
 {

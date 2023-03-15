@@ -1,0 +1,426 @@
+#include <GL/glew.h>
+#include "crc64/crc64.h"
+#include "GLUtils.h"
+#include "BVHRenderer.h"
+#include "BVHRenderTarget.h"
+#include "cameras/Camera.h"
+#include "cameras/PerspectiveCamera.h"
+#include "scenes/Scene.h"
+#include "backgrounds/Background.h"
+#include "backgrounds/BackgroundScene.h"
+#include "models/ModelComponents.h"
+#include "models/SimpleModel.h"
+#include "models/GLTFModel.h"
+#include "scenes/Fog.h"
+
+
+void BVHRenderer::check_bvh(SimpleModel* model)
+{
+	if (model->geometry.cwbvh == nullptr)
+	{
+		model->geometry.cwbvh = std::unique_ptr<CWBVH>(new CWBVH(&model->geometry, model->matrixWorld));
+	}
+}
+
+void BVHRenderer::check_bvh(GLTFModel* model)
+{
+	if (model->batched_mesh == nullptr)
+	{
+		model->batch_primitives();
+	}
+
+	//for (size_t i = 0; i < model->m_meshs.size(); i++)
+	{
+		//Mesh& mesh = model->m_meshs[i];
+		Mesh& mesh = *model->batched_mesh;
+		glm::mat4 matrix = model->matrixWorld;
+		if (mesh.node_id >= 0 && mesh.skin_id < 0)
+		{
+			Node& node = model->m_nodes[mesh.node_id];
+			matrix *= node.g_trans;
+		}
+
+		for (size_t j = 0; j < mesh.primitives.size(); j++)
+		{
+			Primitive& primitive = mesh.primitives[j];
+			if (primitive.cwbvh == nullptr)
+			{
+				primitive.cwbvh = std::unique_ptr<CWBVH>(new CWBVH(&primitive, matrix));
+			}
+		}
+	}	
+}
+
+BVHRoutine* BVHRenderer::get_routine(const BVHRoutine::Options& options)
+{
+	uint64_t hash = crc64(0, (const unsigned char*)&options, sizeof(BVHRoutine::Options));
+	auto iter = routine_map.find(hash);
+	if (iter == routine_map.end())
+	{
+		routine_map[hash] = std::unique_ptr<BVHRoutine>(new BVHRoutine(options));
+	}
+	return routine_map[hash].get();
+}
+
+void BVHRenderer::render_primitive(const BVHRoutine::RenderParams& params, Pass pass)
+{
+	const MeshStandardMaterial* material = params.material_list[params.primitive->material_idx];
+	const Lights* lights = params.lights;
+
+	BVHRoutine::Options options;
+	options.alpha_mode = material->alphaMode;	
+	options.specular_glossiness = material->specular_glossiness;
+	options.has_color = params.primitive->color_buf != nullptr;
+	options.has_color_texture = material->tex_idx_map >= 0;
+	options.has_metalness_map = material->tex_idx_metalnessMap >= 0;
+	options.has_roughness_map = material->tex_idx_roughnessMap >= 0;
+	options.has_emissive_map = material->tex_idx_emissiveMap >= 0;
+	options.has_specular_map = material->tex_idx_specularMap >= 0;
+	options.has_glossiness_map = material->tex_idx_glossinessMap >= 0;
+	options.num_directional_lights = lights->num_directional_lights;
+	options.num_directional_shadows = lights->num_directional_shadows;
+	options.has_environment_map = lights->environment_map != nullptr;
+	options.has_probe_grid = lights->probe_grid != nullptr;
+	if (options.has_probe_grid)
+	{
+		options.probe_reference_recorded = lights->probe_grid->record_references;
+	}
+	options.has_lod_probe_grid = lights->lod_probe_grid != nullptr;
+	options.has_ambient_light = lights->ambient_light != nullptr;
+	options.has_hemisphere_light = lights->hemisphere_light != nullptr;
+	options.has_fog = params.constant_fog != nullptr;
+	BVHRoutine* routine = get_routine(options);
+	routine->render(params);
+}
+
+void BVHRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog* fog, SimpleModel* model, Pass pass, BVHRenderTarget& target)
+{
+	const GLTexture2D* tex = &model->texture;
+	if (model->repl_texture != nullptr)
+	{
+		tex = model->repl_texture;
+	}
+
+	const MeshStandardMaterial* material = &model->material;
+
+	if (pass == Pass::Opaque)
+	{
+		if (material->alphaMode == AlphaMode::Blend) return;
+	}
+	else if (pass == Pass::Alpha)
+	{
+		if (material->alphaMode != AlphaMode::Blend) return;
+	}
+
+	BVHRoutine::RenderParams params;
+	params.tex_list = &tex;
+	params.material_list = &material;	
+	params.constant_model = &model->m_constant;
+	params.primitive = &model->geometry;
+	params.lights = &lights;
+
+	if (fog != nullptr)
+	{
+		params.constant_fog = &fog->m_constant;
+	}
+	else
+	{
+		params.constant_fog = nullptr;
+	}
+
+	params.target = &target;
+	params.constant_camera = &p_camera->m_constant;
+
+	render_primitive(params, pass);
+}
+
+void BVHRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog* fog, GLTFModel* model, Pass pass, BVHRenderTarget& target)
+{
+	std::vector<const GLTexture2D*> tex_lst(model->m_textures.size());
+	for (size_t i = 0; i < tex_lst.size(); i++)
+	{
+		auto iter = model->m_repl_textures.find(i);
+		if (iter != model->m_repl_textures.end())
+		{
+			tex_lst[i] = iter->second;
+		}
+		else
+		{
+			tex_lst[i] = model->m_textures[i].get();
+		}
+	}
+
+	std::vector<const MeshStandardMaterial*> material_lst(model->m_materials.size());
+	for (size_t i = 0; i < material_lst.size(); i++)
+		material_lst[i] = model->m_materials[i].get();
+
+	//for (size_t i = 0; i < model->m_meshs.size(); i++)
+	{
+		//Mesh& mesh = model->m_meshs[i];
+		Mesh& mesh = *model->batched_mesh;
+
+		for (size_t j = 0; j < mesh.primitives.size(); j++)
+		{
+			Primitive& primitive = mesh.primitives[j];		
+
+			const MeshStandardMaterial* material = material_lst[primitive.material_idx];
+			if (pass == Pass::Opaque)
+			{
+				if (material->alphaMode == AlphaMode::Blend) continue;
+			}
+			else if (pass == Pass::Alpha)
+			{
+				if (material->alphaMode != AlphaMode::Blend) continue;
+			}
+
+			BVHRoutine::RenderParams params;
+			params.tex_list = tex_lst.data();
+			params.material_list = material_lst.data();			
+			params.constant_model = mesh.model_constant.get();
+			params.primitive = &primitive;
+			params.lights = &lights;
+
+			if (fog != nullptr)
+			{
+				params.constant_fog = &fog->m_constant;
+			}
+			else
+			{
+				params.constant_fog = nullptr;
+			}
+
+			params.target = &target;
+			params.constant_camera = &p_camera->m_constant;
+
+			render_primitive(params, pass);
+		}
+	}
+
+}
+
+
+void BVHRenderer::render_depth_primitive(const BVHDepthOnly::RenderParams& params)
+{
+	const Primitive* prim = params.primitive;
+	if (DepthRenderer == nullptr)
+	{
+		DepthRenderer = std::unique_ptr<BVHDepthOnly>(new BVHDepthOnly);
+	}
+	DepthRenderer->render(params);
+}
+
+
+void BVHRenderer::render_depth_model(Camera* p_camera, SimpleModel* model, BVHRenderTarget& target)
+{
+	const MeshStandardMaterial* material = &model->material;
+	if (material->alphaMode != AlphaMode::Opaque) return;
+
+	BVHDepthOnly::RenderParams params;
+	params.material_list = &material;
+	params.primitive = &model->geometry;
+	params.target = &target;
+	params.constant_camera = &p_camera->m_constant;
+	render_depth_primitive(params);
+}
+
+
+void BVHRenderer::render_depth_model(Camera* p_camera, GLTFModel* model, BVHRenderTarget& target)
+{
+	std::vector<const MeshStandardMaterial*> material_lst(model->m_materials.size());
+	for (size_t i = 0; i < material_lst.size(); i++)
+		material_lst[i] = model->m_materials[i].get();
+
+	//for (size_t i = 0; i < model->m_meshs.size(); i++)
+	{
+		//Mesh& mesh = model->m_meshs[i];
+		Mesh& mesh = *model->batched_mesh;
+
+		for (size_t j = 0; j < mesh.primitives.size(); j++)
+		{
+			Primitive& primitive = mesh.primitives[j];
+
+			const MeshStandardMaterial* material = material_lst[primitive.material_idx];
+			if (material->alphaMode != AlphaMode::Opaque) continue;
+
+			BVHDepthOnly::RenderParams params;
+			params.material_list = material_lst.data();
+			params.primitive = &primitive;
+			params.target = &target;
+			params.constant_camera = &p_camera->m_constant;
+			render_depth_primitive(params);
+		}
+	}
+}
+
+
+void BVHRenderer::render(Scene& scene, Camera& camera, BVHRenderTarget& target)
+{
+	bool has_alpha = false;
+	bool has_opaque = false;
+
+	for (size_t i = 0; i < scene.simple_models.size(); i++)
+	{
+		SimpleModel* model = scene.simple_models[i];
+		const MeshStandardMaterial* material = &model->material;
+		if (material->alphaMode == AlphaMode::Blend)
+		{
+			has_alpha = true;
+		}
+		else
+		{
+			has_opaque = true;
+		}
+	}
+
+	for (size_t i = 0; i < scene.gltf_models.size(); i++)
+	{
+		GLTFModel* model = scene.gltf_models[i];
+		size_t num_materials = model->m_materials.size();
+		for (size_t i = 0; i < num_materials; i++)
+		{
+			const MeshStandardMaterial* material = model->m_materials[i].get();
+			if (material->alphaMode == AlphaMode::Blend)
+			{
+				has_alpha = true;
+			}
+			else
+			{
+				has_opaque = true;
+			}
+		}
+	}
+
+	while (scene.background != nullptr)
+	{
+		{
+			ColorBackground* bg = dynamic_cast<ColorBackground*>(scene.background);
+			if (bg != nullptr)
+			{
+				glm::vec4 color = { bg->color.r, bg->color.g, bg->color.b, 1.0f };
+				glClearTexImage(target.m_tex_video->tex_id, 0, GL_RGBA, GL_FLOAT, &color);
+				break;
+			}
+		}
+		{
+			CubeBackground* bg = dynamic_cast<CubeBackground*>(scene.background);
+			if (bg != nullptr)
+			{
+				if (SkyBoxDraw == nullptr)
+				{
+					SkyBoxDraw = std::unique_ptr<CompSkyBox>(new CompSkyBox);
+				}
+				SkyBoxDraw->render(&camera.m_constant, &bg->cubemap, &target);
+				break;
+			}
+		} 
+		{
+			HemisphereBackground* bg = dynamic_cast<HemisphereBackground*>(scene.background);
+			if (bg != nullptr)
+			{
+				bg->updateConstant();
+				if (HemisphereDraw == nullptr)
+				{
+					HemisphereDraw = std::unique_ptr<CompHemisphere>(new CompHemisphere);
+				}
+				HemisphereDraw->render(&camera.m_constant, &bg->m_constant, &target);
+				break;
+			}
+		}
+		{
+			BackgroundScene* bg = dynamic_cast<BackgroundScene*>(scene.background);
+			PerspectiveCamera* ref_cam = dynamic_cast<PerspectiveCamera*>(&camera);
+			if (bg != nullptr && bg->scene != nullptr && ref_cam != nullptr)
+			{
+				BackgroundScene::Camera cam(bg, ref_cam);
+				cam.updateMatrixWorld(false);
+				cam.updateConstant();
+				render(*bg->scene, cam, target);
+			}
+
+		}
+		break;
+	}
+
+
+	for (size_t i = 0; i < scene.simple_models.size(); i++)
+	{
+		SimpleModel* model = scene.simple_models[i];
+		check_bvh(model);
+	}
+
+	for (size_t i = 0; i < scene.gltf_models.size(); i++)
+	{
+		GLTFModel* model = scene.gltf_models[i];
+		check_bvh(model);
+	}
+
+	Lights& lights = scene.lights;
+
+	Fog* fog = nullptr;
+	if (scene.fog != nullptr && scene.fog->density > 0)
+	{
+		fog = scene.fog;
+	}
+
+
+	float max_depth = FLT_MAX;
+	glClearTexImage(target.m_tex_depth->tex_id, 0, GL_RED, GL_FLOAT, &max_depth);
+
+
+	if (has_opaque)
+	{
+		// depth-prepass
+		for (size_t i = 0; i < scene.simple_models.size(); i++)
+		{
+			SimpleModel* model = scene.simple_models[i];
+			render_depth_model(&camera, model, target);
+		}
+
+		for (size_t i = 0; i < scene.gltf_models.size(); i++)
+		{
+			GLTFModel* model = scene.gltf_models[i];
+			render_depth_model(&camera, model, target);
+		}
+
+		// opaque
+		for (size_t i = 0; i < scene.simple_models.size(); i++)
+		{
+			SimpleModel* model = scene.simple_models[i];
+			render_model(&camera, lights, fog, model, Pass::Opaque, target);
+		}
+
+		for (size_t i = 0; i < scene.gltf_models.size(); i++)
+		{
+			GLTFModel* model = scene.gltf_models[i];
+			render_model(&camera, lights, fog, model, Pass::Opaque, target);
+		}
+	}
+
+	if (has_alpha)
+	{
+		target.update_oit_buffers();
+
+		if (oit_resolver == nullptr)
+		{
+			oit_resolver = std::unique_ptr<CompWeightedOIT>(new CompWeightedOIT);
+		}
+		oit_resolver->PreDraw(target.m_OITBuffers);
+
+		for (size_t i = 0; i < scene.simple_models.size(); i++)
+		{
+			SimpleModel* model = scene.simple_models[i];
+			render_model(&camera, lights, fog, model, Pass::Alpha, target);
+		}
+
+		for (size_t i = 0; i < scene.gltf_models.size(); i++)
+		{
+			GLTFModel* model = scene.gltf_models[i];
+			render_model(&camera, lights, fog, model, Pass::Alpha, target);
+		}
+
+		
+		oit_resolver->PostDraw(&target);
+
+	}
+}
+

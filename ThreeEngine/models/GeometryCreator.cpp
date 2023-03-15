@@ -26,7 +26,7 @@ void GeometryCreator::create(Primitive* primitive, const std::vector<glm::vec4>&
 	primitive->uv_buf = (std::unique_ptr<GLBuffer>)(new GLBuffer(sizeof(glm::vec2) * primitive->num_pos, GL_ARRAY_BUFFER));
 	primitive->uv_buf->upload(uv.data());
 
-	primitive->index_buf = (std::unique_ptr<GLBuffer>)(new GLBuffer(sizeof(glm::ivec3) * primitive->num_face, GL_ELEMENT_ARRAY_BUFFER));
+	primitive->index_buf = (Index)(new IndexTextureBuffer(sizeof(glm::ivec3) * primitive->num_face, 4));
 	primitive->index_buf->upload(faces.data());
 
 	primitive->cpu_indices = std::unique_ptr<std::vector<uint8_t>>(new std::vector<uint8_t>(primitive->index_buf->m_size));

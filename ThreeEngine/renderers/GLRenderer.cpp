@@ -7,6 +7,7 @@
 #include "GLPickingTarget.h"
 #include "GLSpaceProbeTarget.h"
 #include "CubeRenderTarget.h"
+#include "BVHRenderTarget.h"
 #include "cameras/Camera.h"
 #include "cameras/PerspectiveCamera.h"
 #include "scenes/Scene.h"
@@ -2347,6 +2348,15 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 	
 	}
 	_render(scene, camera, target, true);
+
+
+	/*if (bvh_target == nullptr)
+	{
+		bvh_target = std::unique_ptr<BVHRenderTarget>(new BVHRenderTarget);
+	}
+	bvh_target->update(target.m_width, target.m_height);
+	bvh_renderer.render(scene, camera, *bvh_target);
+	renderTexture(bvh_target->m_tex_video.get(), 10, 10, 360* target.m_width / target.m_height, 360, target);*/
 	
 }
 

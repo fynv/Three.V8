@@ -36,6 +36,10 @@ public:
 
 	bool m_show_skeleton = false;
 
+	// Batching primitives of the same material - for BVH rendering
+	std::unique_ptr<Mesh> batched_mesh;
+	void batch_primitives();
+
 	// animations
 	void setAnimationFrame(const AnimationFrame& frame);
 

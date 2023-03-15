@@ -5,9 +5,20 @@
 #include <glm.hpp>
 #include <gtx/quaternion.hpp>
 #include "renderers/GLUtils.h"
+#include "core/CWBVH.h"
 
 typedef std::unique_ptr<GLBuffer> Attribute;
-typedef std::unique_ptr<GLBuffer> Index;
+
+class IndexTextureBuffer : public GLBuffer
+{
+public:
+	int type_indices;
+	unsigned tex_id;
+	IndexTextureBuffer(size_t size, int type_indices);
+	~IndexTextureBuffer();
+};
+
+typedef std::unique_ptr<IndexTextureBuffer> Index;
 
 struct GeometrySet
 {
@@ -46,6 +57,8 @@ public:
 	glm::vec3 max_pos = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
 	std::unique_ptr<std::vector<glm::vec4>> cpu_pos;
 	std::unique_ptr<std::vector<uint8_t>> cpu_indices;
+
+	std::unique_ptr<CWBVH> cwbvh;
 };
 
 class Node

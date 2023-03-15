@@ -28,7 +28,30 @@ inline glm::ivec3 get_indices(void* indices, int type_indices, int face_id)
 	}
 }
 
+IndexTextureBuffer::IndexTextureBuffer(size_t size, int type_indices)
+	: type_indices(type_indices)
+	, GLBuffer(size, GL_ELEMENT_ARRAY_BUFFER)
+{
+	glGenTextures(1, &tex_id);
+	glBindTexture(GL_TEXTURE_BUFFER, tex_id);	
+	if (type_indices == 1)
+	{
+		glTexBuffer(GL_TEXTURE_BUFFER, GL_R8UI, m_id);
+	}
+	else if (type_indices == 2)
+	{
+		glTexBuffer(GL_TEXTURE_BUFFER, GL_R16UI, m_id);
+	}
+	else if (type_indices == 4)
+	{
+		glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, m_id);
+	}	
+}
 
+IndexTextureBuffer::~IndexTextureBuffer()
+{
+	glDeleteTextures(1, &tex_id);
+}
 
 void Primitive::compute_wires()
 {
@@ -82,7 +105,7 @@ void Primitive::compute_wires()
 		}
 	}
 	num_wires = (int)wire_indices.size();
-	wire_ind_buf = (std::unique_ptr<GLBuffer>)(new GLBuffer(sizeof(glm::ivec2) * num_wires, GL_ELEMENT_ARRAY_BUFFER));
+	wire_ind_buf = (Index)(new IndexTextureBuffer(sizeof(glm::ivec2) * num_wires, 4));
 	wire_ind_buf->upload(wire_indices.data());
 }
 

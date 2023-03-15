@@ -93,7 +93,7 @@ public:
 	unsigned m_target = 0x8892;
 	size_t m_size = 0;
 	GLBuffer(size_t size, unsigned target = 0x8892 /*GL_ARRAY_BUFFER*/);
-	~GLBuffer();
+	virtual ~GLBuffer();
 	void upload(const void* data);
 	const GLBuffer& operator = (const GLBuffer& in);
 private:
