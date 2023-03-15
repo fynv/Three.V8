@@ -11,6 +11,8 @@
 #include "models/ModelComponents.h"
 #include "models/SimpleModel.h"
 #include "models/GLTFModel.h"
+#include "lights/DirectionalLight.h"
+#include "lights/DirectionalLightShadow.h"
 #include "scenes/Fog.h"
 
 
@@ -252,6 +254,86 @@ void BVHRenderer::render_depth_model(Camera* p_camera, GLTFModel* model, BVHRend
 	}
 }
 
+void BVHRenderer::_render_fog(const Camera& camera, const Lights& lights, const Fog& fog, BVHRenderTarget& target)
+{
+	CompDrawFog::Options options;	
+	options.has_ambient_light = lights.ambient_light != nullptr;
+	options.has_hemisphere_light = lights.hemisphere_light != nullptr;
+	options.has_environment_map = lights.environment_map != nullptr;
+
+	uint64_t hash = crc64(0, (const unsigned char*)&options, sizeof(CompDrawFog::Options));
+	auto iter = fog_draw_map.find(hash);
+	if (iter == fog_draw_map.end())
+	{
+		fog_draw_map[hash] = std::unique_ptr<CompDrawFog>(new CompDrawFog(options));
+	}
+	CompDrawFog* fog_draw = fog_draw_map[hash].get();
+
+	CompDrawFog::RenderParams params;		
+	params.constant_fog = &fog.m_constant;
+	params.lights = &lights;
+	params.target = &target;
+	params.constant_camera = &camera.m_constant;
+
+	fog_draw->render(params);
+
+}
+
+void BVHRenderer::_render_fog_rm(const Camera& camera, DirectionalLight& light, const Fog& fog, BVHRenderTarget& target)
+{
+	if (fog_ray_march == nullptr)
+	{
+		fog_ray_march = std::unique_ptr<CompFogRayMarching>(new CompFogRayMarching);
+	}
+
+	light.updateConstant();
+	CompFogRayMarching::RenderParams params;	
+	params.fog = &fog;
+	params.constant_diretional_light = &light.m_constant;
+	if (light.shadow != nullptr)
+	{
+		params.constant_diretional_shadow = &light.shadow->constant_shadow;
+		params.tex_shadow = light.shadow->m_lightTex;
+	}
+	else
+	{
+		params.constant_diretional_shadow = nullptr;
+		params.tex_shadow = -1;
+	}
+	params.target = &target;
+	params.camera = &camera;
+	fog_ray_march->render(params);
+
+}
+
+
+void BVHRenderer::_render_fog_rm_env(const Camera& camera, const Lights& lights, const Fog& fog, BVHRenderTarget& target)
+{
+	CompFogRayMarchingEnv::Options options;	
+	options.has_probe_grid = lights.probe_grid != nullptr;
+	if (options.has_probe_grid)
+	{
+		options.probe_reference_recorded = lights.probe_grid->record_references;
+	}
+	options.has_lod_probe_grid = lights.lod_probe_grid != nullptr;
+
+	uint64_t hash = crc64(0, (const unsigned char*)&options, sizeof(CompFogRayMarchingEnv::Options));
+	auto iter = fog_ray_march_map.find(hash);
+	if (iter == fog_ray_march_map.end())
+	{
+		fog_ray_march_map[hash] = std::unique_ptr<CompFogRayMarchingEnv>(new CompFogRayMarchingEnv(options));
+	}
+	CompFogRayMarchingEnv* fog_draw = fog_ray_march_map[hash].get();
+
+	CompFogRayMarchingEnv::RenderParams params;	
+	params.constant_fog = &fog.m_constant;
+	params.lights = &lights;
+	params.target = &target;
+	params.constant_camera = &camera.m_constant;
+
+	fog_draw->render(params);
+
+}
 
 void BVHRenderer::render(Scene& scene, Camera& camera, BVHRenderTarget& target)
 {
@@ -417,10 +499,25 @@ void BVHRenderer::render(Scene& scene, Camera& camera, BVHRenderTarget& target)
 			GLTFModel* model = scene.gltf_models[i];
 			render_model(&camera, lights, fog, model, Pass::Alpha, target);
 		}
-
 		
 		oit_resolver->PostDraw(&target);
+	}
 
+	if (fog != nullptr)
+	{
+		fog->updateConstant();
+		_render_fog(camera, lights, *fog, target);
+
+		for (size_t i = 0; i < scene.directional_lights.size(); i++)
+		{
+			DirectionalLight* light = scene.directional_lights[i];
+			_render_fog_rm(camera, *light, *fog, target);
+		}
+
+		if (lights.probe_grid != nullptr || lights.lod_probe_grid != nullptr)
+		{
+			_render_fog_rm_env(camera, lights, *fog, target);
+		}
 	}
 }
 

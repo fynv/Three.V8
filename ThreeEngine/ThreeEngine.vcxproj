@@ -185,6 +185,9 @@
     <ClCompile Include="network\WSClient.cpp" />
     <ClCompile Include="renderers\BVHRenderer.cpp" />
     <ClCompile Include="renderers\BVHRenderTarget.cpp" />
+    <ClCompile Include="renderers\bvh_routines\CompDrawFog.cpp" />
+    <ClCompile Include="renderers\bvh_routines\CompFogRayMarching.cpp" />
+    <ClCompile Include="renderers\bvh_routines\CompFogRayMarchingEnv.cpp" />
     <ClCompile Include="renderers\bvh_routines\CompHemisphere.cpp" />
     <ClCompile Include="renderers\bvh_routines\CompSkyBox.cpp" />
     <ClCompile Include="renderers\bvh_routines\BVHDepthOnly.cpp" />
@@ -301,6 +304,9 @@
     <ClInclude Include="network\WSClient.h" />
     <ClInclude Include="renderers\BVHRenderer.h" />
     <ClInclude Include="renderers\BVHRenderTarget.h" />
+    <ClInclude Include="renderers\bvh_routines\CompDrawFog.h" />
+    <ClInclude Include="renderers\bvh_routines\CompFogRayMarching.h" />
+    <ClInclude Include="renderers\bvh_routines\CompFogRayMarchingEnv.h" />
     <ClInclude Include="renderers\bvh_routines\CompHemisphere.h" />
     <ClInclude Include="renderers\bvh_routines\CompSkyBox.h" />
     <ClInclude Include="renderers\bvh_routines\BVHDepthOnly.h" />

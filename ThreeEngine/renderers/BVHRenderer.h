@@ -7,6 +7,9 @@
 #include "renderers/bvh_routines/CompSkyBox.h"
 #include "renderers/bvh_routines/CompHemisphere.h"
 #include "renderers/bvh_routines/CompWeightedOIT.h"
+#include "renderers/bvh_routines/CompDrawFog.h"
+#include "renderers/bvh_routines/CompFogRayMarching.h"
+#include "renderers/bvh_routines/CompFogRayMarchingEnv.h"
 
 class Scene;
 class Fog;
@@ -14,6 +17,8 @@ class Camera;
 class BVHRenderTarget;
 class SimpleModel;
 class GLTFModel;
+class DirectionalLight;
+class DirectionalLightShadow;
 
 class BVHRenderer
 {
@@ -47,5 +52,12 @@ private:
 	void render_depth_model(Camera* p_camera, SimpleModel* model, BVHRenderTarget& target);
 	void render_depth_model(Camera* p_camera, GLTFModel* model, BVHRenderTarget& target);
 
+	std::unordered_map<uint64_t, std::unique_ptr<CompDrawFog>> fog_draw_map;
+	std::unique_ptr<CompFogRayMarching> fog_ray_march;
+	std::unordered_map<uint64_t, std::unique_ptr<CompFogRayMarchingEnv>> fog_ray_march_map;
+
+	void _render_fog(const Camera& camera, const Lights& lights, const Fog& fog, BVHRenderTarget& target);
+	void _render_fog_rm(const Camera& camera, DirectionalLight& light, const Fog& fog, BVHRenderTarget& target);
+	void _render_fog_rm_env(const Camera& camera, const Lights& lights, const Fog& fog, BVHRenderTarget& target);
 };
 

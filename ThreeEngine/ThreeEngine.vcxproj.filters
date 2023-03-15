@@ -435,6 +435,15 @@
     <ClCompile Include="renderers\bvh_routines\CompWeightedOIT.cpp">
       <Filter>Source Files\renderers\bvh_routines</Filter>
     </ClCompile>
+    <ClCompile Include="renderers\bvh_routines\CompDrawFog.cpp">
+      <Filter>Source Files\renderers\bvh_routines</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\bvh_routines\CompFogRayMarching.cpp">
+      <Filter>Source Files\renderers\bvh_routines</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\bvh_routines\CompFogRayMarchingEnv.cpp">
+      <Filter>Source Files\renderers\bvh_routines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -786,6 +795,15 @@
       <Filter>Header Files\renderers\bvh_routines</Filter>
     </ClInclude>
     <ClInclude Include="renderers\bvh_routines\CompWeightedOIT.h">
+      <Filter>Header Files\renderers\bvh_routines</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\bvh_routines\CompDrawFog.h">
+      <Filter>Header Files\renderers\bvh_routines</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\bvh_routines\CompFogRayMarching.h">
+      <Filter>Header Files\renderers\bvh_routines</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\bvh_routines\CompFogRayMarchingEnv.h">
       <Filter>Header Files\renderers\bvh_routines</Filter>
     </ClInclude>
   </ItemGroup>
