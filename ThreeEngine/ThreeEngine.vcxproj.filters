@@ -444,6 +444,15 @@
     <ClCompile Include="renderers\bvh_routines\CompFogRayMarchingEnv.cpp">
       <Filter>Source Files\renderers\bvh_routines</Filter>
     </ClCompile>
+    <ClCompile Include="lights\ProbeRayList.cpp">
+      <Filter>Source Files\lights</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\ProbeRenderTarget.cpp">
+      <Filter>Source Files\renderers</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\bvh_routines\VisibilityUpdate.cpp">
+      <Filter>Source Files\renderers\bvh_routines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -804,6 +813,15 @@
       <Filter>Header Files\renderers\bvh_routines</Filter>
     </ClInclude>
     <ClInclude Include="renderers\bvh_routines\CompFogRayMarchingEnv.h">
+      <Filter>Header Files\renderers\bvh_routines</Filter>
+    </ClInclude>
+    <ClInclude Include="lights\ProbeRayList.h">
+      <Filter>Header Files\lights</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\ProbeRenderTarget.h">
+      <Filter>Header Files\renderers</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\bvh_routines\VisibilityUpdate.h">
       <Filter>Header Files\renderers\bvh_routines</Filter>
     </ClInclude>
   </ItemGroup>

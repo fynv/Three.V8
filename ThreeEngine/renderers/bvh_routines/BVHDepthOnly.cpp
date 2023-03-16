@@ -2,6 +2,7 @@
 #include "models/ModelComponents.h"
 #include "BVHDepthOnly.h"
 #include "renderers/BVHRenderTarget.h"
+#include "lights/ProbeRayList.h"
 
 static std::string g_compute =
 R"(#version 430
@@ -25,6 +26,8 @@ struct BVH8Node
 layout (location = 0) uniform samplerBuffer uTexBVH8;
 layout (location = 1) uniform samplerBuffer uTexTriangles;
 layout (location = 2) uniform isamplerBuffer uTexIndices;
+
+#DEFINES#
 
 layout (std140, binding = 0) uniform Material
 {
@@ -267,11 +270,30 @@ void intersect()
 }
 
 layout (binding=0, r32f) uniform image2D uDepth;
-
 layout(local_size_x = 32, local_size_y = 2) in;
 
+ivec2 g_id_io;
+vec3 g_origin;
+vec3 g_dir;
+float g_tmin;
+float g_tmax;
 
+void render()
+{
+	g_ray.origin = g_origin;
+	g_ray.direction = g_dir;
+	g_ray.tmin = g_tmin;
+	g_ray.tmax = g_tmax;
 
+	intersect();	
+	
+	if (g_ray.tmax < g_tmax)
+	{		
+		imageStore(uDepth, g_id_io, vec4(g_ray.tmax));
+	}	
+}
+
+#if TO_CAMERA
 layout (std140, binding = 1) uniform Camera
 {
 	mat4 uProjMat;
@@ -297,26 +319,99 @@ void main()
 	vec3 world0 = vec3(uInvViewMat*view0);
 	vec3 world1 = vec3(uInvViewMat*view1);	
 	vec3 dir = normalize(world0 - uEyePos);
-	
-	g_ray.origin = uEyePos;
-	g_ray.direction = dir;
-	g_ray.tmin = length(world0 - uEyePos);
-	g_ray.tmax = min(tmax, length(world1 - uEyePos));
 
-	intersect();	
+	g_id_io = id;
+	g_origin = uEyePos;
+	g_dir = dir;
+	g_tmin = length(world0 - uEyePos);
+	g_tmax =  min(tmax, length(world1 - uEyePos));
 	
-	if (g_ray.tmax < tmax)
-	{		
-		imageStore(uDepth, id, vec4(g_ray.tmax));
-	}	
-	
+	render();
 }
+#elif TO_PROBES
+
+layout (std140, binding = 1) uniform ProbeRayList
+{
+	mat4 uPRLRotation;
+	int uRPLNumProbes;
+	int uPRLNumDirections;
+	float uPRLMaxDistance;	
+};
+
+layout (std430, binding = 2) buffer ProbePositions
+{
+	vec4 uProbePos[];
+};
+
+#define PI 3.14159265359
+
+vec3 sphericalFibonacci(float i, float n)
+{
+	const float PHI = sqrt(5.0) * 0.5 + 0.5;
+	float m = i * (PHI - 1.0);
+	float frac_m = m - floor(m);
+	float phi = 2.0 *  PI * frac_m;
+	float cosTheta = 1.0 - (2.0 * i + 1.0) * (1.0 / n);
+    float sinTheta = sqrt(clamp(1.0 - cosTheta * cosTheta, 0.0, 1.0));
+	return vec3(cos(phi)*sinTheta, sin(phi)*sinTheta, cosTheta);	
+}
+
+void main()
+{	
+	ivec2 local_id = ivec3(gl_LocalInvocationID).xy;	
+	ivec2 group_id = ivec3(gl_WorkGroupID).xy;
+	int probe_id = group_id.y;
+	int ray_id = local_id.x + local_id.y*32 + group_id.x * 64;	
+	g_id_io = ivec2(ray_id, probe_id);
+	g_origin = uProbePos[probe_id].xyz;
+
+	vec3 sf = sphericalFibonacci(ray_id, uPRLNumDirections);
+	vec4 dir = uPRLRotation * vec4(sf, 0.0);
+	g_dir = dir.xyz;
+
+	g_tmin = 0.0;
+	float tmax = imageLoad(uDepth, g_id_io).x;
+	g_tmax = min(tmax, uPRLMaxDistance);		
+	
+	render();
+}
+
+#endif
 )";
 
-
-BVHDepthOnly::BVHDepthOnly()
+inline void replace(std::string& str, const char* target, const char* source)
 {
-	GLShader comp_shader(GL_COMPUTE_SHADER, g_compute.c_str());
+	int start = 0;
+	size_t target_len = strlen(target);
+	size_t source_len = strlen(source);
+	while (true)
+	{
+		size_t pos = str.find(target, start);
+		if (pos == std::string::npos) break;
+		str.replace(pos, target_len, source);
+		start = pos + source_len;
+	}
+}
+
+BVHDepthOnly::BVHDepthOnly(bool to_probe) : m_to_probe(to_probe)
+{
+	std::string s_compute = g_compute;
+	
+	std::string defines = "";
+	if (to_probe)
+	{
+		defines += "#define TO_CAMERA 0\n";
+		defines += "#define TO_PROBES 1\n";
+	}
+	else
+	{
+		defines += "#define TO_CAMERA 1\n";
+		defines += "#define TO_PROBES 0\n";
+	}
+
+	replace(s_compute, "#DEFINES#", defines.c_str());
+
+	GLShader comp_shader(GL_COMPUTE_SHADER, s_compute.c_str());
 	m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(comp_shader));
 }
 
@@ -348,12 +443,23 @@ void BVHDepthOnly::render(const RenderParams& params)
 	
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, material.constant_material.m_id);
 
-	glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.constant_camera->m_id);
-
 	glBindImageTexture(0, target->m_tex_depth->tex_id, 0, GL_TRUE, 0, GL_READ_WRITE, GL_R32F);
 
-	glm::ivec2 blocks = { (width + 31) / 32, (height + 1) / 2 };
-	glDispatchCompute(blocks.x, blocks.y, 1);
+	if (!m_to_probe)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.constant_camera->m_id);		
+
+		glm::ivec2 blocks = { (width + 31) / 32, (height + 1) / 2 };
+		glDispatchCompute(blocks.x, blocks.y, 1);
+	}
+	else
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.prl->m_constant.m_id);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, params.prl->buf_positions->m_id);
+
+		glm::ivec2 blocks = { (width + 63) / 64, height };
+		glDispatchCompute(blocks.x, blocks.y, 1);
+	}
 
 	glUseProgram(0);
 }

@@ -8,6 +8,7 @@
 #include "GLSpaceProbeTarget.h"
 #include "CubeRenderTarget.h"
 #include "BVHRenderTarget.h"
+#include "ProbeRenderTarget.h"
 #include "cameras/Camera.h"
 #include "cameras/PerspectiveCamera.h"
 #include "scenes/Scene.h"
@@ -23,6 +24,7 @@
 #include "scenes/Fog.h"
 #include "lights/ProbeGridWidget.h"
 #include "lights/LODProbeGridWidget.h"
+#include "lights/ProbeRayList.h"
 
 //#include <gtx/string_cast.hpp>
 
@@ -2350,13 +2352,54 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 	_render(scene, camera, target, true);
 
 
-	/*if (bvh_target == nullptr)
+	if (bvh_target == nullptr)
 	{
 		bvh_target = std::unique_ptr<BVHRenderTarget>(new BVHRenderTarget);
 	}
-	bvh_target->update(target.m_width, target.m_height);
+	/*bvh_target->update(target.m_width, target.m_height);
 	bvh_renderer.render(scene, camera, *bvh_target);
 	renderTexture(bvh_target->m_tex_video.get(), 10, 10, 360* target.m_width / target.m_height, 360, target);*/
+
+#if 0
+	if (scene.lights.probe_grid != nullptr)
+	{
+		glm::ivec3 divs = scene.lights.probe_grid->divisions;
+		int num_probes = divs.x * divs.y * divs.z;
+		//if (num_probes > 512) num_probes = 512;
+		ProbeRayList prl(*scene.lights.probe_grid, 0, num_probes, 256);
+		bvh_target->update(256, num_probes, false);
+		bvh_renderer.render_probe_depth(scene, prl, *bvh_target);
+
+		if (probe_target == nullptr)
+		{
+			probe_target = std::unique_ptr<ProbeRenderTarget>(new ProbeRenderTarget);			
+		}
+		probe_target->update_vis(scene.lights.probe_grid->pack_res);
+		bvh_renderer.update_probe_visibility(*bvh_target, prl, *scene.lights.probe_grid, 0, 1.0f, probe_target.get());
+
+		renderTexture(probe_target->m_tex_visibility.get(), 10, 10, 360, 360, target);
+	}
+	else if (scene.lights.lod_probe_grid != nullptr)
+	{
+		int num_probes = scene.lights.lod_probe_grid->getNumberOfProbes();
+		//if (num_probes > 512) num_probes = 512;
+		ProbeRayList prl(*scene.lights.lod_probe_grid, 0, num_probes, 256);
+		bvh_target->update(256, num_probes, false);
+		bvh_renderer.render_probe_depth(scene, prl, *bvh_target);
+
+		if (probe_target == nullptr)
+		{
+			probe_target = std::unique_ptr<ProbeRenderTarget>(new ProbeRenderTarget);
+		}
+		probe_target->update_vis(scene.lights.lod_probe_grid->pack_res);
+		
+		bvh_renderer.update_probe_visibility(*bvh_target, prl, *scene.lights.lod_probe_grid, 0, 1.0f, probe_target.get());
+		renderTexture(probe_target->m_tex_visibility.get(), 10, 10, 360, 360, target);
+		
+		//bvh_renderer.update_probe_visibility(*bvh_target, prl, *scene.lights.lod_probe_grid, 0, 0.2f);
+		//renderTexture(scene.lights.lod_probe_grid->m_tex_visibility.get(), 10, 10, 360, 360, target);
+	}
+#endif	
 	
 }
 

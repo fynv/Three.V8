@@ -10,6 +10,7 @@
 #include "renderers/bvh_routines/CompDrawFog.h"
 #include "renderers/bvh_routines/CompFogRayMarching.h"
 #include "renderers/bvh_routines/CompFogRayMarchingEnv.h"
+#include "renderers/bvh_routines/VisibilityUpdate.h"
 
 class Scene;
 class Fog;
@@ -20,10 +21,17 @@ class GLTFModel;
 class DirectionalLight;
 class DirectionalLightShadow;
 
+class ProbeRayList;
+class ProbeRenderTarget;
+
 class BVHRenderer
 {
 public:
 	void render(Scene& scene, Camera& camera, BVHRenderTarget& target);
+
+	void render_probe_depth(Scene& scene, ProbeRayList& prl, BVHRenderTarget& target);
+	void update_probe_visibility(const BVHRenderTarget& source, const ProbeRayList& prl, const ProbeGrid& probe_grid, int id_start_probe, float mix_rate = 1.0f, ProbeRenderTarget* target = nullptr);
+	void update_probe_visibility(const BVHRenderTarget& source, const ProbeRayList& prl, const LODProbeGrid& probe_grid, int id_start_probe, float mix_rate = 1.0f, ProbeRenderTarget* target = nullptr);
 
 private:
 	std::unique_ptr<CompWeightedOIT> oit_resolver;
@@ -59,5 +67,16 @@ private:
 	void _render_fog(const Camera& camera, const Lights& lights, const Fog& fog, BVHRenderTarget& target);
 	void _render_fog_rm(const Camera& camera, DirectionalLight& light, const Fog& fog, BVHRenderTarget& target);
 	void _render_fog_rm_env(const Camera& camera, const Lights& lights, const Fog& fog, BVHRenderTarget& target);
+
+	/////////////// Render to Probe //////////////////
+
+	std::unique_ptr<BVHDepthOnly> ProbeDepthRenderer;
+	void render_probe_depth_primitive(const BVHDepthOnly::RenderParams& params);
+	void render_probe_depth_model(ProbeRayList& prl, SimpleModel* model, BVHRenderTarget& target);
+	void render_probe_depth_model(ProbeRayList& prl, GLTFModel* model, BVHRenderTarget& target);
+
+	std::unique_ptr<VisibilityUpdate> VisibilityUpdaters[2];
+
+
 };
 

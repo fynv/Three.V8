@@ -168,6 +168,7 @@
     <ClCompile Include="lights\LODProbeGridWidget.cpp" />
     <ClCompile Include="lights\ProbeGrid.cpp" />
     <ClCompile Include="lights\ProbeGridWidget.cpp" />
+    <ClCompile Include="lights\ProbeRayList.cpp" />
     <ClCompile Include="loaders\FileLoader.cpp" />
     <ClCompile Include="loaders\GLTFLoader.cpp" />
     <ClCompile Include="loaders\ImageLoader.cpp" />
@@ -194,6 +195,7 @@
     <ClCompile Include="renderers\bvh_routines\BVHRoutine.cpp" />
     <ClCompile Include="renderers\bvh_routines\CompWeightedOIT.cpp" />
     <ClCompile Include="renderers\bvh_routines\PrimitiveBatch.cpp" />
+    <ClCompile Include="renderers\bvh_routines\VisibilityUpdate.cpp" />
     <ClCompile Include="renderers\CubeRenderTarget.cpp" />
     <ClCompile Include="renderers\GLPickingTarget.cpp" />
     <ClCompile Include="renderers\GLRenderer.cpp" />
@@ -201,6 +203,7 @@
     <ClCompile Include="renderers\GLSpaceProbeTarget.cpp" />
     <ClCompile Include="renderers\GLUIRenderer.cpp" />
     <ClCompile Include="renderers\GLUtils.cpp" />
+    <ClCompile Include="renderers\ProbeRenderTarget.cpp" />
     <ClCompile Include="renderers\routines\DepthOnly.cpp" />
     <ClCompile Include="renderers\routines\DirectionalShadowCast.cpp" />
     <ClCompile Include="renderers\routines\DrawFog.cpp" />
@@ -286,6 +289,7 @@
     <ClInclude Include="lights\LODProbeGridWidget.h" />
     <ClInclude Include="lights\ProbeGrid.h" />
     <ClInclude Include="lights\ProbeGridWidget.h" />
+    <ClInclude Include="lights\ProbeRayList.h" />
     <ClInclude Include="loaders\FileLoader.h" />
     <ClInclude Include="loaders\GLTFLoader.h" />
     <ClInclude Include="loaders\ImageLoader.h" />
@@ -313,6 +317,7 @@
     <ClInclude Include="renderers\bvh_routines\BVHRoutine.h" />
     <ClInclude Include="renderers\bvh_routines\CompWeightedOIT.h" />
     <ClInclude Include="renderers\bvh_routines\PrimitiveBatch.h" />
+    <ClInclude Include="renderers\bvh_routines\VisibilityUpdate.h" />
     <ClInclude Include="renderers\CubeRenderTarget.h" />
     <ClInclude Include="renderers\GLPickingTarget.h" />
     <ClInclude Include="renderers\GLRenderer.h" />
@@ -320,6 +325,7 @@
     <ClInclude Include="renderers\GLSpaceProbeTarget.h" />
     <ClInclude Include="renderers\GLUIRenderer.h" />
     <ClInclude Include="renderers\GLUtils.h" />
+    <ClInclude Include="renderers\ProbeRenderTarget.h" />
     <ClInclude Include="renderers\routines\DepthOnly.h" />
     <ClInclude Include="renderers\routines\DirectionalShadowCast.h" />
     <ClInclude Include="renderers\routines\DrawFog.h" />

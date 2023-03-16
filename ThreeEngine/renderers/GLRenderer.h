@@ -173,7 +173,8 @@ private:
 	void scene_to_volume_model(GLTFModel* model, SceneToVolume::RenderParams& params);
 
 
-	BVHRenderer bvh_renderer;
+	BVHRenderer bvh_renderer;	
 	std::unique_ptr<BVHRenderTarget> bvh_target;
+	std::unique_ptr<ProbeRenderTarget> probe_target;
 };
 

@@ -483,6 +483,8 @@ CompFogRayMarchingEnv::CompFogRayMarchingEnv(const Options& options) : m_options
 
 void CompFogRayMarchingEnv::render(const RenderParams& params)
 {
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
 	int width = params.target->m_width;
 	int height = params.target->m_height;
 

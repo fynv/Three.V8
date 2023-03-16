@@ -53,6 +53,8 @@ CompHemisphere::CompHemisphere()
 
 void CompHemisphere::render(const GLDynBuffer* constant_camera, const GLDynBuffer* constant_hemisphere, const BVHRenderTarget* target)
 {
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
 	int width = target->m_width;
 	int height = target->m_height;
 

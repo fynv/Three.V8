@@ -14,6 +14,7 @@
 #include "lights/DirectionalLight.h"
 #include "lights/DirectionalLightShadow.h"
 #include "scenes/Fog.h"
+#include "lights/ProbeRayList.h"
 
 
 void BVHRenderer::check_bvh(SimpleModel* model)
@@ -521,3 +522,121 @@ void BVHRenderer::render(Scene& scene, Camera& camera, BVHRenderTarget& target)
 	}
 }
 
+/////////////// Render to Probe //////////////////
+
+void BVHRenderer::render_probe_depth_primitive(const BVHDepthOnly::RenderParams& params)
+{
+	const Primitive* prim = params.primitive;
+	if (ProbeDepthRenderer == nullptr)
+	{
+		ProbeDepthRenderer = std::unique_ptr<BVHDepthOnly>(new BVHDepthOnly(true));
+	}
+	ProbeDepthRenderer->render(params);
+}
+
+void BVHRenderer::render_probe_depth_model(ProbeRayList& prl, SimpleModel* model, BVHRenderTarget& target)
+{
+	const MeshStandardMaterial* material = &model->material;
+	if (material->alphaMode != AlphaMode::Opaque) return;
+
+	BVHDepthOnly::RenderParams params;
+	params.material_list = &material;
+	params.primitive = &model->geometry;
+	params.target = &target;
+	params.prl = &prl;
+	render_probe_depth_primitive(params);
+}
+
+void BVHRenderer::render_probe_depth_model(ProbeRayList& prl, GLTFModel* model, BVHRenderTarget& target)
+{
+	std::vector<const MeshStandardMaterial*> material_lst(model->m_materials.size());
+	for (size_t i = 0; i < material_lst.size(); i++)
+		material_lst[i] = model->m_materials[i].get();
+
+	//for (size_t i = 0; i < model->m_meshs.size(); i++)
+	{
+		//Mesh& mesh = model->m_meshs[i];
+		Mesh& mesh = *model->batched_mesh;
+
+		for (size_t j = 0; j < mesh.primitives.size(); j++)
+		{
+			Primitive& primitive = mesh.primitives[j];
+
+			const MeshStandardMaterial* material = material_lst[primitive.material_idx];
+			if (material->alphaMode != AlphaMode::Opaque) continue;
+
+			BVHDepthOnly::RenderParams params;
+			params.material_list = material_lst.data();
+			params.primitive = &primitive;
+			params.target = &target;
+			params.prl = &prl;
+			render_probe_depth_primitive(params);
+		}
+	}
+}
+
+void BVHRenderer::render_probe_depth(Scene& scene, ProbeRayList& prl, BVHRenderTarget& target)
+{
+	for (size_t i = 0; i < scene.simple_models.size(); i++)
+	{
+		SimpleModel* model = scene.simple_models[i];
+		check_bvh(model);
+	}
+
+	for (size_t i = 0; i < scene.gltf_models.size(); i++)
+	{
+		GLTFModel* model = scene.gltf_models[i];
+		check_bvh(model);
+	}
+
+	float max_depth = prl.max_distance;
+	glClearTexImage(target.m_tex_depth->tex_id, 0, GL_RED, GL_FLOAT, &max_depth);
+
+	for (size_t i = 0; i < scene.simple_models.size(); i++)
+	{
+		SimpleModel* model = scene.simple_models[i];
+		render_probe_depth_model(prl, model, target);
+	}
+
+	for (size_t i = 0; i < scene.gltf_models.size(); i++)
+	{
+		GLTFModel* model = scene.gltf_models[i];
+		render_probe_depth_model(prl, model, target);
+	}
+
+}
+
+void BVHRenderer::update_probe_visibility(const BVHRenderTarget& source, const ProbeRayList& prl, const ProbeGrid& probe_grid, int id_start_probe, float mix_rate, ProbeRenderTarget* target)
+{
+	if (VisibilityUpdaters[0] == nullptr)
+	{
+		VisibilityUpdaters[0] = std::unique_ptr<VisibilityUpdate>(new VisibilityUpdate(false));
+	}
+	VisibilityUpdate::RenderParams params;
+	params.id_start_probe = id_start_probe;
+	params.mix_rate = mix_rate;
+	params.source = &source;
+	params.prl = &prl;
+	params.probe_grid = &probe_grid;
+	params.lod_probe_grid = nullptr;
+	params.target = target;
+	VisibilityUpdaters[0]->update(params);
+}
+
+
+void BVHRenderer::update_probe_visibility(const BVHRenderTarget& source, const ProbeRayList& prl, const LODProbeGrid& probe_grid, int id_start_probe, float mix_rate, ProbeRenderTarget* target)
+{
+	if (VisibilityUpdaters[1] == nullptr)
+	{
+		VisibilityUpdaters[1] = std::unique_ptr<VisibilityUpdate>(new VisibilityUpdate(true));
+	}
+	VisibilityUpdate::RenderParams params;
+	params.id_start_probe = id_start_probe;
+	params.mix_rate = mix_rate;
+	params.source = &source;
+	params.prl = &prl;
+	params.probe_grid = nullptr;
+	params.lod_probe_grid = &probe_grid;
+	params.target = target;
+	VisibilityUpdaters[1]->update(params);
+}

@@ -1,4 +1,5 @@
 #include <GL/glew.h>
+#include <gtc/random.hpp>
 #include "ProbeGrid.h"
 
 #include "scenes/Scene.h"
@@ -7,6 +8,28 @@
 #include "core/BoundingVolumeHierarchy.h"
 
 #include "EnvironmentMapCreator.h"
+
+const double PI = 3.14159265359;
+
+inline double rand01()
+{
+	return (double)rand() / ((double)RAND_MAX + 1.0);
+}
+
+inline double randRad()
+{
+	return rand01() * 2.0 * PI;
+}
+
+inline glm::mat4 rand_rotation()
+{
+	glm::vec3 axis = glm::sphericalRand(1.0f);
+	float angle = randRad();
+	glm::quat quat = glm::angleAxis(angle, axis);
+	return glm::toMat4(quat);
+}
+
+
 
 struct ProbeGridConst
 {
@@ -288,6 +311,20 @@ inline glm::vec3 oct_to_vec3(const glm::vec2& e)
 	return glm::normalize(v);
 }
 
+
+inline glm::vec3 sphericalFibonacci(float i, float n)
+{
+	const float PHI = sqrt(5.0f) * 0.5f + 0.5f;
+	float m = i * (PHI - 1.0f);
+	float frac_m = m - floor(m);
+	float phi = 2.0f * PI * frac_m;
+	float cosTheta = 1.0f - (2.0f * i + 1.0f) * (1.0f / n);
+	float sinTheta = sqrtf(glm::clamp(1.0f - cosTheta * cosTheta, 0.0f, 1.0f));
+	return glm::vec3(cosf(phi) * sinTheta, sinf(phi) * sinTheta, cosTheta);
+}
+
+
+
 void ProbeGrid::construct_visibility(Scene& scene)
 {
 	std::vector<Object3D*> objects;
@@ -321,6 +358,39 @@ void ProbeGrid::construct_visibility(Scene& scene)
 	float max_visibility = glm::length(spacing);
 
 	size_t num_probes = divisions.x * divisions.y * divisions.z;
+	int num_rays = 256;
+
+	glm::mat4 rand_rot = rand_rotation();
+
+	struct Sample
+	{
+		int ray_id;
+		float weight;
+	};
+
+	std::vector<std::vector<Sample>> samples(vis_res * vis_res);
+
+	for (int y = 0; y < vis_res; y++)
+	{
+		for (int x = 0; x < vis_res; x++)
+		{
+			glm::vec2 v2 = glm::vec2(float(x) + 0.5f, float(y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
+			glm::vec3 out_dir = oct_to_vec3(v2);
+
+			for (int ray_id = 0; ray_id < num_rays; ray_id++)
+			{
+				glm::vec3 sf = sphericalFibonacci(ray_id, num_rays);
+				glm::vec3 in_dir = glm::vec3(rand_rot * glm::vec4(sf, 0.0f));
+
+				float weight = powf(glm::max(0.0f, glm::dot(in_dir, out_dir)), 50.0);
+				if (weight > 1e-6f)
+				{
+					samples[x + y * vis_res].push_back({ ray_id, weight });
+				}
+			}
+		}
+	}
+
 	std::vector<float> f_mean_dis(vis_res * vis_res * num_probes, max_visibility);
 	std::vector<float> f_mean_var(vis_res * vis_res * num_probes, max_visibility);
 
@@ -358,326 +428,90 @@ void ProbeGrid::construct_visibility(Scene& scene)
 					max_visibility
 				};
 
-				std::vector<float> distance(vis_res * vis_res);
-				std::vector<float> sqr_dis(vis_res * vis_res);
-				for (int y = 0; y < vis_res; y++)
+				std::vector<float> distance(num_rays);
+
+				for (int ray_id = 0; ray_id < num_rays; ray_id++)
 				{
-					for (int x = 0; x < vis_res; x++)
+					glm::vec3 sf = sphericalFibonacci(ray_id, num_rays);
+					glm::vec3 dir = glm::vec3(rand_rot * glm::vec4(sf, 0.0f));
+
+					if (dir.y <= 0.0f) spacing = spacing1;
+					else spacing = spacing2;
+					glm::vec3 dir_abs = glm::abs(dir) / spacing;
+
+					int major_dir = 0;
+					if (dir_abs.y > dir_abs.x)
 					{
-						glm::vec2 v2 = glm::vec2(float(x) + 0.5f, float(y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
-						glm::vec3 dir = oct_to_vec3(v2);
-
-						if (dir.y <= 0.0f) spacing = spacing1;
-						else spacing = spacing2;
-						glm::vec3 dir_abs = glm::abs(dir) / spacing;
-
-						int major_dir = 0;
-						if (dir_abs.y > dir_abs.x)
+						if (dir_abs.z > dir_abs.y)
 						{
-							if (dir_abs.z > dir_abs.y)
-							{
-								major_dir = 2;
-							}
-							else
-							{
-								major_dir = 1;
-							}
+							major_dir = 2;
 						}
 						else
 						{
-							if (dir_abs.z > dir_abs.x)
-							{
-								major_dir = 2;
-							}
+							major_dir = 1;
 						}
-
-						if (major_dir == 0)
-						{
-							dir_abs *= spacing.x / dir_abs.x;
-						}
-						else if (major_dir == 1)
-						{
-							dir_abs *= spacing.y / dir_abs.y;
-						}
-						else if (major_dir == 2)
-						{
-							dir_abs *= spacing.z / dir_abs.z;
-						}
-
-						float max_dis = glm::length(dir_abs);
-						float dis = max_dis;
-
-						bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
-						bvh_ray.tmax = max_dis;
-
-						auto intersection = bvh.intersect(bvh_ray);
-						if (intersection.has_value())
-						{
-							dis = intersection->distance();
-						}
-						distance[x + y * vis_res] = dis;
-						sqr_dis[x + y * vis_res] = dis * dis;						
 					}
+					else
+					{
+						if (dir_abs.z > dir_abs.x)
+						{
+							major_dir = 2;
+						}
+					}
+
+					if (major_dir == 0)
+					{
+						dir_abs *= spacing.x / dir_abs.x;
+					}
+					else if (major_dir == 1)
+					{
+						dir_abs *= spacing.y / dir_abs.y;
+					}
+					else if (major_dir == 2)
+					{
+						dir_abs *= spacing.z / dir_abs.z;
+					}
+
+					float max_dis = glm::length(dir_abs);
+					float dis = max_dis;
+
+					bvh_ray.direction = bvh::Vector3<float>(dir.x, dir.y, dir.z);
+					bvh_ray.tmax = max_dis;
+
+					auto intersection = bvh.intersect(bvh_ray);
+					if (intersection.has_value())
+					{
+						dis = intersection->distance();
+					}
+					distance[ray_id] = dis;
 				}
 
-				// filtering
-				float power = 50.0f;
+				// filtering				
 				std::vector<float> filtered_distance(vis_res * vis_res);
 				std::vector<float> filtered_sqr_dis(vis_res * vis_res);
 				for (int y = 0; y < vis_res; y++)
 				{
 					for (int x = 0; x < vis_res; x++)
 					{
+						std::vector<Sample>& samples_pix = samples[x + y * vis_res];
+						int num_samples = (int)samples_pix.size();
+
 						float sum_dis = 0.0f;
 						float sum_sqr_dis = 0.0f;
 						float sum_weight = 0.0f;
 
-						glm::vec2 v2_0 = glm::vec2(float(x) + 0.5f, float(y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
-						glm::vec3 dir_0 = oct_to_vec3(v2_0);
+						for (int s = 0; s < num_samples; s++)
 						{
-							sum_dis += distance[x + y * vis_res];
-							sum_sqr_dis += sqr_dis[x + y * vis_res];
-							sum_weight += 1.0f;
-						}
-
-						if (x > 0)
-						{
-							{
-								glm::vec2 v2_1 = glm::vec2(float(x - 1) + 0.5f, float(y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
-								glm::vec3 dir_1 = oct_to_vec3(v2_1);
-								float weight = powf(glm::dot(dir_0, dir_1), power);
-								sum_dis += distance[(x - 1) + y * vis_res] * weight;
-								sum_sqr_dis += sqr_dis[(x - 1) + y * vis_res] * weight;
-								sum_weight += weight;
-							}
-
-							if (y > 0)
-							{
-								glm::vec2 v2_1 = glm::vec2(float(x - 1) + 0.5f, float(y - 1) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
-								glm::vec3 dir_1 = oct_to_vec3(v2_1);
-								float weight = powf(glm::dot(dir_0, dir_1), power);
-								sum_dis += distance[(x - 1) + (y - 1) * vis_res] * weight;
-								sum_sqr_dis += sqr_dis[(x - 1) + (y - 1) * vis_res] * weight;
-								sum_weight += weight;
-							}
-							else
-							{
-								glm::vec2 v2_1 = glm::vec2(float(vis_res - x) + 0.5f, float(y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
-								glm::vec3 dir_1 = oct_to_vec3(v2_1);
-								float weight = powf(glm::dot(dir_0, dir_1), power);
-								sum_dis += distance[(vis_res - x) + y * vis_res] * weight;
-								sum_sqr_dis += sqr_dis[(vis_res - x) + y * vis_res] * weight;
-								sum_weight += weight;
-							}
-
-							if (y < vis_res - 1)
-							{
-								glm::vec2 v2_1 = glm::vec2(float(x - 1) + 0.5f, float(y + 1) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
-								glm::vec3 dir_1 = oct_to_vec3(v2_1);
-								float weight = powf(glm::dot(dir_0, dir_1), power);
-								sum_dis += distance[(x - 1) + (y + 1) * vis_res] * weight;
-								sum_sqr_dis += sqr_dis[(x - 1) + (y + 1) * vis_res] * weight;
-								sum_weight += weight;
-							}
-							else
-							{
-								glm::vec2 v2_1 = glm::vec2(float(vis_res - x) + 0.5f, float(y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
-								glm::vec3 dir_1 = oct_to_vec3(v2_1);
-								float weight = powf(glm::dot(dir_0, dir_1), power);
-								sum_dis += distance[(vis_res - x) + y * vis_res] * weight;
-								sum_sqr_dis += sqr_dis[(vis_res - x) + y * vis_res] * weight;
-								sum_weight += weight;
-							}
-						}
-						else
-						{
-							{
-								glm::vec2 v2_1 = glm::vec2(float(x) + 0.5f, float(vis_res - 1 - y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
-								glm::vec3 dir_1 = oct_to_vec3(v2_1);
-								float weight = powf(glm::dot(dir_0, dir_1), power);
-								sum_dis += distance[x + (vis_res - 1 - y) * vis_res] * weight;
-								sum_sqr_dis += sqr_dis[x + (vis_res - 1 - y) * vis_res] * weight;
-								sum_weight += weight;
-							}
-
-							if (y > 0)
-							{
-								glm::vec2 v2_1 = glm::vec2(float(x) + 0.5f, float(vis_res - y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
-								glm::vec3 dir_1 = oct_to_vec3(v2_1);
-								float weight = powf(glm::dot(dir_0, dir_1), power);
-								sum_dis += distance[x + (vis_res - y) * vis_res] * weight;
-								sum_sqr_dis += sqr_dis[x + (vis_res - y) * vis_res] * weight;
-								sum_weight += weight;
-							}
-							else
-							{
-								glm::vec2 v2_1 = glm::vec2(float(vis_res - 1) + 0.5f, float(vis_res - 1) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
-								glm::vec3 dir_1 = oct_to_vec3(v2_1);
-								float weight = powf(glm::dot(dir_0, dir_1), power);
-								sum_dis += distance[(vis_res - 1) + (vis_res - 1) * vis_res] * weight;
-								sum_sqr_dis += sqr_dis[(vis_res - 1) + (vis_res - 1) * vis_res] * weight;
-								sum_weight += weight;
-							}
-
-							if (y < vis_res - 1)
-							{
-								glm::vec2 v2_1 = glm::vec2(float(x) + 0.5f, float(vis_res - 1 - (y + 1)) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
-								glm::vec3 dir_1 = oct_to_vec3(v2_1);
-								float weight = powf(glm::dot(dir_0, dir_1), power);
-								sum_dis += distance[x + (vis_res - 1 - (y + 1)) * vis_res] * weight;
-								sum_sqr_dis += sqr_dis[x + (vis_res - 1 - (y + 1)) * vis_res] * weight;
-								sum_weight += weight;
-							}
-							else
-							{
-								glm::vec2 v2_1 = glm::vec2(float(vis_res - 1) + 0.5f, 0.5f) / float(vis_res) * 2.0f - 1.0f;
-								glm::vec3 dir_1 = oct_to_vec3(v2_1);
-								float weight = powf(glm::dot(dir_0, dir_1), power);
-								sum_dis += distance[vis_res - 1] * weight;
-								sum_sqr_dis += sqr_dis[vis_res - 1] * weight;
-								sum_weight += weight;
-							}
-						}
-
-						if (x < vis_res - 1)
-						{
-							{
-								glm::vec2 v2_1 = glm::vec2(float(x + 1) + 0.5f, float(y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
-								glm::vec3 dir_1 = oct_to_vec3(v2_1);
-								float weight = powf(glm::dot(dir_0, dir_1), power);
-								sum_dis += distance[(x + 1) + y * vis_res] * weight;
-								sum_sqr_dis += sqr_dis[(x + 1) + y * vis_res] * weight;
-								sum_weight += weight;
-							}
-
-							if (y > 0)
-							{
-								glm::vec2 v2_1 = glm::vec2(float(x + 1) + 0.5f, float(y - 1) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
-								glm::vec3 dir_1 = oct_to_vec3(v2_1);
-								float weight = powf(glm::dot(dir_0, dir_1), power);
-								sum_dis += distance[(x + 1) + (y - 1) * vis_res] * weight;
-								sum_sqr_dis += sqr_dis[(x + 1) + (y - 1) * vis_res] * weight;
-								sum_weight += weight;
-							}
-							else
-							{
-								glm::vec2 v2_1 = glm::vec2(float(vis_res - 1 - (x + 1)) + 0.5f, float(y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
-								glm::vec3 dir_1 = oct_to_vec3(v2_1);
-								float weight = powf(glm::dot(dir_0, dir_1), power);
-								sum_dis += distance[(vis_res - 1 - (x + 1)) + y * vis_res] * weight;
-								sum_sqr_dis += sqr_dis[(vis_res - 1 - (x + 1)) + y * vis_res] * weight;
-								sum_weight += weight;
-							}
-
-							if (y < vis_res - 1)
-							{
-								glm::vec2 v2_1 = glm::vec2(float(x + 1) + 0.5f, float(y + 1) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
-								glm::vec3 dir_1 = oct_to_vec3(v2_1);
-								float weight = powf(glm::dot(dir_0, dir_1), power);
-								sum_dis += distance[(x + 1) + (y + 1) * vis_res] * weight;
-								sum_sqr_dis += sqr_dis[(x + 1) + (y + 1) * vis_res] * weight;
-								sum_weight += weight;
-							}
-							else
-							{
-								glm::vec2 v2_1 = glm::vec2(float(vis_res - 1 - (x + 1)) + 0.5f, float(y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
-								glm::vec3 dir_1 = oct_to_vec3(v2_1);
-								float weight = powf(glm::dot(dir_0, dir_1), power);
-								sum_dis += distance[(vis_res - 1 - (x + 1)) + y * vis_res] * weight;
-								sum_sqr_dis += sqr_dis[(vis_res - 1 - (x + 1)) + y * vis_res] * weight;
-								sum_weight += weight;
-							}
-						}
-						else
-						{
-							{
-								glm::vec2 v2_1 = glm::vec2(float(x) + 0.5f, float(vis_res - 1 - y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
-								glm::vec3 dir_1 = oct_to_vec3(v2_1);
-								float weight = powf(glm::dot(dir_0, dir_1), power);
-								sum_dis += distance[x + (vis_res - 1 - y) * vis_res] * weight;
-								sum_sqr_dis += sqr_dis[x + (vis_res - 1 - y) * vis_res] * weight;
-								sum_weight += weight;
-							}
-
-							if (y > 0)
-							{
-								glm::vec2 v2_1 = glm::vec2(float(x) + 0.5f, float(vis_res - y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
-								glm::vec3 dir_1 = oct_to_vec3(v2_1);
-								float weight = powf(glm::dot(dir_0, dir_1), power);
-								sum_dis += distance[x + (vis_res - y) * vis_res] * weight;
-								sum_sqr_dis += sqr_dis[x + (vis_res - y) * vis_res] * weight;
-								sum_weight += weight;
-							}
-							else
-							{
-								glm::vec2 v2_1 = glm::vec2(0.5f, float(vis_res - 1) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
-								glm::vec3 dir_1 = oct_to_vec3(v2_1);
-								float weight = powf(glm::dot(dir_0, dir_1), power);
-								sum_dis += distance[(vis_res - 1) * vis_res] * weight;
-								sum_sqr_dis += sqr_dis[(vis_res - 1) * vis_res] * weight;
-								sum_weight += weight;
-							}
-
-							if (y < vis_res - 1)
-							{
-								glm::vec2 v2_1 = glm::vec2(float(x) + 0.5f, float(vis_res - 1 - (y + 1)) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
-								glm::vec3 dir_1 = oct_to_vec3(v2_1);
-								float weight = powf(glm::dot(dir_0, dir_1), power);
-								sum_dis += distance[x + (vis_res - 1 - (y + 1)) * vis_res] * weight;
-								sum_sqr_dis += sqr_dis[x + (vis_res - 1 - (y + 1)) * vis_res] * weight;
-								sum_weight += weight;
-							}
-							else
-							{
-								glm::vec2 v2_1 = glm::vec2(0.5f, 0.5f) / float(vis_res) * 2.0f - 1.0f;
-								glm::vec3 dir_1 = oct_to_vec3(v2_1);
-								float weight = powf(glm::dot(dir_0, dir_1), power);
-								sum_dis += distance[0] * weight;
-								sum_sqr_dis += sqr_dis[0] * weight;
-								sum_weight += weight;
-							}
-						}
-
-						if (y > 0)
-						{
-							glm::vec2 v2_1 = glm::vec2(float(x) + 0.5f, float(y - 1) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
-							glm::vec3 dir_1 = oct_to_vec3(v2_1);
-							float weight = powf(glm::dot(dir_0, dir_1), power);
-							sum_dis += distance[x + (y - 1) * vis_res] * weight;
-							sum_sqr_dis += sqr_dis[x + (y - 1) * vis_res] * weight;
+							int ray_id = samples_pix[s].ray_id;
+							float weight = samples_pix[s].weight;
+							float dis = distance[ray_id];
+							sum_dis += weight * dis;
+							sum_sqr_dis += weight * dis * dis;
 							sum_weight += weight;
 						}
-						else
-						{
-							glm::vec2 v2_1 = glm::vec2(float(vis_res - 1 - x) + 0.5f, float(y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
-							glm::vec3 dir_1 = oct_to_vec3(v2_1);
-							float weight = powf(glm::dot(dir_0, dir_1), power);
-							sum_dis += distance[(vis_res - 1 - x) + y * vis_res] * weight;
-							sum_sqr_dis += sqr_dis[(vis_res - 1 - x) + y * vis_res] * weight;
-							sum_weight += weight;
-						}
-
-						if (y < vis_res - 1)
-						{
-							glm::vec2 v2_1 = glm::vec2(float(x) + 0.5f, float(y + 1) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
-							glm::vec3 dir_1 = oct_to_vec3(v2_1);
-							float weight = powf(glm::dot(dir_0, dir_1), power);
-							sum_dis += distance[x + (y + 1) * vis_res] * weight;
-							sum_sqr_dis += sqr_dis[x + (y + 1) * vis_res] * weight;
-							sum_weight += weight;
-						}
-						else
-						{
-							glm::vec2 v2_1 = glm::vec2(float(vis_res - 1 - x) + 0.5f, float(y) + 0.5f) / float(vis_res) * 2.0f - 1.0f;
-							glm::vec3 dir_1 = oct_to_vec3(v2_1);
-							float weight = powf(glm::dot(dir_0, dir_1), power);
-							sum_dis += distance[(vis_res - 1 - x) + y * vis_res] * weight;
-							sum_sqr_dis += sqr_dis[(vis_res - 1 - x) + y * vis_res] * weight;
-							sum_weight += weight;
-						}
-
 						filtered_distance[x + y * vis_res] = sum_dis / sum_weight;
 						filtered_sqr_dis[x + y * vis_res] = sum_sqr_dis / sum_weight;
+
 					}
 				}
 

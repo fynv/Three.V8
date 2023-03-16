@@ -363,6 +363,8 @@ void CompFogRayMarching::_render_shadowed(const RenderParams& params)
 
 void CompFogRayMarching::render(const RenderParams& params)
 {
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
 	if (params.constant_diretional_shadow == nullptr)
 	{
 		_render_no_shadow(params);

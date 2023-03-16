@@ -47,6 +47,8 @@ CompSkyBox::CompSkyBox()
 
 void CompSkyBox::render(const GLDynBuffer* constant_camera, const GLCubemap* cubemap, const BVHRenderTarget* target)
 {
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
 	int width = target->m_width;
 	int height = target->m_height;
 

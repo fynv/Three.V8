@@ -16,7 +16,7 @@ public:
 	std::unique_ptr<GLTexture2D> m_tex_video;
 	std::unique_ptr<GLTexture2D> m_tex_depth;
 
-	bool update(int width, int height);
+	bool update(int width, int height, bool color = true, bool depth = true);
 
 	CompWeightedOIT::Buffers m_OITBuffers;
 	void update_oit_buffers();

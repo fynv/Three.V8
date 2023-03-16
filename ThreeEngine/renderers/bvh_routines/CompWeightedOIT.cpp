@@ -86,6 +86,8 @@ void CompWeightedOIT::PreDraw(Buffers& bufs)
 
 void CompWeightedOIT::PostDraw(const BVHRenderTarget* target)
 {
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
 	int width = target->m_width;
 	int height = target->m_height;
 
