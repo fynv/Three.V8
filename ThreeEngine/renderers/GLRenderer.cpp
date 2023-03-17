@@ -2350,100 +2350,6 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 	
 	}
 	_render(scene, camera, target, true);
-
-
-	if (bvh_target == nullptr)
-	{
-		bvh_target = std::unique_ptr<BVHRenderTarget>(new BVHRenderTarget);
-	}
-	
-#if 0
-	bvh_target->update(target.m_width, target.m_height);
-	bvh_renderer.render(scene, camera, *bvh_target);
-	renderTexture(bvh_target->m_tex_video.get(), 10, 10, 360* target.m_width / target.m_height, 360, target);
-#endif
-
-#if 0
-	if (scene.lights.probe_grid != nullptr)
-	{
-		glm::ivec3 divs = scene.lights.probe_grid->divisions;
-		int num_probes = divs.x * divs.y * divs.z;
-		//if (num_probes > 512) num_probes = 512;
-		ProbeRayList prl(*scene.lights.probe_grid, 0, num_probes, 256);
-		bvh_target->update(256, num_probes, false);
-		bvh_renderer.render_probe_depth(scene, prl, *bvh_target);
-
-		if (probe_target == nullptr)
-		{
-			probe_target = std::unique_ptr<ProbeRenderTarget>(new ProbeRenderTarget);			
-		}
-		probe_target->update_vis(scene.lights.probe_grid->pack_res);
-
-		bvh_renderer.update_probe_visibility(*bvh_target, prl, *scene.lights.probe_grid, 0, 1.0f, probe_target.get());
-		renderTexture(probe_target->m_tex_visibility.get(), 10, 10, 360, 360, target);
-	}
-	else if (scene.lights.lod_probe_grid != nullptr)
-	{
-		int num_probes = scene.lights.lod_probe_grid->getNumberOfProbes();
-		//if (num_probes > 512) num_probes = 512;
-		ProbeRayList prl(*scene.lights.lod_probe_grid, 0, num_probes, 256);
-		bvh_target->update(256, num_probes, false);
-		bvh_renderer.render_probe_depth(scene, prl, *bvh_target);
-
-		if (probe_target == nullptr)
-		{
-			probe_target = std::unique_ptr<ProbeRenderTarget>(new ProbeRenderTarget);
-		}
-		probe_target->update_vis(scene.lights.lod_probe_grid->pack_res);
-		
-		bvh_renderer.update_probe_visibility(*bvh_target, prl, *scene.lights.lod_probe_grid, 0, 1.0f, probe_target.get());
-		renderTexture(probe_target->m_tex_visibility.get(), 10, 10, 360, 360, target);
-		
-		//bvh_renderer.update_probe_visibility(*bvh_target, prl, *scene.lights.lod_probe_grid, 0, 0.2f);
-		//renderTexture(scene.lights.lod_probe_grid->m_tex_visibility.get(), 10, 10, 360, 360, target);
-	}
-#endif
-
-#if 0
-	if (scene.lights.probe_grid != nullptr)
-	{
-		glm::ivec3 divs = scene.lights.probe_grid->divisions;
-		int num_probes = divs.x * divs.y * divs.z;
-		//if (num_probes > 512) num_probes = 512;
-		ProbeRayList prl(*scene.lights.probe_grid, 0, num_probes, 256);
-		bvh_target->update(256, num_probes);
-		bvh_renderer.render_probe(scene, prl, *bvh_target);
-
-		if (probe_target == nullptr)
-		{
-			probe_target = std::unique_ptr<ProbeRenderTarget>(new ProbeRenderTarget);
-		}
-		probe_target->update_irr(num_probes, scene.lights.probe_grid->irr_pack_res);
-
-		bvh_renderer.update_probe_irradiance(*bvh_target, prl, *scene.lights.probe_grid, 0, 1.0f, probe_target.get());
-		renderTexture(probe_target->m_tex_irradiance.get(), 10, 10, 360, 360, target);		
-	}
-	else if (scene.lights.lod_probe_grid != nullptr)
-	{
-		int num_probes = scene.lights.lod_probe_grid->getNumberOfProbes();
-		//if (num_probes > 512) num_probes = 512;
-		ProbeRayList prl(*scene.lights.lod_probe_grid, 0, num_probes, 256);
-		bvh_target->update(256, num_probes);
-		bvh_renderer.render_probe(scene, prl, *bvh_target);
-
-		/*if (probe_target == nullptr)
-		{
-			probe_target = std::unique_ptr<ProbeRenderTarget>(new ProbeRenderTarget);
-		}
-		probe_target->update_irr(num_probes, scene.lights.lod_probe_grid->irr_pack_res);
-
-		bvh_renderer.update_probe_irradiance(*bvh_target, prl, *scene.lights.lod_probe_grid, 0, 1.0f, probe_target.get());
-		renderTexture(probe_target->m_tex_irradiance.get(), 10, 10, 360, 360, target);*/
-
-		bvh_renderer.update_probe_irradiance(*bvh_target, prl, *scene.lights.lod_probe_grid, 0, 0.2f);
-		renderTexture(scene.lights.lod_probe_grid->m_tex_irradiance.get(), 10, 10, 360, 360, target);		
-	}
-#endif		
 	
 }
 
@@ -2594,6 +2500,51 @@ void GLRenderer::updateProbe(Scene& scene, CubeRenderTarget& target, LODProbeGri
 
 	probe_grid.presample_probe(idx);
 
+}
+
+int GLRenderer::updateProbes(Scene& scene, ProbeGrid& probe_grid, int start_idx, int num_directions, float rate_vis, float rate_irr)
+{
+	int max_probes = (1 << 17) / num_directions;
+	if (max_probes < 1) max_probes = 1;
+
+	glm::ivec3 divs = probe_grid.divisions;
+	int num_probes = divs.x * divs.y * divs.z;
+	num_probes -= start_idx;
+	if (num_probes > max_probes) num_probes = max_probes;
+
+	BVHRenderTarget bvh_target;
+	bvh_target.update(num_directions, num_probes);
+
+	ProbeRayList prl(probe_grid, start_idx, start_idx + num_probes, num_directions);
+	bvh_renderer.render_probe(scene, prl, bvh_target);
+
+	bvh_renderer.update_probe_visibility(bvh_target, prl, probe_grid, start_idx, rate_vis);
+	bvh_renderer.update_probe_irradiance(bvh_target, prl, probe_grid, start_idx, rate_irr);
+
+	probe_grid.updated = true;
+	
+	return num_probes;
+}
+
+int GLRenderer::updateProbes(Scene& scene, LODProbeGrid& probe_grid, int start_idx, int num_directions, float rate_vis, float rate_irr)
+{
+	int max_probes = (1 << 17) / num_directions;
+	int num_probes = probe_grid.getNumberOfProbes();
+	num_probes -= start_idx;
+	if (num_probes > max_probes) num_probes = max_probes;
+
+	BVHRenderTarget bvh_target;
+	bvh_target.update(num_directions, num_probes);
+
+	ProbeRayList prl(probe_grid, start_idx, start_idx + num_probes, num_directions);
+	bvh_renderer.render_probe(scene, prl, bvh_target);
+
+	bvh_renderer.update_probe_visibility(bvh_target, prl, probe_grid, start_idx, rate_vis);
+	bvh_renderer.update_probe_irradiance(bvh_target, prl, probe_grid, start_idx, rate_irr);
+
+	probe_grid.updated = true;
+
+	return num_probes;
 }
 
 void GLRenderer::renderTexture(GLTexture2D* tex, int x, int y, int width, int height, GLRenderTarget& target)

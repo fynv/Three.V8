@@ -1457,3 +1457,20 @@ void LODProbeGrid::ToProbeGrid(ProbeGrid* grid_out, Scene& scene)
 	grid_out->allocate_probes();
 }
 
+
+void LODProbeGrid::download_probes()
+{
+	{		
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_probe_buf->m_id);
+		const void* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+		memcpy(m_probe_data.data(), p, sizeof(glm::vec4)* m_probe_data.size());
+		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	}
+	{
+		glBindTexture(GL_TEXTURE_2D, m_tex_visibility->tex_id);
+		glGetTexImage(GL_TEXTURE_2D, 0, GL_RG, GL_UNSIGNED_SHORT, m_visibility_data.data());
+		glBindTexture(GL_TEXTURE_2D, 0);
+	}
+	updated = false;
+}

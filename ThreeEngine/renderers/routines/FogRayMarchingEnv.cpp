@@ -560,16 +560,22 @@ void FogRayMarchingEnv::render(const RenderParams& params)
 
 	if (m_options.has_probe_grid)
 	{
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, params.lights->probe_grid->m_tex_visibility->tex_id);
-		glUniform1i(1,1);
+		if (params.lights->probe_grid->m_tex_visibility != nullptr)
+		{
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, params.lights->probe_grid->m_tex_visibility->tex_id);
+			glUniform1i(1, 1);
+		}
 	}
 
 	if (m_options.has_lod_probe_grid)
 	{
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, params.lights->lod_probe_grid->m_tex_visibility->tex_id);
-		glUniform1i(1, 1);
+		if (params.lights->lod_probe_grid->m_tex_visibility != nullptr)
+		{
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, params.lights->lod_probe_grid->m_tex_visibility->tex_id);
+			glUniform1i(1, 1);
+		}
 	}
 
 	glDrawArrays(GL_TRIANGLES, 0, 3);

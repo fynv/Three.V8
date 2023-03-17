@@ -4883,14 +4883,13 @@ class EnvMapGen
     
 }
 
-class ProbeGridBaker
+class GPUProbeGridBaker
 {
     constructor(doc, proxy, xml_node, iterations)
     {
         this.doc = doc;
         this.xml_node = xml_node;
         
-        this.cube_target = new CubeRenderTarget(64,64);
         this.probe_grid = new ProbeGrid();
         this.probe_grid.setDivisions(proxy.divisions);
         this.probe_grid.setCoverageMin(proxy.coverageMin);
@@ -4910,20 +4909,10 @@ class ProbeGridBaker
         let divisions = this.probe_grid.divisions;
         this.probe_count = divisions.x*divisions.y*divisions.z;
         
-        this.update_lst = [];
-        this.diff_stack = [];
-        
-        for (let i=0; i< this.probe_count; i++)
-        {
-            this.update_lst.push(i);
-        }
-        this.update_count = this.update_lst.length;
         this.probe_idx = 0;
-        
         this.iterations = iterations;
         this.iter = 0;
         this.check_time = now();
-        
     }
     
     render(renderer)
@@ -4932,64 +4921,22 @@ class ProbeGridBaker
         
         if (frame_time -  this.check_time>=500)
         {
-            print(`Building probe-grid, iteration: ${this.iter+1}/${this.iterations}, probe: ${this.probe_idx +1}/${this.update_count}`);
+            print(`Building probe-grid, iteration: ${this.iter+1}/${this.iterations}, probe: ${this.probe_idx +1}/${this.probe_count}`);
             this.check_time = frame_time;
         }
-         
-        let divisions = this.probe_grid.divisions;
-        this.probe_grid.recordReferences = true;
+        
         while(now()-frame_time<10)
         {
             if (this.doc.probe_grid_bake == null) break;
-            
-            let x = this.update_lst[this.probe_idx];
-            let y = x / divisions.x;
-            let z = y / divisions.y;
-            y = y % divisions.y;
-            x = x % divisions.x;
-            let v_idx = new Vector3(x,y,z);
-            
-            renderer.updateProbe(this.doc.scene, this.cube_target, this.probe_grid, v_idx);
-            this.probe_idx++;
-            if (this.probe_idx>=this.update_count)
+            let num_rays = (256 << this.iter);
+            let num_probes = renderer.updateProbes(this.doc.scene, this.probe_grid, this.probe_idx, num_rays, 0.5, 1.0);
+            this.probe_idx += num_probes;
+            if (this.probe_idx>=this.probe_count)
             {
                 this.probe_idx = 0;
                 this.iter++;
                 
-                if (this.iter < this.iterations)
-                {
-                    let ref_arr = this.probe_grid.getReferences();
-                    let new_lst = [];
-                    let diff_lst = [];
-                    for (let i of this.update_lst)
-                    {
-                        if (ref_arr[i])
-                        {
-                            new_lst.push(i);
-                        }
-                        else
-                        {
-                            diff_lst.push(i);
-                        }
-                    }
-                    
-                    if (diff_lst.length>0)
-                    {
-                        this.diff_stack.push(diff_lst);
-                    }
-                    
-                    if (this.iter == this.iterations -1)
-                    {
-                        for(let j = this.diff_stack.length-1; j>=0; j--)
-                        {
-                            new_lst = new_lst.concat(this.diff_stack[j]);
-                        }
-                    }
-                    
-                    this.update_lst = new_lst;
-                    this.update_count = this.update_lst.length;
-                }
-                else
+                if (this.iter >= this.iterations)
                 {
                     print("Saving probe-grid.");
                     let props = this.xml_node.attributes;
@@ -5007,12 +4954,10 @@ class ProbeGridBaker
                 }
             }
         }
-        this.probe_grid.recordReferences = false;
     }
-    
 }
 
-class LODProbeGridBaker
+class GPULODProbeGridBaker
 {
     constructor(doc, proxy, xml_node, iterations)
     {
@@ -5043,10 +4988,13 @@ class LODProbeGridBaker
             print(`Building LOD Probe-Grid, iteration: ${this.iter+1}/${this.iterations}, probe: ${this.probe_idx +1}/${this.probe_count}`);
             this.check_time = frame_time;
         }
+        
         while(now()-frame_time<10)
         {
-            renderer.updateProbe(this.doc.scene, this.cube_target, this.probe_grid, this.probe_idx);
-            this.probe_idx++;
+            if (this.doc.lod_probe_grid_bake == null) break;
+            let num_rays = (256 << this.iter);
+            let num_probes = renderer.updateProbes(this.doc.scene, this.probe_grid, this.probe_idx, num_rays, 0.5, 1.0);
+            this.probe_idx += num_probes;
             if (this.probe_idx>=this.probe_count)
             {
                 this.probe_idx = 0;
@@ -5054,7 +5002,7 @@ class LODProbeGridBaker
                 
                 if (this.iter >= this.iterations)
                 {
-                    print("Saving LOD Probe-Grid.");
+                    print("Saving probe-grid.");
                     let props = this.xml_node.attributes;
                     let probe_data = "assets/lod_probes.dat";
                     if (props.hasOwnProperty('probe_data')) 
@@ -5070,6 +5018,7 @@ class LODProbeGridBaker
                 }
             }
         }
+        
     }
     
 }
@@ -6187,7 +6136,7 @@ const generate_cube_env_light = (doc, obj, input) =>{
 const generate_probe_grid = (doc, obj, input) =>{
     let node = doc.internal_index[obj.uuid].xml_node;
     let iterations = parseInt(input.iterations);
-    doc.probe_grid_bake = new ProbeGridBaker(doc, obj, node, iterations);
+    doc.probe_grid_bake = new GPUProbeGridBaker(doc, obj, node, iterations);
 };
 
 
@@ -6195,7 +6144,7 @@ const generate_lod_probe_grid = (doc, obj, input) =>{
     initialize_lod_probe_grid(doc, obj);
     let node = doc.internal_index[obj.uuid].xml_node;
     let iterations = parseInt(input.iterations);
-    doc.lod_probe_grid_bake = new LODProbeGridBaker(doc, obj, node, iterations);
+    doc.lod_probe_grid_bake = new GPULODProbeGridBaker(doc, obj, node, iterations);
 };
 
 const env_light = {

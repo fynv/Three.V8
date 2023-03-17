@@ -23,6 +23,7 @@ private:
 	static void Render(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void RenderCube(const v8::FunctionCallbackInfo<v8::Value>& info);	
 	static void UpdateProbe(const v8::FunctionCallbackInfo<v8::Value>& info);
+	static void UpdateProbes(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 	static void GetUseSSAO(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void SetUseSSAO(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
@@ -40,6 +41,7 @@ v8::Local<v8::FunctionTemplate> WrapperGLRenderer::create_template(v8::Isolate* 
 	templ->InstanceTemplate()->Set(isolate, "render", v8::FunctionTemplate::New(isolate, Render));
 	templ->InstanceTemplate()->Set(isolate, "renderCube", v8::FunctionTemplate::New(isolate, RenderCube));
 	templ->InstanceTemplate()->Set(isolate, "updateProbe", v8::FunctionTemplate::New(isolate, UpdateProbe));
+	templ->InstanceTemplate()->Set(isolate, "updateProbes", v8::FunctionTemplate::New(isolate, UpdateProbes));
 
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "useSSAO").ToLocalChecked(), GetUseSSAO, SetUseSSAO);
 	
@@ -160,6 +162,51 @@ void WrapperGLRenderer::UpdateProbe(const v8::FunctionCallbackInfo<v8::Value>& i
 
 }
 
+void WrapperGLRenderer::UpdateProbes(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	GLRenderer* self = lctx.self<GLRenderer>();
+	Scene* scene = lctx.jobj_to_obj<Scene>(info[0]);
+
+	int start_idx = 0;
+	int num_directions = 256;
+	float rate_vis = 0.5f;
+	float rate_irr = 1.0f;
+	if (info.Length() > 2)
+	{
+		lctx.jnum_to_num(info[2], start_idx);
+	}
+	if (info.Length() > 3)
+	{
+		lctx.jnum_to_num(info[3], num_directions);
+	}
+	if (info.Length() > 4)
+	{
+		lctx.jnum_to_num(info[4], rate_vis);
+	}
+	if (info.Length() > 5)
+	{
+		lctx.jnum_to_num(info[5], rate_irr);
+	}
+
+	int num_probes;
+
+	v8::Local<v8::Object> holder_grid = info[1].As<v8::Object>();
+	std::string clsname = lctx.jstr_to_str(holder_grid->GetConstructorName());
+
+	if (clsname == "ProbeGrid")
+	{
+		ProbeGrid* probe_grid = lctx.jobj_to_obj<ProbeGrid>(holder_grid);
+		num_probes = self->updateProbes(*scene, *probe_grid, start_idx, num_directions, rate_vis, rate_irr);
+	
+	}
+	else if (clsname == "LODProbeGrid")
+	{
+		LODProbeGrid* probe_grid = lctx.jobj_to_obj<LODProbeGrid>(holder_grid);
+		num_probes = self->updateProbes(*scene, *probe_grid, start_idx, num_directions, rate_vis, rate_irr);
+	}
+	info.GetReturnValue().Set(lctx.num_to_jnum(num_probes));
+}
 
 void WrapperGLRenderer::GetUseSSAO(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {

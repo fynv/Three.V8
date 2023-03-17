@@ -595,16 +595,22 @@ void CompFogRayMarchingEnv::render(const RenderParams& params)
 
 	if (m_options.has_probe_grid)
 	{
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, params.lights->probe_grid->m_tex_visibility->tex_id);
-		glUniform1i(1, 1);
+		if (params.lights->probe_grid->m_tex_visibility != nullptr)
+		{
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, params.lights->probe_grid->m_tex_visibility->tex_id);
+			glUniform1i(1, 1);
+		}
 	}
 
 	if (m_options.has_lod_probe_grid)
 	{
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, params.lights->lod_probe_grid->m_tex_visibility->tex_id);
-		glUniform1i(1, 1);
+		if (params.lights->lod_probe_grid->m_tex_visibility != nullptr)
+		{
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, params.lights->lod_probe_grid->m_tex_visibility->tex_id);
+			glUniform1i(1, 1);
+		}
 	}
 
 	glBindImageTexture(0, params.target->m_tex_video->tex_id, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);

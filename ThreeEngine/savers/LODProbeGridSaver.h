@@ -4,7 +4,7 @@ class LODProbeGrid;
 class LODProbeGridSaver
 {
 public:
-	static void SaveFile(const LODProbeGrid* image, const char* fn);
+	static void SaveFile(LODProbeGrid* image, const char* fn);
 };
 
 

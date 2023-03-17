@@ -46,6 +46,9 @@ public:
 	void construct_visibility(Scene& scene);
 
 	void ToProbeGrid(ProbeGrid* grid_out, Scene& scene);
+
+	bool updated = false;
+	void download_probes();
 	
 private:		
 	void _presample_irradiance();

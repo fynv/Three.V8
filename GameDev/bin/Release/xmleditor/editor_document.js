@@ -333,6 +333,7 @@ class LODProbeGridBaker
         }
         while(now()-frame_time<10)
         {
+            if (this.doc.lod_probe_grid_bake == null) break;
             renderer.updateProbe(this.doc.scene, this.cube_target, this.probe_grid, this.probe_idx);
             this.probe_idx++;
             if (this.probe_idx>=this.probe_count)
@@ -358,6 +359,146 @@ class LODProbeGridBaker
                 }
             }
         }
+    }
+    
+}
+
+class GPUProbeGridBaker
+{
+    constructor(doc, proxy, xml_node, iterations)
+    {
+        this.doc = doc;
+        this.xml_node = xml_node;
+        
+        this.probe_grid = new ProbeGrid();
+        this.probe_grid.setDivisions(proxy.divisions);
+        this.probe_grid.setCoverageMin(proxy.coverageMin);
+        this.probe_grid.setCoverageMax(proxy.coverageMax);
+        this.probe_grid.ypower = proxy.ypower;
+        
+        print("Constructing visibility information...");
+        this.probe_grid.constructVisibility(doc.scene);
+        
+        let props = this.xml_node.attributes;
+        if (props.hasOwnProperty('dynamic_map'))
+        {
+            this.probe_grid.dynamicMap = string_to_boolean(props.dynamic_map);
+        }
+        this.doc.scene.indirectLight = this.probe_grid;
+        
+        let divisions = this.probe_grid.divisions;
+        this.probe_count = divisions.x*divisions.y*divisions.z;
+        
+        this.probe_idx = 0;
+        this.iterations = iterations;
+        this.iter = 0;
+        this.check_time = now();
+    }
+    
+    render(renderer)
+    {
+        let frame_time = now();
+        
+        if (frame_time -  this.check_time>=500)
+        {
+            print(`Building probe-grid, iteration: ${this.iter+1}/${this.iterations}, probe: ${this.probe_idx +1}/${this.probe_count}`);
+            this.check_time = frame_time;
+        }
+        
+        while(now()-frame_time<10)
+        {
+            if (this.doc.probe_grid_bake == null) break;
+            let num_rays = (256 << this.iter);
+            let num_probes = renderer.updateProbes(this.doc.scene, this.probe_grid, this.probe_idx, num_rays, 0.5, 1.0);
+            this.probe_idx += num_probes;
+            if (this.probe_idx>=this.probe_count)
+            {
+                this.probe_idx = 0;
+                this.iter++;
+                
+                if (this.iter >= this.iterations)
+                {
+                    print("Saving probe-grid.");
+                    let props = this.xml_node.attributes;
+                    let probe_data = "assets/probes.dat";
+                    if (props.hasOwnProperty('probe_data')) 
+                    {
+                        probe_data = props.probe_data;
+                    }
+                    let res = probeGridSaver.saveFile(this.probe_grid, probe_data);
+                    if (!res)
+                    {
+                        print("Failed to save probe-grid.");
+                    }
+                    this.doc.probe_grid_bake = null;
+                }
+            }
+        }
+    }
+}
+
+class GPULODProbeGridBaker
+{
+    constructor(doc, proxy, xml_node, iterations)
+    {
+        this.doc = doc;
+        this.xml_node = xml_node;
+        
+        this.cube_target = new CubeRenderTarget(64,64);
+        this.probe_grid = this.doc.scene.indirectLight;
+        
+        print("Constructing visibility information...");
+        this.probe_grid.constructVisibility(doc.scene);
+        
+        this.probe_count = this.probe_grid.numberOfProbes;
+        this.probe_idx = 0;
+        
+        this.iterations = iterations;
+        this.iter = 0;
+        this.check_time = now();
+        
+    }
+    
+    render(renderer)
+    {
+        let frame_time = now();
+        
+        if (frame_time -  this.check_time>=500)
+        {
+            print(`Building LOD Probe-Grid, iteration: ${this.iter+1}/${this.iterations}, probe: ${this.probe_idx +1}/${this.probe_count}`);
+            this.check_time = frame_time;
+        }
+        
+        while(now()-frame_time<10)
+        {
+            if (this.doc.lod_probe_grid_bake == null) break;
+            let num_rays = (256 << this.iter);
+            let num_probes = renderer.updateProbes(this.doc.scene, this.probe_grid, this.probe_idx, num_rays, 0.5, 1.0);
+            this.probe_idx += num_probes;
+            if (this.probe_idx>=this.probe_count)
+            {
+                this.probe_idx = 0;
+                this.iter++;
+                
+                if (this.iter >= this.iterations)
+                {
+                    print("Saving probe-grid.");
+                    let props = this.xml_node.attributes;
+                    let probe_data = "assets/lod_probes.dat";
+                    if (props.hasOwnProperty('probe_data')) 
+                    {
+                        probe_data = props.probe_data;
+                    }
+                    let res = LODProbeGridSaver.saveFile(this.probe_grid, probe_data);
+                    if (!res)
+                    {
+                        print("Failed to save probe-grid.");
+                    }
+                    this.doc.lod_probe_grid_bake = null;
+                }
+            }
+        }
+        
     }
     
 }
@@ -1476,7 +1617,7 @@ const generate_cube_env_light = (doc, obj, input) =>{
 const generate_probe_grid = (doc, obj, input) =>{
     let node = doc.internal_index[obj.uuid].xml_node;
     let iterations = parseInt(input.iterations);
-    doc.probe_grid_bake = new ProbeGridBaker(doc, obj, node, iterations);
+    doc.probe_grid_bake = new GPUProbeGridBaker(doc, obj, node, iterations);
 }
 
 
@@ -1484,7 +1625,7 @@ const generate_lod_probe_grid = (doc, obj, input) =>{
     initialize_lod_probe_grid(doc, obj, input);
     let node = doc.internal_index[obj.uuid].xml_node;
     let iterations = parseInt(input.iterations);
-    doc.lod_probe_grid_bake = new LODProbeGridBaker(doc, obj, node, iterations);
+    doc.lod_probe_grid_bake = new GPULODProbeGridBaker(doc, obj, node, iterations);
 }
 
 const env_light = {

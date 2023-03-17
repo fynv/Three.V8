@@ -42,6 +42,9 @@ public:
 	void set_record_references(bool record);	
 	void get_references(std::vector<unsigned>& references);
 
+	bool updated = false;
+	void download_probes();
+
 private:
 	void _presample_irradiance();
 };

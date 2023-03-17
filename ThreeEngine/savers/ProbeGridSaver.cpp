@@ -1,8 +1,14 @@
 #include "ProbeGridSaver.h"
 #include "lights/ProbeGrid.h"
 
-void ProbeGridSaver::SaveFile(const ProbeGrid* probe_grid, const char* fn)
+void ProbeGridSaver::SaveFile(ProbeGrid* probe_grid, const char* fn)
 {
+	if (probe_grid->updated)
+	{
+		probe_grid->download_probes();
+	}
+
+
 	FILE* fp = fopen(fn, "wb");
 	fwrite(&probe_grid->coverage_min, sizeof(glm::vec3), 1, fp);
 	fwrite(&probe_grid->coverage_max, sizeof(glm::vec3), 1, fp);

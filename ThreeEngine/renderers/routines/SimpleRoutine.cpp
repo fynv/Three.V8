@@ -1597,28 +1597,40 @@ void SimpleRoutine::render(const RenderParams& params)
 
 	if (m_options.has_probe_grid)
 	{
-		glActiveTexture(GL_TEXTURE0 + texture_idx);
-		glBindTexture(GL_TEXTURE_2D, params.lights->probe_grid->m_tex_visibility->tex_id);
-		glUniform1i(m_bindings.location_tex_visibility, texture_idx);
-		texture_idx++;
+		if (params.lights->probe_grid->m_tex_visibility != nullptr)
+		{
+			glActiveTexture(GL_TEXTURE0 + texture_idx);
+			glBindTexture(GL_TEXTURE_2D, params.lights->probe_grid->m_tex_visibility->tex_id);
+			glUniform1i(m_bindings.location_tex_visibility, texture_idx);
+			texture_idx++;
+		}
 
-		glActiveTexture(GL_TEXTURE0 + texture_idx);
-		glBindTexture(GL_TEXTURE_2D, params.lights->probe_grid->m_tex_irradiance->tex_id);
-		glUniform1i(m_bindings.location_tex_irradiance, texture_idx);
-		texture_idx++;
+		if (params.lights->probe_grid->m_tex_irradiance != nullptr)
+		{
+			glActiveTexture(GL_TEXTURE0 + texture_idx);
+			glBindTexture(GL_TEXTURE_2D, params.lights->probe_grid->m_tex_irradiance->tex_id);
+			glUniform1i(m_bindings.location_tex_irradiance, texture_idx);
+			texture_idx++;
+		}
 	}
 
 	if (m_options.has_lod_probe_grid)
 	{
-		glActiveTexture(GL_TEXTURE0 + texture_idx);
-		glBindTexture(GL_TEXTURE_2D, params.lights->lod_probe_grid->m_tex_visibility->tex_id);
-		glUniform1i(m_bindings.location_tex_visibility, texture_idx);
-		texture_idx++;
+		if (params.lights->lod_probe_grid->m_tex_visibility != nullptr)
+		{
+			glActiveTexture(GL_TEXTURE0 + texture_idx);
+			glBindTexture(GL_TEXTURE_2D, params.lights->lod_probe_grid->m_tex_visibility->tex_id);
+			glUniform1i(m_bindings.location_tex_visibility, texture_idx);
+			texture_idx++;
+		}
 
-		glActiveTexture(GL_TEXTURE0 + texture_idx);
-		glBindTexture(GL_TEXTURE_2D, params.lights->lod_probe_grid->m_tex_irradiance->tex_id);
-		glUniform1i(m_bindings.location_tex_irradiance, texture_idx);
-		texture_idx++;		
+		if (params.lights->lod_probe_grid->m_tex_irradiance != nullptr)
+		{
+			glActiveTexture(GL_TEXTURE0 + texture_idx);
+			glBindTexture(GL_TEXTURE_2D, params.lights->lod_probe_grid->m_tex_irradiance->tex_id);
+			glUniform1i(m_bindings.location_tex_irradiance, texture_idx);
+			texture_idx++;
+		}
 	}
 
 	if (params.primitive->index_buf != nullptr)

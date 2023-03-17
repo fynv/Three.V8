@@ -1510,24 +1510,36 @@ void DrawIsosurface::render(const RenderParams& params)
 
 	if (m_options.has_probe_grid)
 	{
-		glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_visibility);
-		glBindTexture(GL_TEXTURE_2D, params.lights->probe_grid->m_tex_visibility->tex_id);
-		glUniform1i(m_bindings.location_tex_visibility, m_bindings.location_tex_visibility);
+		if (params.lights->probe_grid->m_tex_visibility != nullptr)
+		{
+			glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_visibility);
+			glBindTexture(GL_TEXTURE_2D, params.lights->probe_grid->m_tex_visibility->tex_id);
+			glUniform1i(m_bindings.location_tex_visibility, m_bindings.location_tex_visibility);
+		}
 
-		glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_irradiance);
-		glBindTexture(GL_TEXTURE_2D, params.lights->probe_grid->m_tex_irradiance->tex_id);
-		glUniform1i(m_bindings.location_tex_irradiance, m_bindings.location_tex_irradiance);
+		if (params.lights->probe_grid->m_tex_irradiance != nullptr)
+		{
+			glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_irradiance);
+			glBindTexture(GL_TEXTURE_2D, params.lights->probe_grid->m_tex_irradiance->tex_id);
+			glUniform1i(m_bindings.location_tex_irradiance, m_bindings.location_tex_irradiance);
+		}
 	}
 
 	if (m_options.has_lod_probe_grid)
 	{
-		glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_visibility);
-		glBindTexture(GL_TEXTURE_2D, params.lights->lod_probe_grid->m_tex_visibility->tex_id);
-		glUniform1i(m_bindings.location_tex_visibility, m_bindings.location_tex_visibility);
+		if (params.lights->lod_probe_grid->m_tex_visibility != nullptr)
+		{
+			glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_visibility);
+			glBindTexture(GL_TEXTURE_2D, params.lights->lod_probe_grid->m_tex_visibility->tex_id);
+			glUniform1i(m_bindings.location_tex_visibility, m_bindings.location_tex_visibility);
+		}
 
-		glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_irradiance);
-		glBindTexture(GL_TEXTURE_2D, params.lights->lod_probe_grid->m_tex_irradiance->tex_id);
-		glUniform1i(m_bindings.location_tex_irradiance, m_bindings.location_tex_irradiance);		
+		if (params.lights->lod_probe_grid->m_tex_irradiance != nullptr)
+		{
+			glActiveTexture(GL_TEXTURE0 + m_bindings.location_tex_irradiance);
+			glBindTexture(GL_TEXTURE_2D, params.lights->lod_probe_grid->m_tex_irradiance->tex_id);
+			glUniform1i(m_bindings.location_tex_irradiance, m_bindings.location_tex_irradiance);
+		}
 	}
 
 	glDrawArrays(GL_TRIANGLES, 0, 3);

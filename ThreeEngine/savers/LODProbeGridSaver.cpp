@@ -1,8 +1,13 @@
 #include "LODProbeGridSaver.h"
 #include "lights/LODProbeGrid.h"
 
-void LODProbeGridSaver::SaveFile(const LODProbeGrid* probe_grid, const char* fn)
+void LODProbeGridSaver::SaveFile(LODProbeGrid* probe_grid, const char* fn)
 {
+	if (probe_grid->updated)
+	{
+		probe_grid->download_probes();
+	}
+
 	FILE* fp = fopen(fn, "wb");
 	fwrite(&probe_grid->coverage_min, sizeof(glm::vec3), 1, fp);
 	fwrite(&probe_grid->coverage_max, sizeof(glm::vec3), 1, fp);

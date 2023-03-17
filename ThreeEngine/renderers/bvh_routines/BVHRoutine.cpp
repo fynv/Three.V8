@@ -1926,15 +1926,21 @@ void BVHRoutine::render(const RenderParams& params)
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, m_bindings.binding_probe_references, params.lights->probe_grid->m_ref_buf->m_id);
 		}
 
-		glActiveTexture(GL_TEXTURE0 + texture_idx);
-		glBindTexture(GL_TEXTURE_2D, params.lights->probe_grid->m_tex_visibility->tex_id);
-		glUniform1i(m_bindings.location_tex_visibility, texture_idx);
-		texture_idx++;
+		if (params.lights->probe_grid->m_tex_visibility != nullptr)
+		{
+			glActiveTexture(GL_TEXTURE0 + texture_idx);
+			glBindTexture(GL_TEXTURE_2D, params.lights->probe_grid->m_tex_visibility->tex_id);
+			glUniform1i(m_bindings.location_tex_visibility, texture_idx);
+			texture_idx++;
+		}
 
-		glActiveTexture(GL_TEXTURE0 + texture_idx);
-		glBindTexture(GL_TEXTURE_2D, params.lights->probe_grid->m_tex_irradiance->tex_id);
-		glUniform1i(m_bindings.location_tex_irradiance, texture_idx);
-		texture_idx++;
+		if (params.lights->probe_grid->m_tex_irradiance != nullptr)
+		{
+			glActiveTexture(GL_TEXTURE0 + texture_idx);
+			glBindTexture(GL_TEXTURE_2D, params.lights->probe_grid->m_tex_irradiance->tex_id);
+			glUniform1i(m_bindings.location_tex_irradiance, texture_idx);
+			texture_idx++;
+		}
 	}
 
 	if (m_options.has_lod_probe_grid)
@@ -1949,15 +1955,21 @@ void BVHRoutine::render(const RenderParams& params)
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, m_bindings.binding_lod_probe_indices, params.lights->lod_probe_grid->m_sub_index_buf->m_id);
 		}
 
-		glActiveTexture(GL_TEXTURE0 + texture_idx);
-		glBindTexture(GL_TEXTURE_2D, params.lights->lod_probe_grid->m_tex_visibility->tex_id);
-		glUniform1i(m_bindings.location_tex_visibility, texture_idx);
-		texture_idx++;
+		if (params.lights->lod_probe_grid->m_tex_visibility != nullptr)
+		{
+			glActiveTexture(GL_TEXTURE0 + texture_idx);
+			glBindTexture(GL_TEXTURE_2D, params.lights->lod_probe_grid->m_tex_visibility->tex_id);
+			glUniform1i(m_bindings.location_tex_visibility, texture_idx);
+			texture_idx++;
+		}
 
-		glActiveTexture(GL_TEXTURE0 + texture_idx);
-		glBindTexture(GL_TEXTURE_2D, params.lights->lod_probe_grid->m_tex_irradiance->tex_id);
-		glUniform1i(m_bindings.location_tex_irradiance, texture_idx);
-		texture_idx++;
+		if (params.lights->lod_probe_grid->m_tex_irradiance != nullptr)
+		{
+			glActiveTexture(GL_TEXTURE0 + texture_idx);
+			glBindTexture(GL_TEXTURE_2D, params.lights->lod_probe_grid->m_tex_irradiance->tex_id);
+			glUniform1i(m_bindings.location_tex_irradiance, texture_idx);
+			texture_idx++;
+		}
 	}
 
 	if (m_options.has_ambient_light)

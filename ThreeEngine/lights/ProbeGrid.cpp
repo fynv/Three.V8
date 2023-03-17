@@ -719,3 +719,23 @@ void ProbeGrid::get_references(std::vector<unsigned>& references)
 	m_ref_buf->upload(zeros.data());
 
 }
+
+void ProbeGrid::download_probes()
+{	
+	{
+		size_t num = divisions.x * divisions.y * divisions.z;
+		size_t size = sizeof(glm::vec4) * 9 * num;
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_probe_buf->m_id);
+		const void* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+		memcpy(m_probe_data.data(), p, size);
+		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	}
+	{
+		glBindTexture(GL_TEXTURE_2D, m_tex_visibility->tex_id);
+		glGetTexImage(GL_TEXTURE_2D, 0, GL_RG, GL_UNSIGNED_SHORT, m_visibility_data.data());
+		glBindTexture(GL_TEXTURE_2D, 0);
+	}
+
+	updated = false;
+}

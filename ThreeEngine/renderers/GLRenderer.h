@@ -65,6 +65,9 @@ public:
 	void updateProbe(Scene& scene, CubeRenderTarget& target, ProbeGrid& probe_grid, glm::ivec3 idx, float zNear, float zFar, float k = 1.0f);	
 	void updateProbe(Scene& scene, CubeRenderTarget& target, LODProbeGrid& probe_grid, int idx, float zNear, float zFar, float k = 1.0f);
 
+	int updateProbes(Scene& scene, ProbeGrid& probe_grid, int start_idx, int num_directions, float rate_vis = 0.5f, float rate_irr = 1.0f);
+	int updateProbes(Scene& scene, LODProbeGrid& probe_grid, int start_idx, int num_directions, float rate_vis = 0.5f, float rate_irr = 1.0f);
+
 	void renderTexture(GLTexture2D* tex, int x, int y, int width, int height, GLRenderTarget& target);
 
 	void sceneToVolume(Scene& scene, unsigned tex_id_volume, const glm::vec3& coverage_min, const glm::vec3& coverage_max, const glm::ivec3& divisions);
@@ -172,9 +175,6 @@ private:
 	void scene_to_volume_model(SimpleModel* model, SceneToVolume::RenderParams& params);
 	void scene_to_volume_model(GLTFModel* model, SceneToVolume::RenderParams& params);
 
-
-	BVHRenderer bvh_renderer;	
-	std::unique_ptr<BVHRenderTarget> bvh_target;
-	std::unique_ptr<ProbeRenderTarget> probe_target;
+	BVHRenderer bvh_renderer;		
 };
 
