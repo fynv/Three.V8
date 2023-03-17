@@ -842,7 +842,7 @@ float get_visibility(in vec3 wpos, int idx, int lod, in vec3 vert_world)
 	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
 	vec3 spacing = size_grid/vec3(uBaseDivisions);	
 	spacing *= 1.0 / float(1 << lod);
-	float scale = float(1<<(uBaseDivisions -lod));
+	float scale = float(1<<(uSubDivisionLevel -lod));
 	return get_visibility_common(wpos, spacing, idx, vert_world, scale);
 }
 
