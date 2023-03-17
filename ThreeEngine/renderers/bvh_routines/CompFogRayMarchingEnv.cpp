@@ -2,6 +2,7 @@
 #include <GL/glew.h>
 #include "renderers/BVHRenderTarget.h"
 #include "CompFogRayMarchingEnv.h"
+#include "lights/ProbeRayList.h"
 
 static std::string g_compute_part0 =
 R"(#version 430
@@ -376,6 +377,43 @@ layout (binding=0, rgba16f) uniform image2D uImgColor;
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
+ivec2 g_id_io;
+vec3 g_origin;
+vec3 g_dir;
+
+void render()
+{
+	float dis = texelFetch(uDepthTex, g_id_io, 0).x;
+
+	float step = dis/float(max_num_steps)*8.0;
+	if (step<min_step*8.0) step = min_step*8.0;
+
+	float step_alpha =  1.0 - pow(1.0 - fog_rgba.w, step);
+
+	uint seed = InitRandomSeed(uint(g_id_io.x), uint(g_id_io.y));
+	float delta = RandomFloat(seed);
+
+	vec3 col = vec3(0.0);
+	float start = step * (delta - 0.5);
+	for (float t = start; t<dis; t+=step)
+	{
+		float _step = min(step, dis - t);
+		float _step_alpha = (_step == step) ? step_alpha :  (1.0 - pow(1.0 - fog_rgba.w, _step));
+		float sample_t = max(t + _step*0.5, 0.0);
+		
+		vec3 pos_world = g_origin + g_dir * sample_t;
+		float att =  pow(1.0 - fog_rgba.w, sample_t);
+		
+		vec3 irradiance = getIrradiance(pos_world);
+
+		col+=fog_rgba.xyz*irradiance*RECIPROCAL_PI * _step_alpha* att;
+	}
+
+	vec4 base = imageLoad(uImgColor, g_id_io);
+	imageStore(uImgColor, g_id_io, base + vec4(col, 0.0));
+}
+
+#if TO_CAMERA
 layout (std140, binding = 4) uniform Camera
 {
 	mat4 uProjMat;
@@ -397,35 +435,57 @@ void main()
 	vec3 world = vec3(uInvViewMat*view);
 	vec3 dir = normalize(world - uEyePos);
 
-	float dis = texelFetch(uDepthTex, id, 0).x;
-
-	float step = dis/float(max_num_steps)*8.0;
-	if (step<min_step*8.0) step = min_step*8.0;
-
-	float step_alpha =  1.0 - pow(1.0 - fog_rgba.w, step);
-
-	uint seed = InitRandomSeed(uint(screen.x), uint(screen.y));
-	float delta = RandomFloat(seed);
-
-	vec3 col = vec3(0.0);
-	float start = step * (delta - 0.5);
-	for (float t = start; t<dis; t+=step)
-	{
-		float _step = min(step, dis - t);
-		float _step_alpha = (_step == step) ? step_alpha :  (1.0 - pow(1.0 - fog_rgba.w, _step));
-		float sample_t = max(t + _step*0.5, 0.0);
-		
-		vec3 pos_world = uEyePos + dir * sample_t;
-		float att =  pow(1.0 - fog_rgba.w, sample_t);
-		
-		vec3 irradiance = getIrradiance(pos_world);
-
-		col+=fog_rgba.xyz*irradiance*RECIPROCAL_PI * _step_alpha* att;
-	}
-
-	vec4 base = imageLoad(uImgColor, id);
-	imageStore(uImgColor, id, base + vec4(col, 0.0));
+	g_id_io = id;
+	g_origin = uEyePos;
+	g_dir = dir;
+	render();
 }
+#elif TO_PROBES
+
+layout (std140, binding = 4) uniform ProbeRayList
+{
+	mat4 uPRLRotation;
+	int uRPLNumProbes;
+	int uPRLNumDirections;
+	float uPRLMaxDistance;	
+};
+
+layout (std430, binding = 5) buffer ProbePositions
+{
+	vec4 uProbePos[];
+};
+
+#define PI 3.14159265359
+
+vec3 sphericalFibonacci(float i, float n)
+{
+	const float PHI = sqrt(5.0) * 0.5 + 0.5;
+	float m = i * (PHI - 1.0);
+	float frac_m = m - floor(m);
+	float phi = 2.0 *  PI * frac_m;
+	float cosTheta = 1.0 - (2.0 * i + 1.0) * (1.0 / n);
+    float sinTheta = sqrt(clamp(1.0 - cosTheta * cosTheta, 0.0, 1.0));
+	return vec3(cos(phi)*sinTheta, sin(phi)*sinTheta, cosTheta);	
+}
+
+void main()
+{	
+	ivec2 local_id = ivec3(gl_LocalInvocationID).xy;	
+	ivec2 group_id = ivec3(gl_WorkGroupID).xy;
+	int probe_id = group_id.y;
+	int ray_id = local_id.x + local_id.y*8 + group_id.x * 64;	
+	g_id_io = ivec2(ray_id, probe_id);
+	g_origin = uProbePos[probe_id].xyz;
+
+	vec3 sf = sphericalFibonacci(ray_id, uPRLNumDirections);
+	vec4 dir = uPRLRotation * vec4(sf, 0.0);
+	g_dir = dir.xyz;	
+	
+	render();
+}
+
+
+#endif
 )";
 
 inline void replace(std::string& str, const char* target, const char* source)
@@ -447,6 +507,16 @@ CompFogRayMarchingEnv::CompFogRayMarchingEnv(const Options& options) : m_options
 	std::string s_compute = g_compute_part0 + g_compute_part1;
 
 	std::string defines = "";
+	if (options.to_probe)
+	{
+		defines += "#define TO_CAMERA 0\n";
+		defines += "#define TO_PROBES 1\n";
+	}
+	else
+	{
+		defines += "#define TO_CAMERA 1\n";
+		defines += "#define TO_PROBES 0\n";
+	}
 
 	if (options.has_probe_grid)
 	{
@@ -537,12 +607,22 @@ void CompFogRayMarchingEnv::render(const RenderParams& params)
 		glUniform1i(1, 1);
 	}
 
-	glBindBufferBase(GL_UNIFORM_BUFFER, 4, params.constant_camera->m_id);
-
 	glBindImageTexture(0, params.target->m_tex_video->tex_id, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
 
-	glm::ivec2 blocks = { (width + 7) / 8, (height + 7) / 8 };
-	glDispatchCompute(blocks.x, blocks.y, 1);
+	if (!m_options.to_probe)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, 4, params.constant_camera->m_id);
 
+		glm::ivec2 blocks = { (width + 7) / 8, (height + 7) / 8 };
+		glDispatchCompute(blocks.x, blocks.y, 1);
+	}
+	else
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, 4, params.prl->m_constant.m_id);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, params.prl->buf_positions->m_id);
+
+		glm::ivec2 blocks = { (width + 63) / 64, height };
+		glDispatchCompute(blocks.x, blocks.y, 1);
+	}
 	glUseProgram(0);
 }

@@ -5,12 +5,14 @@
 #include "renderers/GLUtils.h"
 
 class BVHRenderTarget;
+class ProbeRayList;
 
 class CompFogRayMarchingEnv
 {
 public:
 	struct Options
 	{		
+		bool to_probe = false;
 		bool has_probe_grid = false;
 		bool probe_reference_recorded = false;
 		bool has_lod_probe_grid = false;
@@ -24,6 +26,7 @@ public:
 		
 		const BVHRenderTarget* target;
 		const GLDynBuffer* constant_camera;
+		const ProbeRayList* prl;
 	};
 
 	void render(const RenderParams& params);

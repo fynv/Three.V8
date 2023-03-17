@@ -7,10 +7,12 @@
 class BVHRenderTarget;
 class Camera;
 class Fog;
+class ProbeRayList;
+
 class CompFogRayMarching
 {
 public:
-	CompFogRayMarching();
+	CompFogRayMarching(bool to_probe = false);
 
 	struct RenderParams
 	{
@@ -22,6 +24,7 @@ public:
 
 		const BVHRenderTarget* target;
 		const Camera* camera;
+		const ProbeRayList* prl;
 	};
 
 	void render(const RenderParams& params);
@@ -30,6 +33,7 @@ private:
 	void _render_no_shadow(const RenderParams& params);
 	void _render_shadowed(const RenderParams& params);
 
+	bool m_to_probe;
 	std::unique_ptr<GLProgram> m_prog;
 	std::unique_ptr<GLProgram> m_prog_shadow;
 };

@@ -11,10 +11,11 @@ class ProbeGrid;
 class LODProbeGrid;
 class ProbeRenderTarget;
 
-class VisibilityUpdate
+class IrradianceUpdate
 {
 public:
-	VisibilityUpdate(bool is_lod_probe_grid = false);
+	IrradianceUpdate(bool is_lod_probe_grid = false, bool use_target = false);
+
 	struct RenderParams
 	{
 		int id_start_probe;
@@ -30,6 +31,8 @@ public:
 
 private:
 	bool m_is_lod_probe_grid;
-	std::unique_ptr<GLProgram> m_prog;
-
+	bool m_use_target;
+	std::unique_ptr<GLProgram> m_prog_sh;
+	std::unique_ptr<GLProgram> m_prog_irr;
 };
+

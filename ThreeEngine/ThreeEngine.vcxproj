@@ -194,6 +194,7 @@
     <ClCompile Include="renderers\bvh_routines\BVHDepthOnly.cpp" />
     <ClCompile Include="renderers\bvh_routines\BVHRoutine.cpp" />
     <ClCompile Include="renderers\bvh_routines\CompWeightedOIT.cpp" />
+    <ClCompile Include="renderers\bvh_routines\IrradianceUpdate.cpp" />
     <ClCompile Include="renderers\bvh_routines\PrimitiveBatch.cpp" />
     <ClCompile Include="renderers\bvh_routines\VisibilityUpdate.cpp" />
     <ClCompile Include="renderers\CubeRenderTarget.cpp" />
@@ -316,6 +317,7 @@
     <ClInclude Include="renderers\bvh_routines\BVHDepthOnly.h" />
     <ClInclude Include="renderers\bvh_routines\BVHRoutine.h" />
     <ClInclude Include="renderers\bvh_routines\CompWeightedOIT.h" />
+    <ClInclude Include="renderers\bvh_routines\IrradianceUpdate.h" />
     <ClInclude Include="renderers\bvh_routines\PrimitiveBatch.h" />
     <ClInclude Include="renderers\bvh_routines\VisibilityUpdate.h" />
     <ClInclude Include="renderers\CubeRenderTarget.h" />

@@ -9,11 +9,14 @@
 
 class Primitive;
 class BVHRenderTarget;
+class ProbeRayList;
+
 class BVHRoutine
 {
 public:
 	struct Options
 	{
+		bool to_probe = false;
 		AlphaMode alpha_mode = AlphaMode::Opaque;		
 		bool specular_glossiness = false;
 		bool has_color = false;
@@ -48,6 +51,7 @@ public:
 
 		const BVHRenderTarget* target;
 		const GLDynBuffer* constant_camera;
+		const ProbeRayList* prl;
 	};
 
 	void render(const RenderParams& params);
@@ -86,6 +90,8 @@ private:
 		int binding_hemisphere_light;
 		int binding_fog;
 		int binding_camera;		
+		int binding_prl;
+		int binding_prl_pos;
 
 	};
 

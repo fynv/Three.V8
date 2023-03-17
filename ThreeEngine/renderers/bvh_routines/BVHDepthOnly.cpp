@@ -280,6 +280,9 @@ float g_tmax;
 
 void render()
 {
+	float tmax = imageLoad(uDepth, g_id_io).x;
+	g_tmax = min(tmax, g_tmax);
+
 	g_ray.origin = g_origin;
 	g_ray.direction = g_dir;
 	g_ray.tmin = g_tmin;
@@ -287,7 +290,7 @@ void render()
 
 	intersect();	
 	
-	if (g_ray.tmax < g_tmax)
+	if (g_ray.tmax < tmax)
 	{		
 		imageStore(uDepth, g_id_io, vec4(g_ray.tmax));
 	}	
@@ -307,9 +310,7 @@ void main()
 {
 	ivec2 size = imageSize(uDepth);
 	ivec2 id = ivec3(gl_GlobalInvocationID).xy;	
-	if (id.x>= size.x || id.y >=size.y) return;
-
-	float tmax = imageLoad(uDepth, id).x;
+	if (id.x>= size.x || id.y >=size.y) return;	
 
 	ivec2 screen = ivec2(id.x, id.y);
 	vec4 clip0 = vec4((vec2(screen) + 0.5)/vec2(size)*2.0-1.0, -1.0, 1.0);
@@ -324,7 +325,7 @@ void main()
 	g_origin = uEyePos;
 	g_dir = dir;
 	g_tmin = length(world0 - uEyePos);
-	g_tmax =  min(tmax, length(world1 - uEyePos));
+	g_tmax = length(world1 - uEyePos);
 	
 	render();
 }
@@ -369,9 +370,8 @@ void main()
 	vec4 dir = uPRLRotation * vec4(sf, 0.0);
 	g_dir = dir.xyz;
 
-	g_tmin = 0.0;
-	float tmax = imageLoad(uDepth, g_id_io).x;
-	g_tmax = min(tmax, uPRLMaxDistance);		
+	g_tmin = 0.0;	
+	g_tmax = 3.402823466e+38;
 	
 	render();
 }

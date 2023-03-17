@@ -2,6 +2,7 @@
 #include <GL/glew.h>
 #include "CompDrawFog.h"
 #include "renderers/BVHRenderTarget.h"
+#include "lights/ProbeRayList.h"
 
 static std::string g_compute =
 R"(#version 430
@@ -62,31 +63,43 @@ layout (binding=0, rgba16f) uniform image2D uImgColor;
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
-layout (std140, binding = 2) uniform Camera
+ivec2 g_id_io;
+void render()
 {
-	mat4 uProjMat;
-	mat4 uViewMat;	
-	mat4 uInvProjMat;
-	mat4 uInvViewMat;	
-	vec3 uEyePos;
-};
-
-void main()
-{
-	ivec2 size = imageSize(uImgColor);
-	ivec2 id = ivec3(gl_GlobalInvocationID).xy;	
-	if (id.x>= size.x || id.y >=size.y) return;
-	
-	float dis = texelFetch(uDepthTex, id, 0).x;
+	float dis = texelFetch(uDepthTex, g_id_io, 0).x;
 	float alpha = 1.0 - pow(1.0 - fog_rgba.w, dis);
 
 	vec3 irradiance = GetIrradiance();	
 
 	vec3 col = fog_rgba.xyz* irradiance * RECIPROCAL_PI * alpha;
 	
-	vec4 base = imageLoad(uImgColor, id);
-	imageStore(uImgColor, id, (1.0 - alpha) * base + vec4(col, alpha));
+	vec4 base = imageLoad(uImgColor, g_id_io);
+	imageStore(uImgColor, g_id_io, (1.0 - alpha) * base + vec4(col, alpha));
 }
+
+
+#if TO_CAMERA
+void main()
+{
+	ivec2 size = imageSize(uImgColor);
+	ivec2 id = ivec3(gl_GlobalInvocationID).xy;	
+	if (id.x>= size.x || id.y >=size.y) return;	
+	g_id_io = id;
+	render();
+}
+#elif TO_PROBES
+
+void main()
+{	
+	ivec2 local_id = ivec3(gl_LocalInvocationID).xy;	
+	ivec2 group_id = ivec3(gl_WorkGroupID).xy;
+	int probe_id = group_id.y;
+	int ray_id = local_id.x + local_id.y*8 + group_id.x * 64;	
+	g_id_io = ivec2(ray_id, probe_id);
+	render();
+}
+
+#endif
 
 )";
 
@@ -109,6 +122,16 @@ CompDrawFog::CompDrawFog(const Options& options) : m_options(options)
 	std::string s_compute = g_compute;
 
 	std::string defines = "";
+	if (options.to_probe)
+	{
+		defines += "#define TO_CAMERA 0\n";
+		defines += "#define TO_PROBES 1\n";
+	}
+	else
+	{
+		defines += "#define TO_CAMERA 1\n";
+		defines += "#define TO_PROBES 0\n";
+	}
 
 	if (options.has_environment_map)
 	{
@@ -173,12 +196,18 @@ void CompDrawFog::render(const RenderParams& params)
 		glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.lights->hemisphere_light->m_constant.m_id);
 	}	
 
-	glBindBufferBase(GL_UNIFORM_BUFFER, 2, params.constant_camera->m_id);
-
 	glBindImageTexture(0, params.target->m_tex_video->tex_id, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
 
-	glm::ivec2 blocks = { (width + 7) / 8, (height + 7) / 8 };
-	glDispatchCompute(blocks.x, blocks.y, 1);
+	if (!m_options.to_probe)
+	{
+		glm::ivec2 blocks = { (width + 7) / 8, (height + 7) / 8 };
+		glDispatchCompute(blocks.x, blocks.y, 1);
+	}
+	else
+	{
+		glm::ivec2 blocks = { (width + 63) / 64, height };
+		glDispatchCompute(blocks.x, blocks.y, 1);
+	}
 
 	glUseProgram(0);
 }

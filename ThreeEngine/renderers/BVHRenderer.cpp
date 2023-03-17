@@ -71,6 +71,7 @@ void BVHRenderer::render_primitive(const BVHRoutine::RenderParams& params, Pass 
 	const Lights* lights = params.lights;
 
 	BVHRoutine::Options options;
+	options.to_probe = false;
 	options.alpha_mode = material->alphaMode;	
 	options.specular_glossiness = material->specular_glossiness;
 	options.has_color = params.primitive->color_buf != nullptr;
@@ -258,6 +259,7 @@ void BVHRenderer::render_depth_model(Camera* p_camera, GLTFModel* model, BVHRend
 void BVHRenderer::_render_fog(const Camera& camera, const Lights& lights, const Fog& fog, BVHRenderTarget& target)
 {
 	CompDrawFog::Options options;	
+	options.to_probe = false;
 	options.has_ambient_light = lights.ambient_light != nullptr;
 	options.has_hemisphere_light = lights.hemisphere_light != nullptr;
 	options.has_environment_map = lights.environment_map != nullptr;
@@ -274,7 +276,6 @@ void BVHRenderer::_render_fog(const Camera& camera, const Lights& lights, const 
 	params.constant_fog = &fog.m_constant;
 	params.lights = &lights;
 	params.target = &target;
-	params.constant_camera = &camera.m_constant;
 
 	fog_draw->render(params);
 
@@ -311,6 +312,7 @@ void BVHRenderer::_render_fog_rm(const Camera& camera, DirectionalLight& light, 
 void BVHRenderer::_render_fog_rm_env(const Camera& camera, const Lights& lights, const Fog& fog, BVHRenderTarget& target)
 {
 	CompFogRayMarchingEnv::Options options;	
+	options.to_probe = false;
 	options.has_probe_grid = lights.probe_grid != nullptr;
 	if (options.has_probe_grid)
 	{
@@ -639,4 +641,453 @@ void BVHRenderer::update_probe_visibility(const BVHRenderTarget& source, const P
 	params.lod_probe_grid = &probe_grid;
 	params.target = target;
 	VisibilityUpdaters[1]->update(params);
+}
+
+
+BVHRoutine* BVHRenderer::get_probe_routine(const BVHRoutine::Options& options)
+{
+	uint64_t hash = crc64(0, (const unsigned char*)&options, sizeof(BVHRoutine::Options));
+	auto iter = probe_routine_map.find(hash);
+	if (iter == probe_routine_map.end())
+	{
+		probe_routine_map[hash] = std::unique_ptr<BVHRoutine>(new BVHRoutine(options));
+	}
+	return probe_routine_map[hash].get();
+}
+
+void BVHRenderer::render_probe_primitive(const BVHRoutine::RenderParams& params, Pass pass)
+{
+	const MeshStandardMaterial* material = params.material_list[params.primitive->material_idx];
+	const Lights* lights = params.lights;
+
+	BVHRoutine::Options options;
+	options.to_probe = true;
+	options.alpha_mode = material->alphaMode;
+	options.specular_glossiness = material->specular_glossiness;
+	options.has_color = params.primitive->color_buf != nullptr;
+	options.has_color_texture = material->tex_idx_map >= 0;
+	options.has_metalness_map = material->tex_idx_metalnessMap >= 0;
+	options.has_roughness_map = material->tex_idx_roughnessMap >= 0;
+	options.has_emissive_map = material->tex_idx_emissiveMap >= 0;
+	options.has_specular_map = material->tex_idx_specularMap >= 0;
+	options.has_glossiness_map = material->tex_idx_glossinessMap >= 0;
+	options.num_directional_lights = lights->num_directional_lights;
+	options.num_directional_shadows = lights->num_directional_shadows;
+	options.has_environment_map = lights->environment_map != nullptr;
+	options.has_probe_grid = lights->probe_grid != nullptr;
+	if (options.has_probe_grid)
+	{
+		options.probe_reference_recorded = lights->probe_grid->record_references;
+	}
+	options.has_lod_probe_grid = lights->lod_probe_grid != nullptr;
+	options.has_ambient_light = lights->ambient_light != nullptr;
+	options.has_hemisphere_light = lights->hemisphere_light != nullptr;
+	options.has_fog = params.constant_fog != nullptr;
+	BVHRoutine* routine = get_probe_routine(options);
+	routine->render(params);
+}
+
+void BVHRenderer::render_probe_model(ProbeRayList& prl, const Lights& lights, const Fog* fog, SimpleModel* model, Pass pass, BVHRenderTarget& target)
+{
+	const GLTexture2D* tex = &model->texture;
+	if (model->repl_texture != nullptr)
+	{
+		tex = model->repl_texture;
+	}
+
+	const MeshStandardMaterial* material = &model->material;
+
+	if (pass == Pass::Opaque)
+	{
+		if (material->alphaMode == AlphaMode::Blend) return;
+	}
+	else if (pass == Pass::Alpha)
+	{
+		if (material->alphaMode != AlphaMode::Blend) return;
+	}
+
+	BVHRoutine::RenderParams params;
+	params.tex_list = &tex;
+	params.material_list = &material;
+	params.constant_model = &model->m_constant;
+	params.primitive = &model->geometry;
+	params.lights = &lights;
+
+	if (fog != nullptr)
+	{
+		params.constant_fog = &fog->m_constant;
+	}
+	else
+	{
+		params.constant_fog = nullptr;
+	}
+
+	params.target = &target;
+	params.prl = &prl;
+
+	render_probe_primitive(params, pass);
+}
+
+void BVHRenderer::render_probe_model(ProbeRayList& prl, const Lights& lights, const Fog* fog, GLTFModel* model, Pass pass, BVHRenderTarget& target)
+{
+	std::vector<const GLTexture2D*> tex_lst(model->m_textures.size());
+	for (size_t i = 0; i < tex_lst.size(); i++)
+	{
+		auto iter = model->m_repl_textures.find(i);
+		if (iter != model->m_repl_textures.end())
+		{
+			tex_lst[i] = iter->second;
+		}
+		else
+		{
+			tex_lst[i] = model->m_textures[i].get();
+		}
+	}
+
+	std::vector<const MeshStandardMaterial*> material_lst(model->m_materials.size());
+	for (size_t i = 0; i < material_lst.size(); i++)
+		material_lst[i] = model->m_materials[i].get();
+
+	//for (size_t i = 0; i < model->m_meshs.size(); i++)
+	{
+		//Mesh& mesh = model->m_meshs[i];
+		Mesh& mesh = *model->batched_mesh;
+
+		for (size_t j = 0; j < mesh.primitives.size(); j++)
+		{
+			Primitive& primitive = mesh.primitives[j];
+
+			const MeshStandardMaterial* material = material_lst[primitive.material_idx];
+			if (pass == Pass::Opaque)
+			{
+				if (material->alphaMode == AlphaMode::Blend) continue;
+			}
+			else if (pass == Pass::Alpha)
+			{
+				if (material->alphaMode != AlphaMode::Blend) continue;
+			}
+
+			BVHRoutine::RenderParams params;
+			params.tex_list = tex_lst.data();
+			params.material_list = material_lst.data();
+			params.constant_model = mesh.model_constant.get();
+			params.primitive = &primitive;
+			params.lights = &lights;
+
+			if (fog != nullptr)
+			{
+				params.constant_fog = &fog->m_constant;
+			}
+			else
+			{
+				params.constant_fog = nullptr;
+			}
+
+			params.target = &target;
+			params.prl = &prl;
+
+			render_probe_primitive(params, pass);
+		}
+	}
+}
+
+void BVHRenderer::_render_probe_fog(ProbeRayList& prl, const Lights& lights, const Fog& fog, BVHRenderTarget& target)
+{
+	CompDrawFog::Options options;
+	options.to_probe = true;
+	options.has_ambient_light = lights.ambient_light != nullptr;
+	options.has_hemisphere_light = lights.hemisphere_light != nullptr;
+	options.has_environment_map = lights.environment_map != nullptr;
+
+	uint64_t hash = crc64(0, (const unsigned char*)&options, sizeof(CompDrawFog::Options));
+	auto iter = probe_fog_draw_map.find(hash);
+	if (iter == probe_fog_draw_map.end())
+	{
+		probe_fog_draw_map[hash] = std::unique_ptr<CompDrawFog>(new CompDrawFog(options));
+	}
+	CompDrawFog* fog_draw = probe_fog_draw_map[hash].get();
+
+	CompDrawFog::RenderParams params;
+	params.constant_fog = &fog.m_constant;
+	params.lights = &lights;
+	params.target = &target;
+
+	fog_draw->render(params);
+
+}
+
+void BVHRenderer::_render_probe_fog_rm(ProbeRayList& prl, DirectionalLight& light, const Fog& fog, BVHRenderTarget& target)
+{
+	if (probe_fog_ray_march == nullptr)
+	{
+		probe_fog_ray_march = std::unique_ptr<CompFogRayMarching>(new CompFogRayMarching(true));
+	}
+
+	light.updateConstant();
+	CompFogRayMarching::RenderParams params;
+	params.fog = &fog;
+	params.constant_diretional_light = &light.m_constant;
+	if (light.shadow != nullptr)
+	{
+		params.constant_diretional_shadow = &light.shadow->constant_shadow;
+		params.tex_shadow = light.shadow->m_lightTex;
+	}
+	else
+	{
+		params.constant_diretional_shadow = nullptr;
+		params.tex_shadow = -1;
+	}
+	params.target = &target;
+	params.prl = &prl;
+	probe_fog_ray_march->render(params);
+
+}
+
+void BVHRenderer::_render_probe_fog_rm_env(ProbeRayList& prl, const Lights& lights, const Fog& fog, BVHRenderTarget& target)
+{
+	CompFogRayMarchingEnv::Options options;
+	options.to_probe = true;
+	options.has_probe_grid = lights.probe_grid != nullptr;
+	if (options.has_probe_grid)
+	{
+		options.probe_reference_recorded = lights.probe_grid->record_references;
+	}
+	options.has_lod_probe_grid = lights.lod_probe_grid != nullptr;
+
+	uint64_t hash = crc64(0, (const unsigned char*)&options, sizeof(CompFogRayMarchingEnv::Options));
+	auto iter = probe_fog_ray_march_map.find(hash);
+	if (iter == probe_fog_ray_march_map.end())
+	{
+		probe_fog_ray_march_map[hash] = std::unique_ptr<CompFogRayMarchingEnv>(new CompFogRayMarchingEnv(options));
+	}
+	CompFogRayMarchingEnv* fog_draw = probe_fog_ray_march_map[hash].get();
+
+	CompFogRayMarchingEnv::RenderParams params;
+	params.constant_fog = &fog.m_constant;
+	params.lights = &lights;
+	params.target = &target;
+	params.prl = &prl;
+
+	fog_draw->render(params);
+
+}
+
+void BVHRenderer::render_probe(Scene& scene, ProbeRayList& prl, BVHRenderTarget& target)
+{
+	bool has_alpha = false;
+	bool has_opaque = false;
+
+	for (size_t i = 0; i < scene.simple_models.size(); i++)
+	{
+		SimpleModel* model = scene.simple_models[i];
+		const MeshStandardMaterial* material = &model->material;
+		if (material->alphaMode == AlphaMode::Blend)
+		{
+			has_alpha = true;
+		}
+		else
+		{
+			has_opaque = true;
+		}
+	}
+
+	for (size_t i = 0; i < scene.gltf_models.size(); i++)
+	{
+		GLTFModel* model = scene.gltf_models[i];
+		size_t num_materials = model->m_materials.size();
+		for (size_t i = 0; i < num_materials; i++)
+		{
+			const MeshStandardMaterial* material = model->m_materials[i].get();
+			if (material->alphaMode == AlphaMode::Blend)
+			{
+				has_alpha = true;
+			}
+			else
+			{
+				has_opaque = true;
+			}
+		}
+	}
+
+	while (scene.background != nullptr)
+	{
+		{
+			ColorBackground* bg = dynamic_cast<ColorBackground*>(scene.background);
+			if (bg != nullptr)
+			{
+				glm::vec4 color = { bg->color.r, bg->color.g, bg->color.b, 1.0f };
+				glClearTexImage(target.m_tex_video->tex_id, 0, GL_RGBA, GL_FLOAT, &color);
+				break;
+			}
+		}
+		{
+			CubeBackground* bg = dynamic_cast<CubeBackground*>(scene.background);
+			if (bg != nullptr)
+			{
+				if (ProbeSkyBoxDraw == nullptr)
+				{
+					ProbeSkyBoxDraw = std::unique_ptr<CompSkyBox>(new CompSkyBox(true));
+				}
+				ProbeSkyBoxDraw->render(&prl, &bg->cubemap, &target);
+				break;
+			}
+		}
+		{
+			HemisphereBackground* bg = dynamic_cast<HemisphereBackground*>(scene.background);
+			if (bg != nullptr)
+			{
+				bg->updateConstant();
+				if (ProbeHemisphereDraw == nullptr)
+				{
+					ProbeHemisphereDraw = std::unique_ptr<CompHemisphere>(new CompHemisphere(true));
+				}
+				ProbeHemisphereDraw->render(&prl, &bg->m_constant, &target);
+				break;
+			}
+		}
+		{
+			BackgroundScene* bg = dynamic_cast<BackgroundScene*>(scene.background);
+			if (bg != nullptr && bg->scene != nullptr)
+			{				
+				render_probe(*bg->scene, prl, target);
+			}
+
+		}
+
+		break;
+	}
+
+	for (size_t i = 0; i < scene.simple_models.size(); i++)
+	{
+		SimpleModel* model = scene.simple_models[i];
+		check_bvh(model);
+	}
+
+	for (size_t i = 0; i < scene.gltf_models.size(); i++)
+	{
+		GLTFModel* model = scene.gltf_models[i];
+		check_bvh(model);
+	}
+
+	Lights& lights = scene.lights;
+
+	Fog* fog = nullptr;
+	if (scene.fog != nullptr && scene.fog->density > 0)
+	{
+		fog = scene.fog;
+	}
+
+
+	float max_depth = FLT_MAX;
+	glClearTexImage(target.m_tex_depth->tex_id, 0, GL_RED, GL_FLOAT, &max_depth);
+
+	if (has_opaque)
+	{
+		// depth-prepass
+		for (size_t i = 0; i < scene.simple_models.size(); i++)
+		{
+			SimpleModel* model = scene.simple_models[i];
+			render_probe_depth_model(prl, model, target);
+		}
+
+		for (size_t i = 0; i < scene.gltf_models.size(); i++)
+		{
+			GLTFModel* model = scene.gltf_models[i];
+			render_probe_depth_model(prl, model, target);
+		}
+
+		// opaque
+		for (size_t i = 0; i < scene.simple_models.size(); i++)
+		{
+			SimpleModel* model = scene.simple_models[i];
+			render_probe_model(prl, lights, fog, model, Pass::Opaque, target);
+		}
+
+		for (size_t i = 0; i < scene.gltf_models.size(); i++)
+		{
+			GLTFModel* model = scene.gltf_models[i];
+			render_probe_model(prl, lights, fog, model, Pass::Opaque, target);
+		}
+	}
+
+	if (has_alpha)
+	{
+		target.update_oit_buffers();
+
+		if (oit_resolver == nullptr)
+		{
+			oit_resolver = std::unique_ptr<CompWeightedOIT>(new CompWeightedOIT);
+		}
+		oit_resolver->PreDraw(target.m_OITBuffers);
+
+		for (size_t i = 0; i < scene.simple_models.size(); i++)
+		{
+			SimpleModel* model = scene.simple_models[i];
+			render_probe_model(prl, lights, fog, model, Pass::Alpha, target);
+		}
+
+		for (size_t i = 0; i < scene.gltf_models.size(); i++)
+		{
+			GLTFModel* model = scene.gltf_models[i];
+			render_probe_model(prl, lights, fog, model, Pass::Alpha, target);
+		}
+
+		oit_resolver->PostDraw(&target);
+	}
+
+	if (fog != nullptr)
+	{
+		fog->updateConstant();
+		_render_probe_fog(prl, lights, *fog, target);
+
+		for (size_t i = 0; i < scene.directional_lights.size(); i++)
+		{
+			DirectionalLight* light = scene.directional_lights[i];
+			_render_probe_fog_rm(prl, *light, *fog, target);
+		}
+
+		if (lights.probe_grid != nullptr || lights.lod_probe_grid != nullptr)
+		{
+			_render_probe_fog_rm_env(prl, lights, *fog, target);
+		}
+	}
+}
+
+void BVHRenderer::update_probe_irradiance(const BVHRenderTarget& source, const ProbeRayList& prl, const ProbeGrid& probe_grid, int id_start_probe, float mix_rate, ProbeRenderTarget* target)
+{
+	bool use_target = target != nullptr;
+	int idx_updater = use_target ? 1 : 0;
+	if (IrradianceUpdaters[idx_updater] == nullptr)
+	{
+		IrradianceUpdaters[idx_updater] = std::unique_ptr<IrradianceUpdate>(new IrradianceUpdate(false, use_target));
+	}
+	IrradianceUpdate::RenderParams params;
+	params.id_start_probe = id_start_probe;
+	params.mix_rate = mix_rate;
+	params.source = &source;
+	params.prl = &prl;
+	params.probe_grid = &probe_grid;
+	params.lod_probe_grid = nullptr;
+	params.target = target;
+	IrradianceUpdaters[idx_updater]->update(params);
+}
+
+void BVHRenderer::update_probe_irradiance(const BVHRenderTarget& source, const ProbeRayList& prl, const LODProbeGrid& probe_grid, int id_start_probe, float mix_rate, ProbeRenderTarget* target)
+{
+	bool use_target = target != nullptr;
+	int idx_updater = use_target ? 3 : 2;
+	if (IrradianceUpdaters[idx_updater] == nullptr)
+	{
+		IrradianceUpdaters[idx_updater] = std::unique_ptr<IrradianceUpdate>(new IrradianceUpdate(true, use_target));
+	}
+	IrradianceUpdate::RenderParams params;
+	params.id_start_probe = id_start_probe;
+	params.mix_rate = mix_rate;
+	params.source = &source;
+	params.prl = &prl;
+	params.probe_grid = nullptr;
+	params.lod_probe_grid = &probe_grid;
+	params.target = target;
+	IrradianceUpdaters[idx_updater]->update(params);
+
 }

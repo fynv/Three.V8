@@ -61,6 +61,82 @@ inline float get_max_distance(const LODProbeGrid& probe_grid)
 	return glm::length(spacing);
 }
 
+
+inline glm::vec3 sphericalFibonacci(float i, float n)
+{
+	const float PHI = sqrt(5.0f) * 0.5f + 0.5f;
+	float m = i * (PHI - 1.0f);
+	float frac_m = m - floor(m);
+	float phi = 2.0f * PI * frac_m;
+	float cosTheta = 1.0f - (2.0f * i + 1.0f) * (1.0f / n);
+	float sinTheta = sqrtf(glm::clamp(1.0f - cosTheta * cosTheta, 0.0f, 1.0f));
+	return glm::vec3(cosf(phi) * sinTheta, sinf(phi) * sinTheta, cosTheta);
+}
+
+
+inline void SHEval3(const float fX, const float fY, const float fZ, float* pSH)
+{
+	float fC0, fC1, fS0, fS1, fTmpA, fTmpB, fTmpC;
+	float fZ2 = fZ * fZ;
+
+	pSH[0] = 0.2820947917738781f;
+	pSH[2] = 0.4886025119029199f * fZ;
+	pSH[6] = 0.9461746957575601f * fZ2 + -0.3153915652525201f;
+	fC0 = fX;
+	fS0 = fY;
+
+	fTmpA = 0.48860251190292f;
+	pSH[3] = fTmpA * fC0;
+	pSH[1] = fTmpA * fS0;
+	fTmpB = 1.092548430592079f * fZ;
+	pSH[7] = fTmpB * fC0;
+	pSH[5] = fTmpB * fS0;
+	fC1 = fX * fC0 - fY * fS0;
+	fS1 = fX * fS0 + fY * fC0;
+
+	fTmpC = 0.5462742152960395f;
+	pSH[8] = fTmpC * fC1;
+	pSH[4] = fTmpC * fS1;
+}
+
+void ProbeRayList::_calc_shirr_weights()
+{
+	float area = (4.0f * PI) / float(num_directions);
+
+	float order[9] = { 0.0f, 1.0f, 1.0f, 1.0f, 2.0f, 2.0f, 2.0f,2.0f, 2.0f };
+	float filtering[9];
+	for (int k = 0; k < 9; k++)
+	{
+		float x = order[k] / 3.0f;
+		filtering[k] = expf(-x * x);
+	}
+
+	std::vector<float> weights(num_directions * 9);
+	for (int ray_id = 0; ray_id < num_directions; ray_id++)
+	{
+		glm::vec3 sf = sphericalFibonacci(ray_id, num_directions);
+		glm::vec3 dir = glm::vec3(rotation * glm::vec4(sf, 0.0f));
+
+		float shBasis[9];
+		SHEval3(dir.x, dir.y, dir.z, shBasis);
+		for (int k = 0; k < 9; k++)
+		{
+			weights[k * num_directions + ray_id] = shBasis[k] * filtering[k] * area;
+		}
+	}
+
+	TexSHIrrWeight = std::unique_ptr<GLTexture2D>(new GLTexture2D);
+	glBindTexture(GL_TEXTURE_2D, TexSHIrrWeight->tex_id);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexStorage2D(GL_TEXTURE_2D, 1, GL_R32F, num_directions, 9);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, num_directions, 9, GL_RED, GL_FLOAT, weights.data());	
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+}
+
 ProbeRayList::ProbeRayList(const ProbeGrid& probe_grid, int begin, int end, int num_directions)
 	: m_constant(sizeof(ListConst), GL_UNIFORM_BUFFER)
 	, rotation(rand_rotation())
@@ -87,6 +163,7 @@ ProbeRayList::ProbeRayList(const ProbeGrid& probe_grid, int begin, int end, int 
 		positions[j] = glm::vec4(pos, 1.0f);
 	}
 	buf_positions->upload(positions.data());
+	_calc_shirr_weights();
 }
 
 
@@ -107,6 +184,7 @@ ProbeRayList::ProbeRayList(const LODProbeGrid& probe_grid, int begin, int end, i
 		positions[j] = glm::vec4(pos_lod.x, pos_lod.y, pos_lod.z, 1.0f);
 	}
 	buf_positions->upload(positions.data());
+	_calc_shirr_weights();
 }
 
 void ProbeRayList::updateConstant()

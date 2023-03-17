@@ -5,11 +5,14 @@
 #include "renderers/GLUtils.h"
 
 class BVHRenderTarget;
+class ProbeRayList;
+
 class CompDrawFog
 {
 public:
 	struct Options
 	{		
+		bool to_probe = false;
 		bool has_environment_map = false;
 		bool has_ambient_light = false;
 		bool has_hemisphere_light = false;
@@ -20,8 +23,7 @@ public:
 	{		
 		const GLDynBuffer* constant_fog;
 		const Lights* lights;
-		const BVHRenderTarget* target;
-		const GLDynBuffer* constant_camera;
+		const BVHRenderTarget* target;		
 	};
 
 	void render(const RenderParams& params);
