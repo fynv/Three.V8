@@ -227,5 +227,23 @@ namespace GameDev
 
             game_player.SendMessageToUser("tuning", tuning.ToString());
         }
+
+        private void btn_auto_detect_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            JObject tuning = new JObject();
+            tuning["auto_area"] = "auto";
+            var ret = JObject.Parse(game_player.SendMessageToUser("tuning", tuning.ToString()));
+
+            var att = (JObject)jobj["attributes"];
+            att["area"] = ret["area"];
+            string area = ret["area"].ToString();
+            string[] values = area.Split(',');
+            tuner_left.value = float.Parse(values[0]);
+            tuner_right.value = float.Parse(values[1]);
+            tuner_bottom.value = float.Parse(values[2]);
+            tuner_top.value = float.Parse(values[3]);
+            tuner_near.value = float.Parse(values[4]);
+            tuner_far.value = float.Parse(values[5]);            
+        }
     }
 }

@@ -28,9 +28,7 @@ private:
 	static void GetUseSSAO(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void SetUseSSAO(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
 	
-#if THREE_MM
 	static void RenderTexture(const v8::FunctionCallbackInfo<v8::Value>& info);
-#endif
 };
 
 v8::Local<v8::FunctionTemplate> WrapperGLRenderer::create_template(v8::Isolate* isolate, v8::FunctionCallback constructor)
@@ -45,9 +43,8 @@ v8::Local<v8::FunctionTemplate> WrapperGLRenderer::create_template(v8::Isolate* 
 
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "useSSAO").ToLocalChecked(), GetUseSSAO, SetUseSSAO);
 	
-#if THREE_MM
 	templ->InstanceTemplate()->Set(isolate, "renderTexture", v8::FunctionTemplate::New(isolate, RenderTexture));
-#endif
+
 	return templ;
 }
 
@@ -223,7 +220,6 @@ void WrapperGLRenderer::SetUseSSAO(v8::Local<v8::String> property, v8::Local<v8:
 	self->m_use_ssao = value.As<v8::Boolean>()->Value();
 }
 
-#if THREE_MM
 void WrapperGLRenderer::RenderTexture(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	LocalContext lctx(info);
@@ -234,7 +230,20 @@ void WrapperGLRenderer::RenderTexture(const v8::FunctionCallbackInfo<v8::Value>&
 	v8::Local<v8::Object> holder_image = info[0].As<v8::Object>();
 	std::string clsname = lctx.jstr_to_str(holder_image->GetConstructorName());
 
-	if (clsname == "MMCamera")
+	bool flipY = true;
+
+	if (clsname == "GLRenderTarget")
+	{
+		GLRenderTarget* img = lctx.jobj_to_obj<GLRenderTarget>(holder_image);
+		if (img != nullptr)
+		{
+			tex = img->m_tex_video.get();
+			flipY = false;
+		}
+	}
+
+#if THREE_MM
+	else if (clsname == "MMCamera")
 	{
 		MMCamera* cam = lctx.jobj_to_obj<MMCamera>(holder_image);
 		if (cam != nullptr)
@@ -266,6 +275,7 @@ void WrapperGLRenderer::RenderTexture(const v8::FunctionCallbackInfo<v8::Value>&
 			tex = player->get_texture();
 		}
 	}
+#endif
 
 	int x, y, width, height;
 	lctx.jnum_to_num(info[1], x);
@@ -273,16 +283,22 @@ void WrapperGLRenderer::RenderTexture(const v8::FunctionCallbackInfo<v8::Value>&
 	lctx.jnum_to_num(info[3], width);
 	lctx.jnum_to_num(info[4], height);
 
+	float alpha = 1.0f;
+	if (info.Length() > 5)
+	{
+		lctx.jnum_to_num(info[5], alpha);
+	}
+
 	GLRenderTarget* target = nullptr;
 
-	if (info.Length() < 6)
+	if (info.Length() < 7)
 	{
 		GamePlayer* player = lctx.player();
 		target = &player->renderTarget();
 	}
 	else
 	{
-		v8::Local<v8::Object> holder_viewer = info[5].As<v8::Object>();
+		v8::Local<v8::Object> holder_viewer = info[6].As<v8::Object>();
 		std::string clsname = lctx.jstr_to_str(holder_viewer->GetConstructorName());
 		if (clsname == "UI3DViewer")
 		{
@@ -295,6 +311,6 @@ void WrapperGLRenderer::RenderTexture(const v8::FunctionCallbackInfo<v8::Value>&
 		}
 	}
 	
-	self->renderTexture(tex, x, y, width, height, *target);
+	self->renderTexture(tex, x, y, width, height, *target, flipY, alpha);
 }
-#endif
+

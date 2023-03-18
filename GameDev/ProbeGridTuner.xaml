@@ -28,6 +28,7 @@
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="Divisions:" VerticalAlignment="Center"/>
                 <local:Vec3Tuner x:Name="tuner_divisions" ValueChanged="tuner_divisions_ValueChanged"/>
+                <Button x:Name="btn_auto_detect" Margin="5" Click="btn_auto_detect_Click">Auto Detect</Button>
             </StackPanel>
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="Distribution bending(y-power):" VerticalAlignment="Center"/>

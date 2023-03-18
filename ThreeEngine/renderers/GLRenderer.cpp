@@ -2547,14 +2547,14 @@ int GLRenderer::updateProbes(Scene& scene, LODProbeGrid& probe_grid, int start_i
 	return num_probes;
 }
 
-void GLRenderer::renderTexture(GLTexture2D* tex, int x, int y, int width, int height, GLRenderTarget& target)
+void GLRenderer::renderTexture(GLTexture2D* tex, int x, int y, int width, int height, GLRenderTarget& target, bool flipY, float alpha)
 {
 	if (TextureDraw == nullptr)
 	{
-		TextureDraw = std::unique_ptr<DrawTexture>(new DrawTexture(false, true));
+		TextureDraw = std::unique_ptr<DrawTexture>(new DrawTexture(false, flipY));
 	}	
 	glBindFramebuffer(GL_FRAMEBUFFER, target.m_fbo_video);
-	TextureDraw->render(tex->tex_id, x, target.m_height - (y + height), width, height);
+	TextureDraw->render(tex->tex_id, x, target.m_height - (y + height), width, height, alpha<1.0f, alpha);
 }
 
 void GLRenderer::scene_to_volume_primitive(const SceneToVolume::RenderParams& params)

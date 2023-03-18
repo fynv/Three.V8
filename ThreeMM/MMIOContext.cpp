@@ -47,9 +47,9 @@ int64_t MMFileContext::seek(void* opaque, int64_t offset, int whence)
 	{
 		int64_t cur = ftell(self->m_fp);
 		fseek(self->m_fp, 0, SEEK_END);
-		int64_t end = ftell(self->m_fp);
+		int64_t size = ftell(self->m_fp);
 		fseek(self->m_fp, cur, SEEK_SET);
-		return end - cur;
+		return size;
 	}
 	return fseek(self->m_fp, offset, whence);
 }
@@ -187,7 +187,7 @@ int64_t MMFileStreamContext::seek(void* opaque, int64_t offset, int whence)
 	MMFileStreamContext* self = (MMFileStreamContext*)opaque;
 	if (whence == AVSEEK_SIZE)
 	{
-		return self->m_file_size - self->m_cur_pos;
+		return self->m_file_size;
 	}
 
 	if (whence == SEEK_SET)
@@ -338,7 +338,7 @@ int64_t MMHttpStreamContext::seek(void* opaque, int64_t offset, int whence)
 	MMHttpStreamContext* self = (MMHttpStreamContext*)opaque;
 	if (whence == AVSEEK_SIZE)
 	{
-		return self->m_file_size - self->m_cur_pos;
+		return self->m_file_size;
 	}
 
 	if (whence == SEEK_SET)

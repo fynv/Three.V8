@@ -31,7 +31,8 @@
             </StackPanel>
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="Sub-division level:" VerticalAlignment="Center"/>
-                <local:NumberTuner x:Name="tuner_sub_div" Margin="5" ValueChanged="tuner_sub_div_ValueChanged"/>                
+                <local:NumberTuner x:Name="tuner_sub_div" Margin="5" ValueChanged="tuner_sub_div_ValueChanged"/>
+                <Button x:Name="btn_auto_detect" Margin="5" Click="btn_auto_detect_Click">Auto Detect</Button>
                 <Button x:Name="btn_initialize" Margin="5" Click="btn_initialize_Click">Initialize</Button>
                 <TextBlock x:Name="text_num_probes" VerticalAlignment="Center"/>
             </StackPanel>

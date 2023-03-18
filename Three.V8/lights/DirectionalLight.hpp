@@ -4,6 +4,7 @@
 #include "lights/Light.hpp"
 #include <lights/DirectionalLight.h>
 #include <lights/DirectionalLightShadow.h>
+#include <scenes/Scene.h>
 
 class WrapperDirectionalLight
 {
@@ -20,6 +21,8 @@ private:
 
 	static void GetBias(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void SetBias(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
+
+	static void GetBoundingBox(const v8::FunctionCallbackInfo<v8::Value>& info);
 };
 
 
@@ -31,6 +34,8 @@ v8::Local<v8::FunctionTemplate> WrapperDirectionalLight::create_template(v8::Iso
 	templ->InstanceTemplate()->Set(isolate, "setShadowProjection", v8::FunctionTemplate::New(isolate, SetShadowProjection));
 	templ->InstanceTemplate()->Set(isolate, "setShadowRadius", v8::FunctionTemplate::New(isolate, SetShadowRadius));
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "bias").ToLocalChecked(), GetBias, SetBias);
+
+	templ->InstanceTemplate()->Set(isolate, "getBoundingBox", v8::FunctionTemplate::New(isolate, GetBoundingBox));
 	return templ;
 }
 
@@ -137,4 +142,25 @@ void WrapperDirectionalLight::SetBias(v8::Local<v8::String> property, v8::Local<
 	{
 		lctx.jnum_to_num(value, self->shadow->m_bias);
 	}
+}
+
+void WrapperDirectionalLight::GetBoundingBox(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	DirectionalLight* self = lctx.self<DirectionalLight>();
+	Scene* scene = lctx.jobj_to_obj<Scene>(info[0]);
+
+	glm::mat4 view_matrix = glm::inverse(self->matrixWorld);
+
+	glm::vec3 min_pos, max_pos;
+	scene->get_bounding_box(min_pos, max_pos, view_matrix);
+
+	v8::Local<v8::Object> ret = v8::Object::New(lctx.isolate);
+	v8::Local<v8::Object> j_min_pos = v8::Object::New(lctx.isolate);
+	lctx.vec3_to_jvec3(min_pos, j_min_pos);
+	v8::Local<v8::Object> j_max_pos = v8::Object::New(lctx.isolate);
+	lctx.vec3_to_jvec3(max_pos, j_max_pos);
+	lctx.set_property(ret, "minPos", j_min_pos);
+	lctx.set_property(ret, "maxPos", j_max_pos);
+	info.GetReturnValue().Set(ret);
 }

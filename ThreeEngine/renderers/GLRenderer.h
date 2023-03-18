@@ -68,7 +68,7 @@ public:
 	int updateProbes(Scene& scene, ProbeGrid& probe_grid, int start_idx, int num_directions, float rate_vis = 0.5f, float rate_irr = 1.0f);
 	int updateProbes(Scene& scene, LODProbeGrid& probe_grid, int start_idx, int num_directions, float rate_vis = 0.5f, float rate_irr = 1.0f);
 
-	void renderTexture(GLTexture2D* tex, int x, int y, int width, int height, GLRenderTarget& target);
+	void renderTexture(GLTexture2D* tex, int x, int y, int width, int height, GLRenderTarget& target, bool flipY = true, float alpha = 1.0f);
 
 	void sceneToVolume(Scene& scene, unsigned tex_id_volume, const glm::vec3& coverage_min, const glm::vec3& coverage_max, const glm::ivec3& divisions);
 

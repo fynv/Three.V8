@@ -36,5 +36,8 @@ public:
 	void add_widget(Object3D* object);
 	void remove_widget(Object3D* object);
 	void clear_widgets();
+
+	void get_bounding_box(glm::vec3& min_pos, glm::vec3& max_pos, const glm::mat4& view_matrix = glm::identity<glm::mat4>());
+
 };
 

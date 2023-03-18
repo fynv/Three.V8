@@ -43,6 +43,7 @@
                         <local:NumberTuner x:Name="tuner_near" Margin="5" ValueChanged="tuner_area_ValueChanged"/>
                         <TextBlock Text="Far:" VerticalAlignment="Center"/>
                         <local:NumberTuner x:Name="tuner_far" Margin="5" ValueChanged="tuner_area_ValueChanged"/>
+                        <Button x:Name="btn_auto_detect" Margin="5" Click="btn_auto_detect_Click">Auto Detect</Button>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="Radius:" VerticalAlignment="Center"/>

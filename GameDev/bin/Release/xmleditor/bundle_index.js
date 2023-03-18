@@ -4904,6 +4904,10 @@ class GPUProbeGridBaker
         {
             this.probe_grid.dynamicMap = string_to_boolean(props.dynamic_map);
         }
+        if (props.hasOwnProperty('normal_bias'))
+        {
+            this.probe_grid.normalBias = parseFloat(props.normal_bias);
+        }
         this.doc.scene.indirectLight = this.probe_grid;
         
         let divisions = this.probe_grid.divisions;
@@ -6007,6 +6011,27 @@ const tuning_probe_grid =  (doc, obj, input) =>{
         doc.scene.indirectLight.normalBias = parseFloat(input.normal_bias);
     }
     
+    if ("auto_area" in input)
+    {
+        let aabb = doc.scene.getBoundingBox();
+        let minPos = aabb.minPos;
+        let maxPos = aabb.maxPos;
+        let size_x = maxPos.x - minPos.x;
+        let size_y = maxPos.y - minPos.y;
+        let size_z = maxPos.z - minPos.z;
+        let div_x = Math.ceil(size_x * 2); if (div_x<2) div_x = 2;
+        let div_y = Math.ceil(size_y * 2); if (div_y<2) div_y = 2;
+        let div_z = Math.ceil(size_z * 2); if (div_z<2) div_z = 2;
+        obj.setDivisions(div_x, div_y, div_z);
+        obj.setCoverageMin(minPos);
+        obj.setCoverageMax(maxPos);
+        props.divisions = `${div_x}, ${div_y}, ${div_z}`;
+        props.coverage_min = `${minPos.x}, ${minPos.y}, ${minPos.z}`;
+        props.coverage_max = `${maxPos.x}, ${maxPos.y}, ${maxPos.z}`;
+        let ret = { divisions: props.divisions, coverage_min: props.coverage_min, coverage_max: props.coverage_max };
+        return JSON.stringify(ret);
+    }
+    
     return "";
     
 };
@@ -6083,6 +6108,28 @@ const tuning_lod_probe_grid =  (doc, obj, input) =>{
     {
         props.normal_bias = input.normal_bias;
         obj.probeGrid.normalBias = parseFloat(input.normal_bias);
+    }
+    
+    if ("auto_area" in input)
+    {
+        let aabb = doc.scene.getBoundingBox();
+        let minPos = aabb.minPos;
+        let maxPos = aabb.maxPos;
+        let size_x = maxPos.x - minPos.x;
+        let size_y = maxPos.y - minPos.y;
+        let size_z = maxPos.z - minPos.z;
+        let div_x = Math.ceil(size_x / 2); if (div_x<2) div_x = 2;
+        let div_y = Math.ceil(size_y / 2); if (div_y<2) div_y = 2;
+        let div_z = Math.ceil(size_z / 2); if (div_z<2) div_z = 2;
+        obj.setBaseDivisions(div_x, div_y, div_z);
+        obj.setCoverageMin(minPos);
+        obj.setCoverageMax(maxPos);
+        props.base_divisions = `${div_x}, ${div_y}, ${div_z}`;
+        props.coverage_min = `${minPos.x}, ${minPos.y}, ${minPos.z}`;
+        props.coverage_max = `${maxPos.x}, ${maxPos.y}, ${maxPos.z}`;
+        props.sub_division_level = "2";
+        let ret = { base_divisions: props.base_divisions, coverage_min: props.coverage_min, coverage_max: props.coverage_max, sub_division_level: "2" };
+        return JSON.stringify(ret);
     }
     
     return "";
@@ -6756,6 +6803,17 @@ const directional_light = {
         {
             props.bias = input.bias;
             obj.bias = parseFloat(input.bias);
+        }
+        
+        if ("auto_area" in input)
+        {
+            let aabb = obj.getBoundingBox(doc.scene);
+            let minPos = aabb.minPos;
+            let maxPos = aabb.maxPos;
+            obj.setShadowProjection(minPos.x, maxPos.x, minPos.y, maxPos.y, -maxPos.z, -minPos.z);
+            props.area = `${minPos.x}, ${maxPos.x}, ${minPos.y}, ${maxPos.y}, ${-maxPos.z}, ${-minPos.z}`;
+            let ret = { area: props.area };
+            return JSON.stringify(ret);
         }
         
         tuning_object3d(doc, obj, input);

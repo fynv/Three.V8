@@ -34,10 +34,12 @@ layout (location = 0) in vec2 vUV;
 layout (location = 0) out vec4 outColor;
 layout (location = 0) uniform sampler2D uTex;
 layout (location = 1) uniform vec2 kb;
+layout (location = 2) uniform float alpha;
 void main()
 {
 	vec4 col = texture(uTex, vUV);
 	col.xyz = col.xyz*kb.x + kb.y;
+	col.w *= alpha;
 	outColor = vec4(col.xyz*col.w, col.w);
 }
 )";
@@ -49,11 +51,12 @@ layout (location = 0) in vec2 vUV;
 layout (location = 0) out vec4 outColor;
 layout (location = 0) uniform sampler2D uTex;
 layout (location = 1) uniform vec2 kb;
+layout (location = 2) uniform float alpha;
 void main()
 {
 	vec4 col = texture(uTex, vUV);
 	col.xyz = col.xyz*kb.x + kb.y;
-	outColor = vec4(col.xyz, col.w);
+	outColor = col * alpha;
 }
 )";
 
@@ -73,7 +76,7 @@ inline float to_linear(float lum)
 	else return powf((lum + 0.055f) / 1.055f, 2.4f);
 }
 
-void DrawTexture::render(unsigned tex_id, int x, int y, int width, int height, bool blending)
+void DrawTexture::render(unsigned tex_id, int x, int y, int width, int height, bool blending, float alpha)
 {
 	float k = 1.0f;
 	float b = 0.0f;
@@ -131,6 +134,7 @@ void DrawTexture::render(unsigned tex_id, int x, int y, int width, int height, b
 	glBindTexture(GL_TEXTURE_2D, tex_id);
 	glUniform1i(0, 0);
 	glUniform2f(1, k, b);
+	glUniform1f(2, alpha);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glUseProgram(0);

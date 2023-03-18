@@ -29,7 +29,7 @@ private:
 	static void RemoveWidget(const v8::FunctionCallbackInfo<v8::Value>& info);	
 	static void ClearWidgets(const v8::FunctionCallbackInfo<v8::Value>& info);
 
-
+	static void GetBoundingBox(const v8::FunctionCallbackInfo<v8::Value>& info);
 };
 
 v8::Local<v8::FunctionTemplate> WrapperScene::create_template(v8::Isolate* isolate, v8::FunctionCallback constructor)
@@ -43,6 +43,8 @@ v8::Local<v8::FunctionTemplate> WrapperScene::create_template(v8::Isolate* isola
 	templ->InstanceTemplate()->Set(isolate, "addWidget", v8::FunctionTemplate::New(isolate, AddWidget));
 	templ->InstanceTemplate()->Set(isolate, "removeWidget", v8::FunctionTemplate::New(isolate, RemoveWidget));
 	templ->InstanceTemplate()->Set(isolate, "clearWidget", v8::FunctionTemplate::New(isolate, ClearWidgets));
+
+	templ->InstanceTemplate()->Set(isolate, "getBoundingBox", v8::FunctionTemplate::New(isolate, GetBoundingBox));
 
 	return templ;
 }
@@ -206,3 +208,20 @@ void WrapperScene::ClearWidgets(const v8::FunctionCallbackInfo<v8::Value>& info)
 }
 
 
+void WrapperScene::GetBoundingBox(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	Scene* self = lctx.self<Scene>();
+
+	glm::vec3 min_pos, max_pos;
+	self->get_bounding_box(min_pos, max_pos);
+
+	v8::Local<v8::Object> ret = v8::Object::New(lctx.isolate);
+	v8::Local<v8::Object> j_min_pos = v8::Object::New(lctx.isolate);
+	lctx.vec3_to_jvec3(min_pos, j_min_pos);
+	v8::Local<v8::Object> j_max_pos = v8::Object::New(lctx.isolate);
+	lctx.vec3_to_jvec3(max_pos, j_max_pos);
+	lctx.set_property(ret, "minPos", j_min_pos);
+	lctx.set_property(ret, "maxPos", j_max_pos);
+	info.GetReturnValue().Set(ret);
+}

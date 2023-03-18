@@ -235,6 +235,45 @@ namespace GameDev
             tuning["iterations"] = tuner_iterations.value;
             game_player.SendMessageToUser("generate", tuning.ToString());
         }
-        
+
+        private void btn_auto_detect_Click(object sender, RoutedEventArgs e)
+        {
+            JObject tuning = new JObject();
+            tuning["auto_area"] = "auto";
+            var ret = JObject.Parse(game_player.SendMessageToUser("tuning", tuning.ToString()));
+
+            var att = (JObject)jobj["attributes"];
+            {
+                att["base_divisions"] = ret["base_divisions"];
+                string divisions = ret["base_divisions"].ToString();
+                string[] values = divisions.Split(',');
+                float x = float.Parse(values[0]);
+                float y = float.Parse(values[1]);
+                float z = float.Parse(values[2]);
+                tuner_divisions.set_value(x, y, z);
+            }
+            {
+                att["coverage_min"] = ret["coverage_min"];
+                string coverage_min = ret["coverage_min"].ToString();
+                string[] values = coverage_min.Split(',');
+                float x = float.Parse(values[0]);
+                float y = float.Parse(values[1]);
+                float z = float.Parse(values[2]);
+                tuner_coverage_min.set_value(x, y, z);
+            }
+            {
+                att["coverage_max"] = ret["coverage_max"];
+                string coverage_max = ret["coverage_max"].ToString();
+                string[] values = coverage_max.Split(',');
+                float x = float.Parse(values[0]);
+                float y = float.Parse(values[1]);
+                float z = float.Parse(values[2]);
+                tuner_coverage_max.set_value(x, y, z);
+            }
+            {
+                att["sub_division_level"] = ret["sub_division_level"];
+                tuner_sub_div.value = float.Parse(ret["sub_division_level"].ToString());
+            }
+        }
     }
 }
