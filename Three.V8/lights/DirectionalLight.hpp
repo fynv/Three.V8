@@ -149,8 +149,10 @@ void WrapperDirectionalLight::GetBoundingBox(const v8::FunctionCallbackInfo<v8::
 	LocalContext lctx(info);
 	DirectionalLight* self = lctx.self<DirectionalLight>();
 	Scene* scene = lctx.jobj_to_obj<Scene>(info[0]);
-
-	glm::mat4 view_matrix = glm::inverse(self->matrixWorld);
+		
+	self->lookAtTarget();
+	self->updateWorldMatrix(false, false);
+	glm::mat4 view_matrix = glm::inverse(self->matrixWorld);	
 
 	glm::vec3 min_pos, max_pos;
 	scene->get_bounding_box(min_pos, max_pos, view_matrix);

@@ -43,12 +43,13 @@ void DirectionalLight::SetShadowRadius(float radius)
 
 glm::vec3 DirectionalLight::direction()
 {
+	this->updateWorldMatrix(true, false);
 	glm::vec3 pos_target = { 0.0f, 0.0f, 0.0f };
 	if (target != nullptr)
 	{
 		pos_target = target->matrixWorld[3];
 	}
-	glm::vec3 position = matrixWorld[3];
+	glm::vec3 position = matrixWorld[3];	
 	return glm::normalize(position - pos_target);
 }
 
