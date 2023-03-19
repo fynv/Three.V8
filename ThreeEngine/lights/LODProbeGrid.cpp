@@ -11,6 +11,12 @@
 
 #include "EnvironmentMapCreator.h"
 
+#include "renderers/BVHRenderer.h"
+#include "renderers/BVHRenderTarget.h"
+#include "ProbeRayList.h"
+
+#define RADIANCE_DIFF 1
+
 const double PI = 3.14159265359;
 
 inline double rand01()
@@ -528,6 +534,146 @@ void LODProbeGrid::initialize(GLRenderer& renderer, Scene& scene)
 				}
 			}
 		}
+
+#if RADIANCE_DIFF
+		{
+			typedef std::vector<glm::vec4> RadianceVolume;
+			std::vector<RadianceVolume> RadVols(sub_division_level + 1);
+
+			{
+				RadianceVolume& vol = RadVols[sub_division_level];
+				vol.resize(vol_div.x * vol_div.y * vol_div.z);
+
+				int num_directions = 256;
+				int max_probes = (1 << 17) / num_directions;
+				if (max_probes < 1) max_probes = 1;
+
+				int total_num_probes = vol_div.x * vol_div.y * vol_div.z;
+
+				BVHRenderer bvh_renderer;
+				BVHRenderTarget bvh_target;
+
+				int start_idx = 0;
+				while (start_idx < total_num_probes)
+				{
+					int num_probes = total_num_probes - start_idx;
+					if (num_probes > max_probes) num_probes = max_probes;
+
+					bvh_target.update(num_directions, num_probes);
+
+					ProbeRayList prl(coverage_min, coverage_max, vol_div, start_idx, start_idx + num_probes, num_directions);
+					bvh_renderer.render_probe(scene, prl, bvh_target);
+
+					std::vector<glm::vec4> rgba(num_probes * num_directions);
+
+					glBindTexture(GL_TEXTURE_2D, bvh_target.m_tex_video->tex_id);
+					glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, rgba.data());
+					glBindTexture(GL_TEXTURE_2D, 0);
+
+					for (int i = 0; i < num_probes; i++)
+					{
+						const glm::vec4* p_line = rgba.data() + i * num_directions;
+						glm::vec3 sum_rad(0.0f);
+						for (int j = 0; j < num_directions; j++)
+						{
+							sum_rad += glm::vec3(p_line[j]);
+						}
+						glm::vec3 ave_rad = sum_rad / (float)num_directions;
+						vol[i + start_idx] = glm::vec4(ave_rad, glm::dot(ave_rad, ave_rad));
+					}
+
+					start_idx += num_probes;
+				}
+			}
+
+			float threshold = 0.006f;
+			for (int level = sub_division_level - 1; level >=0; level--)
+			{
+				glm::ivec3 l_div = vol_div / (1 << (sub_division_level - level));
+				RadVols[level].resize(l_div.x * l_div.y * l_div.z);
+				RadianceVolume& rvol = RadVols[level];
+				RadianceVolume& rvol1 = RadVols[level + 1];
+				Volume& vol = volumes[level];
+
+				for (int z = 0; z < l_div.z; z++)
+				{
+					for (int y = 0; y < l_div.y; y++)
+					{
+						for (int x = 0; x < l_div.x; x++)
+						{
+							glm::vec4 sum(0.0);
+
+							for (int dz = 0; dz < 2; dz++)
+							{
+								for (int dy = 0; dy < 2; dy++)
+								{
+									for (int dx = 0; dx < 2; dx++)
+									{
+										glm::ivec3 idx = glm::ivec3(x, y, z) * 2 + glm::ivec3(dx, dy, dz);
+										sum += rvol1[idx.x + (idx.y + idx.z * l_div.y * 2) * l_div.x * 2];
+									}
+								}
+							}
+							glm::vec4 ave = sum / 8.0f;
+							glm::vec3 ave_rad = glm::vec3(ave);
+							float ave_rad2 = glm::dot(ave_rad, ave_rad);
+
+							glm::ivec3 idx = glm::ivec3(x, y, z);
+							rvol[idx.x + (idx.y + idx.z * l_div.y) * l_div.x] = glm::vec4(ave_rad, ave_rad2);
+
+							float var = ave.w - ave_rad2;
+							if (var > threshold)
+							{
+								vol[idx.x + (idx.y + idx.z * l_div.y) * l_div.x] = 1;
+							}
+						}
+					}
+				}
+			}
+
+			for (int level = sub_division_level - 2; level >= 0; level--)
+			{
+				glm::ivec3 l_div = vol_div / (1 << (sub_division_level - level));
+				Volume& vol = volumes[level];
+				Volume& vol1 = volumes[level + 1];
+
+				for (int z = 0; z < l_div.z; z++)
+				{
+					for (int y = 0; y < l_div.y; y++)
+					{
+						for (int x = 0; x < l_div.x; x++)
+						{
+							glm::ivec3 idx = glm::ivec3(x, y, z);
+							if (vol[idx.x + (idx.y + idx.z * l_div.y) * l_div.x] > 0) continue;							
+							bool set_one = false;
+							for (int dz = 0; dz < 2; dz++)
+							{
+								for (int dy = 0; dy < 2; dy++)
+								{
+									for (int dx = 0; dx < 2; dx++)
+									{
+										glm::ivec3 idx = glm::ivec3(x, y, z) * 2 + glm::ivec3(dx, dy, dz);
+										if (vol1[idx.x + (idx.y + idx.z * l_div.y * 2) * l_div.x * 2] > 0)
+										{
+											set_one = true;
+											break;
+										}
+									}
+									if (set_one) break;
+								}
+								if (set_one) break;
+							}
+							if (set_one)
+							{
+								vol[idx.x + (idx.y + idx.z * l_div.y) * l_div.x] = 1;
+							}
+						}
+					}
+				}
+
+			}
+		}
+#endif
 	}
 
 	struct ToDivide

@@ -1609,6 +1609,7 @@ const tuning_lod_probe_grid =  (doc, obj, input) =>{
         obj.setBaseDivisions(div_x, div_y, div_z);
         obj.setCoverageMin(minPos);
         obj.setCoverageMax(maxPos);
+        obj.subDivisionLevel = 2;
         props.base_divisions = `${div_x}, ${div_y}, ${div_z}`;
         props.coverage_min = `${minPos.x}, ${minPos.y}, ${minPos.z}`;
         props.coverage_max = `${maxPos.x}, ${maxPos.y}, ${maxPos.z}`;
@@ -1624,23 +1625,13 @@ const tuning_lod_probe_grid =  (doc, obj, input) =>{
 const initialize_lod_probe_grid = (doc, obj, input) =>{
     let probe_grid = obj.probeGrid;
     
-    let count = probe_grid.numberOfProbes;
-    let changed = (count == 0 || obj.coverageMin.x != probe_grid.coverageMin.x || obj.coverageMin.y != probe_grid.coverageMin.y || obj.coverageMin.z != probe_grid.coverageMin.z
-        || obj.coverageMax.x != probe_grid.coverageMax.x || obj.coverageMax.y != probe_grid.coverageMax.y || obj.coverageMax.z != probe_grid.coverageMax.z
-        || obj.baseDivisions.x != probe_grid.baseDivisions.x || obj.baseDivisions.y != probe_grid.baseDivisions.y || obj.baseDivisions.z != probe_grid.baseDivisions.z
-        || obj.subDivisionLevel != probe_grid.subDivisionLevel);
-        
-    if (changed)
-    {
-        doc.lod_probe_grid_bake = null;
-        probe_grid.setBaseDivisions(obj.baseDivisions);
-        probe_grid.setCoverageMin(obj.coverageMin);
-        probe_grid.setCoverageMax(obj.coverageMax);
-        probe_grid.subDivisionLevel = obj.subDivisionLevel;
-        probe_grid.initialize(doc.renderer, doc.scene);
-        count = probe_grid.numberOfProbes;
-    }
-    return `${count}`;
+    doc.lod_probe_grid_bake = null;
+    probe_grid.setBaseDivisions(obj.baseDivisions);
+    probe_grid.setCoverageMin(obj.coverageMin);
+    probe_grid.setCoverageMax(obj.coverageMax);
+    probe_grid.subDivisionLevel = obj.subDivisionLevel;
+    probe_grid.initialize(doc.renderer, doc.scene);
+    return probe_grid.numberOfProbes;
 }
 
 const generate_cube_env_light = (doc, obj, input) =>{

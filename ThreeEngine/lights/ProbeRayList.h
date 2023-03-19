@@ -11,6 +11,7 @@ class LODProbeGrid;
 class ProbeRayList
 {
 public:
+	ProbeRayList(const glm::vec3& coverage_min, const glm::vec3& coverage_max, const glm::ivec3& divisions, int begin, int end, int num_directions = 256);
 	ProbeRayList(const ProbeGrid& probe_grid, int begin, int end, int num_directions = 256);
 	ProbeRayList(const LODProbeGrid& probe_grid, int begin, int end, int num_directions = 256);
 

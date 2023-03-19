@@ -137,6 +137,37 @@ void ProbeRayList::_calc_shirr_weights()
 
 }
 
+ProbeRayList::ProbeRayList(const glm::vec3& coverage_min, const glm::vec3& coverage_max, const glm::ivec3& divisions, int begin, int end, int num_directions)
+	: m_constant(sizeof(ListConst), GL_UNIFORM_BUFFER)
+	, rotation(rand_rotation())
+	, num_probes(end - begin)
+	, num_directions(num_directions)
+{
+	glm::vec3 size_grid = coverage_max - coverage_min;
+	glm::vec3 spacing = size_grid / glm::vec3(divisions);
+	max_distance = glm::length(spacing);
+
+	updateConstant();
+	positions.resize(num_probes);
+	buf_positions = std::unique_ptr<GLBuffer>(new GLBuffer(sizeof(glm::vec4) * num_probes, GL_SHADER_STORAGE_BUFFER));
+
+	for (int i = begin; i < end; i++)
+	{
+		int j = i - begin;
+		int x = i;
+		int y = x / divisions.x;
+		int z = y / divisions.y;
+		y = y % divisions.y;
+		x = x % divisions.x;
+		glm::ivec3 idx(x, y, z);
+		glm::vec3 pos_normalized = (glm::vec3(idx) + 0.5f) / glm::vec3(divisions);		
+		glm::vec3 pos = coverage_min + pos_normalized * size_grid;
+		positions[j] = glm::vec4(pos, 1.0f);
+	}
+	buf_positions->upload(positions.data());
+	_calc_shirr_weights();
+}
+
 ProbeRayList::ProbeRayList(const ProbeGrid& probe_grid, int begin, int end, int num_directions)
 	: m_constant(sizeof(ListConst), GL_UNIFORM_BUFFER)
 	, rotation(rand_rotation())
