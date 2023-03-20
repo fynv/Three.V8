@@ -965,7 +965,7 @@ const avatar = {
                                 const intersect = doc.bvh.intersect({origin: pos, direction: dir});
                                 if (intersect!==null)
                                 {
-                                    const targetY = pos.y + intersect.distance;
+                                    const targetY = threshold + intersect.distance;
                                     if (targetY < 2.0)
                                     {
                                         avatar.translateZ(-movement);
