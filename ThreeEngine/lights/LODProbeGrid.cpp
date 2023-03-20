@@ -15,7 +15,7 @@
 #include "renderers/BVHRenderTarget.h"
 #include "ProbeRayList.h"
 
-#define RADIANCE_DIFF 1
+#define RADIANCE_DIFF 0
 
 const double PI = 3.14159265359;
 

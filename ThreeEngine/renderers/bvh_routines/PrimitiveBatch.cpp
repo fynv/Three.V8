@@ -184,19 +184,19 @@ void PrimitiveBatch::update(const Params& params)
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, geo_in.normal_buf->m_id);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, geo_out.normal_buf->m_id);
 
-	if (m_options.has_color)
+	if (m_options.has_color && params.primitive_in->color_buf!=nullptr)
 	{
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, params.primitive_in->color_buf->m_id);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, params.primitive_out->color_buf->m_id);
 	}
 
-	if (m_options.has_uv)
+	if (m_options.has_uv && params.primitive_in->uv_buf!=nullptr)
 	{
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, params.primitive_in->uv_buf->m_id);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, params.primitive_out->uv_buf->m_id);
 	}
 
-	if (m_options.has_tangent)
+	if (m_options.has_tangent && geo_in.tangent_buf != nullptr && geo_in.bitangent_buf != nullptr)
 	{
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, geo_in.tangent_buf->m_id);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, geo_out.tangent_buf->m_id);
