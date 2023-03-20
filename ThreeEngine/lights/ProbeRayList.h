@@ -18,7 +18,6 @@ public:
 	glm::mat4 rotation;
 	int num_probes;
 	int num_directions;
-	float max_distance;
 
 	GLDynBuffer m_constant;
 	void updateConstant();

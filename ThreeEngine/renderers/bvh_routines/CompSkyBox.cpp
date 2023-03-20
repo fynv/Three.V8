@@ -58,8 +58,7 @@ layout (std140, binding = 0) uniform ProbeRayList
 {
 	mat4 uPRLRotation;
 	int uRPLNumProbes;
-	int uPRLNumDirections;
-	float uPRLMaxDistance;	
+	int uPRLNumDirections;	
 };
 
 #define PI 3.14159265359

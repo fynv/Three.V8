@@ -17,51 +17,10 @@ layout (std140, binding = 0) uniform ProbeRayList
 {
 	mat4 uPRLRotation;
 	int uRPLNumProbes;
-	int uPRLNumDirections;
-	float uPRLMaxDistance;	
+	int uPRLNumDirections;	
 };
 
-layout (binding=0, rg16) uniform image2D uImgOut;
-
-float get_max_distance_common(in vec3 spacing, in vec3 dir)
-{
-	vec3 dir_abs = abs(dir)/spacing;
-
-	int major_dir = 0;
-	if (dir_abs.y>dir_abs.x)
-	{
-		if (dir_abs.z>dir_abs.y)
-		{
-			major_dir = 2;
-		}
-		else
-		{
-			major_dir = 1;
-		}
-	}
-	else
-	{
-		if (dir_abs.z>dir_abs.x)
-		{
-			major_dir = 2;
-		}		
-	}	
-
-	if (major_dir == 0)
-	{
-		dir_abs *= spacing.x  / dir_abs.x;
-	}
-	else if (major_dir == 1)
-	{
-		dir_abs *= spacing.y / dir_abs.y;
-	}
-	else if (major_dir == 2)
-	{
-		dir_abs *= spacing.z / dir_abs.z;
-	}
-
-	return length(dir_abs);
-}
+layout (binding=0, rg16f) uniform image2D uImgOut;
 
 #if HAS_PROBE_GRID
 
@@ -84,19 +43,6 @@ layout (std140, binding = 1) uniform ProbeGrid
 	float uSpecularHigh;
 	float uSpecularLow;
 };
-
-float get_max_distance(int idx, in vec3 dir)
-{
-	int idx_y = (idx / uDivisions.x) % uDivisions.y;	
-	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
-	vec3 spacing = size_grid/vec3(uDivisions);
-
-	float y0 = pow((float(idx_y) + 0.5f) / float(uDivisions.y), uYpower);
-	float y1 = pow((float(idx_y+1) + 0.5f) / float(uDivisions.y), uYpower);
-	spacing.y = (y1-y0)*size_grid.y;
-
-	return get_max_distance_common(spacing, dir);
-}
 
 #elif HAS_LOD_PROBE_GRID
 
@@ -125,16 +71,6 @@ layout (std430, binding = 2) buffer Probes
 {
 	vec4 bProbeData[];
 };
-
-float get_max_distance(int idx, in vec3 dir)
-{
-	vec4 pos_lod = bProbeData[idx*10];
-	int lod = int(pos_lod.w);
-	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
-	vec3 spacing = size_grid/vec3(uBaseDivisions);	
-	spacing *= 1.0 / float(1 << lod);
-	return get_max_distance_common(spacing, dir);
-}
 
 #endif
 
@@ -202,21 +138,25 @@ void main()
 		{
 			ivec2 id_in = ivec2(ray_id, probe_id_in);
 			float dis = texelFetch(uTexSource, id_in, 0).x;
-			float max_dis = get_max_distance(probe_id_out, in_dir);
-			dis = min(dis, max_dis);
+			if (dis > 65500.0) continue;
 			acc_dis += weight * dis;
 			acc_sqr_dis += weight * dis * dis;
 			acc_weight += weight;
 		}
 	}
 
-	float mean_dis = acc_dis/acc_weight;
-	float mean_sqr_dis = acc_sqr_dis/acc_weight;
-	float mean_var = sqrt(mean_sqr_dis - mean_dis * mean_dis);
-	
-	float max_dis = get_max_distance(probe_id_out, out_dir);
-	mean_dis=clamp(mean_dis/max_dis,0.0,1.0);
-	mean_var=clamp(mean_var/max_dis,1.0/65535.0,1.0);
+	float mean_dis, mean_var;
+	if (acc_weight > 0.0)
+	{
+		mean_dis = acc_dis/acc_weight;
+		float mean_sqr_dis = acc_sqr_dis/acc_weight;
+		mean_var = sqrt(mean_sqr_dis - mean_dis * mean_dis);
+	}
+	else
+	{
+		mean_dis = 65504.0;
+		mean_var = 0.0;
+	}
 	
 	int pack_x = probe_id_out % uPackSize;
 	int pack_y = probe_id_out / uPackSize;
@@ -228,6 +168,9 @@ void main()
 		mean_dis = uMixRate * mean_dis + (1.0 - uMixRate) * last.x;
 		mean_var = uMixRate * mean_var + (1.0 - uMixRate) * last.y;
 	}
+
+	mean_dis = clamp(mean_dis, 0.0, 65504.0);
+	mean_var = clamp(mean_var, 0.0, 65504.0);
 
 	imageStore(uImgOut, coord_out, vec4(mean_dis, mean_var, mean_dis, mean_var));
 
@@ -369,7 +312,7 @@ void VisibilityUpdate::update(const RenderParams& params)
 
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.prl->m_constant.m_id);
 
-	glBindImageTexture(0, id_target, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RG16);
+	glBindImageTexture(0, id_target, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RG16F);
 
 	if (m_is_lod_probe_grid)
 	{

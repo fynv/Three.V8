@@ -1,3 +1,4 @@
+#include <half.hpp>
 #include "LODProbeGridSaver.h"
 #include "lights/LODProbeGrid.h"
 
@@ -22,7 +23,14 @@ void LODProbeGridSaver::SaveFile(LODProbeGrid* probe_grid, const char* fn)
 	fwrite(&probe_grid->pack_res, sizeof(int), 1, fp);
 	fwrite(probe_grid->m_probe_data.data(), sizeof(glm::vec4), probe_grid->m_probe_data.size(), fp);
 	fwrite(probe_grid->m_sub_index.data(), sizeof(int), probe_grid->m_sub_index.size(), fp);
-	fwrite(probe_grid->m_visibility_data.data(), sizeof(unsigned short), probe_grid->m_visibility_data.size(), fp);
+
+	std::vector<half_float::half> vec_h(probe_grid->m_visibility_data.size());
+	for (size_t i = 0; i < vec_h.size(); i++)
+	{
+		vec_h[i] = probe_grid->m_visibility_data[i];
+	}
+
+	fwrite(vec_h.data(), sizeof(half_float::half), vec_h.size(), fp);	
 	fclose(fp);
 }
 

@@ -1,4 +1,5 @@
 #include <GL/glew.h>
+#include <half.hpp>
 #include "crc64/crc64.h"
 #include "GLUtils.h"
 #include "BVHRenderer.h"
@@ -591,8 +592,8 @@ void BVHRenderer::render_probe_depth(Scene& scene, ProbeRayList& prl, BVHRenderT
 		check_bvh(model);
 	}
 
-	float max_depth = prl.max_distance;
-	glClearTexImage(target.m_tex_depth->tex_id, 0, GL_RED, GL_FLOAT, &max_depth);
+	float max_half = std::numeric_limits<half_float::half>::max();	
+	glClearTexImage(target.m_tex_depth->tex_id, 0, GL_RED, GL_FLOAT, &max_half);
 
 	for (size_t i = 0; i < scene.simple_models.size(); i++)
 	{
@@ -978,8 +979,8 @@ void BVHRenderer::render_probe(Scene& scene, ProbeRayList& prl, BVHRenderTarget&
 	}
 
 
-	float max_depth = FLT_MAX;
-	glClearTexImage(target.m_tex_depth->tex_id, 0, GL_RED, GL_FLOAT, &max_depth);
+	float max_half = std::numeric_limits<half_float::half>::max();
+	glClearTexImage(target.m_tex_depth->tex_id, 0, GL_RED, GL_FLOAT, &max_half);
 
 	if (has_opaque)
 	{

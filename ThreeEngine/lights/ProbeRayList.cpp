@@ -22,9 +22,8 @@ struct ListConst
 {
 	glm::mat4 rotation;
 	int numProbes;
-	int numDirections;
-	float maxDistance;
-	int padding;
+	int numDirections;	
+	int padding[2];
 };
 
 inline glm::mat4 rand_rotation()
@@ -51,13 +50,6 @@ inline float get_max_distance(const ProbeGrid& probe_grid)
 		float y1 = powf(1.5f / (float)probe_grid.divisions.y, probe_grid.ypower);
 		spacing.y = (y1 - y0) * size_grid.y;
 	}
-	return glm::length(spacing);
-}
-
-inline float get_max_distance(const LODProbeGrid& probe_grid)
-{
-	glm::vec3 size_grid = probe_grid.coverage_max - probe_grid.coverage_min;
-	glm::vec3 spacing = size_grid / glm::vec3(probe_grid.base_divisions);
 	return glm::length(spacing);
 }
 
@@ -144,8 +136,6 @@ ProbeRayList::ProbeRayList(const glm::vec3& coverage_min, const glm::vec3& cover
 	, num_directions(num_directions)
 {
 	glm::vec3 size_grid = coverage_max - coverage_min;
-	glm::vec3 spacing = size_grid / glm::vec3(divisions);
-	max_distance = glm::length(spacing);
 
 	updateConstant();
 	positions.resize(num_probes);
@@ -173,7 +163,6 @@ ProbeRayList::ProbeRayList(const ProbeGrid& probe_grid, int begin, int end, int 
 	, rotation(rand_rotation())
 	, num_probes(end - begin)
 	, num_directions(num_directions)
-	, max_distance(get_max_distance(probe_grid))
 {
 	updateConstant();
 	positions.resize(num_probes);
@@ -203,7 +192,6 @@ ProbeRayList::ProbeRayList(const LODProbeGrid& probe_grid, int begin, int end, i
 	, rotation(rand_rotation())
 	, num_probes(end - begin)
 	, num_directions(num_directions)
-	, max_distance(get_max_distance(probe_grid))
 {
 	updateConstant();
 	positions.resize(num_probes);
@@ -224,7 +212,6 @@ void ProbeRayList::updateConstant()
 	c.rotation = rotation;
 	c.numProbes = num_probes;
 	c.numDirections = num_directions;
-	c.maxDistance = max_distance;
 	m_constant.upload(&c);
 }
 

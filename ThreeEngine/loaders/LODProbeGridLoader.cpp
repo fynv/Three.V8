@@ -1,6 +1,6 @@
+#include <half.hpp>
 #include "LODProbeGridLoader.h"
 #include "lights/LODProbeGrid.h"
-
 
 void LODProbeGridLoader::LoadFile(LODProbeGrid* probe_grid, const char* fn)
 {
@@ -28,8 +28,14 @@ void LODProbeGridLoader::LoadFile(LODProbeGrid* probe_grid, const char* fn)
 	fread(probe_grid->m_sub_index.data(), sizeof(int), num_indices, fp);
 
 	int pack_res = probe_grid->pack_res;
-	probe_grid->m_visibility_data.resize(pack_res * pack_res * 2);
-	fread(probe_grid->m_visibility_data.data(), sizeof(unsigned short), probe_grid->m_visibility_data.size(), fp);
+	std::vector<half_float::half> vec_h(pack_res * pack_res * 2);
+	fread(vec_h.data(), sizeof(half_float::half), vec_h.size(), fp);
+
+	probe_grid->m_visibility_data.resize(vec_h.size());
+	for (size_t i = 0; i < vec_h.size(); i++)
+	{
+		probe_grid->m_visibility_data[i] = vec_h[i];
+	}
 
 	probe_grid->updateBuffers();
 	fclose(fp);
@@ -59,8 +65,14 @@ void LODProbeGridLoader::LoadMemory(LODProbeGrid* probe_grid, unsigned char* dat
 	ptr += sizeof(int) * num_indices;
 
 	int pack_res = probe_grid->pack_res;
-	probe_grid->m_visibility_data.resize(pack_res * pack_res * 2);
-	memcpy(probe_grid->m_visibility_data.data(), ptr, sizeof(unsigned short) * probe_grid->m_visibility_data.size());
+	std::vector<half_float::half> vec_h(pack_res * pack_res * 2);
+	memcpy(vec_h.data(), ptr, sizeof(half_float::half) * vec_h.size());
+
+	probe_grid->m_visibility_data.resize(vec_h.size());
+	for (size_t i = 0; i < vec_h.size(); i++)
+	{
+		probe_grid->m_visibility_data[i] = vec_h[i];
+	}
 
 	probe_grid->updateBuffers();
 }

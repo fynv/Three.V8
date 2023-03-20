@@ -137,7 +137,6 @@ layout (std140, binding = 2) uniform ProbeRayList
 	mat4 uPRLRotation;
 	int uRPLNumProbes;
 	int uPRLNumDirections;
-	float uPRLMaxDistance;	
 };
 
 layout (std430, binding = 3) buffer ProbePositions
@@ -381,7 +380,6 @@ layout (std140, binding = 3) uniform ProbeRayList
 	mat4 uPRLRotation;
 	int uRPLNumProbes;
 	int uPRLNumDirections;
-	float uPRLMaxDistance;	
 };
 
 layout (std430, binding = 4) buffer ProbePositions

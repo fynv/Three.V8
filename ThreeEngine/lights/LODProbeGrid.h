@@ -32,7 +32,7 @@ public:
 	std::unique_ptr<GLBuffer> m_probe_buf;
 	std::unique_ptr<GLTexture2D> m_tex_irradiance;
 
-	std::vector<unsigned short> m_visibility_data;
+	std::vector<float> m_visibility_data;
 	std::unique_ptr<GLTexture2D> m_tex_visibility;
 	void updateBuffers();
 	void presample_probe(int idx);
