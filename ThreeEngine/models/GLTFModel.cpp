@@ -234,7 +234,11 @@ void GLTFModel::batch_primitives()
 		auto& batcher = batchers[batcher_idx];
 		if (batcher == nullptr)
 		{
-			batcher = std::unique_ptr<PrimitiveBatch>(new PrimitiveBatch( { has_color, has_uv, has_tangent }));
+			PrimitiveBatch::Options options;
+			options.has_color = has_color;
+			options.has_uv = has_uv;
+			options.has_tangent = has_tangent;
+			batcher = std::unique_ptr<PrimitiveBatch>(new PrimitiveBatch(options));
 		}
 
 		prim_batch.geometry.resize(1);
