@@ -9,6 +9,10 @@ class FogRayMarchingEnv
 public:
 	struct Options
 	{
+		Options()
+		{
+			memset(this, 0, sizeof(Options));
+		}
 		bool msaa = false;
 		bool has_probe_grid = false;
 		bool probe_reference_recorded = false;

@@ -9,6 +9,10 @@ class DrawFog
 public:
 	struct Options
 	{
+		Options()
+		{
+			memset(this, 0, sizeof(Options));
+		}
 		bool msaa = false;
 		bool has_environment_map = false;
 		bool has_ambient_light = false;

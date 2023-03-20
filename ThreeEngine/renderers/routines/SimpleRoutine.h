@@ -12,6 +12,10 @@ class SimpleRoutine
 public:
 	struct Options
 	{
+		Options()
+		{
+			memset(this, 0, sizeof(Options));
+		}
 		AlphaMode alpha_mode = AlphaMode::Opaque;
 		bool is_highlight_pass = false;
 		bool specular_glossiness = false;

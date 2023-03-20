@@ -16,6 +16,10 @@ class BVHRoutine
 public:
 	struct Options
 	{
+		Options()
+		{
+			memset(this, 0, sizeof(Options));
+		}
 		bool to_probe = false;
 		AlphaMode alpha_mode = AlphaMode::Opaque;		
 		bool specular_glossiness = false;

@@ -12,6 +12,10 @@ class DirectionalShadowCast
 public:
 	struct Options
 	{
+		Options()
+		{
+			memset(this, 0, sizeof(Options));
+		}
 		AlphaMode alpha_mode = AlphaMode::Opaque;
 		bool has_color = false;
 		bool has_color_texture = false;

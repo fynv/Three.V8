@@ -9,6 +9,10 @@ class PrimitiveBatch
 public:
 	struct Options
 	{
+		Options()
+		{
+			memset(this, 0, sizeof(Options));
+		}
 		bool has_color = false;
 		bool has_uv = false;
 		bool has_tangent = false;
