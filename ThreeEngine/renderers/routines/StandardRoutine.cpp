@@ -594,11 +594,6 @@ layout (std140, binding = BINDING_PROBE_GRID) uniform ProbeGrid
 	float uSpecularLow;
 };
 
-layout (std430, binding = BINDING_PROBES) buffer Probes
-{
-	vec4 bSHCoefficients[];
-};
-
 #if PROBE_REFERENCE_RECORDED
 layout (std430, binding = BINDING_PROBE_REFERENCES) buffer ProbeReferences
 {
@@ -842,7 +837,7 @@ vec3 getIrradiance(in vec3 normal)
 			{				
 				ivec3 vert = i_voxel + ivec3(x,y,z);
 				int idx_probe = get_probe_idx(vert);
-				vec4 pos_lod = bProbeData[idx_probe*10];
+				vec4 pos_lod = bProbeData[idx_probe];
 				vec3 probe_world = pos_lod.xyz;
 				vec3 dir = normalize(probe_world - vWorldPos);					
 				float dotDirN = dot(dir, N);
@@ -1682,18 +1677,11 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	if (options.has_probe_grid)
 	{
 		defines += "#define HAS_PROBE_GRID 1\n";
-		bindings.binding_probe_grid = bindings.binding_environment_map + 1;
-		bindings.binding_probes = bindings.binding_probe_grid + 1;	
+		bindings.binding_probe_grid = bindings.binding_environment_map + 1;		
 
 		{
 			char line[64];
 			sprintf(line, "#define BINDING_PROBE_GRID %d\n", bindings.binding_probe_grid);
-			defines += line;
-		}
-
-		{
-			char line[64];
-			sprintf(line, "#define BINDING_PROBES %d\n", bindings.binding_probes);
 			defines += line;
 		}
 		
@@ -1702,13 +1690,12 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	{
 		defines += "#define HAS_PROBE_GRID 0\n";
 		bindings.binding_probe_grid = bindings.binding_environment_map;
-		bindings.binding_probes = bindings.binding_environment_map;		
 	}
 
 	if (options.probe_reference_recorded)
 	{
 		defines += "#define PROBE_REFERENCE_RECORDED 1\n";
-		bindings.binding_probe_references = bindings.binding_probes + 1;
+		bindings.binding_probe_references = bindings.binding_probe_grid + 1;
 
 		{
 			char line[64];
@@ -1719,7 +1706,7 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	else
 	{
 		defines += "#define PROBE_REFERENCE_RECORDED 0\n";
-		bindings.binding_probe_references = bindings.binding_probes;
+		bindings.binding_probe_references = bindings.binding_probe_grid;
 	}
 	
 	if (options.has_lod_probe_grid)
@@ -1909,11 +1896,7 @@ void StandardRoutine::render(const RenderParams& params)
 
 	if (m_options.has_probe_grid)
 	{
-		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_probe_grid, params.lights->probe_grid->m_constant.m_id);
-		if (params.lights->probe_grid->m_probe_buf != nullptr)
-		{
-			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, m_bindings.binding_probes, params.lights->probe_grid->m_probe_buf->m_id);
-		}		
+		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_probe_grid, params.lights->probe_grid->m_constant.m_id);		
 		if (m_options.probe_reference_recorded)
 		{
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, m_bindings.binding_probe_references, params.lights->probe_grid->m_ref_buf->m_id);
@@ -1923,9 +1906,9 @@ void StandardRoutine::render(const RenderParams& params)
 	if (m_options.has_lod_probe_grid)
 	{
 		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_lod_probe_grid, params.lights->lod_probe_grid->m_constant.m_id);
-		if (params.lights->lod_probe_grid->m_probe_buf != nullptr)
+		if (params.lights->lod_probe_grid->m_probe_bufs[0] != nullptr)
 		{
-			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, m_bindings.binding_lod_probes, params.lights->lod_probe_grid->m_probe_buf->m_id);
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, m_bindings.binding_lod_probes, params.lights->lod_probe_grid->m_probe_bufs[0]->m_id);
 		}
 		if (params.lights->lod_probe_grid->m_sub_index_buf != nullptr)
 		{

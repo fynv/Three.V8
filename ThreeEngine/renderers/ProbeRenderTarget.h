@@ -14,7 +14,7 @@ public:
 	int irr_pack_res = -1;
 
 	std::unique_ptr<GLTexture2D> m_tex_visibility;
-	std::unique_ptr<GLBuffer> m_probe_buf;
+	std::unique_ptr<GLBuffer> m_probe_bufs[9];
 	std::unique_ptr<GLTexture2D> m_tex_irradiance;	
 	
 

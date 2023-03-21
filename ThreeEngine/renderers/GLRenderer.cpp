@@ -2420,11 +2420,11 @@ void GLRenderer::updateProbe(Scene& scene, CubeRenderTarget& target, ProbeGrid& 
 	for (int i = 0; i < 9; i++)
 	{
 		dest_coeffs[i] = (1.0f - k) * dest_coeffs[i] + k * coeffs[i];
-	}
 
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, probe_grid.m_probe_buf->m_id);
-	glBufferSubData(GL_SHADER_STORAGE_BUFFER, index * sizeof(glm::vec4)*9, sizeof(glm::vec4) * 9, dest_coeffs);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, probe_grid.m_probe_bufs[i]->m_id);
+		glBufferSubData(GL_SHADER_STORAGE_BUFFER, index * sizeof(glm::vec4), sizeof(glm::vec4), &dest_coeffs[i]);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	}	
 
 	probe_grid.presample_probe(index);
 }
@@ -2491,13 +2491,14 @@ void GLRenderer::updateProbe(Scene& scene, CubeRenderTarget& target, LODProbeGri
 		for (int i = 0; i < 9; i++)
 		{
 			dest_coeffs[i] = (1.0f - k) * dest_coeffs[i] + k * coeffs[i];
+
+			glBindBuffer(GL_SHADER_STORAGE_BUFFER, probe_grid.m_probe_bufs[i]->m_id);
+			glBufferSubData(GL_SHADER_STORAGE_BUFFER, sizeof(glm::vec4) * idx, sizeof(glm::vec4), &dest_coeffs[i]);
+			glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 		}
 	}
 
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, probe_grid.m_probe_buf->m_id);
-	glBufferSubData(GL_SHADER_STORAGE_BUFFER, sizeof(glm::vec4) * (idx * 10 + 1), sizeof(glm::vec4) * 9, dest_coeffs);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
+	
 	probe_grid.presample_probe(idx);
 
 }

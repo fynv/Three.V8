@@ -24,7 +24,7 @@ public:
 	int irr_pack_res = 0;
 
 	std::vector<glm::vec4> m_probe_data;
-	std::unique_ptr<GLBuffer> m_probe_buf;
+	std::unique_ptr<GLBuffer> m_probe_bufs[9];
 	std::unique_ptr<GLTexture2D> m_tex_irradiance;
 
 	std::vector<float> m_visibility_data;

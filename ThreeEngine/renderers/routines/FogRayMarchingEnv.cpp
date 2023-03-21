@@ -94,9 +94,10 @@ layout (std140, binding = 2) uniform ProbeGrid
 	float uSpecularLow;
 };
 
-layout (std430, binding = 3) buffer Probes
+
+layout (std430, binding = 3) buffer ProbeSH0
 {
-	vec4 bSHCoefficients[];
+	vec4 bProbeSH0[];
 };
 
 #if PROBE_REFERENCE_RECORDED
@@ -131,13 +132,18 @@ layout (std140, binding = 2) uniform ProbeGrid
 };
 
 
-layout (std430, binding = 3) buffer Probes
+layout (std430, binding = 3) buffer ProbePosLod
 {
-	vec4 bProbeData[];
+	vec4 bProbePosLod[];
+};
+
+layout (std430, binding = 4) buffer ProbeSH0
+{
+	vec4 bProbeSH0[];
 };
 
 
-layout (std430, binding = 4) buffer ProbeIndex
+layout (std430, binding = 5) buffer ProbeIndex
 {
 	int bIndexData[];
 };
@@ -197,9 +203,8 @@ float get_visibility(in vec3 pos_world, in ivec3 vert, in vec3 vert_world)
 
 void acc_coeffs(inout vec4 coeffs0, in ivec3 vert, in float weight)
 {
-	int idx = vert.x + (vert.y + vert.z*uDivisions.y)*uDivisions.x;
-	int offset = idx*9;
-	coeffs0 += bSHCoefficients[offset]*weight;
+	int idx = vert.x + (vert.y + vert.z*uDivisions.y)*uDivisions.x;	
+	coeffs0 += bProbeSH0[idx]*weight;
 #if PROBE_REFERENCE_RECORDED
 	bReferenced[idx] = 1;
 #endif
@@ -301,9 +306,8 @@ int get_probe_idx(in ivec3 ipos)
 }
 
 void acc_coeffs(inout vec4 coeffs0, int idx, in float weight)
-{
-	int offset = idx*10 + 1;
-	coeffs0+=bProbeData[offset]*weight;
+{	
+	coeffs0 += bProbeSH0[idx]*weight;
 }
 
 vec3 getIrradiance(in vec3 pos_world)
@@ -329,7 +333,7 @@ vec3 getIrradiance(in vec3 pos_world)
 			{				
 				ivec3 vert = i_voxel + ivec3(x,y,z);					
 				int idx_probe = get_probe_idx(vert);
-				vec4 pos_lod = bProbeData[idx_probe*10];
+				vec4 pos_lod = bProbePosLod[idx_probe];
 				vec3 probe_world = pos_lod.xyz;
 				float weight = get_visibility(pos_world, idx_probe, int(pos_lod.w), probe_world);		
 				const float crushThreshold = 0.2;
@@ -483,9 +487,9 @@ void FogRayMarchingEnv::render(const RenderParams& params)
 	if (m_options.has_probe_grid)
 	{
 		glBindBufferBase(GL_UNIFORM_BUFFER, 2, params.lights->probe_grid->m_constant.m_id);
-		if (params.lights->probe_grid->m_probe_buf != nullptr)
+		if (params.lights->probe_grid->m_probe_bufs[0] != nullptr)
 		{
-			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, params.lights->probe_grid->m_probe_buf->m_id);
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, params.lights->probe_grid->m_probe_bufs[0]->m_id);
 		}	
 		if (m_options.probe_reference_recorded)
 		{
@@ -496,13 +500,18 @@ void FogRayMarchingEnv::render(const RenderParams& params)
 	if (m_options.has_lod_probe_grid)
 	{
 		glBindBufferBase(GL_UNIFORM_BUFFER, 2, params.lights->lod_probe_grid->m_constant.m_id);
-		if (params.lights->lod_probe_grid->m_probe_buf != nullptr)
+		if (params.lights->lod_probe_grid->m_probe_bufs[0] != nullptr)
 		{
-			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, params.lights->lod_probe_grid->m_probe_buf->m_id);
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, params.lights->lod_probe_grid->m_probe_bufs[0]->m_id);
 		}
+		if (params.lights->lod_probe_grid->m_probe_bufs[1] != nullptr)
+		{
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, params.lights->lod_probe_grid->m_probe_bufs[1]->m_id);
+		}
+
 		if (params.lights->lod_probe_grid->m_sub_index_buf != nullptr)
 		{
-			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, params.lights->lod_probe_grid->m_sub_index_buf->m_id);
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, params.lights->lod_probe_grid->m_sub_index_buf->m_id);
 		}
 	}
 

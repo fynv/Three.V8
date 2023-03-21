@@ -67,11 +67,6 @@ layout (std140, binding = 1) uniform ProbeGrid
 	float uSpecularLow;
 };
 
-layout (std430, binding = 2) buffer Probes
-{
-	vec4 bProbeData[];
-};
-
 #endif
 
 layout (location = 1) uniform int uIDStartProbe;
@@ -316,8 +311,7 @@ void VisibilityUpdate::update(const RenderParams& params)
 
 	if (m_is_lod_probe_grid)
 	{
-		glBindBufferBase(GL_UNIFORM_BUFFER, 1, lod_probe_grid->m_constant.m_id);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, lod_probe_grid->m_probe_buf->m_id);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 1, lod_probe_grid->m_constant.m_id);		
 	}
 	else
 	{

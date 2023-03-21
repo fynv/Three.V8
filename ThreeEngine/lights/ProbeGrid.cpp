@@ -163,10 +163,17 @@ void ProbeGrid::allocate_probes()
 	size_t num = divisions.x * divisions.y * divisions.z;
 	
 	{
-		size_t size = sizeof(glm::vec4) * 9 * num;
-		m_probe_buf = std::unique_ptr<GLBuffer>(new GLBuffer(size, GL_SHADER_STORAGE_BUFFER));
 		m_probe_data.resize(9 * num, glm::vec4(0.0f));
-		m_probe_buf->upload(m_probe_data.data());
+		for (int i = 0; i < 9; i++)
+		{			
+			std::vector<glm::vec4> data(num);
+			for (size_t j = 0; j < num; j++)
+			{
+				data[j] = m_probe_data[j * 9 + i];
+			}
+			m_probe_bufs[i] = std::unique_ptr<GLBuffer>(new GLBuffer(num * sizeof(glm::vec4), GL_SHADER_STORAGE_BUFFER));			
+			m_probe_bufs[i]->upload(data.data());
+		}
 	}
 	_presample_irradiance();
 	{	
@@ -610,12 +617,17 @@ void ProbeGrid::download_probes()
 {	
 	{
 		size_t num = divisions.x * divisions.y * divisions.z;
-		size_t size = sizeof(glm::vec4) * 9 * num;
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_probe_buf->m_id);
-		const void* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-		memcpy(m_probe_data.data(), p, size);
-		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+		for (int i = 0; i < 9; i++)
+		{
+			glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_probe_bufs[i]->m_id);
+			const glm::vec4* p_data = (const glm::vec4 * )glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+			for (size_t j = 0; j < num; j++)
+			{
+				m_probe_data[j * 9 + i] = p_data[j];
+			}
+			glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+			glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+		}		
 	}
 	{
 		glBindTexture(GL_TEXTURE_2D, m_tex_visibility->tex_id);

@@ -35,8 +35,10 @@ bool ProbeRenderTarget::update_irr(int num_probes, int irr_pack_res)
 {
 	if (num_probes != this->num_probes || irr_pack_res != this->irr_pack_res)
 	{
-		size_t size = sizeof(glm::vec4) * 9 * num_probes;
-		m_probe_buf = std::unique_ptr<GLBuffer>(new GLBuffer(size, GL_SHADER_STORAGE_BUFFER));
+		for (int i = 0; i < 9; i++)
+		{
+			m_probe_bufs[i] = std::unique_ptr<GLBuffer>(new GLBuffer(num_probes * sizeof(glm::vec4), GL_SHADER_STORAGE_BUFFER));
+		}		
 
 		m_tex_irradiance = std::unique_ptr<GLTexture2D>(new GLTexture2D);
 		glBindTexture(GL_TEXTURE_2D, m_tex_irradiance->tex_id);

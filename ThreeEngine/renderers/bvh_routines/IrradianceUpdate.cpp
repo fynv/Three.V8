@@ -22,13 +22,14 @@ layout (std140, binding = 0) uniform ProbeRayList
 };
 
 
-layout (std430, binding = 1) buffer Probes
+layout (std430, binding = 1) buffer ProbeSH
 {
-	vec4 bProbeData[];
+	vec4 bProbeSH[];
 };
 
-layout (location = 2) uniform int uIDStartProbe;
-layout (location = 3) uniform float uMixRate;
+layout (location = 2) uniform int uCoeffId;
+layout (location = 3) uniform int uIDStartProbe;
+layout (location = 4) uniform float uMixRate;
 
 
 #define PI 3.14159265359
@@ -50,8 +51,7 @@ void main()
 {
 	int id = ivec3(gl_GlobalInvocationID).x;
 	if (id >= uRPLNumProbes * 9) return;
-	int coeff_id = id % 9;
-	int probe_id_in = id / 9;
+	int probe_id_in = id;
 	int probe_id_out = probe_id_in + uIDStartProbe;
 
 	vec3 coeff = vec3(0.0);
@@ -60,25 +60,16 @@ void main()
 		vec3 sf = sphericalFibonacci(ray_id, uPRLNumDirections);
 		vec3 in_dir = vec3(uPRLRotation * vec4(sf, 0.0));		
 		vec3 col = texelFetch(uTexSource, ivec2(ray_id, probe_id_in), 0).xyz;
-		float weight = texelFetch(uTexSHIrrWeight, ivec2(ray_id, coeff_id), 0).x;
+		float weight = texelFetch(uTexSHIrrWeight, ivec2(ray_id, uCoeffId), 0).x;
 		coeff += col * weight;
 	}	
 	
-#if MODE == 9
 	if (uMixRate<1.0)
 	{
-		vec3 last = bProbeData[probe_id_out * 9 + coeff_id].xyz;
+		vec3 last = bProbeSH[probe_id_out].xyz;
 		coeff = uMixRate * coeff + (1.0 - uMixRate)*last;
 	}
-	bProbeData[probe_id_out * 9 + coeff_id] = vec4(coeff, 1.0);
-#elif MODE == 10
-	if (uMixRate<1.0)
-	{
-		vec3 last = bProbeData[probe_id_out * 10 + 1 + coeff_id].xyz;
-		coeff = uMixRate * coeff + (1.0 - uMixRate)*last;
-	}
-	bProbeData[probe_id_out * 10 + 1 + coeff_id] = vec4(coeff, 1.0);
-#endif
+	bProbeSH[probe_id_out] = vec4(coeff, 1.0);
 }
 )";
 
@@ -94,16 +85,56 @@ layout (std140, binding = 0) uniform ProbeRayList
 	int uPRLNumDirections;
 };
 
-layout (std430, binding = 1) buffer Probes
+layout (std430, binding = 1) buffer ProbeSH0
 {
-	vec4 bProbeData[];
+	vec4 bProbeSH0[];
+};
+
+layout (std430, binding = 2) buffer ProbeSH1
+{
+	vec4 bProbeSH1[];
+};
+
+layout (std430, binding = 3) buffer ProbeSH2
+{
+	vec4 bProbeSH2[];
+};
+
+layout (std430, binding = 4) buffer ProbeSH3
+{
+	vec4 bProbeSH3[];
+};
+
+layout (std430, binding = 5) buffer ProbeSH4
+{
+	vec4 bProbeSH4[];
+};
+
+layout (std430, binding = 6) buffer ProbeSH5
+{
+	vec4 bProbeSH5[];
+};
+
+layout (std430, binding = 7) buffer ProbeSH6
+{
+	vec4 bProbeSH6[];
+};
+
+layout (std430, binding = 8) buffer ProbeSH7
+{
+	vec4 bProbeSH7[];
+};
+
+layout (std430, binding = 9) buffer ProbeSH8
+{
+	vec4 bProbeSH8[];
 };
 
 layout (binding=0, r11f_g11f_b10f) uniform image2D uImgOut;
 
 #if HAS_PROBE_GRID
 
-layout (std140, binding = 2) uniform ProbeGrid
+layout (std140, binding = 10) uniform ProbeGrid
 {
 	vec4 uCoverageMin;
 	vec4 uCoverageMax;
@@ -125,7 +156,7 @@ layout (std140, binding = 2) uniform ProbeGrid
 
 #elif HAS_LOD_PROBE_GRID
 
-layout (std140, binding = 2) uniform ProbeGrid
+layout (std140, binding = 10) uniform ProbeGrid
 {
 	vec4 uCoverageMin;
 	vec4 uCoverageMax;
@@ -206,18 +237,16 @@ void main()
 	vec3 dir = oct_to_vec3(probe_uv*2.0 - 1.0);	
 
 	vec4 shCoefficients[9];
-	
-#if MODE == 9
-	for (int i=0; i<9; i++)
-	{
-		shCoefficients[i] = bProbeData[probe_id * 9 + i];
-	}
-#elif MODE == 10
-	for (int i=0; i<9; i++)
-	{
-		shCoefficients[i] = bProbeData[probe_id * 10 + 1 + i];
-	}
-#endif
+	shCoefficients[0] = bProbeSH0[probe_id];
+	shCoefficients[1] = bProbeSH1[probe_id];
+	shCoefficients[2] = bProbeSH2[probe_id];
+	shCoefficients[3] = bProbeSH3[probe_id];
+	shCoefficients[4] = bProbeSH4[probe_id];
+	shCoefficients[5] = bProbeSH5[probe_id];
+	shCoefficients[6] = bProbeSH6[probe_id];
+	shCoefficients[7] = bProbeSH7[probe_id];
+	shCoefficients[8] = bProbeSH8[probe_id];
+
 	vec3 irr = shGetIrradianceAt(dir, shCoefficients);
 
 	int pack_x = probe_id % uPackSize;
@@ -359,26 +388,29 @@ void IrradianceUpdate::update(const RenderParams& params)
 
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.prl->m_constant.m_id);
 
-	if (params.target != nullptr)
-	{
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, params.target->m_probe_buf->m_id);
-	}
-	else if (m_is_lod_probe_grid)
-	{
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, params.lod_probe_grid->m_probe_buf->m_id);
-	}
-	else
-	{
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, params.probe_grid->m_probe_buf->m_id);
-	}
+	glUniform1i(3, params.id_start_probe);
+	glUniform1f(4, params.mix_rate);
 
-	glUniform1i(2, params.id_start_probe);
-	glUniform1f(3, params.mix_rate);
-
+	for (int i = 0; i < 9; i++)
 	{
-		int blocks = (params.prl->num_probes *9 + 63) / 64;
+		glUniform1i(2, i);
+
+		if (params.target != nullptr)
+		{
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, params.target->m_probe_bufs[i]->m_id);
+		}
+		else if (m_is_lod_probe_grid)
+		{
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, params.lod_probe_grid->m_probe_bufs[i+1]->m_id);
+		}
+		else
+		{
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, params.probe_grid->m_probe_bufs[i]->m_id);
+		}
+
+		int blocks = (params.prl->num_probes + 63) / 64;
 		glDispatchCompute(blocks, 1, 1);
-	}	
+	}
 
 	glUseProgram(0);
 
@@ -420,26 +452,35 @@ void IrradianceUpdate::update(const RenderParams& params)
 
 	if (params.target != nullptr)
 	{
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, params.target->m_probe_buf->m_id);
+		for (int i = 0; i < 9; i++)
+		{
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, i + 1, params.target->m_probe_bufs[i]->m_id);
+		}
 	}
 	else if (m_is_lod_probe_grid)
 	{
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, params.lod_probe_grid->m_probe_buf->m_id);
+		for (int i = 0; i < 9; i++)
+		{
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, i + 1, params.lod_probe_grid->m_probe_bufs[i+1]->m_id);
+		}
 	}
 	else
 	{
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, params.probe_grid->m_probe_buf->m_id);
+		for (int i = 0; i < 9; i++)
+		{
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, i + 1, params.probe_grid->m_probe_bufs[i]->m_id);
+		}
 	}
 
 	glBindImageTexture(0, id_target, 0, GL_TRUE, 0, GL_READ_WRITE, GL_R11F_G11F_B10F);
 
 	if (m_is_lod_probe_grid)
 	{
-		glBindBufferBase(GL_UNIFORM_BUFFER, 2, lod_probe_grid->m_constant.m_id);		
+		glBindBufferBase(GL_UNIFORM_BUFFER, 10, lod_probe_grid->m_constant.m_id);		
 	}
 	else
 	{
-		glBindBufferBase(GL_UNIFORM_BUFFER, 2, probe_grid->m_constant.m_id);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 10, probe_grid->m_constant.m_id);
 	}
 
 	glUniform1i(0, params.id_start_probe);

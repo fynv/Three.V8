@@ -91,8 +91,7 @@ private:
 		int location_tex_directional_shadow_depth;
 		int location_tex_reflection_map;
 		int binding_environment_map;
-		int binding_probe_grid;
-		int binding_probes;
+		int binding_probe_grid;		
 		int location_tex_irradiance;
 		int location_tex_visibility;
 		int binding_probe_references;

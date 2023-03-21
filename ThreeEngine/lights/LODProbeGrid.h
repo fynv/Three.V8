@@ -29,7 +29,7 @@ public:
 	std::unique_ptr<GLBuffer> m_sub_index_buf;	
 
 	std::vector<glm::vec4> m_probe_data;	
-	std::unique_ptr<GLBuffer> m_probe_buf;
+	std::unique_ptr<GLBuffer> m_probe_bufs[10];
 	std::unique_ptr<GLTexture2D> m_tex_irradiance;
 
 	std::vector<float> m_visibility_data;
