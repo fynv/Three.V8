@@ -872,6 +872,7 @@ void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, SimpleModel
 	const MeshStandardMaterial* material = &model->material;
 
 	DirectionalShadowCast::RenderParams params;
+	params.force_cull = shadow->m_force_cull;
 	params.tex_list = &tex;
 	params.material_list = &material;
 	params.constant_shadow = &shadow->constant_shadow;
@@ -921,6 +922,7 @@ void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, GLTFModel* 
 			const MeshStandardMaterial* material = material_lst[primitive.material_idx];
 
 			DirectionalShadowCast::RenderParams params;
+			params.force_cull = shadow->m_force_cull;
 			params.tex_list = tex_lst.data();
 			params.material_list = material_lst.data();
 			params.constant_shadow = &shadow->constant_shadow;

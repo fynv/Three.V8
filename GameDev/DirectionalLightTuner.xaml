@@ -52,6 +52,7 @@
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="Bias:" VerticalAlignment="Center"/>
                         <local:NumberTuner x:Name="tuner_bias" Margin="5" ValueChanged="tuner_bias_ValueChanged"/>
+                        <CheckBox x:Name="chk_force_cull" Content="Force Cull" Margin="5" Checked="chk_force_cull_Checked" Unchecked="chk_force_cull_Checked"/>
                     </StackPanel>
                 </StackPanel>
             </GroupBox>

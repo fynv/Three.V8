@@ -1179,6 +1179,11 @@ const directional_light = {
             {
                 light.bias = parseFloat(props.bias);
             }
+            
+            if (props.hasOwnProperty('force_cull'))
+            {
+                light.forceCull = string_to_boolean(props.force_cull);
+            }
         }
 
         if (parent != null) {

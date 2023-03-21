@@ -180,7 +180,7 @@ void LODProbeGrid::_presample_irradiance()
 void LODProbeGrid::_create_index_tex()
 {
 	glm::ivec3 vol_div = base_divisions * (1 << sub_division_level);
-	std::vector<uint16_t> indices(vol_div.x * vol_div.y * vol_div.z);
+	std::vector<glm::u8vec4> indices(vol_div.x * vol_div.y * vol_div.z);
 
 	struct Node
 	{
@@ -230,7 +230,10 @@ void LODProbeGrid::_create_index_tex()
 					{
 						glm::ivec3 ipos_high = offset + glm::ivec3(x, y, z);
 						int i = ipos_high.x + (ipos_high.y + ipos_high.z * vol_div.y) * vol_div.x;
-						indices[i] = idx;
+						indices[i].x = uint8_t(idx & 0xFF);
+						indices[i].y = uint8_t((idx >> 8) & 0xFF);
+						indices[i].z = uint8_t(idx >> 16);
+						indices[i].w = uint8_t(level);
 					}
 				}
 			}
@@ -261,13 +264,16 @@ void LODProbeGrid::_create_index_tex()
 		}
 	}
 
+	m_tex_index = std::unique_ptr<GLTexture3D>(new GLTexture3D);
+
 	glBindTexture(GL_TEXTURE_3D, m_tex_index->tex_id);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);	
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_R16UI, vol_div.x, vol_div.y, vol_div.z, 0, GL_RED_INTEGER, GL_UNSIGNED_SHORT, indices.data());	
+	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);		
+	glTexStorage3D(GL_TEXTURE_3D, 1, GL_RGBA8UI, vol_div.x, vol_div.y, vol_div.z);
+	glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0, vol_div.x, vol_div.y, vol_div.z, GL_RGBA_INTEGER, GL_UNSIGNED_BYTE, indices.data());	
 	glBindTexture(GL_TEXTURE_3D, 0);
 
 }

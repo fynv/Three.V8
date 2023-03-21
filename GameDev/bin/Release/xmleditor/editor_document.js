@@ -2197,6 +2197,11 @@ const directional_light = {
             {
                 light.bias = parseFloat(props.bias);
             }
+            
+            if (props.hasOwnProperty('force_cull'))
+            {
+                light.forceCull = string_to_boolean(props.force_cull);
+            }
         }
 
         if (parent != null) {
@@ -2279,6 +2284,12 @@ const directional_light = {
         {
             props.bias = input.bias;
             obj.bias = parseFloat(input.bias);
+        }
+        
+        if ("force_cull" in input)
+        {
+            props.force_cull = input.force_cull;
+            obj.forceCull = string_to_boolean(input.force_cull);
         }
         
         if ("auto_area" in input)

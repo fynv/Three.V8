@@ -25,6 +25,7 @@ public:
 
 	struct RenderParams
 	{
+		bool force_cull;
 		const GLTexture2D** tex_list;
 		const MeshStandardMaterial** material_list;
 		const GLDynBuffer* constant_shadow;

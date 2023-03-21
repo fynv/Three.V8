@@ -99,6 +99,14 @@ namespace GameDev
             {
                 tuner_bias.value = float.Parse(att["bias"].ToString());
             }
+
+            bool force_cull = true;
+            if (att.ContainsKey("force_cull"))
+            {
+                force_cull = att["force_cull"].ToObject<bool>();
+            }
+            chk_force_cull.IsChecked = force_cull;
+
             obj3d_tuner = new Object3DTuner(game_player, jobj);
             stack.Children.Add(obj3d_tuner);
 
@@ -170,6 +178,7 @@ namespace GameDev
                 tuning["area"] = $"{tuner_left.value}, {tuner_right.value}, {tuner_bottom.value}, {tuner_top.value}, {tuner_near.value}, {tuner_far.value}";
                 tuning["radius"] = $"{tuner_radius.value}";
                 tuning["bias"] = $"{tuner_bias.value}";
+                tuning["force_cull"] = $"{chk_force_cull.IsChecked == true}";
 
                 att["area"] = tuning["area"];
                 att["radius"] = tuning["radius"];
@@ -244,6 +253,20 @@ namespace GameDev
             tuner_top.value = float.Parse(values[3]);
             tuner_near.value = float.Parse(values[4]);
             tuner_far.value = float.Parse(values[5]);            
+        }
+
+        private void chk_force_cull_Checked(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (initialized)
+            {
+                JObject tuning = new JObject();
+                var att = (JObject)jobj["attributes"];               
+
+                tuning["force_cull"] = $"{chk_force_cull.IsChecked == true}";
+                att["force_cull"] = tuning["force_cull"];
+
+                game_player.SendMessageToUser("tuning", tuning.ToString());
+            }
         }
     }
 }

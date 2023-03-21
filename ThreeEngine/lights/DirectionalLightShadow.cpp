@@ -55,7 +55,7 @@ void DirectionalLightShadow::makeConst(ConstDirectionalShadow& const_shadow)
 	const_shadow.BottomTop = { m_bottom, m_top };
 	const_shadow.NearFar = { m_near, m_far };
 	const_shadow.LightRadius = m_light_radius;
-	const_shadow.Bias = m_bias;
+	const_shadow.Bias = m_force_cull? -1.0f: m_bias;
 }
 
 void DirectionalLightShadow::updateMatrices()

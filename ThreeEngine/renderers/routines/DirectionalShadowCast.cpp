@@ -55,7 +55,7 @@ void main()
 	vec4 wolrd_pos = uModelMat * vec4(aPos, 1.0);
 	gl_Position = uProjMat*(uViewMat*wolrd_pos);
 
-	if (uDoubleSided!=0)
+	if (uDoubleSided!=0 && uBias > 0.0)
 	{
 		gl_Position.z += uBias * gl_Position.w;
 	}
@@ -287,7 +287,7 @@ void DirectionalShadowCast::render(const RenderParams& params)
 	glDepthFunc(GL_LEQUAL);
 	glDepthMask(GL_TRUE);
 
-	if (material.doubleSided)
+	if (material.doubleSided && !params.force_cull)
 	{
 		glDisable(GL_CULL_FACE);
 	}
