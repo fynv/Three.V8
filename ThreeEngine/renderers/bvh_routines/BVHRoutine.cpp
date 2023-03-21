@@ -154,7 +154,9 @@ bool triangle_intersect(int triangle_id, in Ray ray, out float t, out float u, o
 	vec3 h = cross(ray.direction, edge2);
 	float a = dot(edge1, h);
 
-	if (a==0.0 ||  (uDoubleSided==0 && a<0.0)) return false;
+	//if (a==0.0 ||  (uDoubleSided==0 && a<0.0)) return false;
+	if (a==0.0) return false;
+
 	g_front_facing = a>0.0;
 	
 	float f = 1.0 / a;
