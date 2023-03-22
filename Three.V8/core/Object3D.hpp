@@ -17,6 +17,12 @@ private:
 	static void GetUuid(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void SetUuid(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
 
+	static void GetIsBuilding(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void SetIsBuilding(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
+
+	static void GetMoved(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void SetMoved(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
+
 	static void GetParent(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void SetParent(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
 	static void GetChildren(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
@@ -92,6 +98,8 @@ v8::Local<v8::FunctionTemplate> WrapperObject3D::create_template(v8::Isolate* is
 
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "name").ToLocalChecked(), GetName, SetName);
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "uuid").ToLocalChecked(), GetUuid, SetUuid);
+	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "isBuilding").ToLocalChecked(), GetIsBuilding, SetIsBuilding);
+	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "moved").ToLocalChecked(), GetMoved, SetMoved);
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "parent").ToLocalChecked(), GetParent, SetParent);
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "children").ToLocalChecked(), GetChildren, 0);
 
@@ -203,6 +211,35 @@ void WrapperObject3D::SetUuid(v8::Local<v8::String> property, v8::Local<v8::Valu
 	self->uuid = lctx.jstr_to_str(value);
 }
 
+void WrapperObject3D::GetIsBuilding(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	Object3D* self = lctx.self<Object3D>();
+	info.GetReturnValue().Set(v8::Boolean::New(lctx.isolate, self->is_building));
+}
+
+void WrapperObject3D::SetIsBuilding(v8::Local<v8::String> property, v8::Local<v8::Value> value,
+	const v8::PropertyCallbackInfo<void>& info)
+{
+	LocalContext lctx(info);
+	Object3D* self = lctx.self<Object3D>();
+	self->is_building = value.As<v8::Boolean>()->Value();
+}
+
+void WrapperObject3D::GetMoved(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	Object3D* self = lctx.self<Object3D>();
+	info.GetReturnValue().Set(v8::Boolean::New(lctx.isolate, self->moved));
+}
+
+void WrapperObject3D::SetMoved(v8::Local<v8::String> property, v8::Local<v8::Value> value,
+	const v8::PropertyCallbackInfo<void>& info)
+{
+	LocalContext lctx(info);
+	Object3D* self = lctx.self<Object3D>();
+	self->moved = value.As<v8::Boolean>()->Value();
+}
 
 void WrapperObject3D::GetParent(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
@@ -300,6 +337,7 @@ void WrapperObject3D::SetPosition(const v8::FunctionCallbackInfo<v8::Value>& inf
 	{
 		lctx.jvec3_to_vec3(info[0], self->position);
 	}
+	self->moved = true;
 }
 
 void WrapperObject3D::GetRotation(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
@@ -335,6 +373,7 @@ void WrapperObject3D::SetRotation(const v8::FunctionCallbackInfo<v8::Value>& inf
 		lctx.jvec3_to_vec3(info[0], rotation);
 	}
 	self->set_rotation(rotation);
+	self->moved = true;
 }
 
 void WrapperObject3D::GetQuaternion(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
@@ -371,6 +410,7 @@ void WrapperObject3D::SetQuaternion(const v8::FunctionCallbackInfo<v8::Value>& i
 		lctx.jquat_to_quat(info[0], quaternion);
 	}
 	self->set_quaternion(quaternion);
+	self->moved = true;
 }
 
 
@@ -405,6 +445,7 @@ void WrapperObject3D::SetScale(const v8::FunctionCallbackInfo<v8::Value>& info)
 	{
 		lctx.jvec3_to_vec3(info[0], self->scale);
 	}
+	self->moved = true;
 }
 
 void WrapperObject3D::GetMatrix(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)

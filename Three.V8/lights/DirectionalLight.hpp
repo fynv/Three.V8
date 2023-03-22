@@ -97,6 +97,7 @@ void WrapperDirectionalLight::SetShadow(const v8::FunctionCallbackInfo<v8::Value
 		lctx.jnum_to_num(info[2], height);
 	}
 	self->setShadow(enable, width, height);
+	self->moved = true;
 }
 
 void  WrapperDirectionalLight::SetShadowProjection(const v8::FunctionCallbackInfo<v8::Value>& info)
@@ -112,6 +113,7 @@ void  WrapperDirectionalLight::SetShadowProjection(const v8::FunctionCallbackInf
 	lctx.jnum_to_num(info[4], zNear);
 	lctx.jnum_to_num(info[5], zFar);
 	self->setShadowProjection(left, right, bottom, top, zNear, zFar);
+	self->moved = true;
 }
 
 void  WrapperDirectionalLight::SetShadowRadius(const v8::FunctionCallbackInfo<v8::Value>& info)
@@ -145,6 +147,7 @@ void WrapperDirectionalLight::SetBias(v8::Local<v8::String> property, v8::Local<
 	if (self->shadow != nullptr)
 	{
 		lctx.jnum_to_num(value, self->shadow->m_bias);
+		self->moved = true;
 	}
 }
 
@@ -169,6 +172,7 @@ void WrapperDirectionalLight::SetForceCull(v8::Local<v8::String> property, v8::L
 	if (self->shadow != nullptr)
 	{
 		self->shadow->m_force_cull = value.As<v8::Boolean>()->Value();
+		self->moved = true;
 	}
 }
 

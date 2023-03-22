@@ -20,14 +20,22 @@ class DirectionalLight;
 class DirectionalLightShadow
 {
 public:
-	DirectionalLightShadow(DirectionalLight* light, int map_width, int map_height);
+	DirectionalLightShadow(DirectionalLight* light);
 	~DirectionalLightShadow();
 
 	DirectionalLight* m_light;
-	int m_map_width, m_map_height;
 
-	unsigned m_lightTex;
-	unsigned m_lightFBO;
+	int m_map_width = -1;
+	int m_map_height = -1;
+	unsigned m_lightTex = (unsigned)(-1);
+	unsigned m_lightFBO = (unsigned)(-1);
+	bool update_shadowmap(int width, int height);
+
+	int m_building_map_width = -1;
+	int m_building_map_height = -1;
+	unsigned m_lightTex_building = (unsigned)(-1);
+	unsigned m_lightFBO_building = (unsigned)(-1);
+	bool update_building_map(int width, int height);
 
 	glm::mat4 m_light_proj_matrix;
 	float m_left, m_right, m_bottom, m_top, m_near, m_far;

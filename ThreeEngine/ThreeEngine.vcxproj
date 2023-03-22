@@ -205,6 +205,7 @@
     <ClCompile Include="renderers\GLUIRenderer.cpp" />
     <ClCompile Include="renderers\GLUtils.cpp" />
     <ClCompile Include="renderers\ProbeRenderTarget.cpp" />
+    <ClCompile Include="renderers\routines\CopyDepth.cpp" />
     <ClCompile Include="renderers\routines\DepthOnly.cpp" />
     <ClCompile Include="renderers\routines\DirectionalShadowCast.cpp" />
     <ClCompile Include="renderers\routines\DrawFog.cpp" />
@@ -328,6 +329,7 @@
     <ClInclude Include="renderers\GLUIRenderer.h" />
     <ClInclude Include="renderers\GLUtils.h" />
     <ClInclude Include="renderers\ProbeRenderTarget.h" />
+    <ClInclude Include="renderers\routines\CopyDepth.h" />
     <ClInclude Include="renderers\routines\DepthOnly.h" />
     <ClInclude Include="renderers\routines\DirectionalShadowCast.h" />
     <ClInclude Include="renderers\routines\DrawFog.h" />

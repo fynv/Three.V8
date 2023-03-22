@@ -1564,35 +1564,174 @@ void GLRenderer::_pre_render(Scene& scene)
 	}
 
 	// update lights
+	bool update_building = false;
+	std::unordered_set<int> cur_set;
+	for (size_t j = 0; j < scene.simple_models.size(); j++)
+	{
+		SimpleModel* model = scene.simple_models[j];
+		if (model->is_building)
+		{			
+			int id = model->id;
+			cur_set.insert(id);
+			auto iter = scene.building_set.find(id);
+			if (iter == scene.building_set.end())
+			{
+				update_building = true;
+				scene.building_set.insert(id);
+			}
+			if (model->moved)
+			{
+				update_building = true;
+				model->moved = false;
+			}
+		}
+	}
+
+	for (size_t j = 0; j < scene.gltf_models.size(); j++)
+	{
+		GLTFModel* model = scene.gltf_models[j];
+		if (model->is_building)
+		{
+			int id = model->id;
+			cur_set.insert(id);
+			auto iter = scene.building_set.find(id);
+			if (iter == scene.building_set.end())
+			{
+				update_building = true;
+				scene.building_set.insert(id);
+			}
+			if (model->moved)
+			{
+				update_building = true;
+				model->moved = false;
+			}
+		}
+	}
+
+	for (size_t j = 0; j < scene.volume_isosurface_models.size(); j++)
+	{
+		VolumeIsosurfaceModel* model = scene.volume_isosurface_models[j];
+		if (model->is_building)
+		{
+			int id = model->id;
+			cur_set.insert(id);
+			auto iter = scene.building_set.find(id);
+			if (iter == scene.building_set.end())
+			{
+				update_building = true;
+				scene.building_set.insert(id);
+			}
+			if (model->moved)
+			{
+				update_building = true;
+				model->moved = false;
+			}
+		}
+	}
+
+	if (cur_set.size() < scene.building_set.size())
+	{
+		update_building = true;
+		scene.building_set = cur_set;
+	}
+
 	for (size_t i = 0; i < scene.directional_lights.size(); i++)
 	{
 		DirectionalLight* light = scene.directional_lights[i];
 		if (light->shadow != nullptr)
 		{
 			light->shadow->updateMatrices();
+
+			bool update_building_this = update_building;
+			if (light->moved)
+			{
+				update_building_this = true;
+				light->moved = false;
+			}
+
+			if (update_building_this)
+			{
+				light->shadow->update_building_map(light->shadow->m_map_width, light->shadow->m_map_height);
+				glBindFramebuffer(GL_FRAMEBUFFER, light->shadow->m_lightFBO_building);
+				glViewport(0, 0, light->shadow->m_building_map_width, light->shadow->m_building_map_height);
+				const float one = 1.0f;
+				glDepthMask(GL_TRUE);
+				glClearBufferfv(GL_DEPTH, 0, &one);
+
+				for (size_t j = 0; j < scene.simple_models.size(); j++)
+				{
+					SimpleModel* model = scene.simple_models[j];
+					if (model->is_building)
+					{
+						render_shadow_model(light->shadow.get(), model);
+					}
+				}
+
+				for (size_t j = 0; j < scene.gltf_models.size(); j++)
+				{
+					GLTFModel* model = scene.gltf_models[j];
+					if (model->is_building)
+					{
+						render_shadow_model(light->shadow.get(), model);
+					}
+				}
+
+
+				for (size_t j = 0; j < scene.volume_isosurface_models.size(); j++)
+				{
+					VolumeIsosurfaceModel* model = scene.volume_isosurface_models[j];
+					if (model->is_building)
+					{
+						render_shadow_model(light->shadow.get(), model);
+					}
+				}
+
+			}
+
 			glBindFramebuffer(GL_FRAMEBUFFER, light->shadow->m_lightFBO);
 			glViewport(0, 0, light->shadow->m_map_width, light->shadow->m_map_height);
-			const float one = 1.0f;
-			glDepthMask(GL_TRUE);
-			glClearBufferfv(GL_DEPTH, 0, &one);
+			
+			if (light->shadow->m_lightTex_building == (unsigned)(-1))
+			{
+				const float one = 1.0f;
+				glDepthMask(GL_TRUE);
+				glClearBufferfv(GL_DEPTH, 0, &one);
+			}
+			else
+			{
+				if (copy_shadow == nullptr)
+				{
+					copy_shadow = std::unique_ptr<CopyDepth>(new CopyDepth);
+				}
+				copy_shadow->render(light->shadow->m_lightTex_building);
+			}		
 
 			for (size_t j = 0; j < scene.simple_models.size(); j++)
 			{
 				SimpleModel* model = scene.simple_models[j];
-				render_shadow_model(light->shadow.get(), model);
+				if (!model->is_building)
+				{
+					render_shadow_model(light->shadow.get(), model);
+				}
 			}
 
 			for (size_t j = 0; j < scene.gltf_models.size(); j++)
 			{
 				GLTFModel* model = scene.gltf_models[j];
-				render_shadow_model(light->shadow.get(), model);
+				if (!model->is_building)
+				{
+					render_shadow_model(light->shadow.get(), model);
+				}
 			}
 
 
 			for (size_t j = 0; j < scene.volume_isosurface_models.size(); j++)
 			{
 				VolumeIsosurfaceModel* model = scene.volume_isosurface_models[j];
-				render_shadow_model(light->shadow.get(), model);
+				if (!model->is_building)
+				{
+					render_shadow_model(light->shadow.get(), model);
+				}
 			}
 		}
 	}

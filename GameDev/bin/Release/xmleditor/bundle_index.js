@@ -6355,6 +6355,11 @@ const tuning_object3d = (doc, obj, input) => {
         let scale = input.scale.split(',');
         obj.setScale(parseFloat(scale[0]), parseFloat(scale[1]), parseFloat(scale[2]));
     }
+    if ('is_building' in input)
+    {
+        props.is_building = input.is_building;
+        obj.isBuilding = string_to_boolean(input.is_building);
+    }
 };
 
 const tuning_material = (doc, obj, input) =>{
@@ -6445,10 +6450,6 @@ const plane = {
             let height = parseFloat(size[1]);
             obj.createPlane(width, height);
         }
-        if ("is_building" in input)
-        {
-            props.is_building = input.is_building;
-        }
         tuning_object3d(doc, obj, input);
         tuning_material(doc, obj, input);
         return "";
@@ -6492,10 +6493,6 @@ const box = {
             let height = parseFloat(size[1]);
             let depth =  parseFloat(size[2]);
             obj.createBox(width, height, depth);
-        }
-        if ("is_building" in input)
-        {
-            props.is_building = input.is_building;
         }
         tuning_object3d(doc, obj, input);
         tuning_material(doc, obj, input);
@@ -6568,11 +6565,6 @@ const sphere = {
             obj.createSphere(radius, widthSegments, heightSegments);
         }
         
-        if ("is_building" in input)
-        {
-            props.is_building = input.is_building;
-        }
-        
         tuning_object3d(doc, obj, input);
         tuning_material(doc, obj, input);
         return "";
@@ -6592,6 +6584,14 @@ const model = {
             model= new SimpleModel();
             model.createBox(0.5, 1.5, 0.5);
             model.setColor(0.7,0.0,0.7);
+        }
+        else
+        {
+            if (props.hasOwnProperty('is_building') && string_to_boolean(props.is_building))
+            {
+                
+                model.batchPrimitives();
+            }
         }
         
         if (parent != null) {
@@ -6647,6 +6647,10 @@ const model = {
             if ("is_building" in input)
             {
                 props.is_building = input.is_building;
+                if (string_to_boolean(props.is_building))
+                {
+                    obj.batchPrimitives();
+                }
             }
             tuning_object3d(doc, obj, input);
         }
@@ -6908,6 +6912,11 @@ class BackgroundDocument extends BackgroundScene
             obj.roughness = parseFloat(props.roughness);
         }
         
+        if (props.hasOwnProperty('is_building'))
+        {
+            obj.isBuilding = string_to_boolean(props.is_building);
+        }
+        
         return obj;
     }
  
@@ -7098,6 +7107,11 @@ class Document
         if (props.hasOwnProperty('roughness'))
         {
             obj.roughness = parseFloat(props.roughness);
+        }
+        
+        if (props.hasOwnProperty('is_building'))
+        {
+            obj.isBuilding = string_to_boolean(props.is_building);
         }
         
         return obj;

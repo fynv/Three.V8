@@ -17,7 +17,8 @@ void DirectionalLight::setShadow(bool enable, int map_width, int map_height)
 {
 	if (enable)
 	{
-		shadow = std::unique_ptr<DirectionalLightShadow>(new DirectionalLightShadow(this, map_width, map_height));
+		shadow = std::unique_ptr<DirectionalLightShadow>(new DirectionalLightShadow(this));
+		shadow->update_shadowmap(map_width, map_height);
 	}
 	else
 	{

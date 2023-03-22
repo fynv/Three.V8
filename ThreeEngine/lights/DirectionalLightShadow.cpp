@@ -3,35 +3,107 @@
 #include "DirectionalLight.h"
 #include "DirectionalLightShadow.h"
 
-DirectionalLightShadow::DirectionalLightShadow(DirectionalLight* light, int map_width, int map_height)
-	: m_light(light)
-	, m_map_width(map_width)
-	, m_map_height(map_height)
+DirectionalLightShadow::DirectionalLightShadow(DirectionalLight* light)
+	: m_light(light)	
 	, constant_shadow(sizeof(ConstDirectionalShadow), GL_UNIFORM_BUFFER)
 {
 
-	glGenFramebuffers(1, &m_lightFBO);
-	glBindFramebuffer(GL_FRAMEBUFFER, m_lightFBO);
-
-	glGenTextures(1, &m_lightTex);
-	glBindTexture(GL_TEXTURE_2D, m_lightTex);
-	glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT32F, map_width, map_height);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, m_lightTex, 0);
-
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	
 }
 
 DirectionalLightShadow::~DirectionalLightShadow()
 {
-	glDeleteTextures(1, &m_lightTex);
-	glDeleteFramebuffers(1, &m_lightFBO);
+	if (m_lightTex != (unsigned)(-1))
+	{
+		glDeleteTextures(1, &m_lightTex);
+	}
+	if (m_lightFBO != (unsigned)(-1))
+	{
+		glDeleteFramebuffers(1, &m_lightFBO);
+	}
+	if (m_lightTex_building != (unsigned)(-1))
+	{
+		glDeleteTextures(1, &m_lightTex_building);
+	}
+	if (m_lightFBO_building != (unsigned)(-1))
+	{
+		glDeleteFramebuffers(1, &m_lightFBO_building);
+	}
+}
+
+bool DirectionalLightShadow::update_shadowmap(int width, int height)
+{
+	if (width != m_map_width || height != m_map_height)
+	{
+		if (m_lightTex != (unsigned)(-1))
+		{
+			glDeleteTextures(1, &m_lightTex);
+		}
+		if (m_lightFBO != (unsigned)(-1))
+		{
+			glDeleteFramebuffers(1, &m_lightFBO);
+		}
+
+		glGenFramebuffers(1, &m_lightFBO);
+		glBindFramebuffer(GL_FRAMEBUFFER, m_lightFBO);
+
+		glGenTextures(1, &m_lightTex);
+		glBindTexture(GL_TEXTURE_2D, m_lightTex);
+		glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT32F, width, height);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+		glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, m_lightTex, 0);
+
+		glBindTexture(GL_TEXTURE_2D, 0);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		m_map_width = width;
+		m_map_height = height;
+		return true;
+	}
+	return false;
+
+}
+
+bool DirectionalLightShadow::update_building_map(int width, int height)
+{
+	if (width != m_building_map_width || height != m_building_map_height)
+	{
+		if (m_lightTex_building != (unsigned)(-1))
+		{
+			glDeleteTextures(1, &m_lightTex_building);
+		}
+		if (m_lightFBO_building != (unsigned)(-1))
+		{
+			glDeleteFramebuffers(1, &m_lightFBO_building);
+		}
+
+		glGenFramebuffers(1, &m_lightFBO_building);
+		glBindFramebuffer(GL_FRAMEBUFFER, m_lightFBO_building);
+
+		glGenTextures(1, &m_lightTex_building);
+		glBindTexture(GL_TEXTURE_2D, m_lightTex_building);
+		glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT32F, width, height);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+		glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, m_lightTex_building, 0);
+
+		glBindTexture(GL_TEXTURE_2D, 0);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		m_building_map_width = width;
+		m_building_map_height = height;
+		return true;
+	}
+	return false;
 }
 
 void DirectionalLightShadow::setProjection(float left, float right, float bottom, float top, float zNear, float zFar)

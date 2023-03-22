@@ -811,6 +811,13 @@ const model = {
             model.createBox(0.5, 1.5, 0.5);
             model.setColor(0.7,0.0,0.7);
         }
+        else
+        {
+            if (props.hasOwnProperty('is_building') && string_to_boolean(props.is_building))
+            {
+                model.batchPrimitives();
+            }
+        }
         
         if (parent != null) {
             parent.add(model);
@@ -1517,7 +1524,9 @@ export class Document
             obj.roughness = parseFloat(props.roughness);
         }
         
-        if (props.hasOwnProperty('is_building') && string_to_boolean(props.is_building)) {
+        if (props.hasOwnProperty('is_building') && string_to_boolean(props.is_building)) 
+        {
+            obj.isBuilding = true;
             this.add_building_object(obj);
         }
         

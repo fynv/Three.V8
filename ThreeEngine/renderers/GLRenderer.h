@@ -9,6 +9,7 @@
 #include "renderers/routines/SkinUpdate.h"
 #include "renderers/routines/WeightedOIT.h"
 #include "renderers/routines/DirectionalShadowCast.h"
+#include "renderers/routines/CopyDepth.h"
 #include "renderers/routines/DrawTexture.h"
 #include "renderers/routines/DrawSkyBox.h"
 #include "renderers/routines/DrawHemisphere.h"
@@ -120,6 +121,8 @@ private:
 	DirectionalShadowCast* get_shadow_caster(const DirectionalShadowCast::Options& options);
 
 	std::unique_ptr<IsosurfaceDirectionalShadow> isosurface_directional_shadow;
+	
+	std::unique_ptr<CopyDepth> copy_shadow;
 
 	void render_shadow_primitive(const DirectionalShadowCast::RenderParams& params);
 	void render_shadow_primitives(const DirectionalShadowCast::RenderParams& params, const std::vector<void*>& offset_lst, const std::vector<int>& count_lst);  // batched

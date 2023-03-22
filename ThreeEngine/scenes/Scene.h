@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unordered_set>
+
 #include "core/Object3D.h"
 #include "lights/Lights.h"
 
@@ -39,5 +41,6 @@ public:
 
 	void get_bounding_box(glm::vec3& min_pos, glm::vec3& max_pos, const glm::mat4& view_matrix = glm::identity<glm::mat4>());
 
+	std::unordered_set<int> building_set;
 };
 

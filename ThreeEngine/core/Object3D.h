@@ -10,6 +10,9 @@ class Object3D
 public:
 	int id;
 
+	bool is_building = false;
+	bool moved = true;
+
 	Object3D();
 	virtual ~Object3D();
 

@@ -26,7 +26,9 @@ private:
 
 	static void SetTexture(const v8::FunctionCallbackInfo<v8::Value>& info);
 
-	static void SetAnimationFrame(const v8::FunctionCallbackInfo<v8::Value>& info);
+	static void BatchPrimitives(const v8::FunctionCallbackInfo<v8::Value>& info);
+
+	static void SetAnimationFrame(const v8::FunctionCallbackInfo<v8::Value>& info);	
 
 	static void GetAnimations(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void GetAnimation(const v8::FunctionCallbackInfo<v8::Value>& info);
@@ -52,6 +54,8 @@ v8::Local<v8::FunctionTemplate> WrapperGLTFModel::create_template(v8::Isolate* i
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "meshes").ToLocalChecked(), GetMeshes, 0);
 
 	templ->InstanceTemplate()->Set(isolate, "setTexture", v8::FunctionTemplate::New(isolate, SetTexture));
+
+	templ->InstanceTemplate()->Set(isolate, "batchPrimitives", v8::FunctionTemplate::New(isolate, BatchPrimitives));
 
 	templ->InstanceTemplate()->Set(isolate, "setAnimationFrame", v8::FunctionTemplate::New(isolate, SetAnimationFrame));
 
@@ -205,6 +209,12 @@ void WrapperGLTFModel::SetTexture(const v8::FunctionCallbackInfo<v8::Value>& inf
 #endif
 }
 
+void WrapperGLTFModel::BatchPrimitives(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	GLTFModel* self = lctx.self<GLTFModel>();
+	self->batch_primitives();
+}
 
 void WrapperGLTFModel::SetAnimationFrame(const v8::FunctionCallbackInfo<v8::Value>& info)
 {	
