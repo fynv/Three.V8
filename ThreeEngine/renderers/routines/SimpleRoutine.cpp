@@ -1369,34 +1369,11 @@ SimpleRoutine::SimpleRoutine(const Options& options) : m_options(options)
 	m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(vert_shader, frag_shader));
 }
 
-void SimpleRoutine::render(const RenderParams& params)
+void SimpleRoutine::_render_common(const RenderParams& params)
 {
 	const MeshStandardMaterial& material = *(MeshStandardMaterial*)params.material_list[params.primitive->material_idx];
 	const GeometrySet& geo = params.primitive->geometry[params.primitive->geometry.size() - 1];
 
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LEQUAL);
-
-	if (m_options.alpha_mode == AlphaMode::Mask)
-	{
-		glDepthMask(GL_TRUE);
-	}
-	else
-	{
-		glDepthMask(GL_FALSE);
-	}
-
-	if (material.doubleSided)
-	{
-		glDisable(GL_CULL_FACE);
-	}
-	else
-	{
-		glEnable(GL_CULL_FACE);
-		glCullFace(GL_BACK);
-	}
-
-	glUseProgram(m_prog->m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_camera, params.constant_camera->m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_model, params.constant_model->m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_material, material.constant_material.m_id);
@@ -1418,7 +1395,7 @@ void SimpleRoutine::render(const RenderParams& params)
 
 	if (m_options.has_probe_grid)
 	{
-		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_probe_grid, params.lights->probe_grid->m_constant.m_id);		
+		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_probe_grid, params.lights->probe_grid->m_constant.m_id);
 		if (m_options.probe_reference_recorded)
 		{
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, m_bindings.binding_probe_references, params.lights->probe_grid->m_ref_buf->m_id);
@@ -1542,7 +1519,7 @@ void SimpleRoutine::render(const RenderParams& params)
 			values[i] = texture_idx;
 			texture_idx++;
 		}
-		int start_idx = m_bindings.location_tex_directional_shadow - m_options.num_directional_shadows + 1;		
+		int start_idx = m_bindings.location_tex_directional_shadow - m_options.num_directional_shadows + 1;
 		glUniform1iv(start_idx, m_options.num_directional_shadows, values.data());
 	}
 
@@ -1583,6 +1560,37 @@ void SimpleRoutine::render(const RenderParams& params)
 			texture_idx++;
 		}
 	}
+}
+
+void SimpleRoutine::render(const RenderParams& params)
+{
+	const MeshStandardMaterial& material = *(MeshStandardMaterial*)params.material_list[params.primitive->material_idx];	
+
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LEQUAL);
+
+	if (m_options.alpha_mode == AlphaMode::Mask)
+	{
+		glDepthMask(GL_TRUE);
+	}
+	else
+	{
+		glDepthMask(GL_FALSE);
+	}
+
+	if (material.doubleSided)
+	{
+		glDisable(GL_CULL_FACE);
+	}
+	else
+	{
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);
+	}
+
+	glUseProgram(m_prog->m_id);
+
+	_render_common(params);	
 
 	if (params.primitive->index_buf != nullptr)
 	{
@@ -1608,5 +1616,41 @@ void SimpleRoutine::render(const RenderParams& params)
 	glUseProgram(0);
 }
 
+
+void SimpleRoutine::render_batched(const RenderParams& params, const std::vector<void*>& offset_lst, const std::vector<int>& count_lst)
+{
+	const MeshStandardMaterial& material = *(MeshStandardMaterial*)params.material_list[params.primitive->material_idx];
+
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LEQUAL);
+
+	if (m_options.alpha_mode == AlphaMode::Mask)
+	{
+		glDepthMask(GL_TRUE);
+	}
+	else
+	{
+		glDepthMask(GL_FALSE);
+	}
+
+	if (material.doubleSided)
+	{
+		glDisable(GL_CULL_FACE);
+	}
+	else
+	{
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);
+	}
+
+	glUseProgram(m_prog->m_id);
+
+	_render_common(params);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, params.primitive->index_buf->m_id);
+	glMultiDrawElements(GL_TRIANGLES, count_lst.data(), GL_UNSIGNED_INT, offset_lst.data(), offset_lst.size());	
+
+	glUseProgram(0);
+
+}
 
 

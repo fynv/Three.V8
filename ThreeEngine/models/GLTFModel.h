@@ -40,6 +40,8 @@ public:
 	std::unique_ptr<Mesh> batched_mesh;
 	void batch_primitives();
 
+	std::vector<std::vector<int>> batch_map;
+
 	// animations
 	void setAnimationFrame(const AnimationFrame& frame);
 

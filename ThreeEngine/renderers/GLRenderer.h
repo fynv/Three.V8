@@ -99,6 +99,7 @@ private:
 	DrawIsosurface* get_isosurface_draw(const DrawIsosurface::Options& options);
 
 	void render_primitive(const StandardRoutine::RenderParams& params, Pass pass);
+	void render_primitives(const StandardRoutine::RenderParams& params, Pass pass, const std::vector<void*>& offset_lst, const std::vector<int>& count_lst); // batched
 	void render_model(Camera* p_camera, const Lights& lights, const Fog* fog, SimpleModel* model, GLRenderTarget& target, Pass pass);
 	void render_model(Camera* p_camera, const Lights& lights, const Fog* fog, GLTFModel* model, GLRenderTarget& target, Pass pass);
 	void render_model(Camera* p_camera, const Lights& lights, const Fog* fog, VolumeIsosurfaceModel* model, GLRenderTarget& target, Pass pass);
@@ -107,6 +108,7 @@ private:
 	void render_widget(Camera* p_camera, LODProbeGridWidget* widget);
 
 	void render_primitive_simple(const SimpleRoutine::RenderParams& params, Pass pass);
+	void render_primitives_simple(const SimpleRoutine::RenderParams& params, Pass pass, const std::vector<void*>& offset_lst, const std::vector<int>& count_lst);  // batched
 	void render_model_simple(Camera* p_camera, const Lights& lights, const Fog* fog, SimpleModel* model, Pass pass);
 	void render_model_simple(Camera* p_camera, const Lights& lights, const Fog* fog, GLTFModel* model, Pass pass);
 
@@ -120,6 +122,7 @@ private:
 	std::unique_ptr<IsosurfaceDirectionalShadow> isosurface_directional_shadow;
 
 	void render_shadow_primitive(const DirectionalShadowCast::RenderParams& params);
+	void render_shadow_primitives(const DirectionalShadowCast::RenderParams& params, const std::vector<void*>& offset_lst, const std::vector<int>& count_lst);  // batched
 	void render_shadow_model(DirectionalLightShadow* shadow, SimpleModel* model);
 	void render_shadow_model(DirectionalLightShadow* shadow, GLTFModel* model);
 	void render_shadow_model(DirectionalLightShadow* shadow, VolumeIsosurfaceModel* model);
@@ -130,6 +133,7 @@ private:
 
 	std::unique_ptr<DepthOnly> DepthRenderer;
 	void render_depth_primitive(const DepthOnly::RenderParams& params);
+	void render_depth_primitives(const DepthOnly::RenderParams& params, const std::vector<void*>& offset_lst, const std::vector<int>& count_lst);  // batched
 	void render_depth_model(Camera* p_camera, SimpleModel* model);
 	void render_depth_model(Camera* p_camera, GLTFModel* model);	
 

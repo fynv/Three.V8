@@ -86,6 +86,14 @@ void GLTFModel::updateMeshConstants()
 		c.NormalMat = glm::transpose(glm::inverse(matrix));
 		mesh.model_constant->upload(&c);
 	}
+
+	if (batched_mesh != nullptr)
+	{
+		ModelConst c;
+		c.ModelMat = matrixWorld;
+		c.NormalMat = glm::transpose(glm::inverse(matrixWorld));
+		batched_mesh->model_constant->upload(&c);
+	}
 }
 
 void GLTFModel::updateNodes()
@@ -182,11 +190,12 @@ void GLTFModel::batch_primitives()
 	std::unordered_map<int, BatchInfo> primitive_map;
 
 	size_t num_meshes = m_meshs.size();
+	batch_map.resize(num_meshes);
 	for (size_t i = 0; i < num_meshes; i++)
 	{
-		Mesh& mesh = m_meshs[i];
-
+		Mesh& mesh = m_meshs[i];		
 		size_t num_prims = mesh.primitives.size();
+		batch_map[i].resize(num_prims);
 		for (size_t j = 0; j < num_prims; j++)
 		{
 			Primitive& prim = mesh.primitives[j];
@@ -277,6 +286,9 @@ void GLTFModel::batch_primitives()
 			Mesh& mesh = m_meshs[idx_mesh];
 			Primitive& prim = mesh.primitives[idx_prim];
 
+			std::vector<int>& batch_map_mesh = batch_map[idx_mesh];
+			batch_map_mesh[idx_prim] = face_offset * 3 * sizeof(int);
+
 			prim_batch.min_pos = glm::min(prim_batch.min_pos, prim.min_pos);
 			prim_batch.max_pos = glm::max(prim_batch.max_pos, prim.max_pos);
 
@@ -293,7 +305,18 @@ void GLTFModel::batch_primitives()
 			}						
 
 			int num_face = prim.num_face;
-			g_copy_indices(num_face, pos_offset, face_offset, prim.type_indices, prim.cpu_indices->data(), prim_batch.cpu_indices->data());			
+			if (prim.index_buf != nullptr)
+			{
+				g_copy_indices(num_face, pos_offset, face_offset, prim.type_indices, prim.cpu_indices->data(), prim_batch.cpu_indices->data());
+			}
+			else
+			{
+				int* p_out = (int*)prim_batch.cpu_indices->data();
+				for (int i = 0; i < num_face * 3; i++)
+				{
+					p_out[face_offset * 3 + i] = i  + pos_offset;
+				}
+			}
 
 			{
 				glm::mat4 matrix = glm::identity<glm::mat4>();

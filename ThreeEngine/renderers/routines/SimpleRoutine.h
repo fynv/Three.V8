@@ -51,6 +51,7 @@ public:
 	};
 
 	void render(const RenderParams& params);
+	void render_batched(const RenderParams& params, const std::vector<void*>& offset_lst, const std::vector<int>& count_lst);
 
 private:
 	Options m_options;
@@ -96,4 +97,6 @@ private:
 	static void s_generate_shaders(const Options& options, Bindings& bindings, std::string& s_vertex, std::string& s_frag);
 
 	std::unique_ptr<GLProgram> m_prog;
+
+	void _render_common(const RenderParams& params);
 };

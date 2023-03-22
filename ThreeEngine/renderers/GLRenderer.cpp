@@ -278,6 +278,42 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 	routine->render(params);	
 }
 
+void GLRenderer::render_primitives(const StandardRoutine::RenderParams& params, Pass pass, const std::vector<void*>& offset_lst, const std::vector<int>& count_lst)
+{
+	const MeshStandardMaterial* material = params.material_list[params.primitive->material_idx];
+	const Lights* lights = params.lights;
+
+	StandardRoutine::Options options;
+	options.alpha_mode = material->alphaMode;
+	options.is_highlight_pass = pass == Pass::Highlight;
+	options.specular_glossiness = material->specular_glossiness;
+	options.has_color = params.primitive->color_buf != nullptr;
+	options.has_color_texture = material->tex_idx_map >= 0;
+	options.has_metalness_map = material->tex_idx_metalnessMap >= 0;
+	options.has_roughness_map = material->tex_idx_roughnessMap >= 0;
+	options.has_normal_map = material->tex_idx_normalMap >= 0;
+	options.has_emissive_map = material->tex_idx_emissiveMap >= 0;
+	options.has_specular_map = material->tex_idx_specularMap >= 0;
+	options.has_glossiness_map = material->tex_idx_glossinessMap >= 0;
+	options.num_directional_lights = lights->num_directional_lights;
+	options.num_directional_shadows = lights->num_directional_shadows;
+	options.has_reflection_map = lights->reflection_map != nullptr;
+	options.has_environment_map = lights->environment_map != nullptr;
+	options.has_probe_grid = lights->probe_grid != nullptr;
+	if (options.has_probe_grid)
+	{
+		options.probe_reference_recorded = lights->probe_grid->record_references;
+	}
+	options.has_lod_probe_grid = lights->lod_probe_grid != nullptr;
+	options.has_ambient_light = lights->ambient_light != nullptr;
+	options.has_hemisphere_light = lights->hemisphere_light != nullptr;
+	options.has_fog = params.constant_fog != nullptr;
+	options.use_ssao = m_use_ssao;
+	options.tone_shading = material->tone_shading;
+	StandardRoutine* routine = get_routine(options);
+	routine->render_batched(params, offset_lst, count_lst);
+
+}
 
 void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog* fog, SimpleModel* model, GLRenderTarget& target, Pass pass)
 {		
@@ -352,61 +388,142 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 	for (size_t i = 0; i < material_lst.size(); i++)
 		material_lst[i] = model->m_materials[i].get();
 
-	for (size_t i = 0; i < model->m_meshs.size(); i++)
+	if (model->batched_mesh != nullptr)
 	{
-		Mesh& mesh = model->m_meshs[i];
-		glm::mat4 matrix = model->matrixWorld;
-		if (mesh.node_id >= 0 && mesh.skin_id < 0)
+		std::vector<std::vector<void*>> offset_lists(material_lst.size());
+		std::vector<std::vector<int>> count_lists(material_lst.size());
+		for (size_t i = 0; i < model->m_meshs.size(); i++)
 		{
-			Node& node = model->m_nodes[mesh.node_id];
-			matrix *= node.g_trans;
+			Mesh& mesh = model->m_meshs[i];
+			glm::mat4 matrix = model->matrixWorld;
+			if (mesh.node_id >= 0 && mesh.skin_id < 0)
+			{
+				Node& node = model->m_nodes[mesh.node_id];
+				matrix *= node.g_trans;
+			}
+			glm::mat4 MV = p_camera->matrixWorldInverse * matrix;
+
+			for (size_t j = 0; j < mesh.primitives.size(); j++)
+			{
+				Primitive& primitive = mesh.primitives[j];
+				if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos)) continue;
+
+				int idx_list = primitive.material_idx;
+				offset_lists[idx_list].push_back((void*)(model->batch_map[i][j]));
+				count_lists[idx_list].push_back(primitive.num_face * 3);
+			}
 		}
-		glm::mat4 MV = p_camera->matrixWorldInverse * matrix;
-
-		for (size_t j = 0; j < mesh.primitives.size(); j++)
+		
 		{
-			Primitive& primitive = mesh.primitives[j];			
-			if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos)) continue;
+			Mesh& mesh = *model->batched_mesh;
+			for (size_t j = 0; j < mesh.primitives.size(); j++)
+			{
+				Primitive& primitive = mesh.primitives[j];
+				int idx_material = primitive.material_idx;
 
-			const MeshStandardMaterial* material = material_lst[primitive.material_idx];
-			if (pass == Pass::Opaque)
-			{
-				if (material->alphaMode == AlphaMode::Blend) continue;
-			}
-			else if (pass == Pass::Alpha || pass == Pass::Highlight)
-			{
-				if (material->alphaMode != AlphaMode::Blend) continue;
-			}
-			if (material->tone_shading > 0 && primitive.wire_ind_buf==nullptr)
-			{
-				primitive.compute_wires();
-			}
-			StandardRoutine::RenderParams params;			
-			params.tex_list = tex_lst.data();
-			params.material_list = material_lst.data();
-			params.constant_camera = &p_camera->m_constant;
-			params.constant_model = mesh.model_constant.get();
-			params.primitive = &primitive;
-			params.lights = &lights;
+				std::vector<void*>& material_offsets = offset_lists[idx_material];
+				std::vector<int>& material_counts = count_lists[idx_material];
+				if (material_offsets.size() < 1) continue;				
 
-			if (fog != nullptr)
-			{
-				params.constant_fog = &fog->m_constant;
-			}
-			else
-			{
-				params.constant_fog = nullptr;
+				const MeshStandardMaterial* material = material_lst[idx_material];
+				if (pass == Pass::Opaque)
+				{
+					if (material->alphaMode == AlphaMode::Blend) continue;
+				}
+				else if (pass == Pass::Alpha || pass == Pass::Highlight)
+				{
+					if (material->alphaMode != AlphaMode::Blend) continue;
+				}
+
+				StandardRoutine::RenderParams params;
+				params.tex_list = tex_lst.data();
+				params.material_list = material_lst.data();
+				params.constant_camera = &p_camera->m_constant;
+				params.constant_model = mesh.model_constant.get();
+				params.primitive = &primitive;
+				params.lights = &lights;
+
+				if (fog != nullptr)
+				{
+					params.constant_fog = &fog->m_constant;
+				}
+				else
+				{
+					params.constant_fog = nullptr;
+				}
+
+				if (m_use_ssao)
+				{
+					params.tex_ao = target.m_ssao_buffers->m_tex_aoz.get();
+				}
+				else
+				{
+					params.tex_ao = nullptr;
+				}
+				render_primitives(params, pass, material_offsets, material_counts);				
 			}
 
-			if (m_use_ssao)
+		}
+
+	}
+	else
+	{
+		for (size_t i = 0; i < model->m_meshs.size(); i++)
+		{
+			Mesh& mesh = model->m_meshs[i];
+			glm::mat4 matrix = model->matrixWorld;
+			if (mesh.node_id >= 0 && mesh.skin_id < 0)
 			{
-				params.tex_ao = target.m_ssao_buffers->m_tex_aoz.get();
+				Node& node = model->m_nodes[mesh.node_id];
+				matrix *= node.g_trans;
 			}
-			else
+			glm::mat4 MV = p_camera->matrixWorldInverse * matrix;
+
+			for (size_t j = 0; j < mesh.primitives.size(); j++)
 			{
-				params.tex_ao = nullptr;
+				Primitive& primitive = mesh.primitives[j];
+				if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos)) continue;
+
+				const MeshStandardMaterial* material = material_lst[primitive.material_idx];
+				if (pass == Pass::Opaque)
+				{
+					if (material->alphaMode == AlphaMode::Blend) continue;
+				}
+				else if (pass == Pass::Alpha || pass == Pass::Highlight)
+				{
+					if (material->alphaMode != AlphaMode::Blend) continue;
+				}
+				if (material->tone_shading > 0 && primitive.wire_ind_buf == nullptr)
+				{
+					primitive.compute_wires();
+				}
+				StandardRoutine::RenderParams params;
+				params.tex_list = tex_lst.data();
+				params.material_list = material_lst.data();
+				params.constant_camera = &p_camera->m_constant;
+				params.constant_model = mesh.model_constant.get();
+				params.primitive = &primitive;
+				params.lights = &lights;
+
+				if (fog != nullptr)
+				{
+					params.constant_fog = &fog->m_constant;
+				}
+				else
+				{
+					params.constant_fog = nullptr;
+				}
+
+				if (m_use_ssao)
+				{
+					params.tex_ao = target.m_ssao_buffers->m_tex_aoz.get();
+				}
+				else
+				{
+					params.tex_ao = nullptr;
+				}
+				render_primitive(params, pass);
 			}
-			render_primitive(params, pass);
 		}
 	}
 
@@ -727,6 +844,38 @@ void GLRenderer::render_primitive_simple(const SimpleRoutine::RenderParams& para
 	routine->render(params);
 }
 
+void GLRenderer::render_primitives_simple(const SimpleRoutine::RenderParams& params, Pass pass, const std::vector<void*>& offset_lst, const std::vector<int>& count_lst)
+{
+	const MeshStandardMaterial* material = params.material_list[params.primitive->material_idx];
+	const Lights* lights = params.lights;
+
+	SimpleRoutine::Options options;
+	options.alpha_mode = material->alphaMode;
+	options.is_highlight_pass = pass == Pass::Highlight;
+	options.specular_glossiness = material->specular_glossiness;
+	options.has_color = params.primitive->color_buf != nullptr;
+	options.has_color_texture = material->tex_idx_map >= 0;
+	options.has_metalness_map = material->tex_idx_metalnessMap >= 0;
+	options.has_roughness_map = material->tex_idx_roughnessMap >= 0;
+	options.has_emissive_map = material->tex_idx_emissiveMap >= 0;
+	options.has_specular_map = material->tex_idx_specularMap >= 0;
+	options.has_glossiness_map = material->tex_idx_glossinessMap >= 0;
+	options.num_directional_lights = lights->num_directional_lights;
+	options.num_directional_shadows = lights->num_directional_shadows;
+	options.has_environment_map = lights->environment_map != nullptr;
+	options.has_probe_grid = lights->probe_grid != nullptr;
+	if (options.has_probe_grid)
+	{
+		options.probe_reference_recorded = lights->probe_grid->record_references;
+	}
+	options.has_lod_probe_grid = lights->lod_probe_grid != nullptr;
+	options.has_ambient_light = lights->ambient_light != nullptr;
+	options.has_hemisphere_light = lights->hemisphere_light != nullptr;
+	options.has_fog = params.constant_fog != nullptr;
+	SimpleRoutine* routine = get_simple_routine(options);
+	routine->render_batched(params, offset_lst, count_lst);
+}
+
 void GLRenderer::render_model_simple(Camera* p_camera, const Lights& lights, const Fog* fog, SimpleModel* model, Pass pass)
 {
 	const GLTexture2D* tex = &model->texture;
@@ -786,50 +935,123 @@ void GLRenderer::render_model_simple(Camera* p_camera, const Lights& lights, con
 	for (size_t i = 0; i < material_lst.size(); i++)
 		material_lst[i] = model->m_materials[i].get();
 
-	for (size_t i = 0; i < model->m_meshs.size(); i++)
+	if (model->batched_mesh != nullptr)
 	{
-		Mesh& mesh = model->m_meshs[i];
-		glm::mat4 matrix = model->matrixWorld;
-		if (mesh.node_id >= 0 && mesh.skin_id < 0)
+		std::vector<std::vector<void*>> offset_lists(material_lst.size());
+		std::vector<std::vector<int>> count_lists(material_lst.size());
+		for (size_t i = 0; i < model->m_meshs.size(); i++)
 		{
-			Node& node = model->m_nodes[mesh.node_id];
-			matrix *= node.g_trans;
-		}
-		glm::mat4 MV = p_camera->matrixWorldInverse * matrix;
+			Mesh& mesh = model->m_meshs[i];
+			glm::mat4 matrix = model->matrixWorld;
+			if (mesh.node_id >= 0 && mesh.skin_id < 0)
+			{
+				Node& node = model->m_nodes[mesh.node_id];
+				matrix *= node.g_trans;
+			}
+			glm::mat4 MV = p_camera->matrixWorldInverse * matrix;
 
-		for (size_t j = 0; j < mesh.primitives.size(); j++)
+			for (size_t j = 0; j < mesh.primitives.size(); j++)
+			{
+				Primitive& primitive = mesh.primitives[j];
+				if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos)) continue;
+
+				int idx_list = primitive.material_idx;
+				offset_lists[idx_list].push_back((void*)(model->batch_map[i][j]));
+				count_lists[idx_list].push_back(primitive.num_face * 3);
+			}
+		}
+
 		{
-			Primitive& primitive = mesh.primitives[j];
-			if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos)) continue;
+			Mesh& mesh = *model->batched_mesh;
+			for (size_t j = 0; j < mesh.primitives.size(); j++)
+			{
+				Primitive& primitive = mesh.primitives[j];
+				int idx_material = primitive.material_idx;
 
-			const MeshStandardMaterial* material = material_lst[primitive.material_idx];
-			if (pass == Pass::Opaque)
-			{
-				if (material->alphaMode == AlphaMode::Blend) continue;
-			}
-			else if (pass == Pass::Alpha || pass == Pass::Highlight)
-			{
-				if (material->alphaMode != AlphaMode::Blend) continue;
-			}
-			
-			SimpleRoutine::RenderParams params;
-			params.tex_list = tex_lst.data();
-			params.material_list = material_lst.data();
-			params.constant_camera = &p_camera->m_constant;
-			params.constant_model = mesh.model_constant.get();
-			params.primitive = &primitive;
-			params.lights = &lights;
+				std::vector<void*>& material_offsets = offset_lists[idx_material];
+				std::vector<int>& material_counts = count_lists[idx_material];
+				if (material_offsets.size() < 1) continue;
 
-			if (fog != nullptr)
-			{
-				params.constant_fog = &fog->m_constant;
+				const MeshStandardMaterial* material = material_lst[primitive.material_idx];
+				if (pass == Pass::Opaque)
+				{
+					if (material->alphaMode == AlphaMode::Blend) continue;
+				}
+				else if (pass == Pass::Alpha || pass == Pass::Highlight)
+				{
+					if (material->alphaMode != AlphaMode::Blend) continue;
+				}
+
+				SimpleRoutine::RenderParams params;
+				params.tex_list = tex_lst.data();
+				params.material_list = material_lst.data();
+				params.constant_camera = &p_camera->m_constant;
+				params.constant_model = mesh.model_constant.get();
+				params.primitive = &primitive;
+				params.lights = &lights;
+
+				if (fog != nullptr)
+				{
+					params.constant_fog = &fog->m_constant;
+				}
+				else
+				{
+					params.constant_fog = nullptr;
+				}
+
+				render_primitives_simple(params, pass, material_offsets, material_counts);
 			}
-			else
-			{
-				params.constant_fog = nullptr;
-			}
-			render_primitive_simple(params, pass);
+
 		}
+	}
+	else
+	{
+		for (size_t i = 0; i < model->m_meshs.size(); i++)
+		{
+			Mesh& mesh = model->m_meshs[i];
+			glm::mat4 matrix = model->matrixWorld;
+			if (mesh.node_id >= 0 && mesh.skin_id < 0)
+			{
+				Node& node = model->m_nodes[mesh.node_id];
+				matrix *= node.g_trans;
+			}
+			glm::mat4 MV = p_camera->matrixWorldInverse * matrix;
+
+			for (size_t j = 0; j < mesh.primitives.size(); j++)
+			{
+				Primitive& primitive = mesh.primitives[j];
+				if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos)) continue;
+
+				const MeshStandardMaterial* material = material_lst[primitive.material_idx];
+				if (pass == Pass::Opaque)
+				{
+					if (material->alphaMode == AlphaMode::Blend) continue;
+				}
+				else if (pass == Pass::Alpha || pass == Pass::Highlight)
+				{
+					if (material->alphaMode != AlphaMode::Blend) continue;
+				}
+
+				SimpleRoutine::RenderParams params;
+				params.tex_list = tex_lst.data();
+				params.material_list = material_lst.data();
+				params.constant_camera = &p_camera->m_constant;
+				params.constant_model = mesh.model_constant.get();
+				params.primitive = &primitive;
+				params.lights = &lights;
+
+				if (fog != nullptr)
+				{
+					params.constant_fog = &fog->m_constant;
+				}
+				else
+				{
+					params.constant_fog = nullptr;
+				}
+				render_primitive_simple(params, pass);
+			}
+		}
+
 	}
 }
 
@@ -856,6 +1078,18 @@ void GLRenderer::render_shadow_primitive(const DirectionalShadowCast::RenderPara
 	options.has_color_texture = material->tex_idx_map >= 0;
 	DirectionalShadowCast* shadow_caster = get_shadow_caster(options);
 	shadow_caster->render(params);
+}
+
+void GLRenderer::render_shadow_primitives(const DirectionalShadowCast::RenderParams& params, const std::vector<void*>& offset_lst, const std::vector<int>& count_lst)
+{
+	const MeshStandardMaterial* material = params.material_list[params.primitive->material_idx];
+
+	DirectionalShadowCast::Options options;
+	options.alpha_mode = material->alphaMode;
+	options.has_color = params.primitive->color_buf != nullptr;
+	options.has_color_texture = material->tex_idx_map >= 0;
+	DirectionalShadowCast* shadow_caster = get_shadow_caster(options);
+	shadow_caster->render_batched(params, offset_lst, count_lst);
 }
 
 void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, SimpleModel* model)
@@ -903,32 +1137,86 @@ void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, GLTFModel* 
 	for (size_t i = 0; i < material_lst.size(); i++)
 		material_lst[i] = model->m_materials[i].get();
 
-	for (size_t i = 0; i < model->m_meshs.size(); i++)
+	if (model->batched_mesh != nullptr)
 	{
-		Mesh& mesh = model->m_meshs[i];
-		glm::mat4 matrix = model->matrixWorld;
-		if (mesh.node_id >= 0 && mesh.skin_id < 0)
+		std::vector<std::vector<void*>> offset_lists(material_lst.size());
+		std::vector<std::vector<int>> count_lists(material_lst.size());
+		for (size_t i = 0; i < model->m_meshs.size(); i++)
 		{
-			Node& node = model->m_nodes[mesh.node_id];
-			matrix *= node.g_trans;
+			Mesh& mesh = model->m_meshs[i];
+			glm::mat4 matrix = model->matrixWorld;
+			if (mesh.node_id >= 0 && mesh.skin_id < 0)
+			{
+				Node& node = model->m_nodes[mesh.node_id];
+				matrix *= node.g_trans;
+			}
+			glm::mat4 MV = view_matrix * matrix;
+
+			for (size_t j = 0; j < mesh.primitives.size(); j++)
+			{
+				Primitive& primitive = mesh.primitives[j];
+				if (!visible(MV, shadow->m_light_proj_matrix, primitive.min_pos, primitive.max_pos)) continue;				
+
+				int idx_list = primitive.material_idx;
+				offset_lists[idx_list].push_back((void*)(model->batch_map[i][j]));
+				count_lists[idx_list].push_back(primitive.num_face * 3);
+			}
 		}
-		glm::mat4 MV = view_matrix * matrix;
 
-		for (size_t j = 0; j < mesh.primitives.size(); j++)
 		{
-			Primitive& primitive = mesh.primitives[j];
-			if (!visible(MV, shadow->m_light_proj_matrix, primitive.min_pos, primitive.max_pos)) continue;
+			Mesh& mesh = *model->batched_mesh;
+			for (size_t j = 0; j < mesh.primitives.size(); j++)
+			{
+				Primitive& primitive = mesh.primitives[j];
+				int idx_material = primitive.material_idx;
 
-			const MeshStandardMaterial* material = material_lst[primitive.material_idx];
+				std::vector<void*>& material_offsets = offset_lists[idx_material];
+				std::vector<int>& material_counts = count_lists[idx_material];
+				if (material_offsets.size() < 1) continue;
 
-			DirectionalShadowCast::RenderParams params;
-			params.force_cull = shadow->m_force_cull;
-			params.tex_list = tex_lst.data();
-			params.material_list = material_lst.data();
-			params.constant_shadow = &shadow->constant_shadow;
-			params.constant_model = mesh.model_constant.get();
-			params.primitive = &primitive;		
-			render_shadow_primitive(params);
+				const MeshStandardMaterial* material = material_lst[primitive.material_idx];
+
+				DirectionalShadowCast::RenderParams params;
+				params.force_cull = shadow->m_force_cull;
+				params.tex_list = tex_lst.data();
+				params.material_list = material_lst.data();
+				params.constant_shadow = &shadow->constant_shadow;
+				params.constant_model = mesh.model_constant.get();
+				params.primitive = &primitive;
+				render_shadow_primitives(params, material_offsets, material_counts);
+			}
+		}
+
+	}
+	else
+	{
+		for (size_t i = 0; i < model->m_meshs.size(); i++)
+		{
+			Mesh& mesh = model->m_meshs[i];
+			glm::mat4 matrix = model->matrixWorld;
+			if (mesh.node_id >= 0 && mesh.skin_id < 0)
+			{
+				Node& node = model->m_nodes[mesh.node_id];
+				matrix *= node.g_trans;
+			}
+			glm::mat4 MV = view_matrix * matrix;
+
+			for (size_t j = 0; j < mesh.primitives.size(); j++)
+			{
+				Primitive& primitive = mesh.primitives[j];
+				if (!visible(MV, shadow->m_light_proj_matrix, primitive.min_pos, primitive.max_pos)) continue;
+
+				const MeshStandardMaterial* material = material_lst[primitive.material_idx];
+
+				DirectionalShadowCast::RenderParams params;
+				params.force_cull = shadow->m_force_cull;
+				params.tex_list = tex_lst.data();
+				params.material_list = material_lst.data();
+				params.constant_shadow = &shadow->constant_shadow;
+				params.constant_model = mesh.model_constant.get();
+				params.primitive = &primitive;
+				render_shadow_primitive(params);
+			}
 		}
 	}
 }
@@ -1449,6 +1737,16 @@ void GLRenderer::render_depth_primitive(const DepthOnly::RenderParams& params)
 	DepthRenderer->render(params);
 }
 
+void GLRenderer::render_depth_primitives(const DepthOnly::RenderParams& params, const std::vector<void*>& offset_lst, const std::vector<int>& count_lst)
+{
+	if (DepthRenderer == nullptr)
+	{
+		DepthRenderer = std::unique_ptr<DepthOnly>(new DepthOnly);
+	}
+	DepthRenderer->render_batched(params, offset_lst, count_lst);
+
+}
+
 void GLRenderer::render_depth_model(Camera* p_camera, SimpleModel* model)
 {
 	glm::mat4 view_matrix = p_camera->matrixWorldInverse;
@@ -1473,31 +1771,86 @@ void GLRenderer::render_depth_model(Camera* p_camera, GLTFModel* model)
 	for (size_t i = 0; i < material_lst.size(); i++)
 		material_lst[i] = model->m_materials[i].get();
 
-	for (size_t i = 0; i < model->m_meshs.size(); i++)
+	if (model->batched_mesh != nullptr)
 	{
-		Mesh& mesh = model->m_meshs[i];
-		glm::mat4 matrix = model->matrixWorld;
-		if (mesh.node_id >= 0 && mesh.skin_id < 0)
+		std::vector<std::vector<void*>> offset_lists(material_lst.size());
+		std::vector<std::vector<int>> count_lists(material_lst.size());
+		for (size_t i = 0; i < model->m_meshs.size(); i++)
 		{
-			Node& node = model->m_nodes[mesh.node_id];
-			matrix *= node.g_trans;
+			Mesh& mesh = model->m_meshs[i];
+			glm::mat4 matrix = model->matrixWorld;
+			if (mesh.node_id >= 0 && mesh.skin_id < 0)
+			{
+				Node& node = model->m_nodes[mesh.node_id];
+				matrix *= node.g_trans;
+			}
+			glm::mat4 MV = p_camera->matrixWorldInverse * matrix;
+
+			for (size_t j = 0; j < mesh.primitives.size(); j++)
+			{
+				Primitive& primitive = mesh.primitives[j];
+				if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos)) continue;
+
+				int idx_list = primitive.material_idx;
+				offset_lists[idx_list].push_back((void*)(model->batch_map[i][j]));
+				count_lists[idx_list].push_back(primitive.num_face * 3);
+			}
 		}
-		glm::mat4 MV = view_matrix * matrix;
 
-		for (size_t j = 0; j < mesh.primitives.size(); j++)
 		{
-			Primitive& primitive = mesh.primitives[j];
-			if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos)) continue;
+			Mesh& mesh = *model->batched_mesh;
+			for (size_t j = 0; j < mesh.primitives.size(); j++)
+			{
+				Primitive& primitive = mesh.primitives[j];
+				int idx_material = primitive.material_idx;
 
-			const MeshStandardMaterial* material = material_lst[primitive.material_idx];	
-			if (material->alphaMode != AlphaMode::Opaque) continue;
+				std::vector<void*>& material_offsets = offset_lists[idx_material];
+				std::vector<int>& material_counts = count_lists[idx_material];
+				if (material_offsets.size() < 1) continue;
 
-			DepthOnly::RenderParams params;
-			params.material_list = material_lst.data();
-			params.constant_camera = &p_camera->m_constant;
-			params.constant_model = mesh.model_constant.get();
-			params.primitive = &primitive;		
-			render_depth_primitive(params);
+				const MeshStandardMaterial* material = material_lst[idx_material];
+				if (material->alphaMode != AlphaMode::Opaque) continue;
+
+				DepthOnly::RenderParams params;
+				params.material_list = material_lst.data();
+				params.constant_camera = &p_camera->m_constant;
+				params.constant_model = mesh.model_constant.get();
+				params.primitive = &primitive;
+				render_depth_primitives(params, material_offsets, material_counts);
+
+			}
+
+		}
+	}
+	else
+	{
+
+		for (size_t i = 0; i < model->m_meshs.size(); i++)
+		{
+			Mesh& mesh = model->m_meshs[i];
+			glm::mat4 matrix = model->matrixWorld;
+			if (mesh.node_id >= 0 && mesh.skin_id < 0)
+			{
+				Node& node = model->m_nodes[mesh.node_id];
+				matrix *= node.g_trans;
+			}
+			glm::mat4 MV = view_matrix * matrix;
+
+			for (size_t j = 0; j < mesh.primitives.size(); j++)
+			{
+				Primitive& primitive = mesh.primitives[j];
+				if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos)) continue;
+
+				const MeshStandardMaterial* material = material_lst[primitive.material_idx];
+				if (material->alphaMode != AlphaMode::Opaque) continue;
+
+				DepthOnly::RenderParams params;
+				params.material_list = material_lst.data();
+				params.constant_camera = &p_camera->m_constant;
+				params.constant_model = mesh.model_constant.get();
+				params.primitive = &primitive;
+				render_depth_primitive(params);
+			}
 		}
 	}
 }

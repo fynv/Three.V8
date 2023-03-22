@@ -21,6 +21,7 @@ public:
 	};
 
 	void render(const RenderParams& params);
+	void render_batched(const RenderParams& params, const std::vector<void*>& offset_lst, const std::vector<int>& count_lst);
 
 private:	
 	std::unique_ptr<GLProgram> m_prog;

@@ -277,29 +277,13 @@ DirectionalShadowCast::DirectionalShadowCast(const Options& options) : m_options
 	m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(vert_shader, frag_shader));
 }
 
-
-void DirectionalShadowCast::render(const RenderParams& params)
+void DirectionalShadowCast::_render_common(const RenderParams& params)
 {
 	const MeshStandardMaterial& material = *(MeshStandardMaterial*)params.material_list[params.primitive->material_idx];
 	const GeometrySet& geo = params.primitive->geometry[params.primitive->geometry.size() - 1];
 
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LEQUAL);
-	glDepthMask(GL_TRUE);
-
-	if (material.doubleSided && !params.force_cull)
-	{
-		glDisable(GL_CULL_FACE);
-	}
-	else
-	{
-		glEnable(GL_CULL_FACE);
-		glCullFace(GL_FRONT);
-	}
-
-	glUseProgram(m_prog->m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_shadow, params.constant_shadow->m_id);
-	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_model, params.constant_model->m_id);	
+	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_model, params.constant_model->m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_material, material.constant_material.m_id);
 
 	if (m_options.alpha_mode != AlphaMode::Opaque)
@@ -334,7 +318,31 @@ void DirectionalShadowCast::render(const RenderParams& params)
 			glBindTexture(GL_TEXTURE_2D, tex.tex_id);
 			glUniform1i(m_bindings.location_tex_color, m_bindings.location_tex_color);
 		}
-	}	
+	}
+}
+
+void DirectionalShadowCast::render(const RenderParams& params)
+{
+	const MeshStandardMaterial& material = *(MeshStandardMaterial*)params.material_list[params.primitive->material_idx];
+	const GeometrySet& geo = params.primitive->geometry[params.primitive->geometry.size() - 1];
+
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LEQUAL);
+	glDepthMask(GL_TRUE);
+
+	if (material.doubleSided && !params.force_cull)
+	{
+		glDisable(GL_CULL_FACE);
+	}
+	else
+	{
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_FRONT);
+	}
+
+	glUseProgram(m_prog->m_id);
+	
+	_render_common(params);
 
 	if (params.primitive->index_buf != nullptr)
 	{
@@ -361,3 +369,31 @@ void DirectionalShadowCast::render(const RenderParams& params)
 }
 
 
+void DirectionalShadowCast::render_batched(const RenderParams& params, const std::vector<void*>& offset_lst, const std::vector<int>& count_lst)
+{
+
+	const MeshStandardMaterial& material = *(MeshStandardMaterial*)params.material_list[params.primitive->material_idx];
+	const GeometrySet& geo = params.primitive->geometry[params.primitive->geometry.size() - 1];
+
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LEQUAL);
+	glDepthMask(GL_TRUE);
+
+	if (material.doubleSided && !params.force_cull)
+	{
+		glDisable(GL_CULL_FACE);
+	}
+	else
+	{
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_FRONT);
+	}
+
+	glUseProgram(m_prog->m_id);
+
+	_render_common(params);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, params.primitive->index_buf->m_id);
+	glMultiDrawElements(GL_TRIANGLES, count_lst.data(), GL_UNSIGNED_INT, offset_lst.data(), offset_lst.size());
+
+	glUseProgram(0);
+}

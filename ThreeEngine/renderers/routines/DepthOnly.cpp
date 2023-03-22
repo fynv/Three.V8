@@ -100,5 +100,39 @@ void DepthOnly::render(const RenderParams& params)
 	glUseProgram(0);
 }
 
+void DepthOnly::render_batched(const RenderParams& params, const std::vector<void*>& offset_lst, const std::vector<int>& count_lst)
+{
+	const MeshStandardMaterial& material = *(MeshStandardMaterial*)params.material_list[params.primitive->material_idx];
+	const GeometrySet& geo = params.primitive->geometry[params.primitive->geometry.size() - 1];
+
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LEQUAL);
+	glDepthMask(GL_TRUE);
+
+	if (material.doubleSided)
+	{
+		glDisable(GL_CULL_FACE);
+	}
+	else
+	{
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);
+	}
+
+	glUseProgram(m_prog->m_id);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.constant_camera->m_id);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.constant_model->m_id);
+
+	glBindBuffer(GL_ARRAY_BUFFER, geo.pos_buf->m_id);
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
+	glEnableVertexAttribArray(0);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, params.primitive->index_buf->m_id);
+	glMultiDrawElements(GL_TRIANGLES, count_lst.data(), GL_UNSIGNED_INT, offset_lst.data(), offset_lst.size());
+
+	glUseProgram(0);
+
+}
+
 
 
