@@ -12,7 +12,6 @@ R"(#version 430
 #DEFINES#
 
 layout (location = 0) uniform sampler2D uTexSource;
-layout (location = 1) uniform sampler2D uTexSHIrrWeight;
 
 layout (std140, binding = 0) uniform ProbeRayList
 {
@@ -21,8 +20,12 @@ layout (std140, binding = 0) uniform ProbeRayList
 	int uPRLNumDirections;	
 };
 
+layout (std430, binding = 1) buffer SHIrrWeight
+{
+	float bSHIrrWeights[];
+};
 
-layout (std430, binding = 1) buffer ProbeSH
+layout (std430, binding = 2) buffer ProbeSH
 {
 	vec4 bProbeSH[];
 };
@@ -47,29 +50,47 @@ vec3 sphericalFibonacci(float i, float n)
 
 layout(local_size_x = 64) in;
 
+shared vec3 s_coeff[64];
+
 void main()
-{
-	int id = ivec3(gl_GlobalInvocationID).x;
-	if (id >= uRPLNumProbes * 9) return;
-	int probe_id_in = id;
+{	
+	int probe_id_in = int(gl_WorkGroupID.x);
 	int probe_id_out = probe_id_in + uIDStartProbe;
+	int local_id = int(gl_LocalInvocationID.x);
 
 	vec3 coeff = vec3(0.0);
-	for (int ray_id = 0; ray_id < uPRLNumDirections; ray_id++)
+	for (int ray_id = local_id; ray_id < uPRLNumDirections; ray_id+=64)
 	{
 		vec3 sf = sphericalFibonacci(ray_id, uPRLNumDirections);
 		vec3 in_dir = vec3(uPRLRotation * vec4(sf, 0.0));		
 		vec3 col = texelFetch(uTexSource, ivec2(ray_id, probe_id_in), 0).xyz;
-		float weight = texelFetch(uTexSHIrrWeight, ivec2(ray_id, uCoeffId), 0).x;
+		float weight = bSHIrrWeights[ray_id];
 		coeff += col * weight;
-	}	
-	
-	if (uMixRate<1.0)
-	{
-		vec3 last = bProbeSH[probe_id_out].xyz;
-		coeff = uMixRate * coeff + (1.0 - uMixRate)*last;
 	}
-	bProbeSH[probe_id_out] = vec4(coeff, 1.0);
+	
+	s_coeff[local_id] = coeff;
+	
+	int stride = 32;
+	while(stride>0)
+	{
+		barrier();
+		if (local_id<stride)
+		{
+			s_coeff[local_id] += s_coeff[local_id+stride];
+		}
+		stride = stride >> 1;
+	}		
+
+	if (local_id == 0)
+	{	
+		coeff = s_coeff[0];
+		if (uMixRate<1.0)
+		{
+			vec3 last = bProbeSH[probe_id_out].xyz;
+			coeff = uMixRate * coeff + (1.0 - uMixRate)*last;
+		}
+		bProbeSH[probe_id_out] = vec4(coeff, 1.0);
+	}
 }
 )";
 
@@ -382,10 +403,6 @@ void IrradianceUpdate::update(const RenderParams& params)
 	glBindTexture(GL_TEXTURE_2D, source->m_tex_video->tex_id);
 	glUniform1i(0, 0);
 
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, params.prl->TexSHIrrWeight->tex_id);
-	glUniform1i(1, 1);
-
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.prl->m_constant.m_id);
 
 	glUniform1i(3, params.id_start_probe);
@@ -393,23 +410,24 @@ void IrradianceUpdate::update(const RenderParams& params)
 
 	for (int i = 0; i < 9; i++)
 	{
-		glUniform1i(2, i);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, params.prl->TexSHIrrWeight[i]->m_id);
 
 		if (params.target != nullptr)
 		{
-			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, params.target->m_probe_bufs[i]->m_id);
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, params.target->m_probe_bufs[i]->m_id);
 		}
 		else if (m_is_lod_probe_grid)
 		{
-			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, params.lod_probe_grid->m_probe_bufs[i+1]->m_id);
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, params.lod_probe_grid->m_probe_bufs[i+1]->m_id);
 		}
 		else
 		{
-			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, params.probe_grid->m_probe_bufs[i]->m_id);
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, params.probe_grid->m_probe_bufs[i]->m_id);
 		}
 
-		int blocks = (params.prl->num_probes + 63) / 64;
-		glDispatchCompute(blocks, 1, 1);
+		glUniform1i(2, i);
+		
+		glDispatchCompute(params.prl->num_probes, 1, 1);
 	}
 
 	glUseProgram(0);

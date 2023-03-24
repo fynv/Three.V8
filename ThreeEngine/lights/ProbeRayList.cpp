@@ -117,16 +117,12 @@ void ProbeRayList::_calc_shirr_weights()
 		}
 	}
 
-	TexSHIrrWeight = std::unique_ptr<GLTexture2D>(new GLTexture2D);
-	glBindTexture(GL_TEXTURE_2D, TexSHIrrWeight->tex_id);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexStorage2D(GL_TEXTURE_2D, 1, GL_R32F, num_directions, 9);
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, num_directions, 9, GL_RED, GL_FLOAT, weights.data());	
-	glBindTexture(GL_TEXTURE_2D, 0);
+	for (int i = 0; i < 9; i++)
+	{
+		TexSHIrrWeight[i] = std::unique_ptr<GLBuffer>(new GLBuffer(sizeof(float) * num_directions, GL_SHADER_STORAGE_BUFFER));
+		TexSHIrrWeight[i]->upload(weights.data() + i * num_directions);
 
+	}
 }
 
 ProbeRayList::ProbeRayList(const glm::vec3& coverage_min, const glm::vec3& coverage_max, const glm::ivec3& divisions, int begin, int end, int num_directions)

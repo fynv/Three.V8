@@ -58,12 +58,12 @@ WeightedOIT::WeightedOIT(bool msaa) : m_msaa(msaa)
 	GLShader vert_shader(GL_VERTEX_SHADER, g_vertex.c_str());
 	if (msaa)
 	{
-		GLShader frag_shader = GLShader(GL_FRAGMENT_SHADER, g_frag_msaa.c_str());
+		GLShader frag_shader(GL_FRAGMENT_SHADER, g_frag_msaa.c_str());
 		m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(vert_shader, frag_shader));
 	}
 	else
 	{
-		GLShader frag_shader = GLShader(GL_FRAGMENT_SHADER, g_frag_noaa.c_str());
+		GLShader frag_shader(GL_FRAGMENT_SHADER, g_frag_noaa.c_str());
 		m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(vert_shader, frag_shader));
 	}    
 }

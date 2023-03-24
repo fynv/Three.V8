@@ -25,7 +25,7 @@ public:
 	std::vector<glm::vec4> positions;
 	std::unique_ptr<GLBuffer> buf_positions;
 
-	std::unique_ptr<GLTexture2D> TexSHIrrWeight;
+	std::unique_ptr<GLBuffer> TexSHIrrWeight[9];
 
 private:
 	void _calc_shirr_weights();
