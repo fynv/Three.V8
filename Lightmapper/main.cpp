@@ -19,6 +19,9 @@
 #include "renderers/GLRenderTarget.h"
 #include "renderers/LightmapRenderTarget.h"
 
+#include "utils/HDRImage.h"
+#include "savers/HDRImageSaver.h"
+
 
 class Test
 {
@@ -77,13 +80,17 @@ Test::Test(int width, int height)
 	background.color = glm::vec3(0.8f, 0.8f, 0.8f);
 	scene.background = &background;
 
-	cpu_model.LoadGlb("assets/models/fireplace_room.glb");
+	/*cpu_model.LoadGlb("assets/models/fireplace_room.glb");
 	cpu_model.CreateModel(&model);
 	cpu_model.CreateAtlas();
 	cpu_model.CreateModel(&model);
 	scene.add(&model);
+	model.init_lightmap(&renderer, cpu_model.lightmap_width, cpu_model.lightmap_height, cpu_model.lightmap_texels_per_unit);
+	*/
 
-	model.init_lightmap(&renderer, cpu_model.lightmap_width, cpu_model.lightmap_height, cpu_model.lightmap_texels_per_unit);	
+	GLTFLoader::LoadModelFromFile(&model, "fireplace_room_atlas.glb");
+	scene.add(&model);
+	model.load_lightmap("lightmap.hdr");
 
 	check_time = time_sec();
 }
@@ -131,6 +138,8 @@ void Test::Draw(int width, int height)
 
 	renderer.render(scene, camera, render_target);
 
+	return;
+
 	double start = time_sec();
 
 	while (iter < iterations)
@@ -152,6 +161,15 @@ void Test::Draw(int width, int height)
 			renderer.filterLightmap(lightmap, source);
 			idx_texel = 0;
 			iter++;
+
+			if (iter == iterations)
+			{
+				printf("saving lightmap..\n");
+				HDRImage img;
+				lightmap.GetImage(img);
+				HDRImageSaver::SaveFile(&img, "lightmap.hdr");
+				printf("lightmap saved\n");
+			}
 		}
 	}
 }

@@ -2,6 +2,7 @@
 #include <gtx/hash.hpp>
 #include <unordered_set>
 #include "ModelComponents.h"
+#include "utils/HDRImage.h"
 
 template <typename T>
 inline glm::ivec3 t_get_indices(T* indices, int face_id)
@@ -123,6 +124,34 @@ Lightmap::Lightmap(int width, int height, int texels_per_unit)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+Lightmap::Lightmap(const HDRImage& image)
+	:width(image.width()), height(image.height())
+{
+	lightmap = std::unique_ptr<GLTexture2D>(new GLTexture2D);
+	glBindTexture(GL_TEXTURE_2D, lightmap->tex_id);
+	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB9_E5, width, height);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_FLOAT, image.data());
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void Lightmap::GetImage(HDRImage& image)
+{
+	size_t buf_size = (size_t)width * (size_t)height * 3 * sizeof(float);
+
+	glBindTexture(GL_TEXTURE_2D, lightmap->tex_id);
+	image.m_width = width;
+	image.m_height = height;
+	free(image.m_buffer);
+	image.m_buffer = (float*)malloc(buf_size);
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_FLOAT, image.m_buffer);
+	
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 

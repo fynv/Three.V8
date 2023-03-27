@@ -408,6 +408,15 @@ void GLTFModel::init_lightmap(GLRenderer* renderer, int width, int height, int t
 	lightmap_target->valid_list->upload(lst_valid.data());
 }
 
+#include "utils/HDRImage.h"
+#include "loaders/HDRImageLoader.h"
+
+void GLTFModel::load_lightmap(const char* fn)
+{
+	HDRImage img;
+	HDRImageLoader::LoadFile(&img, fn);
+	lightmap = std::unique_ptr<Lightmap>(new Lightmap(img));
+}
 
 void GLTFModel::setAnimationFrame(const AnimationFrame& frame)
 {

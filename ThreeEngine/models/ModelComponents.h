@@ -62,14 +62,18 @@ public:
 	Attribute lightmap_uv_buf;
 };
 
+class HDRImage;
 class Lightmap
 {
 public:
 	Lightmap(int width, int height, int texels_per_unit = 128);
+	Lightmap(const HDRImage& image);
 
 	int width, height;
 	int texels_per_unit = 128;
 	std::unique_ptr<GLTexture2D> lightmap;
+
+	void GetImage(HDRImage& image);
 };
 
 class Node

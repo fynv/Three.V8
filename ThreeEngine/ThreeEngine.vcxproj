@@ -171,6 +171,7 @@
     <ClCompile Include="lights\ProbeRayList.cpp" />
     <ClCompile Include="loaders\FileLoader.cpp" />
     <ClCompile Include="loaders\GLTFLoader.cpp" />
+    <ClCompile Include="loaders\HDRImageLoader.cpp" />
     <ClCompile Include="loaders\ImageLoader.cpp" />
     <ClCompile Include="loaders\LODProbeGridLoader.cpp" />
     <ClCompile Include="loaders\ProbeGridLoader.cpp" />
@@ -231,11 +232,13 @@
     <ClCompile Include="renderers\routines\StandardRoutine.cpp" />
     <ClCompile Include="renderers\routines\WeightedOIT.cpp" />
     <ClCompile Include="savers\FileSaver.cpp" />
+    <ClCompile Include="savers\HDRImageSaver.cpp" />
     <ClCompile Include="savers\ImageSaver.cpp" />
     <ClCompile Include="savers\LODProbeGridSaver.cpp" />
     <ClCompile Include="savers\ProbeGridSaver.cpp" />
     <ClCompile Include="scenes\Fog.cpp" />
     <ClCompile Include="scenes\Scene.cpp" />
+    <ClCompile Include="utils\HDRImage.cpp" />
     <ClCompile Include="utils\Image.cpp" />
     <ClCompile Include="volume\routines\DrawIsosurface.cpp" />
     <ClCompile Include="volume\routines\InitiGridPartition.cpp" />
@@ -299,6 +302,7 @@
     <ClInclude Include="lights\ProbeRayList.h" />
     <ClInclude Include="loaders\FileLoader.h" />
     <ClInclude Include="loaders\GLTFLoader.h" />
+    <ClInclude Include="loaders\HDRImageLoader.h" />
     <ClInclude Include="loaders\ImageLoader.h" />
     <ClInclude Include="loaders\LODProbeGridLoader.h" />
     <ClInclude Include="loaders\ProbeGridLoader.h" />
@@ -360,11 +364,13 @@
     <ClInclude Include="renderers\routines\StandardRoutine.h" />
     <ClInclude Include="renderers\routines\WeightedOIT.h" />
     <ClInclude Include="savers\FileSaver.h" />
+    <ClInclude Include="savers\HDRImageSaver.h" />
     <ClInclude Include="savers\ImageSaver.h" />
     <ClInclude Include="savers\LODProbeGridSaver.h" />
     <ClInclude Include="savers\ProbeGridSaver.h" />
     <ClInclude Include="scenes\Fog.h" />
     <ClInclude Include="scenes\Scene.h" />
+    <ClInclude Include="utils\HDRImage.h" />
     <ClInclude Include="utils\Image.h" />
     <ClInclude Include="utils\Semaphore.h" />
     <ClInclude Include="utils\Utils.h" />
