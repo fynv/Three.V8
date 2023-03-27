@@ -22,6 +22,8 @@
 #include "utils/HDRImage.h"
 #include "savers/HDRImageSaver.h"
 
+#include "lights/AmbientLight.h"
+
 
 class Test
 {
@@ -32,6 +34,8 @@ public:
 	//CubeBackground background;
 	ColorBackground background;
 	//HemisphereBackground background;
+
+	AmbientLight ambient_dummy;
 
 	DataModel cpu_model;
 	GLTFModel model;	
@@ -85,12 +89,13 @@ Test::Test(int width, int height)
 	cpu_model.CreateAtlas();
 	cpu_model.CreateModel(&model);
 	scene.add(&model);
-	model.init_lightmap(&renderer, cpu_model.lightmap_width, cpu_model.lightmap_height, cpu_model.lightmap_texels_per_unit);
-	*/
+	model.init_lightmap(&renderer, cpu_model.lightmap_width, cpu_model.lightmap_height, cpu_model.lightmap_texels_per_unit);*/
 
 	GLTFLoader::LoadModelFromFile(&model, "fireplace_room_atlas.glb");
 	scene.add(&model);
 	model.load_lightmap("lightmap.hdr");
+	ambient_dummy.set_dynamic_map(true);
+	scene.indirectLight = &ambient_dummy;
 
 	check_time = time_sec();
 }

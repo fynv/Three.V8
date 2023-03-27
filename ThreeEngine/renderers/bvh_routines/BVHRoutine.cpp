@@ -611,11 +611,6 @@ vec3 getIrradiance(in vec3 normal)
 	return shGetIrradianceAt(normal, uSHCoefficients);
 }
 
-vec3 getRadiance(in vec3 reflectVec, float roughness)
-{
-	return shGetIrradianceAt(reflectVec, uSHCoefficients) * RECIPROCAL_PI;
-}
-
 #endif
 
 
@@ -811,11 +806,6 @@ vec3 getIrradiance(in vec3 normal)
 	return vec3(0.0);
 }
 
-vec3 getRadiance(in vec3 reflectVec, float roughness)
-{
-	return getIrradiance(reflectVec) * RECIPROCAL_PI;
-}
-
 #endif
 
 
@@ -923,11 +913,6 @@ vec3 getIrradiance(in vec3 normal)
 	return vec3(0.0);
 }
 
-vec3 getRadiance(in vec3 reflectVec, float roughness)
-{
-	return getIrradiance(reflectVec) * RECIPROCAL_PI;
-}
-
 #endif
 
 #if HAS_AMBIENT_LIGHT
@@ -945,11 +930,6 @@ layout (std140, binding = BINDING_AMBIENT_LIGHT) uniform AmbientLight
 vec3 getIrradiance(in vec3 normal)
 {
 	return uAmbientColor.xyz * PI;
-}
-
-vec3 getRadiance(in vec3 reflectVec, float roughness)
-{
-	return uAmbientColor.xyz;
 }
 
 #endif
@@ -977,11 +957,6 @@ vec3 HemisphereColor(in vec3 dir)
 vec3 getIrradiance(in vec3 normal)
 {
 	return HemisphereColor(normal) * PI;
-}
-
-vec3 getRadiance(in vec3 reflectVec, float roughness)
-{
-	return HemisphereColor(reflectVec);
 }
 
 #endif
@@ -1124,12 +1099,9 @@ bool calc_shading()
 
 #elif HAS_INDIRECT_LIGHT
 	{
-		vec3 reflectVec = reflect(-gViewDir, norm);
-		reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );
-		vec3 irradiance = getIrradiance(norm);
-		vec3 radiance = getRadiance(reflectVec, material.roughness);
+		vec3 irradiance = getIrradiance(norm);		
 		diffuse += material.diffuseColor * irradiance * RECIPROCAL_PI;
-		specular +=  material.specularColor * radiance;
+		specular +=  material.specularColor * irradiance * RECIPROCAL_PI;
 	}
 #endif
 

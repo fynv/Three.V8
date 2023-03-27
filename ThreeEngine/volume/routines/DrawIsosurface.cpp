@@ -634,14 +634,13 @@ vec3 getIrradiance(in vec3 world_pos, in vec3 normal)
 #endif
 
 
-#if HAS_INDIRECT_LIGHT
 #if HAS_REFLECTION_MAP
-vec3 getRadiance(in vec3 world_pos, in vec3 reflectVec, float roughness)
+vec3 getRadiance(in vec3 world_pos, in vec3 reflectVec, float roughness, in vec3 irradiance)
 {
 	vec3 rad = getReflRadiance(reflectVec, roughness);
 	if (roughness > 0.053)
 	{
-		vec3 rad2 = getIrradiance(world_pos, reflectVec) * RECIPROCAL_PI;
+		vec3 rad2 = irradiance * RECIPROCAL_PI;
 		float lum1 = luminance(rad);
 		if (lum1>0.0)
 		{
@@ -654,12 +653,6 @@ vec3 getRadiance(in vec3 world_pos, in vec3 reflectVec, float roughness)
 	}
 	return rad;
 }
-#else
-vec3 getRadiance(in vec3 world_pos, in vec3 reflectVec, float roughness)
-{
-	return getIrradiance(world_pos, reflectVec) * RECIPROCAL_PI;
-}
-#endif
 #endif
 
 #if HAS_FOG
@@ -762,12 +755,14 @@ vec3 get_shading(in vec3 pos)
 
 #if HAS_INDIRECT_LIGHT
 	{
-		vec3 reflectVec = reflect(-viewDir, norm);
-		reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );
-
 		vec3 irradiance = getIrradiance(pos_world.xyz, norm);
-		vec3 radiance = getRadiance(pos_world.xyz, reflectVec, material.roughness);
-
+#if HAS_REFLECTION_MAP
+		vec3 reflectVec = reflect(-viewDir, norm);
+		reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );		
+		vec3 radiance = getRadiance(pos_world.xyz, reflectVec, material.roughness, irradiance);
+#else
+		vec3 radiance = irradiance * RECIPROCAL_PI;
+#endif
 		diffuse += material.diffuseColor * irradiance * RECIPROCAL_PI;
 		specular +=  material.specularColor * radiance;
 	}

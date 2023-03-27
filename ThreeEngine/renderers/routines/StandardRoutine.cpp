@@ -938,14 +938,14 @@ vec3 getIrradiance(in vec3 normal)
 #endif
 
 
-#if HAS_INDIRECT_LIGHT
 #if HAS_REFLECTION_MAP
-vec3 getRadiance(in vec3 reflectVec, float roughness)
+vec3 getRadiance(in vec3 reflectVec, float roughness, in vec3 irradiance)
 {
 	vec3 rad = getReflRadiance(reflectVec, roughness);
+
 	if (roughness > 0.053)
 	{
-		vec3 rad2 = getIrradiance(reflectVec) * RECIPROCAL_PI;
+		vec3 rad2 = irradiance * RECIPROCAL_PI;
 		float lum1 = luminance(rad);
 		if (lum1>0.0)
 		{
@@ -958,13 +958,7 @@ vec3 getRadiance(in vec3 reflectVec, float roughness)
 	}
 	return rad;
 }
-#else
-vec3 getRadiance(in vec3 reflectVec, float roughness)
-{
-	return getIrradiance(reflectVec) * RECIPROCAL_PI;
-}
-#endif
-#endif
+#endif 
 
 #if HAS_FOG
 layout (std140, binding = BINDING_FOG) uniform FOG
@@ -1176,7 +1170,7 @@ void main()
 #if HAS_REFLECTION_MAP
 	vec3 reflectVec = reflect(-viewDir, norm);
 	reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );		
-	vec3 radiance = getRadiance(reflectVec, material.roughness);
+	vec3 radiance = getRadiance(reflectVec, material.roughness, light_color * PI);
 	specular +=  material.specularColor * radiance;
 #else
 	specular += material.specularColor * light_color;
@@ -1184,10 +1178,14 @@ void main()
 	
 #elif HAS_INDIRECT_LIGHT
 	{
-		vec3 reflectVec = reflect(-viewDir, norm);
-		reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );
 		vec3 irradiance = getIrradiance(norm);
-		vec3 radiance = getRadiance(reflectVec, material.roughness);
+#if HAS_REFLECTION_MAP
+		vec3 reflectVec = reflect(-viewDir, norm);
+		reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );		
+		vec3 radiance = getRadiance(reflectVec, material.roughness, irradiance);
+#else
+		vec3 radiance = irradiance * RECIPROCAL_PI;
+#endif
 
 #if USE_SSAO && IS_OPAQUE
 		{
