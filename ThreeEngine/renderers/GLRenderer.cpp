@@ -4,6 +4,7 @@
 #include "GLUtils.h"
 #include "GLRenderer.h"
 #include "GLRenderTarget.h"
+#include "LightmapRenderTarget.h"
 #include "GLPickingTarget.h"
 #include "GLSpaceProbeTarget.h"
 #include "CubeRenderTarget.h"
@@ -25,6 +26,7 @@
 #include "lights/ProbeGridWidget.h"
 #include "lights/LODProbeGridWidget.h"
 #include "lights/ProbeRayList.h"
+#include "LightmapRayList.h"
 
 //#include <gtx/string_cast.hpp>
 
@@ -3188,4 +3190,127 @@ void GLRenderer::sceneToVolume(Scene& scene, unsigned tex_id_volume, const glm::
 		GLTFModel* model = scene.gltf_models[i];
 		scene_to_volume_model(model, params);
 	}
+}
+
+void GLRenderer::rasterize_atlas_primitive(const RasterizeAtlas::RenderParams& params)
+{
+	const MeshStandardMaterial* material = params.material_list[params.primitive->material_idx];
+	
+	bool has_normal_map = material->tex_idx_normalMap >= 0;
+
+	int idx = has_normal_map ? 1 : 0;
+	if (atlas_rasterizer[idx] == nullptr)
+	{
+		atlas_rasterizer[idx] = std::unique_ptr<RasterizeAtlas>(new RasterizeAtlas(has_normal_map));
+	}
+
+	RasterizeAtlas* routine = atlas_rasterizer[idx].get();
+	glLineWidth(2.0f);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	routine->render(params);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	routine->render(params);
+}
+
+
+void GLRenderer::rasterize_atlas(GLTFModel* model)
+{
+	model->updateWorldMatrix(false, false);
+	update_model(model);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, model->lightmap_target->m_fbo);
+
+	const GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+	glDrawBuffers(2, drawBuffers);
+	glViewport(0, 0, model->lightmap_target->m_width, model->lightmap_target->m_height);
+
+	float zero[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	glClearBufferfv(GL_COLOR, 0, zero);
+	glClearBufferfv(GL_COLOR, 1, zero);
+
+	std::vector<const GLTexture2D*> tex_lst(model->m_textures.size());
+	for (size_t i = 0; i < tex_lst.size(); i++)
+	{
+		auto iter = model->m_repl_textures.find(i);
+		if (iter != model->m_repl_textures.end())
+		{
+			tex_lst[i] = iter->second;
+		}
+		else
+		{
+			tex_lst[i] = model->m_textures[i].get();
+		}
+	}
+
+	std::vector<const MeshStandardMaterial*> material_lst(model->m_materials.size());
+	for (size_t i = 0; i < material_lst.size(); i++)
+		material_lst[i] = model->m_materials[i].get();
+
+	if (model->batched_mesh != nullptr)
+	{
+		Mesh& mesh = *model->batched_mesh;
+		for (size_t j = 0; j < mesh.primitives.size(); j++)
+		{
+			Primitive& primitive = mesh.primitives[j];
+
+			RasterizeAtlas::RenderParams params;
+			params.tex_list = tex_lst.data();
+			params.material_list = material_lst.data();
+			params.constant_model = mesh.model_constant.get();
+			params.primitive = &primitive;
+			rasterize_atlas_primitive(params);
+		}
+	}
+	else
+	{
+		for (size_t i = 0; i < model->m_meshs.size(); i++)
+		{
+			Mesh& mesh = model->m_meshs[i];
+			for (size_t j = 0; j < mesh.primitives.size(); j++)
+			{
+				Primitive& primitive = mesh.primitives[j];
+
+				RasterizeAtlas::RenderParams params;
+				params.tex_list = tex_lst.data();
+				params.material_list = material_lst.data();
+				params.constant_model = mesh.model_constant.get();
+				params.primitive = &primitive;
+				rasterize_atlas_primitive(params);
+			}
+		}
+	}
+
+}
+
+int GLRenderer::updateLightmap(Scene& scene, Lightmap& lm, LightmapRenderTarget& src, int start_texel, int num_directions)
+{
+	int max_texels = (1 << 17) / num_directions;
+	if (max_texels < 1) max_texels = 1;
+
+	int num_texels = src.count_valid - start_texel;
+	if (num_texels > max_texels) num_texels = max_texels;
+
+	int width = 512;
+	if (width < num_directions) width = num_directions;
+
+	int texels_per_row = width / num_directions;
+
+	int height = (num_texels + texels_per_row - 1) / texels_per_row;
+
+	BVHRenderTarget bvh_target;
+	bvh_target.update(width, height);
+
+	LightmapRayList lmrl(&src, &bvh_target, start_texel, start_texel + num_texels, num_directions);
+	bvh_renderer.render_lightmap(scene, lmrl, bvh_target);
+
+	bvh_renderer.update_lightmap(bvh_target, lmrl, lm, start_texel, 1.0f);
+	
+
+	return num_texels;
+
+}
+
+void GLRenderer::filterLightmap(Lightmap& lm, LightmapRenderTarget& src)
+{
+	bvh_renderer.filter_lightmap(src, lm);
 }

@@ -30,6 +30,8 @@
 
 #include "renderers/routines/SceneToVolume.h"
 
+#include "renderers/routines/RasterizeAtlas.h"
+
 #include "BVHRenderer.h"
 
 class Scene;
@@ -72,6 +74,11 @@ public:
 	void renderTexture(GLTexture2D* tex, int x, int y, int width, int height, GLRenderTarget& target, bool flipY = true, float alpha = 1.0f);
 
 	void sceneToVolume(Scene& scene, unsigned tex_id_volume, const glm::vec3& coverage_min, const glm::vec3& coverage_max, const glm::ivec3& divisions);
+
+	void rasterize_atlas(GLTFModel* model);
+
+	int updateLightmap(Scene& scene, Lightmap& lm, LightmapRenderTarget& src, int start_texel, int num_directions = 64);
+	void filterLightmap(Lightmap& lm, LightmapRenderTarget& src);
 
 private:
 	std::unique_ptr<WeightedOIT> oit_resolvers[2];
@@ -181,6 +188,9 @@ private:
 	void scene_to_volume_primitive(const SceneToVolume::RenderParams& params);
 	void scene_to_volume_model(SimpleModel* model, SceneToVolume::RenderParams& params);
 	void scene_to_volume_model(GLTFModel* model, SceneToVolume::RenderParams& params);
+
+	std::unique_ptr<RasterizeAtlas> atlas_rasterizer[2];
+	void rasterize_atlas_primitive(const RasterizeAtlas::RenderParams& params);
 
 	BVHRenderer bvh_renderer;		
 };

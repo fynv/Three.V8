@@ -5,8 +5,6 @@
 #include "renderers/GLUtils.h"
 
 class BVHRenderTarget;
-class ProbeRayList;
-
 class CompDrawFog
 {
 public:
@@ -16,7 +14,7 @@ public:
 		{
 			memset(this, 0, sizeof(Options));
 		}
-		bool to_probe = false;
+		int target_mode = 0;
 		bool has_environment_map = false;
 		bool has_ambient_light = false;
 		bool has_hemisphere_light = false;

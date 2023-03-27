@@ -3,6 +3,7 @@
 #include "BVHDepthOnly.h"
 #include "renderers/BVHRenderTarget.h"
 #include "lights/ProbeRayList.h"
+#include "renderers/LightmapRayList.h"
 
 static std::string g_compute =
 R"(#version 430
@@ -375,7 +376,92 @@ void main()
 	
 	render();
 }
+#elif TO_LIGHTMAP
+layout (std140, binding = 1) uniform LightmapRayList
+{
+	int uTexelBegin;
+	int uTexelEnd;
+	int uNumRays;
+	int uTexelsPerRow;
+	int uNumRows;
+	int uJitter;
+};
 
+layout (location = 3) uniform sampler2D uTexPosition;
+layout (location = 4) uniform sampler2D uTexNormal;
+layout (location = 5) uniform usamplerBuffer uValidList;
+
+#define PI 3.14159265359
+
+uint InitRandomSeed(uint val0, uint val1)
+{
+	uint v0 = val0, v1 = val1, s0 = 0u;
+
+	for (uint n = 0u; n < 16u; n++)
+	{
+		s0 += 0x9e3779b9u;
+		v0 += ((v1 << 4) + 0xa341316cu) ^ (v1 + s0) ^ ((v1 >> 5) + 0xc8013ea4u);
+		v1 += ((v0 << 4) + 0xad90777du) ^ (v0 + s0) ^ ((v0 >> 5) + 0x7e95761eu);
+	}
+
+	return v0;
+}
+
+uint RandomInt(inout uint seed)
+{
+    return (seed = 1664525u * seed + 1013904223u);
+}
+
+float RandomFloat(inout uint seed)
+{
+	return (float(RandomInt(seed) & 0x00FFFFFFu) / float(0x01000000));
+}
+
+vec3 RandomDirection(inout uint seed)
+{
+	float z = RandomFloat(seed) * 2.0 - 1.0;
+	float xy = sqrt(1.0 - z*z);
+	float alpha = RandomFloat(seed) * PI * 2.0;
+	return vec3(xy * cos(alpha), xy * sin(alpha), z);
+}
+
+vec3 RandomDiffuse(inout uint seed, in vec3 base_dir)
+{
+	vec3 dir = RandomDirection(seed);
+	float d = dot(dir, base_dir);
+	vec3 c = d * base_dir;
+	vec3 s = dir - c;
+	float z2 = clamp(abs(d), 0.0, 1.0);
+	float xy = sqrt(1.0 - z2);	
+	vec3 s_dir =  sqrt(z2) * base_dir;
+	if (length(s)>0.0)
+	{		
+		s_dir += xy * normalize(s);
+	}
+	return s_dir;
+}
+
+void main()
+{
+	ivec2 local_id = ivec3(gl_LocalInvocationID).xy;	
+	ivec2 group_id = ivec3(gl_WorkGroupID).xy;
+	g_id_io = ivec2(local_id.x + local_id.y * 32 + group_id.x * 64, group_id.y);
+	int idx_texel_out = g_id_io.x/uNumRays + g_id_io.y*uTexelsPerRow;	
+	int idx_texel_in = idx_texel_out + uTexelBegin;
+	if (idx_texel_in >= uTexelEnd) return;
+
+	int idx_ray = g_id_io.x % uNumRays;
+	ivec2 texel_coord = ivec2(texelFetch(uValidList, idx_texel_in).xy);	
+	g_origin = texelFetch(uTexPosition, texel_coord, 0).xyz;
+	vec3 norm = texelFetch(uTexNormal, texel_coord, 0).xyz;
+	uint seed = InitRandomSeed(uJitter, idx_texel_out * uNumRays +  idx_ray);
+	g_dir = RandomDiffuse(seed, norm);	
+
+	g_tmin = 0.001;	
+	g_tmax = 3.402823466e+38;
+	
+	render();
+}
 #endif
 )";
 
@@ -393,20 +479,36 @@ inline void replace(std::string& str, const char* target, const char* source)
 	}
 }
 
-BVHDepthOnly::BVHDepthOnly(bool to_probe) : m_to_probe(to_probe)
+BVHDepthOnly::BVHDepthOnly(int target_mode) : m_target_mode(target_mode)
 {
 	std::string s_compute = g_compute;
 	
 	std::string defines = "";
-	if (to_probe)
+	if (target_mode == 0)
+	{
+		defines += "#define TO_CAMERA 1\n";
+	}
+	else
 	{
 		defines += "#define TO_CAMERA 0\n";
+	}
+
+	if (target_mode == 1)
+	{
 		defines += "#define TO_PROBES 1\n";
 	}
 	else
 	{
-		defines += "#define TO_CAMERA 1\n";
 		defines += "#define TO_PROBES 0\n";
+	}
+
+	if (target_mode == 2)
+	{
+		defines += "#define TO_LIGHTMAP 1\n";
+	}
+	else
+	{
+		defines += "#define TO_LIGHTMAP 0\n";
 	}
 
 	replace(s_compute, "#DEFINES#", defines.c_str());
@@ -445,20 +547,40 @@ void BVHDepthOnly::render(const RenderParams& params)
 
 	glBindImageTexture(0, target->m_tex_depth->tex_id, 0, GL_TRUE, 0, GL_READ_WRITE, GL_R32F);
 
-	if (!m_to_probe)
+	if (m_target_mode == 0)
 	{
 		glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.constant_camera->m_id);		
 
 		glm::ivec2 blocks = { (width + 31) / 32, (height + 1) / 2 };
 		glDispatchCompute(blocks.x, blocks.y, 1);
 	}
-	else
+	else if (m_target_mode == 1)
 	{
 		glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.prl->m_constant.m_id);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, params.prl->buf_positions->m_id);
 
 		glm::ivec2 blocks = { (width + 63) / 64, height };
 		glDispatchCompute(blocks.x, blocks.y, 1);
+	}
+	else if (m_target_mode == 2)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.lmrl->m_constant.m_id);
+
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, params.lmrl->source->m_tex_position->tex_id);
+		glUniform1i(3, 3);
+
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_2D, params.lmrl->source->m_tex_normal->tex_id);
+		glUniform1i(4, 4);
+
+		glActiveTexture(GL_TEXTURE5);
+		glBindTexture(GL_TEXTURE_BUFFER, params.lmrl->source->valid_list->tex_id);
+		glUniform1i(5, 5);
+
+		glm::ivec2 blocks = { (width + 63) / 64, height };
+		glDispatchCompute(blocks.x, blocks.y, 1);
+
 	}
 
 	glUseProgram(0);

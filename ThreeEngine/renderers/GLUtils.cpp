@@ -364,3 +364,17 @@ const GLDynBuffer& GLDynBuffer::operator = (const GLDynBuffer& in)
 	glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
 	return *this;
 }
+
+TextureBuffer::TextureBuffer(size_t size, unsigned internalFormat)
+	: GLBuffer(size, GL_TEXTURE_BUFFER)
+{
+	glGenTextures(1, &tex_id);
+	glBindTexture(GL_TEXTURE_BUFFER, tex_id);
+	glTexBuffer(GL_TEXTURE_BUFFER, internalFormat, m_id);
+}
+
+TextureBuffer::~TextureBuffer()
+{
+	glDeleteTextures(1, &tex_id);
+}
+

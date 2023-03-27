@@ -17,6 +17,7 @@
 #include "lights/DirectionalLight.h"
 #include "renderers/GLRenderer.h"
 #include "renderers/GLRenderTarget.h"
+#include "renderers/LightmapRenderTarget.h"
 
 
 class Test
@@ -25,10 +26,18 @@ public:
 	Scene scene;
 	PerspectiveCamera camera;
 
+	//CubeBackground background;
 	ColorBackground background;
+	//HemisphereBackground background;
 
 	DataModel cpu_model;
 	GLTFModel model;	
+
+	int idx_texel = 0;
+	int iter = 0;
+	int iterations = 6;
+
+	double check_time;
 
 	GLRenderer renderer;
 	GLRenderTarget render_target;
@@ -54,20 +63,29 @@ Test::Test(int width, int height)
 	camera.position = { 3.0f, 1.5f, -3.0f };
 	camera.rotateY(3.14159f);
 
+	/*std::string path = "assets/textures";
+	std::string paths[6];
+	for (int i = 0; i < 6; i++)
+	{
+		char rel_path[64];
+		sprintf(rel_path, "%s/sky_cube_face%d.jpg", path.c_str(), i);
+		paths[i] = rel_path;
+	}
+
+	background.cubemap.load_files(paths[0].c_str(), paths[1].c_str(), paths[2].c_str(), paths[3].c_str(), paths[4].c_str(), paths[5].c_str());*/
+
 	background.color = glm::vec3(0.8f, 0.8f, 0.8f);
 	scene.background = &background;
 
 	cpu_model.LoadGlb("assets/models/fireplace_room.glb");
+	cpu_model.CreateModel(&model);
 	cpu_model.CreateAtlas();
 	cpu_model.CreateModel(&model);
-	
-	model.lightmap = std::unique_ptr<Lightmap>(new Lightmap(cpu_model.lightmap_width, cpu_model.lightmap_height, cpu_model.lightmap_texels_per_unit));
-	{
-		glm::vec4 col = { 0.8f, 0.8f, 0.8f, 1.0f };
-		glClearTexImage(model.lightmap->lightmap->tex_id, 0, GL_RGBA, GL_FLOAT, &col);
-	}
-
 	scene.add(&model);
+
+	model.init_lightmap(&renderer, cpu_model.lightmap_width, cpu_model.lightmap_height, cpu_model.lightmap_texels_per_unit);	
+
+	check_time = time_sec();
 }
 
 
@@ -112,6 +130,30 @@ void Test::Draw(int width, int height)
 	}
 
 	renderer.render(scene, camera, render_target);
+
+	double start = time_sec();
+
+	while (iter < iterations)
+	{
+		double t = time_sec();
+		if (t - check_time > 0.5)
+		{
+			printf("iter: %d, texel: %d\n", iter, idx_texel);
+			check_time = t;
+		}
+		if (t - start > 0.010) break;
+		Lightmap& lightmap = *model.lightmap;
+		LightmapRenderTarget& source = *model.lightmap_target;
+		int num_texels = source.count_valid;
+		int count = renderer.updateLightmap(scene, lightmap, source, idx_texel, 8 << iter);
+		idx_texel += count;
+		if (idx_texel >= num_texels)
+		{
+			renderer.filterLightmap(lightmap, source);
+			idx_texel = 0;
+			iter++;
+		}
+	}
 }
 
 

@@ -6,6 +6,7 @@
 
 class BVHRenderTarget;
 class ProbeRayList;
+class LightmapRayList;
 
 class CompFogRayMarchingEnv
 {
@@ -16,7 +17,7 @@ public:
 		{
 			memset(this, 0, sizeof(Options));
 		}
-		bool to_probe = false;
+		int target_mode = 0;
 		bool has_probe_grid = false;
 		bool probe_reference_recorded = false;
 		bool has_lod_probe_grid = false;
@@ -31,6 +32,7 @@ public:
 		const BVHRenderTarget* target;
 		const GLDynBuffer* constant_camera;
 		const ProbeRayList* prl;
+		const LightmapRayList* lmrl;
 	};
 
 	void render(const RenderParams& params);

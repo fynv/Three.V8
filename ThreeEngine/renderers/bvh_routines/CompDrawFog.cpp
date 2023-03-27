@@ -2,7 +2,6 @@
 #include <GL/glew.h>
 #include "CompDrawFog.h"
 #include "renderers/BVHRenderTarget.h"
-#include "lights/ProbeRayList.h"
 
 static std::string g_compute =
 R"(#version 430
@@ -98,7 +97,14 @@ void main()
 	g_id_io = ivec2(ray_id, probe_id);
 	render();
 }
-
+#elif TO_LIGHTMAP
+void main()
+{
+	ivec2 local_id = ivec3(gl_LocalInvocationID).xy;	
+	ivec2 group_id = ivec3(gl_WorkGroupID).xy;
+	g_id_io = ivec2(local_id.x + local_id.y * 8 + group_id.x * 64, group_id.y);
+	render();
+}
 #endif
 
 )";
@@ -122,15 +128,32 @@ CompDrawFog::CompDrawFog(const Options& options) : m_options(options)
 	std::string s_compute = g_compute;
 
 	std::string defines = "";
-	if (options.to_probe)
+
+	if (options.target_mode == 0)
+	{
+		defines += "#define TO_CAMERA 1\n";
+	}
+	else
 	{
 		defines += "#define TO_CAMERA 0\n";
+	}
+
+	if (options.target_mode == 1)
+	{
 		defines += "#define TO_PROBES 1\n";
 	}
 	else
 	{
-		defines += "#define TO_CAMERA 1\n";
 		defines += "#define TO_PROBES 0\n";
+	}
+
+	if (options.target_mode == 2)
+	{
+		defines += "#define TO_LIGHTMAP 1\n";
+	}
+	else
+	{
+		defines += "#define TO_LIGHTMAP 0\n";
 	}
 
 	if (options.has_environment_map)
@@ -198,12 +221,17 @@ void CompDrawFog::render(const RenderParams& params)
 
 	glBindImageTexture(0, params.target->m_tex_video->tex_id, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
 
-	if (!m_options.to_probe)
+	if (m_options.target_mode == 0)
 	{
 		glm::ivec2 blocks = { (width + 7) / 8, (height + 7) / 8 };
 		glDispatchCompute(blocks.x, blocks.y, 1);
 	}
-	else
+	else if (m_options.target_mode == 1)
+	{
+		glm::ivec2 blocks = { (width + 63) / 64, height };
+		glDispatchCompute(blocks.x, blocks.y, 1);
+	}
+	else if (m_options.target_mode == 2)
 	{
 		glm::ivec2 blocks = { (width + 63) / 64, height };
 		glDispatchCompute(blocks.x, blocks.y, 1);

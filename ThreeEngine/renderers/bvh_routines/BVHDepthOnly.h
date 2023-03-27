@@ -9,11 +9,12 @@
 class Primitive;
 class BVHRenderTarget;
 class ProbeRayList;
+class LightmapRayList;
 
 class BVHDepthOnly
 {
 public:
-	BVHDepthOnly(bool to_probe = false);
+	BVHDepthOnly(int target_mode = 0);
 
 	struct RenderParams
 	{
@@ -22,12 +23,13 @@ public:
 		const BVHRenderTarget* target;
 		const GLDynBuffer* constant_camera;
 		const ProbeRayList* prl;
+		const LightmapRayList* lmrl;
 	};
 
 	void render(const RenderParams& params);
 
 private:
-	bool m_to_probe;	
+	int m_target_mode;
 	std::unique_ptr<GLProgram> m_prog;
 
 };

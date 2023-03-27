@@ -10,7 +10,7 @@
 class Primitive;
 class BVHRenderTarget;
 class ProbeRayList;
-
+class LightmapRayList;
 class BVHRoutine
 {
 public:
@@ -20,7 +20,7 @@ public:
 		{
 			memset(this, 0, sizeof(Options));
 		}
-		bool to_probe = false;
+		int target_mode = 0;
 		AlphaMode alpha_mode = AlphaMode::Opaque;		
 		bool has_lightmap = false;
 		bool specular_glossiness = false;
@@ -58,6 +58,7 @@ public:
 		const BVHRenderTarget* target;
 		const GLDynBuffer* constant_camera;
 		const ProbeRayList* prl;
+		const LightmapRayList* lmrl;
 	};
 
 	void render(const RenderParams& params);
@@ -99,6 +100,10 @@ private:
 		int binding_camera;		
 		int binding_prl;
 		int binding_prl_pos;
+		int binding_lightmap_ray_list;
+		int location_tex_lightmap_pos;
+		int location_tex_lightmap_norm;
+		int location_tex_lightmap_valid_list;
 
 	};
 

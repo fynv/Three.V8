@@ -5,6 +5,17 @@
 #include "GLTFModel.h"
 #include "utils/Utils.h"
 #include "renderers/bvh_routines/PrimitiveBatch.h"
+#include "renderers/LightmapRenderTarget.h"
+#include "renderers/GLRenderer.h"
+
+GLTFModel::GLTFModel()
+{
+}
+
+GLTFModel::~GLTFModel()
+{
+
+}
 
 void GLTFModel::calculate_bounding_box()
 {
@@ -359,6 +370,42 @@ void GLTFModel::batch_primitives()
 		idx_prim++;
 	}
 
+}
+
+void GLTFModel::init_lightmap(GLRenderer* renderer, int width, int height, int texels_per_unit)
+{
+	lightmap = std::unique_ptr<Lightmap>(new Lightmap(width, height, texels_per_unit));
+
+	lightmap_target = std::unique_ptr<LightmapRenderTarget>(new LightmapRenderTarget);
+	lightmap_target->update_framebuffer(width, height);
+	renderer->rasterize_atlas(this);
+
+	{
+		glm::vec4 zero = { 0.0f, 0.0f, 0.0f, 0.0f };
+		glClearTexImage(lightmap->lightmap->tex_id, 0, GL_RGBA, GL_FLOAT, &zero);
+	}
+
+	std::vector<float> alpha_mask(lightmap->width * lightmap->height);
+
+	glBindTexture(GL_TEXTURE_2D, lightmap_target->m_tex_position->tex_id);
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_ALPHA, GL_FLOAT, alpha_mask.data());
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	std::vector<glm::u16vec2> lst_valid;
+	for (int i = 0; i < lightmap->width * lightmap->height; i++)
+	{		
+		float f = alpha_mask[i];
+		if (f > 0.5f)
+		{
+			uint16_t x = (uint16_t)(i % lightmap->width);
+			uint16_t y = (uint16_t)(i / lightmap->width);
+			lst_valid.push_back({ x,y });	
+		}	
+	}
+
+	lightmap_target->count_valid = (int)lst_valid.size();		
+	lightmap_target->valid_list = std::unique_ptr<TextureBuffer>(new TextureBuffer(sizeof(glm::u16vec2) * lightmap_target->count_valid, GL_RG16UI));
+	lightmap_target->valid_list->upload(lst_valid.data());
 }
 
 

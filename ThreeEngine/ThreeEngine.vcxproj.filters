@@ -459,6 +459,21 @@
     <ClCompile Include="renderers\routines\CopyDepth.cpp">
       <Filter>Source Files\renderers\routines</Filter>
     </ClCompile>
+    <ClCompile Include="renderers\LightmapRenderTarget.cpp">
+      <Filter>Source Files\renderers</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\routines\RasterizeAtlas.cpp">
+      <Filter>Source Files\renderers\routines</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\LightmapRayList.cpp">
+      <Filter>Source Files\renderers</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\bvh_routines\LightmapFilter.cpp">
+      <Filter>Source Files\renderers\bvh_routines</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\bvh_routines\LightmapUpdate.cpp">
+      <Filter>Source Files\renderers\bvh_routines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -835,6 +850,21 @@
     </ClInclude>
     <ClInclude Include="renderers\routines\CopyDepth.h">
       <Filter>Header Files\renderers\routines</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\LightmapRenderTarget.h">
+      <Filter>Header Files\renderers</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\routines\RasterizeAtlas.h">
+      <Filter>Header Files\renderers\routines</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\LightmapRayList.h">
+      <Filter>Header Files\renderers</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\bvh_routines\LightmapFilter.h">
+      <Filter>Header Files\renderers\bvh_routines</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\bvh_routines\LightmapUpdate.h">
+      <Filter>Header Files\renderers\bvh_routines</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

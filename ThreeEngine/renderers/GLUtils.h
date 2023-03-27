@@ -114,3 +114,11 @@ private:
 	GLDynBuffer(const GLDynBuffer&);
 };
 
+class TextureBuffer : public GLBuffer
+{
+public:
+	unsigned tex_id;
+	TextureBuffer(size_t size, unsigned internalFormat);
+	~TextureBuffer();
+
+};

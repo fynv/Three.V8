@@ -12,6 +12,8 @@
 #include "renderers/bvh_routines/CompFogRayMarchingEnv.h"
 #include "renderers/bvh_routines/VisibilityUpdate.h"
 #include "renderers/bvh_routines/IrradianceUpdate.h"
+#include "renderers/bvh_routines/LightmapUpdate.h"
+#include "renderers/bvh_routines/LightmapFilter.h"
 
 class Scene;
 class Fog;
@@ -25,6 +27,10 @@ class DirectionalLightShadow;
 class ProbeRayList;
 class ProbeRenderTarget;
 
+class Lightmap;
+class LightmapRenderTarget;
+class LightmapRayList;
+
 class BVHRenderer
 {
 public:
@@ -37,6 +43,10 @@ public:
 	void render_probe(Scene& scene, ProbeRayList& prl, BVHRenderTarget& target);
 	void update_probe_irradiance(const BVHRenderTarget& source, const ProbeRayList& prl, const ProbeGrid& probe_grid, int id_start_probe, float mix_rate = 1.0f, ProbeRenderTarget* target = nullptr);
 	void update_probe_irradiance(const BVHRenderTarget& source, const ProbeRayList& prl, const LODProbeGrid& probe_grid, int id_start_probe, float mix_rate = 1.0f, ProbeRenderTarget* target = nullptr);
+
+	void render_lightmap(Scene& scene, LightmapRayList& lmrl, BVHRenderTarget& target);
+	void update_lightmap(const BVHRenderTarget& source, const LightmapRayList& lmrl, const Lightmap& lightmap, int id_start_texel, float mix_rate = 1.0f);
+	void filter_lightmap(const LightmapRenderTarget& atlas, const Lightmap& lightmap);
 
 private:
 	std::unique_ptr<CompWeightedOIT> oit_resolver;
@@ -100,5 +110,33 @@ private:
 
 	std::unique_ptr<VisibilityUpdate> VisibilityUpdaters[2];
 	std::unique_ptr<IrradianceUpdate> IrradianceUpdaters[4];
+
+	///////////// Render to Lightmap ////////////////
+
+	std::unique_ptr<CompSkyBox> LightmapSkyBoxDraw;
+	std::unique_ptr<CompHemisphere> LightmapHemisphereDraw;
+
+	std::unique_ptr<BVHDepthOnly> LightmapDepthRenderer;
+	void render_lightmap_depth_primitive(const BVHDepthOnly::RenderParams& params);
+	void render_lightmap_depth_model(LightmapRayList& lmrl, SimpleModel* model, BVHRenderTarget& target);
+	void render_lightmap_depth_model(LightmapRayList& lmrl, GLTFModel* model, BVHRenderTarget& target);
+
+	std::unordered_map<uint64_t, std::unique_ptr<BVHRoutine>> lightmap_routine_map;
+	BVHRoutine* get_lightmap_routine(const BVHRoutine::Options& options);
+
+	void render_lightmap_primitive(const BVHRoutine::RenderParams& params, Pass pass);
+	void render_lightmap_model(LightmapRayList& lmrl, const Lights& lights, const Fog* fog, SimpleModel* model, Pass pass, BVHRenderTarget& target);
+	void render_lightmap_model(LightmapRayList& lmrl, const Lights& lights, const Fog* fog, GLTFModel* model, Pass pass, BVHRenderTarget& target);
+
+	std::unordered_map<uint64_t, std::unique_ptr<CompDrawFog>> lightmap_fog_draw_map;
+	std::unique_ptr<CompFogRayMarching> lightmap_fog_ray_march;
+	std::unordered_map<uint64_t, std::unique_ptr<CompFogRayMarchingEnv>> lightmap_fog_ray_march_map;
+
+	void _render_lightmap_fog(LightmapRayList& lmrl, const Lights& lights, const Fog& fog, BVHRenderTarget& target);
+	void _render_lightmap_fog_rm(LightmapRayList& lmrl, DirectionalLight& light, const Fog& fog, BVHRenderTarget& target);
+	void _render_lightmap_fog_rm_env(LightmapRayList& lmrl, const Lights& lights, const Fog& fog, BVHRenderTarget& target);
+
+	std::unique_ptr<LightmapUpdate> LightmapUpdater;
+	std::unique_ptr<LightmapFilter> LightmapFiltering;
 };
 

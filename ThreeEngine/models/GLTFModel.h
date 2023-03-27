@@ -10,10 +10,15 @@
 #include "models/ModelComponents.h"
 #include "models/Animation.h"
 
+class LightmapRenderTarget;
+class GLRenderer;
 class Mesh;
 class GLTFModel : public Object3D
 {
 public:
+	GLTFModel();
+	~GLTFModel();
+
 	glm::vec3 m_min_pos = { FLT_MAX, FLT_MAX, FLT_MAX };
 	glm::vec3 m_max_pos = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
 	void calculate_bounding_box();
@@ -43,6 +48,8 @@ public:
 	std::vector<std::vector<int>> batch_map;
 
 	std::unique_ptr<Lightmap> lightmap;
+	std::unique_ptr<LightmapRenderTarget> lightmap_target;
+	void init_lightmap(GLRenderer* renderer, int width, int height, int texels_per_unit = 128);
 
 	// animations
 	void setAnimationFrame(const AnimationFrame& frame);

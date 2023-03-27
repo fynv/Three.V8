@@ -28,29 +28,32 @@ inline glm::ivec3 get_indices(void* indices, int type_indices, int face_id)
 	}
 }
 
-IndexTextureBuffer::IndexTextureBuffer(size_t size, int type_indices)
-	: type_indices(type_indices)
-	, GLBuffer(size, GL_ELEMENT_ARRAY_BUFFER)
+inline unsigned internalFormat(int type_indices)
 {
-	glGenTextures(1, &tex_id);
-	glBindTexture(GL_TEXTURE_BUFFER, tex_id);	
 	if (type_indices == 1)
 	{
-		glTexBuffer(GL_TEXTURE_BUFFER, GL_R8UI, m_id);
+		return GL_R8UI;
 	}
 	else if (type_indices == 2)
 	{
-		glTexBuffer(GL_TEXTURE_BUFFER, GL_R16UI, m_id);
+		return GL_R16UI;
 	}
 	else if (type_indices == 4)
 	{
-		glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, m_id);
-	}	
+		return GL_R32UI;
+	}
+
+}
+
+IndexTextureBuffer::IndexTextureBuffer(size_t size, int type_indices)
+	: TextureBuffer(size, internalFormat(type_indices))
+{
+
 }
 
 IndexTextureBuffer::~IndexTextureBuffer()
 {
-	glDeleteTextures(1, &tex_id);
+
 }
 
 void Primitive::compute_wires()

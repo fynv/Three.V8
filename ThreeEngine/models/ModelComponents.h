@@ -9,14 +9,13 @@
 
 typedef std::unique_ptr<GLBuffer> Attribute;
 
-class IndexTextureBuffer : public GLBuffer
+class IndexTextureBuffer : public TextureBuffer
 {
 public:
-	int type_indices;
-	unsigned tex_id;
 	IndexTextureBuffer(size_t size, int type_indices);
 	~IndexTextureBuffer();
 };
+
 
 typedef std::unique_ptr<IndexTextureBuffer> Index;
 
