@@ -88,6 +88,21 @@ layout (std430, binding = 12) buffer BitangentOut
 
 #endif
 
+
+#if HAS_UV1
+
+layout (std430, binding = 13) buffer UV1In
+{
+	vec2 uv1_in[];
+};
+
+layout (std430, binding = 14) buffer UV1Out
+{
+	vec2 uv1_out[];
+};
+
+#endif
+
 layout (location = 0) uniform int num_verts;
 layout (location = 1) uniform int offset;
 layout (local_size_x = 128) in;
@@ -111,6 +126,10 @@ void main()
 #if HAS_TANGENT
 	tangent_out[offset + idx] = uNormalMat * tangent_in[idx];
 	bitangent_out[offset + idx] = uNormalMat * bitangent_in[idx];
+#endif
+
+#if HAS_UV1
+	uv1_out[offset + idx] = uv1_in[idx];
 #endif
 }
 )";
@@ -163,6 +182,15 @@ PrimitiveBatch::PrimitiveBatch(const Options& options) : m_options(options)
 		defines += "#define HAS_TANGENT 0\n";
 	}
 
+	if (options.has_uv1)
+	{
+		defines += "#define HAS_UV1 1\n";
+	}
+	else
+	{
+		defines += "#define HAS_UV1 0\n";
+	}
+
 	replace(s_compute, "#DEFINES#", defines.c_str());
 
 	GLShader comp_shader(GL_COMPUTE_SHADER, s_compute.c_str());
@@ -202,6 +230,12 @@ void PrimitiveBatch::update(const Params& params)
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, geo_out.tangent_buf->m_id);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, geo_in.bitangent_buf->m_id);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 12, geo_out.bitangent_buf->m_id);
+	}
+
+	if (m_options.has_uv1 && params.primitive_in->lightmap_uv_buf != nullptr)
+	{
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 13, params.primitive_in->lightmap_uv_buf->m_id);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 14, params.primitive_out->lightmap_uv_buf->m_id);
 	}
 
 	glUniform1i(0, params.primitive_in->num_pos);

@@ -42,6 +42,8 @@ public:
 
 	std::vector<std::vector<int>> batch_map;
 
+	std::unique_ptr<Lightmap> lightmap;
+
 	// animations
 	void setAnimationFrame(const AnimationFrame& frame);
 

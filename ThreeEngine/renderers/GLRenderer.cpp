@@ -261,18 +261,22 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 	options.has_glossiness_map = material->tex_idx_glossinessMap >= 0;
 	options.num_directional_lights = lights->num_directional_lights;
 	options.num_directional_shadows = lights->num_directional_shadows;
-	options.has_reflection_map = lights->reflection_map != nullptr;
-	options.has_environment_map = lights->environment_map != nullptr;
-	options.has_probe_grid = lights->probe_grid != nullptr;
-	if (options.has_probe_grid)
+	options.has_lightmap = params.tex_lightmap != nullptr;
+	options.has_reflection_map = lights->reflection_map != nullptr;	
+	if (!options.has_lightmap)
 	{
-		options.probe_reference_recorded = lights->probe_grid->record_references;
+		options.has_environment_map = lights->environment_map != nullptr;
+		options.has_probe_grid = lights->probe_grid != nullptr;
+		if (options.has_probe_grid)
+		{
+			options.probe_reference_recorded = lights->probe_grid->record_references;
+		}
+		options.has_lod_probe_grid = lights->lod_probe_grid != nullptr;
+		options.has_ambient_light = lights->ambient_light != nullptr;
+		options.has_hemisphere_light = lights->hemisphere_light != nullptr;
+		options.use_ssao = m_use_ssao;
 	}
-	options.has_lod_probe_grid = lights->lod_probe_grid != nullptr;
-	options.has_ambient_light = lights->ambient_light != nullptr;
-	options.has_hemisphere_light = lights->hemisphere_light != nullptr;
-	options.has_fog = params.constant_fog != nullptr;
-	options.use_ssao = m_use_ssao;
+	options.has_fog = params.constant_fog != nullptr;	
 	options.tone_shading = material->tone_shading;
 	StandardRoutine* routine = get_routine(options);
 	routine->render(params);	
@@ -297,18 +301,22 @@ void GLRenderer::render_primitives(const StandardRoutine::RenderParams& params, 
 	options.has_glossiness_map = material->tex_idx_glossinessMap >= 0;
 	options.num_directional_lights = lights->num_directional_lights;
 	options.num_directional_shadows = lights->num_directional_shadows;
+	options.has_lightmap = params.tex_lightmap != nullptr;
 	options.has_reflection_map = lights->reflection_map != nullptr;
-	options.has_environment_map = lights->environment_map != nullptr;
-	options.has_probe_grid = lights->probe_grid != nullptr;
-	if (options.has_probe_grid)
+	if (!options.has_lightmap)
 	{
-		options.probe_reference_recorded = lights->probe_grid->record_references;
+		options.has_environment_map = lights->environment_map != nullptr;
+		options.has_probe_grid = lights->probe_grid != nullptr;
+		if (options.has_probe_grid)
+		{
+			options.probe_reference_recorded = lights->probe_grid->record_references;
+		}
+		options.has_lod_probe_grid = lights->lod_probe_grid != nullptr;
+		options.has_ambient_light = lights->ambient_light != nullptr;
+		options.has_hemisphere_light = lights->hemisphere_light != nullptr;
+		options.use_ssao = m_use_ssao;
 	}
-	options.has_lod_probe_grid = lights->lod_probe_grid != nullptr;
-	options.has_ambient_light = lights->ambient_light != nullptr;
-	options.has_hemisphere_light = lights->hemisphere_light != nullptr;
-	options.has_fog = params.constant_fog != nullptr;
-	options.use_ssao = m_use_ssao;
+	options.has_fog = params.constant_fog != nullptr;	
 	options.tone_shading = material->tone_shading;
 	StandardRoutine* routine = get_routine(options);
 	routine->render_batched(params, offset_lst, count_lst);
@@ -346,6 +354,7 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 	params.constant_model = &model->m_constant;
 	params.primitive = &model->geometry;
 	params.lights = &lights;
+	params.tex_lightmap = nullptr;
 
 	if (fog != nullptr)
 	{
@@ -442,6 +451,11 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 				params.constant_model = mesh.model_constant.get();
 				params.primitive = &primitive;
 				params.lights = &lights;
+				params.tex_lightmap = nullptr;
+				if (model->lightmap != nullptr)
+				{
+					params.tex_lightmap = model->lightmap->lightmap.get();
+				}
 
 				if (fog != nullptr)
 				{
@@ -504,6 +518,11 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 				params.constant_model = mesh.model_constant.get();
 				params.primitive = &primitive;
 				params.lights = &lights;
+				params.tex_lightmap = nullptr;
+				if (model->lightmap != nullptr)
+				{
+					params.tex_lightmap = model->lightmap->lightmap.get();
+				}
 
 				if (fog != nullptr)
 				{
@@ -830,15 +849,19 @@ void GLRenderer::render_primitive_simple(const SimpleRoutine::RenderParams& para
 	options.has_glossiness_map = material->tex_idx_glossinessMap >= 0;
 	options.num_directional_lights = lights->num_directional_lights;
 	options.num_directional_shadows = lights->num_directional_shadows;	
-	options.has_environment_map = lights->environment_map != nullptr;
-	options.has_probe_grid = lights->probe_grid != nullptr;
-	if (options.has_probe_grid)
+	options.has_lightmap = params.tex_lightmap != nullptr;
+	if (!options.has_lightmap)
 	{
-		options.probe_reference_recorded = lights->probe_grid->record_references;
+		options.has_environment_map = lights->environment_map != nullptr;
+		options.has_probe_grid = lights->probe_grid != nullptr;
+		if (options.has_probe_grid)
+		{
+			options.probe_reference_recorded = lights->probe_grid->record_references;
+		}
+		options.has_lod_probe_grid = lights->lod_probe_grid != nullptr;
+		options.has_ambient_light = lights->ambient_light != nullptr;
+		options.has_hemisphere_light = lights->hemisphere_light != nullptr;
 	}
-	options.has_lod_probe_grid = lights->lod_probe_grid != nullptr;
-	options.has_ambient_light = lights->ambient_light != nullptr;
-	options.has_hemisphere_light = lights->hemisphere_light != nullptr;
 	options.has_fog = params.constant_fog != nullptr;		
 	SimpleRoutine* routine = get_simple_routine(options);
 	routine->render(params);
@@ -862,15 +885,19 @@ void GLRenderer::render_primitives_simple(const SimpleRoutine::RenderParams& par
 	options.has_glossiness_map = material->tex_idx_glossinessMap >= 0;
 	options.num_directional_lights = lights->num_directional_lights;
 	options.num_directional_shadows = lights->num_directional_shadows;
-	options.has_environment_map = lights->environment_map != nullptr;
-	options.has_probe_grid = lights->probe_grid != nullptr;
-	if (options.has_probe_grid)
+	options.has_lightmap = params.tex_lightmap != nullptr;
+	if (!options.has_lightmap)
 	{
-		options.probe_reference_recorded = lights->probe_grid->record_references;
+		options.has_environment_map = lights->environment_map != nullptr;
+		options.has_probe_grid = lights->probe_grid != nullptr;
+		if (options.has_probe_grid)
+		{
+			options.probe_reference_recorded = lights->probe_grid->record_references;
+		}
+		options.has_lod_probe_grid = lights->lod_probe_grid != nullptr;
+		options.has_ambient_light = lights->ambient_light != nullptr;
+		options.has_hemisphere_light = lights->hemisphere_light != nullptr;
 	}
-	options.has_lod_probe_grid = lights->lod_probe_grid != nullptr;
-	options.has_ambient_light = lights->ambient_light != nullptr;
-	options.has_hemisphere_light = lights->hemisphere_light != nullptr;
 	options.has_fog = params.constant_fog != nullptr;
 	SimpleRoutine* routine = get_simple_routine(options);
 	routine->render_batched(params, offset_lst, count_lst);
@@ -902,6 +929,7 @@ void GLRenderer::render_model_simple(Camera* p_camera, const Lights& lights, con
 	params.constant_model = &model->m_constant;
 	params.primitive = &model->geometry;
 	params.lights = &lights;
+	params.tex_lightmap = nullptr;
 
 	if (fog != nullptr)
 	{
@@ -989,6 +1017,11 @@ void GLRenderer::render_model_simple(Camera* p_camera, const Lights& lights, con
 				params.constant_model = mesh.model_constant.get();
 				params.primitive = &primitive;
 				params.lights = &lights;
+				params.tex_lightmap = nullptr;
+				if (model->lightmap != nullptr)
+				{
+					params.tex_lightmap = model->lightmap->lightmap.get();
+				}
 
 				if (fog != nullptr)
 				{
@@ -1039,6 +1072,11 @@ void GLRenderer::render_model_simple(Camera* p_camera, const Lights& lights, con
 				params.constant_model = mesh.model_constant.get();
 				params.primitive = &primitive;
 				params.lights = &lights;
+				params.tex_lightmap = nullptr;
+				if (model->lightmap != nullptr)
+				{
+					params.tex_lightmap = model->lightmap->lightmap.get();
+				}
 
 				if (fog != nullptr)
 				{
@@ -2844,7 +2882,6 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 	
 	}
 	_render(scene, camera, target, true);
-	
 }
 
 void GLRenderer::render_picking(Scene& scene, Camera& camera, GLPickingTarget& target)
@@ -3152,4 +3189,3 @@ void GLRenderer::sceneToVolume(Scene& scene, unsigned tex_id_volume, const glm::
 		scene_to_volume_model(model, params);
 	}
 }
-

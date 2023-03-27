@@ -109,6 +109,20 @@ void Primitive::compute_wires()
 	wire_ind_buf->upload(wire_indices.data());
 }
 
+
+Lightmap::Lightmap(int width, int height, int texels_per_unit)
+	:width(width), height(height), texels_per_unit(texels_per_unit)
+{
+	lightmap = std::unique_ptr<GLTexture2D>(new GLTexture2D);
+	glBindTexture(GL_TEXTURE_2D, lightmap->tex_id);
+	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA16F, width, height);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
 struct ModelConst
 {
 	glm::mat4 ModelMat;

@@ -39,6 +39,11 @@ layout (location = LOCATION_ATTRIB_UV) in vec2 aUV;
 layout (location = LOCATION_VARYING_UV) out vec2 vUV;
 #endif
 
+#if HAS_LIGHTMAP
+layout (location = LOCATION_ATTRIB_ATLAS_UV) in vec2 aAtlasUV;
+layout (location = LOCATION_VARYING_ATLAS_UV) out vec2 vAtlasUV;
+#endif
+
 #if HAS_NORMAL_MAP
 layout (location = LOCATION_ATTRIB_TANGENT) in vec3 aTangent;
 layout (location = LOCATION_VARYING_TANGENT) out vec3 vTangent;
@@ -63,6 +68,10 @@ void main()
 
 #if HAS_UV
 	vUV = aUV;
+#endif
+
+#if HAS_LIGHTMAP
+	vAtlasUV = aAtlasUV;
 #endif
 
 #if HAS_NORMAL_MAP
@@ -100,6 +109,10 @@ layout (location = LOCATION_VARYING_COLOR) in vec4 vColor;
 
 #if HAS_UV
 layout (location = LOCATION_VARYING_UV) in vec2 vUV;
+#endif
+
+#if HAS_LIGHTMAP
+layout (location = LOCATION_VARYING_ATLAS_UV) in vec2 vAtlasUV;
 #endif
 
 #if HAS_COLOR_TEX
@@ -501,6 +514,10 @@ float computePCSSShadowCoef(in DirectionalShadow shadow, sampler2DShadow shadowT
 
 static std::string g_frag_part2 =
 R"(
+#if HAS_LIGHTMAP
+layout (location = LOCATION_TEX_LIGHTMAP) uniform sampler2D uTexLightmap;
+#endif 
+
 vec3 shGetIrradianceAt( in vec3 normal, in vec4 shCoefficients[ 9 ] ) 
 {
 	// normal is assumed to have unit length
@@ -524,7 +541,6 @@ vec3 shGetIrradianceAt( in vec3 normal, in vec4 shCoefficients[ 9 ] )
 
 	return result;
 }
-
 #if HAS_REFLECTION_MAP
 
 layout (location = LOCATION_TEX_REFLECTION_MAP) uniform samplerCube uReflectionMap;
@@ -1152,8 +1168,21 @@ void main()
 	}
 #endif
 
+#if HAS_LIGHTMAP	
+	vec4 lm = texture(uTexLightmap, vAtlasUV);
+	vec3 light_color = lm.w>0.0 ? lm.xyz/lm.w : vec3(0.0);
+	diffuse += material.diffuseColor * light_color;
 
-#if HAS_INDIRECT_LIGHT
+#if HAS_REFLECTION_MAP
+	vec3 reflectVec = reflect(-viewDir, norm);
+	reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );		
+	vec3 radiance = getRadiance(reflectVec, material.roughness);
+	specular +=  material.specularColor * radiance;
+#else
+	specular += material.specularColor * light_color;
+#endif
+	
+#elif HAS_INDIRECT_LIGHT
 	{
 		vec3 reflectVec = reflect(-viewDir, norm);
 		reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );
@@ -1263,6 +1292,15 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	s_frag = g_frag_part0 + g_frag_part1 + g_frag_part2 + g_frag_part3;
 
 	std::string defines = "";
+
+	if (options.has_lightmap)
+	{
+		defines += "#define HAS_LIGHTMAP 1\n";
+	}
+	else
+	{
+		defines += "#define HAS_LIGHTMAP 0\n";
+	}
 
 	{
 		bindings.location_attrib_pos = 0;
@@ -1423,6 +1461,27 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 		bindings.location_attrib_uv = bindings.location_attrib_color;
 		bindings.location_varying_uv = bindings.location_varying_color;
 	}
+
+	if (options.has_lightmap)
+	{
+		bindings.location_attrib_atlas_uv = bindings.location_attrib_uv + 1;
+		bindings.location_varying_atlas_uv = bindings.location_varying_uv + 1;
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_ATTRIB_ATLAS_UV %d\n", bindings.location_attrib_atlas_uv);
+			defines += line;
+		}
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_VARYING_ATLAS_UV %d\n", bindings.location_varying_atlas_uv);
+			defines += line;
+		}
+	}
+	else
+	{
+		bindings.location_attrib_atlas_uv = bindings.location_attrib_uv;
+		bindings.location_varying_atlas_uv = bindings.location_varying_uv;
+	}
 	
 	if (options.has_color_texture)
 	{
@@ -1478,8 +1537,8 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	{
 		defines += "#define HAS_NORMAL_MAP 1\n";
 		bindings.location_tex_normal = bindings.location_tex_roughness + 1;
-		bindings.location_attrib_tangent = bindings.location_attrib_uv + 1;
-		bindings.location_varying_tangent = bindings.location_varying_uv + 1;
+		bindings.location_attrib_tangent = bindings.location_attrib_atlas_uv + 1;
+		bindings.location_varying_tangent = bindings.location_varying_atlas_uv + 1;
 		bindings.location_attrib_bitangent = bindings.location_attrib_tangent + 1;
 		bindings.location_varying_bitangent = bindings.location_varying_tangent + 1;
 
@@ -1514,8 +1573,8 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	{
 		defines += "#define HAS_NORMAL_MAP 0\n";
 		bindings.location_tex_normal = bindings.location_tex_roughness;
-		bindings.location_attrib_tangent = bindings.location_attrib_uv;
-		bindings.location_varying_tangent = bindings.location_varying_uv;
+		bindings.location_attrib_tangent = bindings.location_attrib_atlas_uv;
+		bindings.location_varying_tangent = bindings.location_varying_atlas_uv;
 		bindings.location_attrib_bitangent = bindings.location_attrib_tangent;
 		bindings.location_varying_bitangent = bindings.location_varying_tangent;
 	}
@@ -1640,10 +1699,24 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 		defines += "#define HAS_INDIRECT_LIGHT 0\n";
 	}
 
+	if (options.has_lightmap)
+	{
+		bindings.location_tex_lightmap = bindings.location_tex_directional_shadow_depth + 1;
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_TEX_LIGHTMAP %d\n", bindings.location_tex_lightmap);
+			defines += line;
+		}
+	}
+	else
+	{
+		bindings.location_tex_lightmap = bindings.location_tex_directional_shadow_depth;
+	}
+
 	if (options.has_reflection_map)
 	{
 		defines += "#define HAS_REFLECTION_MAP 1\n";
-		bindings.location_tex_reflection_map = bindings.location_tex_directional_shadow_depth + 1;
+		bindings.location_tex_reflection_map = bindings.location_tex_lightmap + 1;
 		{
 			char line[64];
 			sprintf(line, "#define LOCATION_TEX_REFLECTION_MAP %d\n", bindings.location_tex_reflection_map);
@@ -1653,7 +1726,7 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	else
 	{
 		defines += "#define HAS_REFLECTION_MAP 0\n";
-		bindings.location_tex_reflection_map = bindings.location_tex_directional_shadow_depth;
+		bindings.location_tex_reflection_map = bindings.location_tex_lightmap;
 	}
 
 	if (options.has_environment_map)
@@ -1932,6 +2005,13 @@ void StandardRoutine::_render_common(const RenderParams& params)
 		glEnableVertexAttribArray(m_bindings.location_attrib_uv);
 	}
 
+	if (m_options.has_lightmap)
+	{
+		glBindBuffer(GL_ARRAY_BUFFER, params.primitive->lightmap_uv_buf->m_id);
+		glVertexAttribPointer(m_bindings.location_attrib_atlas_uv, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+		glEnableVertexAttribArray(m_bindings.location_attrib_atlas_uv);
+	}
+
 	if (m_options.has_normal_map)
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, geo.tangent_buf->m_id);
@@ -2021,6 +2101,14 @@ void StandardRoutine::_render_common(const RenderParams& params)
 		int start_idx_depth = m_bindings.location_tex_directional_shadow_depth - m_options.num_directional_shadows + 1;
 		glUniform1iv(start_idx, m_options.num_directional_shadows, values.data());
 		glUniform1iv(start_idx_depth, m_options.num_directional_shadows, values.data());
+	}
+
+	if (m_options.has_lightmap)
+	{
+		glActiveTexture(GL_TEXTURE0 + texture_idx);
+		glBindTexture(GL_TEXTURE_2D, params.tex_lightmap->tex_id);
+		glUniform1i(m_bindings.location_tex_lightmap, texture_idx);
+		texture_idx++;		
 	}
 
 	if (m_options.has_reflection_map)

@@ -15,7 +15,8 @@ public:
 		}
 		bool has_color = false;
 		bool has_uv = false;
-		bool has_tangent = false;
+		bool has_uv1 = false;
+		bool has_tangent = false;		
 	};
 
 	PrimitiveBatch(const Options& options);

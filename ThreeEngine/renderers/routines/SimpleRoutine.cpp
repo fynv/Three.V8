@@ -40,6 +40,11 @@ layout (location = LOCATION_ATTRIB_UV) in vec2 aUV;
 layout (location = LOCATION_VARYING_UV) out vec2 vUV;
 #endif
 
+#if HAS_LIGHTMAP
+layout (location = LOCATION_ATTRIB_ATLAS_UV) in vec2 aAtlasUV;
+layout (location = LOCATION_VARYING_ATLAS_UV) out vec2 vAtlasUV;
+#endif
+
 layout (location = LOCATION_VARYING_WORLD_POS) out vec3 vWorldPos;
 
 void main()
@@ -57,6 +62,10 @@ void main()
 
 #if HAS_UV
 	vUV = aUV;
+#endif
+
+#if HAS_LIGHTMAP
+	vAtlasUV = aAtlasUV;
 #endif
 }
 )";
@@ -87,6 +96,10 @@ layout (location = LOCATION_VARYING_COLOR) in vec4 vColor;
 
 #if HAS_UV
 layout (location = LOCATION_VARYING_UV) in vec2 vUV;
+#endif
+
+#if HAS_LIGHTMAP
+layout (location = LOCATION_VARYING_ATLAS_UV) in vec2 vAtlasUV;
 #endif
 
 #if HAS_COLOR_TEX
@@ -275,6 +288,10 @@ float computeShadowCoef(in mat4 VPSB, sampler2DShadow shadowTex)
 
 static std::string g_frag_part1 =
 R"(
+#if HAS_LIGHTMAP
+layout (location = LOCATION_TEX_LIGHTMAP) uniform sampler2D uTexLightmap;
+#endif 
+
 vec3 shGetIrradianceAt( in vec3 normal, in vec4 shCoefficients[ 9 ] ) 
 {
 	// normal is assumed to have unit length
@@ -828,7 +845,15 @@ void main()
 #endif
 
 
-#if HAS_INDIRECT_LIGHT
+#if HAS_LIGHTMAP	
+	{
+		vec4 lm = texture(uTexLightmap, vAtlasUV);
+		vec3 light_color = lm.w>0.0 ? lm.xyz/lm.w : vec3(0.0);
+		diffuse += material.diffuseColor * light_color;
+		specular += material.specularColor * light_color;
+	}
+
+#elif HAS_INDIRECT_LIGHT
 	{
 		vec3 reflectVec = reflect(-viewDir, norm);
 		reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );
@@ -880,6 +905,15 @@ void SimpleRoutine::s_generate_shaders(const Options& options, Bindings& binding
 	s_frag = g_frag_part0 + g_frag_part1 + g_frag_part2;
 
 	std::string defines = "";
+
+	if (options.has_lightmap)
+	{
+		defines += "#define HAS_LIGHTMAP 1\n";
+	}
+	else
+	{
+		defines += "#define HAS_LIGHTMAP 0\n";
+	}
 
 	{
 		bindings.location_attrib_pos = 0;
@@ -1033,6 +1067,27 @@ void SimpleRoutine::s_generate_shaders(const Options& options, Bindings& binding
 		bindings.location_varying_uv = bindings.location_varying_color;
 	}
 
+	if (options.has_lightmap)
+	{
+		bindings.location_attrib_atlas_uv = bindings.location_attrib_uv + 1;
+		bindings.location_varying_atlas_uv = bindings.location_varying_uv + 1;
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_ATTRIB_ATLAS_UV %d\n", bindings.location_attrib_atlas_uv);
+			defines += line;
+		}
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_VARYING_ATLAS_UV %d\n", bindings.location_varying_atlas_uv);
+			defines += line;
+		}
+	}
+	else
+	{
+		bindings.location_attrib_atlas_uv = bindings.location_attrib_uv;
+		bindings.location_varying_atlas_uv = bindings.location_varying_uv;
+	}
+
 	if (options.has_color_texture)
 	{
 		defines += "#define HAS_COLOR_TEX 1\n";
@@ -1085,7 +1140,7 @@ void SimpleRoutine::s_generate_shaders(const Options& options, Bindings& binding
 	
 
 	{
-		bindings.location_varying_world_pos = bindings.location_varying_uv + 1;
+		bindings.location_varying_world_pos = bindings.location_varying_atlas_uv + 1;
 		{
 			char line[64];
 			sprintf(line, "#define LOCATION_VARYING_WORLD_POS %d\n", bindings.location_varying_world_pos);
@@ -1198,6 +1253,19 @@ void SimpleRoutine::s_generate_shaders(const Options& options, Bindings& binding
 		defines += "#define HAS_INDIRECT_LIGHT 0\n";
 	}
 	
+	if (options.has_lightmap)
+	{
+		bindings.location_tex_lightmap = bindings.location_tex_directional_shadow + 1;
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_TEX_LIGHTMAP %d\n", bindings.location_tex_lightmap);
+			defines += line;
+		}
+	}
+	else
+	{
+		bindings.location_tex_lightmap = bindings.location_tex_directional_shadow;
+	}
 
 	if (options.has_environment_map)
 	{
@@ -1287,7 +1355,7 @@ void SimpleRoutine::s_generate_shaders(const Options& options, Bindings& binding
 
 	if (options.has_probe_grid || options.has_lod_probe_grid)
 	{
-		bindings.location_tex_irradiance = bindings.location_tex_directional_shadow + 1;
+		bindings.location_tex_irradiance = bindings.location_tex_lightmap + 1;
 		bindings.location_tex_visibility = bindings.location_tex_irradiance + 1;
 		{
 			char line[64];
@@ -1302,8 +1370,8 @@ void SimpleRoutine::s_generate_shaders(const Options& options, Bindings& binding
 	}
 	else
 	{
-		bindings.location_tex_irradiance = bindings.location_tex_directional_shadow;
-		bindings.location_tex_visibility = bindings.location_tex_directional_shadow;
+		bindings.location_tex_irradiance = bindings.location_tex_lightmap;
+		bindings.location_tex_visibility = bindings.location_tex_lightmap;
 	}
 
 	if (options.has_ambient_light)
@@ -1454,6 +1522,13 @@ void SimpleRoutine::_render_common(const RenderParams& params)
 		glEnableVertexAttribArray(m_bindings.location_attrib_uv);
 	}
 
+	if (m_options.has_lightmap)
+	{
+		glBindBuffer(GL_ARRAY_BUFFER, params.primitive->lightmap_uv_buf->m_id);
+		glVertexAttribPointer(m_bindings.location_attrib_atlas_uv, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+		glEnableVertexAttribArray(m_bindings.location_attrib_atlas_uv);
+	}
+
 	int texture_idx = 0;
 	if (m_options.has_color_texture)
 	{
@@ -1521,6 +1596,14 @@ void SimpleRoutine::_render_common(const RenderParams& params)
 		}
 		int start_idx = m_bindings.location_tex_directional_shadow - m_options.num_directional_shadows + 1;
 		glUniform1iv(start_idx, m_options.num_directional_shadows, values.data());
+	}
+
+	if (m_options.has_lightmap)
+	{
+		glActiveTexture(GL_TEXTURE0 + texture_idx);
+		glBindTexture(GL_TEXTURE_2D, params.tex_lightmap->tex_id);
+		glUniform1i(m_bindings.location_tex_lightmap, texture_idx);
+		texture_idx++;
 	}
 
 	if (m_options.has_probe_grid)

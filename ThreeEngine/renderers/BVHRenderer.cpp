@@ -84,15 +84,19 @@ void BVHRenderer::render_primitive(const BVHRoutine::RenderParams& params, Pass 
 	options.has_glossiness_map = material->tex_idx_glossinessMap >= 0;
 	options.num_directional_lights = lights->num_directional_lights;
 	options.num_directional_shadows = lights->num_directional_shadows;
-	options.has_environment_map = lights->environment_map != nullptr;
-	options.has_probe_grid = lights->probe_grid != nullptr;
-	if (options.has_probe_grid)
+	options.has_lightmap = params.tex_lightmap != nullptr;
+	if (!options.has_lightmap)
 	{
-		options.probe_reference_recorded = lights->probe_grid->record_references;
+		options.has_environment_map = lights->environment_map != nullptr;
+		options.has_probe_grid = lights->probe_grid != nullptr;
+		if (options.has_probe_grid)
+		{
+			options.probe_reference_recorded = lights->probe_grid->record_references;
+		}
+		options.has_lod_probe_grid = lights->lod_probe_grid != nullptr;
+		options.has_ambient_light = lights->ambient_light != nullptr;
+		options.has_hemisphere_light = lights->hemisphere_light != nullptr;
 	}
-	options.has_lod_probe_grid = lights->lod_probe_grid != nullptr;
-	options.has_ambient_light = lights->ambient_light != nullptr;
-	options.has_hemisphere_light = lights->hemisphere_light != nullptr;
 	options.has_fog = params.constant_fog != nullptr;
 	BVHRoutine* routine = get_routine(options);
 	routine->render(params);
@@ -123,6 +127,7 @@ void BVHRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog
 	params.constant_model = &model->m_constant;
 	params.primitive = &model->geometry;
 	params.lights = &lights;
+	params.tex_lightmap = nullptr;
 
 	if (fog != nullptr)
 	{
@@ -184,6 +189,11 @@ void BVHRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog
 			params.constant_model = mesh.model_constant.get();
 			params.primitive = &primitive;
 			params.lights = &lights;
+			params.tex_lightmap = nullptr;
+			if (model->lightmap != nullptr)
+			{
+				params.tex_lightmap = model->lightmap->lightmap.get();
+			}
 
 			if (fog != nullptr)
 			{

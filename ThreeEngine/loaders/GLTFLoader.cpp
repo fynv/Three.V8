@@ -713,6 +713,16 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 				}
 			}
 
+			if (primitive_in.attributes.find("TEXCOORD_1") != primitive_in.attributes.end())
+			{
+				int id_uv_in = primitive_in.attributes["TEXCOORD_1"];
+				tinygltf::Accessor& acc_uv_in = model.accessors[id_uv_in];
+				tinygltf::BufferView& view_uv_in = model.bufferViews[acc_uv_in.bufferView];
+
+				p_uv = (const glm::vec2*)(model.buffers[view_uv_in.buffer].data.data() + view_uv_in.byteOffset + acc_uv_in.byteOffset);
+				primitive_out.lightmap_uv_buf = Attribute(new GLBuffer(sizeof(glm::vec2) * primitive_out.num_pos));
+				primitive_out.lightmap_uv_buf->upload(p_uv);
+			}
 
 			for (int k = 1; k < num_geo_sets; k++)
 			{

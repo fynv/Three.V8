@@ -183,6 +183,7 @@ void GLTFModel::batch_primitives()
 		int num_face = 0;
 		bool has_color = false;
 		bool has_uv = false;
+		bool has_uv1 = false;
 		bool has_tangent = false;
 		std::vector<glm::ivec2> indices;
 	};
@@ -204,6 +205,7 @@ void GLTFModel::batch_primitives()
 			info.num_face += prim.num_face;
 			info.has_color = info.has_color || prim.color_buf != nullptr;
 			info.has_uv = info.has_uv || prim.uv_buf != nullptr;
+			info.has_uv1 = info.has_uv1 || prim.lightmap_uv_buf != nullptr;
 			info.has_tangent = info.has_tangent || prim.geometry[0].tangent_buf != nullptr;
 			info.indices.push_back({ i,j });
 		}
@@ -236,7 +238,8 @@ void GLTFModel::batch_primitives()
 		prim_batch.num_face = info.num_face;		
 
 		bool has_color = info.has_color;
-		bool has_uv = info.has_uv;		
+		bool has_uv = info.has_uv;	
+		bool has_uv1 = info.has_uv1;
 		bool has_tangent = info.has_tangent;
 
 		int batcher_idx = (has_color ? 1 : 0) + (has_uv ? 2 : 0) + (has_tangent ? 4 : 0);
@@ -246,6 +249,7 @@ void GLTFModel::batch_primitives()
 			PrimitiveBatch::Options options;
 			options.has_color = has_color;
 			options.has_uv = has_uv;
+			options.has_uv1 = has_uv1;
 			options.has_tangent = has_tangent;
 			batcher = std::unique_ptr<PrimitiveBatch>(new PrimitiveBatch(options));
 		}
@@ -264,6 +268,11 @@ void GLTFModel::batch_primitives()
 		if (has_uv)
 		{
 			prim_batch.uv_buf = Attribute(new GLBuffer(sizeof(glm::vec2) * prim_batch.num_pos));
+		}
+
+		if (has_uv1)
+		{
+			prim_batch.lightmap_uv_buf = Attribute(new GLBuffer(sizeof(glm::vec2) * prim_batch.num_pos));
 		}
 
 		if (has_tangent)

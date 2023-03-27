@@ -59,6 +59,18 @@ public:
 	std::unique_ptr<std::vector<uint8_t>> cpu_indices;
 
 	std::unique_ptr<CWBVH> cwbvh;
+
+	Attribute lightmap_uv_buf;
+};
+
+class Lightmap
+{
+public:
+	Lightmap(int width, int height, int texels_per_unit = 128);
+
+	int width, height;
+	int texels_per_unit = 128;
+	std::unique_ptr<GLTexture2D> lightmap;
 };
 
 class Node

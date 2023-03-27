@@ -18,6 +18,7 @@ public:
 		}
 		AlphaMode alpha_mode = AlphaMode::Opaque;
 		bool is_highlight_pass = false;
+		bool has_lightmap = false;
 		bool specular_glossiness = false;
 		bool has_color = false;
 		bool has_color_texture = false;
@@ -47,6 +48,7 @@ public:
 		const GLDynBuffer* constant_model;
 		const Primitive* primitive;
 		const Lights* lights;
+		const GLTexture2D* tex_lightmap;
 		const GLDynBuffer* constant_fog;
 	};
 
@@ -69,6 +71,8 @@ private:
 		int location_varying_color;
 		int location_attrib_uv;
 		int location_varying_uv;
+		int location_attrib_atlas_uv;
+		int location_varying_atlas_uv;
 		int location_tex_color;
 		int location_tex_metalness;
 		int location_tex_roughness;
@@ -78,7 +82,8 @@ private:
 		int location_varying_world_pos;
 		int binding_directional_lights;
 		int binding_directional_shadows;
-		int location_tex_directional_shadow;		
+		int location_tex_directional_shadow;
+		int location_tex_lightmap;
 		int binding_environment_map;
 		int binding_probe_grid;		
 		int location_tex_irradiance;
