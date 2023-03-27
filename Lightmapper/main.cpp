@@ -278,9 +278,11 @@ int main()
 		int vw, vh;
 		glfwGetFramebufferSize(window, &vw, &vh);
 
-		test.Draw(vw, vh);
-
-		glfwSwapBuffers(window);
+		if (vw > 0 && vh > 0)
+		{
+			test.Draw(vw, vh);
+			glfwSwapBuffers(window);
+		}		
 	}
 
 
