@@ -141,6 +141,13 @@ Lightmap::Lightmap(const HDRImage& image)
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+void Lightmap::LoadImage(const HDRImage& image)
+{
+	glBindTexture(GL_TEXTURE_2D, lightmap->tex_id);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_FLOAT, image.data());
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
 void Lightmap::GetImage(HDRImage& image)
 {
 	size_t buf_size = (size_t)width * (size_t)height * 3 * sizeof(float);

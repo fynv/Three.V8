@@ -49,7 +49,7 @@ public:
 
 	std::unique_ptr<Lightmap> lightmap;
 	std::unique_ptr<LightmapRenderTarget> lightmap_target;
-	void init_lightmap(GLRenderer* renderer, int width, int height, int texels_per_unit = 128);
+	void init_lightmap(GLRenderer* renderer, int width = -1, int height = -1, int texels_per_unit = 128);
 	void load_lightmap(const char* fn);
 
 	// animations

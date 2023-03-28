@@ -131,6 +131,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\thirdparty\xatlas\xatlas.cpp" />
+    <ClCompile Include="baker.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="DataModel.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>

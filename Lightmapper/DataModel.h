@@ -42,7 +42,7 @@ public:
 
 	struct Mesh
 	{
-		glm::mat4 g_trans;
+		glm::mat4 g_trans = glm::identity<glm::mat4>();
 		std::string name;
 		std::vector<Primitive> primitives;
 	};
@@ -56,9 +56,9 @@ public:
 	void SaveGlb(const char* fn_glb);
 	void CreateModel(GLTFModel* model_out);
 
-	int lightmap_width;
-	int lightmap_height;
-	int lightmap_texels_per_unit;
+	int lightmap_width = -1;
+	int lightmap_height = -1;
+	int lightmap_texels_per_unit = 128;
 	void CreateAtlas(int texelsPerUnit = 128);
 
 };

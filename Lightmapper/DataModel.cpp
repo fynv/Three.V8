@@ -2,6 +2,7 @@
 #include <stb_image_write.h>
 #include <gtx/matrix_decompose.hpp>
 #include <gtx/hash.hpp>
+#include <gtx/string_cast.hpp>
 
 #include <models/GLTFModel.h>
 
@@ -134,8 +135,116 @@ void DataModel::LoadGlb(const char* fn_glb)
 	nodes = model.nodes;
 	scene = model.scenes[0];
 
+	size_t num_nodes = model.nodes.size();
+	std::vector<Node> mid_nodes(num_nodes);
+	for (size_t i = 0; i < num_nodes; i++)
+	{
+		tinygltf::Node& node_in = model.nodes[i];
+		Node& node_out = mid_nodes[i];
+		node_out.children = node_in.children;
+
+		if (node_in.matrix.size() > 0)
+		{
+			glm::mat4 matrix;
+			for (int c = 0; c < 16; c++)
+			{
+				matrix[c / 4][c % 4] = (float)node_in.matrix[c];
+			}
+			glm::quat rot;
+			glm::vec3 skew;
+			glm::vec4 persp;
+			glm::decompose(matrix, node_out.scale, node_out.rotation, node_out.translation, skew, persp);
+		}
+		else
+		{
+			if (node_in.translation.size() > 0)
+			{
+				node_out.translation.x = (float)node_in.translation[0];
+				node_out.translation.y = (float)node_in.translation[1];
+				node_out.translation.z = (float)node_in.translation[2];
+			}
+			else
+			{
+				node_out.translation = { 0.0f, 0.0f, 0.0f };
+			}
+
+			if (node_in.rotation.size() > 0)
+			{
+				node_out.rotation.x = (float)node_in.rotation[0];
+				node_out.rotation.y = (float)node_in.rotation[1];
+				node_out.rotation.z = (float)node_in.rotation[2];
+				node_out.rotation.w = (float)node_in.rotation[3];
+			}
+			else
+			{
+				node_out.rotation = glm::identity<glm::quat>();
+			}
+
+			if (node_in.scale.size() > 0)
+			{
+				node_out.scale.x = (float)node_in.scale[0];
+				node_out.scale.y = (float)node_in.scale[1];
+				node_out.scale.z = (float)node_in.scale[2];
+			}
+			else
+			{
+				node_out.scale = { 1.0f, 1.0f, 1.0f };
+			}
+		}
+
+		std::string name = node_in.name;
+		if (name == "")
+		{
+			char node_name[32];
+			sprintf(node_name, "node_%d", (int)i);
+			name = node_name;
+		}
+	}
+
+	std::list<int> node_queue;
+	size_t num_roots = scene.nodes.size();
+	for (size_t i = 0; i < num_roots; i++)
+	{
+		int idx_root = scene.nodes[i];
+		Node& node = mid_nodes[idx_root];
+		node.g_trans = glm::identity<glm::mat4>();
+		node_queue.push_back(idx_root);
+	}
+
+	while (!node_queue.empty())
+	{
+		int id_node = node_queue.front();
+		node_queue.pop_front();
+		Node& node = mid_nodes[id_node];
+
+		glm::mat4 local = glm::identity<glm::mat4>();
+		local = glm::translate(local, node.translation);
+		local *= glm::toMat4(node.rotation);
+		local = glm::scale(local, node.scale);
+		node.g_trans *= local;
+
+		for (size_t i = 0; i < node.children.size(); i++)
+		{
+			int id_child = node.children[i];
+			Node& child = mid_nodes[id_child];
+			child.g_trans = node.g_trans;
+			node_queue.push_back(id_child);
+		}
+	}
+
 	size_t num_meshes = model.meshes.size();
 	meshes.resize(num_meshes);
+
+	for (size_t i = 0; i < num_nodes; i++)
+	{
+		tinygltf::Node& node_in = model.nodes[i];
+		Node& node_out = mid_nodes[i];
+		if (node_in.mesh >= 0 && node_in.skin < 0)
+		{
+			Mesh& mesh_out = meshes[node_in.mesh];
+			mesh_out.g_trans = node_out.g_trans;
+		}		
+	}
 
 	for (size_t i = 0; i < num_meshes; i++)
 	{
@@ -263,8 +372,7 @@ void DataModel::LoadGlb(const char* fn_glb)
 			}
 		}
 	}
-
-	int num_nodes = (int)nodes.size();
+	
 	for (size_t i = 0; i < num_nodes; i++)
 	{
 		tinygltf::Node& node_in = model.nodes[i];		
@@ -940,8 +1048,7 @@ void DataModel::CreateModel(GLTFModel* model_out)
 
 	for (size_t i = 0; i < num_nodes; i++)
 	{
-		tinygltf::Node& node_in = nodes[i];
-		Node& node_out = model_out->m_nodes[i];
+		tinygltf::Node& node_in = nodes[i];		
 		int j = node_in.mesh;
 
 		if (j >= 0)
@@ -964,23 +1071,9 @@ void DataModel::CreateModel(GLTFModel* model_out)
 	model_out->updateNodes();
 	model_out->calculate_bounding_box();
 
-	// calculate g_trans	
-	for (size_t i = 0; i < num_meshes; i++)
+	if (lightmap_width > 0 && lightmap_height > 0)
 	{
-		::Mesh& mesh_out = model_out->m_meshs[i];
-		Mesh& mesh = meshes[i];
-		size_t num_prims = mesh_out.primitives.size();
-		for (size_t j = 0; j < num_prims; j++)
-		{
-			::Primitive& prim = mesh_out.primitives[j];
-			glm::mat4 model_mat = glm::identity<glm::mat4>();
-			if (mesh_out.node_id >= 0 && mesh_out.skin_id < 0)
-			{
-				Node& node = model_out->m_nodes[mesh_out.node_id];
-				model_mat = node.g_trans;
-			}	
-			mesh.g_trans = model_mat;
-		}
+		model_out->lightmap = std::unique_ptr<Lightmap>(new Lightmap(lightmap_width, lightmap_height, lightmap_texels_per_unit));
 	}
 }
 
@@ -1049,6 +1142,12 @@ void DataModel::CreateAtlas(int texelsPerUnit)
 	lightmap_width = atlas->width;
 	lightmap_height = atlas->height;
 	lightmap_texels_per_unit = texelsPerUnit;
+
+	tinygltf::Value::Object extras;
+	extras["lightmap_width"] = tinygltf::Value(lightmap_width);
+	extras["lightmap_height"] = tinygltf::Value(lightmap_height);
+	extras["lightmap_texels_per_unit"] = tinygltf::Value(lightmap_texels_per_unit);
+	scene.extras = tinygltf::Value(extras);	
 
 	glm::vec2 img_size = glm::vec2(lightmap_width, lightmap_height);
 

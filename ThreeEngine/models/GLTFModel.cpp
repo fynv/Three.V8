@@ -374,7 +374,16 @@ void GLTFModel::batch_primitives()
 
 void GLTFModel::init_lightmap(GLRenderer* renderer, int width, int height, int texels_per_unit)
 {
-	lightmap = std::unique_ptr<Lightmap>(new Lightmap(width, height, texels_per_unit));
+	if (lightmap == nullptr)
+	{
+		lightmap = std::unique_ptr<Lightmap>(new Lightmap(width, height, texels_per_unit));
+	}
+	else
+	{
+		width = lightmap->width;
+		height = lightmap->height;
+		texels_per_unit = lightmap->texels_per_unit;
+	}	
 
 	lightmap_target = std::unique_ptr<LightmapRenderTarget>(new LightmapRenderTarget);
 	lightmap_target->update_framebuffer(width, height);
@@ -415,7 +424,14 @@ void GLTFModel::load_lightmap(const char* fn)
 {
 	HDRImage img;
 	HDRImageLoader::LoadFile(&img, fn);
-	lightmap = std::unique_ptr<Lightmap>(new Lightmap(img));
+	if (lightmap == nullptr)
+	{
+		lightmap = std::unique_ptr<Lightmap>(new Lightmap(img));
+	}
+	else
+	{
+		lightmap->LoadImage(img);
+	}
 }
 
 void GLTFModel::setAnimationFrame(const AnimationFrame& frame)

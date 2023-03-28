@@ -73,6 +73,7 @@ public:
 	int texels_per_unit = 128;
 	std::unique_ptr<GLTexture2D> lightmap;
 
+	void LoadImage(const HDRImage& image);
 	void GetImage(HDRImage& image);
 };
 

@@ -863,6 +863,23 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 
 	model_out->updateNodes();
 	model_out->calculate_bounding_box();
+	
+	if (model.scenes[0].extras.IsObject())
+	{
+		tinygltf::Value::Object& extras = model.scenes[0].extras.Get<tinygltf::Value::Object>();
+		if (extras.find("lightmap_width") != extras.end() && extras.find("lightmap_height") != extras.end())
+		{
+			int width = extras["lightmap_width"].Get<int>();
+			int height = extras["lightmap_height"].Get<int>();
+			int texels_per_unit = 128;
+			if (extras.find("lightmap_texels_per_unit") != extras.end())
+			{
+				texels_per_unit = extras["lightmap_texels_per_unit"].Get<int>();
+			}
+			model_out->lightmap = std::unique_ptr<Lightmap>(new Lightmap(width, height, texels_per_unit));
+		}
+	}
+	
 
 	load_animations(model, model_out->m_animations);
 
