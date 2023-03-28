@@ -6,7 +6,9 @@
 #include <string>
 
 #include "utils/Image.h"
+#include "utils/HDRImage.h"
 #include "loaders/ImageLoader.h"
+#include "loaders/HDRImageLoader.h"
 
 GLShader::GLShader(unsigned type, const char* code)
 {
@@ -251,6 +253,24 @@ void GLCubemap::load_memory_rgba(int width, int height, const uint8_t* data_xp, 
 	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 }
 
+void GLCubemap::load_memory_rgbe(int width, int height, const float* data_xp, const float* data_xn, const float* data_yp, const float* data_yn, const float* data_zp, const float* data_zn)
+{
+	glBindTexture(GL_TEXTURE_CUBE_MAP, tex_id);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_RGB9_E5, width, height, 0, GL_RGB, GL_FLOAT, data_xp);
+	glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 0, GL_RGB9_E5, width, height, 0, GL_RGB, GL_FLOAT, data_xn);
+	glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, 0, GL_RGB9_E5, width, height, 0, GL_RGB, GL_FLOAT, data_yp);
+	glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, GL_RGB9_E5, width, height, 0, GL_RGB, GL_FLOAT, data_yn);
+	glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, GL_RGB9_E5, width, height, 0, GL_RGB, GL_FLOAT, data_zp);
+	glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, GL_RGB9_E5, width, height, 0, GL_RGB, GL_FLOAT, data_zn);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+}
+
 void GLCubemap::load_files(const char* fn_xp, const char* fn_xn, const char* fn_yp, const char* fn_yn, const char* fn_zp, const char* fn_zn)
 {
 	Image imgs[6];
@@ -263,6 +283,18 @@ void GLCubemap::load_files(const char* fn_xp, const char* fn_xn, const char* fn_
 	load_memory_rgba(imgs[0].width(), imgs[0].height(), imgs[0].data(), imgs[1].data(), imgs[2].data(), imgs[3].data(), imgs[4].data(), imgs[5].data());
 }
 
+void GLCubemap::load_rgbe_files(const char* fn_xp, const char* fn_xn, const char* fn_yp, const char* fn_yn, const char* fn_zp, const char* fn_zn)
+{
+	HDRImage imgs[6];
+	HDRImageLoader::LoadFile(&imgs[0], fn_xp);
+	HDRImageLoader::LoadFile(&imgs[1], fn_xn);
+	HDRImageLoader::LoadFile(&imgs[2], fn_yp);
+	HDRImageLoader::LoadFile(&imgs[3], fn_yn);
+	HDRImageLoader::LoadFile(&imgs[4], fn_zp);
+	HDRImageLoader::LoadFile(&imgs[5], fn_zn);
+	load_memory_rgbe(imgs[0].width(), imgs[0].height(), imgs[0].data(), imgs[1].data(), imgs[2].data(), imgs[3].data(), imgs[4].data(), imgs[5].data());
+
+}
 
 void GLCubemap::unload()
 {
@@ -290,7 +322,7 @@ void ReflectionMap::allocate()
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-		glTexStorage2D(GL_TEXTURE_CUBE_MAP, 7, GL_RGBA8, 128, 128);
+		glTexStorage2D(GL_TEXTURE_CUBE_MAP, 7, GL_RGBA16F, 128, 128);
 		allocated = true;
 	}
 

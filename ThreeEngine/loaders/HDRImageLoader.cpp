@@ -1,11 +1,27 @@
+#include <glm.hpp>
 #include "HDRImageLoader.h"
 #include "utils/HDRImage.h"
 #include "utils/Utils.h"
 
 #include "stb_image.h"
 
+void HDRImageLoader::s_flip_x(float* data, int width, int height)
+{
+	glm::vec3* p_data = (glm::vec3*)data;
+	glm::vec3 tmp;
+	for (int y = 0; y < height; y++, p_data += width)
+	{
+		for (int x = 0; x < width / 2; x++)
+		{
+			tmp = p_data[x];
+			p_data[x] = p_data[width - 1 - x];
+			p_data[width - 1 - x] = tmp;
+		}
+	}
+}
 
-void HDRImageLoader::LoadFile(HDRImage* image, const char* fn)
+
+void HDRImageLoader::LoadFile(HDRImage* image, const char* fn, bool flip_x)
 {
 	if (!exists_test(fn))
 	{
@@ -22,9 +38,14 @@ void HDRImageLoader::LoadFile(HDRImage* image, const char* fn)
 	image->m_buffer = (float*)malloc(buf_size);
 	memcpy(image->m_buffer, rgb, buf_size);
 	stbi_image_free(rgb);
+
+	if (flip_x)
+	{
+		s_flip_x(image->m_buffer, image->m_width, image->m_height);
+	}
 }
 
-void HDRImageLoader::LoadMemory(HDRImage* image, unsigned char* data, size_t size)
+void HDRImageLoader::LoadMemory(HDRImage* image, unsigned char* data, size_t size, bool flip_x)
 {
 	free(image->m_buffer);
 	int chn;
@@ -33,4 +54,58 @@ void HDRImageLoader::LoadMemory(HDRImage* image, unsigned char* data, size_t siz
 	image->m_buffer = (float*)malloc(buf_size);
 	memcpy(image->m_buffer, rgb, buf_size);
 	stbi_image_free(rgb);
+
+	if (flip_x)
+	{
+		s_flip_x(image->m_buffer, image->m_width, image->m_height);
+	}
+}
+
+void HDRImageLoader::LoadCubeFromFile(HDRCubeImage* image, const char* fn_xp, const char* fn_xn,
+	const char* fn_yp, const char* fn_yn, const char* fn_zp, const char* fn_zn, bool flip_x)
+{
+	if (flip_x)
+	{
+		LoadFile(&image->images[1], fn_xp, true);
+		LoadFile(&image->images[0], fn_xn, true);
+		LoadFile(&image->images[2], fn_yp, true);
+		LoadFile(&image->images[3], fn_yn, true);
+		LoadFile(&image->images[4], fn_zp, true);
+		LoadFile(&image->images[5], fn_zn, true);
+	}
+	else
+	{
+		LoadFile(&image->images[0], fn_xp, false);
+		LoadFile(&image->images[1], fn_xn, false);
+		LoadFile(&image->images[2], fn_yp, false);
+		LoadFile(&image->images[3], fn_yn, false);
+		LoadFile(&image->images[4], fn_zp, false);
+		LoadFile(&image->images[5], fn_zn, false);
+	}
+}
+
+
+void HDRImageLoader::LoadCubeFromMemory(HDRCubeImage* image,
+	unsigned char* data_xp, size_t size_xp, unsigned char* data_xn, size_t size_xn,
+	unsigned char* data_yp, size_t size_yp, unsigned char* data_yn, size_t size_yn,
+	unsigned char* data_zp, size_t size_zp, unsigned char* data_zn, size_t size_zn, bool flip_x)
+{
+	if (flip_x)
+	{
+		LoadMemory(&image->images[1], data_xp, size_xp, true);
+		LoadMemory(&image->images[0], data_xn, size_xn, true);
+		LoadMemory(&image->images[2], data_yp, size_yp, true);
+		LoadMemory(&image->images[3], data_yn, size_yn, true);
+		LoadMemory(&image->images[4], data_zp, size_zp, true);
+		LoadMemory(&image->images[5], data_zn, size_zn, true);
+	}
+	else
+	{
+		LoadMemory(&image->images[0], data_xp, size_xp, false);
+		LoadMemory(&image->images[1], data_xn, size_xn, false);
+		LoadMemory(&image->images[2], data_yp, size_yp, false);
+		LoadMemory(&image->images[3], data_yn, size_yn, false);
+		LoadMemory(&image->images[4], data_zp, size_zp, false);
+		LoadMemory(&image->images[5], data_zn, size_zn, false);
+	}
 }

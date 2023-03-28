@@ -101,7 +101,7 @@ inline void SHEval3(const float fX, const float fY, const float fZ, float* pSH)
 static std::string g_compute_downsample =
 R"(#version 430
 layout (location = 0) uniform samplerCube tex_hi_res;
-layout (binding=0, rgba8) uniform imageCube tex_lo_res;
+layout (binding=0, rgba16f) uniform imageCube tex_lo_res;
 
 void get_dir_0( out vec3 dir, in float u, in float v )
 {
@@ -270,13 +270,13 @@ void main()
 static std::string g_compute_filter =
 R"(#version 430
 layout (location = 0) uniform samplerCube tex_in;
-layout (binding=0, rgba8) uniform imageCube tex_out0;
-layout (binding=1, rgba8) uniform imageCube tex_out1;
-layout (binding=2, rgba8) uniform imageCube tex_out2;
-layout (binding=3, rgba8) uniform imageCube tex_out3;
-layout (binding=4, rgba8) uniform imageCube tex_out4;
-layout (binding=5, rgba8) uniform imageCube tex_out5;
-layout (binding=6, rgba8) uniform imageCube tex_out6;
+layout (binding=0, rgba16f) uniform imageCube tex_out0;
+layout (binding=1, rgba16f) uniform imageCube tex_out1;
+layout (binding=2, rgba16f) uniform imageCube tex_out2;
+layout (binding=3, rgba16f) uniform imageCube tex_out3;
+layout (binding=4, rgba16f) uniform imageCube tex_out4;
+layout (binding=5, rgba16f) uniform imageCube tex_out5;
+layout (binding=6, rgba16f) uniform imageCube tex_out6;
 
 
 layout (std140, binding = 0) uniform Coeffs
@@ -543,7 +543,7 @@ EnvironmentMapCreator::EnvironmentMapCreator() : m_buf_coeffs(sizeof(s_coeffs), 
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	glTexStorage2D(GL_TEXTURE_CUBE_MAP, 8, GL_RGBA8, 128, 128);
+	glTexStorage2D(GL_TEXTURE_CUBE_MAP, 8, GL_RGBA16F, 128, 128);
 
 	m_buf_coeffs.upload(s_coeffs);
 }
@@ -723,7 +723,7 @@ void EnvironmentMapCreator::CreateReflection(ReflectionMap& reflection, const GL
 		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap->tex_id);
 		glUniform1i(0, 0);
 
-		glBindImageTexture(0, m_tex_src, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(0, m_tex_src, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 
 		glUniform1f(1, 0.0f);
 
@@ -738,7 +738,7 @@ void EnvironmentMapCreator::CreateReflection(ReflectionMap& reflection, const GL
 		glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex_src);
 		glUniform1i(0, 0);
 
-		glBindImageTexture(0, m_tex_src, level + 1, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(0, m_tex_src, level + 1, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 
 		glUniform1f(1, (float)level);
 
@@ -759,13 +759,13 @@ void EnvironmentMapCreator::CreateReflection(ReflectionMap& reflection, const GL
 		glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex_src);
 		glUniform1i(0, 0);
 
-		glBindImageTexture(0, reflection.tex_id, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
-		glBindImageTexture(1, reflection.tex_id, 1, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
-		glBindImageTexture(2, reflection.tex_id, 2, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
-		glBindImageTexture(3, reflection.tex_id, 3, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
-		glBindImageTexture(4, reflection.tex_id, 4, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
-		glBindImageTexture(5, reflection.tex_id, 5, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
-		glBindImageTexture(6, reflection.tex_id, 6, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(0, reflection.tex_id, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+		glBindImageTexture(1, reflection.tex_id, 1, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+		glBindImageTexture(2, reflection.tex_id, 2, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+		glBindImageTexture(3, reflection.tex_id, 3, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+		glBindImageTexture(4, reflection.tex_id, 4, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+		glBindImageTexture(5, reflection.tex_id, 5, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+		glBindImageTexture(6, reflection.tex_id, 6, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 
 		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_buf_coeffs.m_id);
 

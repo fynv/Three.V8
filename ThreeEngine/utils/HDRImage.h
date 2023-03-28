@@ -27,3 +27,11 @@ private:
 	float* m_buffer = nullptr;
 
 };
+
+class HDRCubeImage
+{
+public:
+	HDRImage images[6];
+};
+
+

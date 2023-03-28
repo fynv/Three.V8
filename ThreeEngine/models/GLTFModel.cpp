@@ -420,10 +420,8 @@ void GLTFModel::init_lightmap(GLRenderer* renderer, int width, int height, int t
 #include "utils/HDRImage.h"
 #include "loaders/HDRImageLoader.h"
 
-void GLTFModel::load_lightmap(const char* fn)
+void GLTFModel::load_lightmap(const HDRImage& img)
 {
-	HDRImage img;
-	HDRImageLoader::LoadFile(&img, fn);
 	if (lightmap == nullptr)
 	{
 		lightmap = std::unique_ptr<Lightmap>(new Lightmap(img));
@@ -432,6 +430,14 @@ void GLTFModel::load_lightmap(const char* fn)
 	{
 		lightmap->LoadImage(img);
 	}
+
+}
+
+void GLTFModel::load_lightmap(const char* fn)
+{
+	HDRImage img;
+	HDRImageLoader::LoadFile(&img, fn);
+	load_lightmap(img);
 }
 
 void GLTFModel::setAnimationFrame(const AnimationFrame& frame)
