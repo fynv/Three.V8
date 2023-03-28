@@ -35,7 +35,7 @@ void WrapperHDRImageLoader::LoadFile(const v8::FunctionCallbackInfo<v8::Value>& 
 		info.GetReturnValue().Set(v8::Null(lctx.isolate));
 		return;
 	}
-	v8::Local<v8::Object> holder = lctx.instantiate("Image");
+	v8::Local<v8::Object> holder = lctx.instantiate("HDRImage");
 	HDRImage* self = lctx.jobj_to_obj<HDRImage>(holder);
 	HDRImageLoader::LoadFile(self, filename.c_str());
 	info.GetReturnValue().Set(holder);
@@ -45,7 +45,7 @@ void WrapperHDRImageLoader::LoadFile(const v8::FunctionCallbackInfo<v8::Value>& 
 void WrapperHDRImageLoader::LoadMemory(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	LocalContext lctx(info);
-	v8::Local<v8::Object> holder = lctx.instantiate("Image");
+	v8::Local<v8::Object> holder = lctx.instantiate("HDRImage");
 	HDRImage* self = lctx.jobj_to_obj<HDRImage>(holder);
 	v8::Local<v8::ArrayBuffer> data = info[0].As<v8::ArrayBuffer>();
 	HDRImageLoader::LoadMemory(self, (unsigned char*)data->GetBackingStore()->Data(), data->ByteLength());
@@ -74,7 +74,7 @@ void WrapperHDRImageLoader::LoadCubeFromFile(const v8::FunctionCallbackInfo<v8::
 		}
 	}
 	
-	v8::Local<v8::Object> holder = lctx.instantiate("CubeImage");
+	v8::Local<v8::Object> holder = lctx.instantiate("HDRCubeImage");
 	HDRCubeImage* self = lctx.jobj_to_obj<HDRCubeImage>(holder);
 	HDRImageLoader::LoadCubeFromFile(self, filenames[0].c_str(), filenames[1].c_str(), 
 		filenames[2].c_str(), filenames[3].c_str(), filenames[4].c_str(), filenames[5].c_str());
@@ -86,7 +86,7 @@ void WrapperHDRImageLoader::LoadCubeFromFile(const v8::FunctionCallbackInfo<v8::
 void WrapperHDRImageLoader::LoadCubeFromMemory(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	LocalContext lctx(info);
-	v8::Local<v8::Object> holder = lctx.instantiate("CubeImage");
+	v8::Local<v8::Object> holder = lctx.instantiate("HDRCubeImage");
 	HDRCubeImage* self = lctx.jobj_to_obj<HDRCubeImage>(holder);
 
 	v8::Local<v8::ArrayBuffer> data[6];
