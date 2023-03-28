@@ -163,7 +163,7 @@ namespace GameDev
         {
             var dialog = new OpenFileDialog();
             dialog.Multiselect = true;
-            dialog.Filter = "Images(*.jpg,*.png)|*.jpg;*.png";            
+            dialog.Filter = "Images(*.jpg,*.png,*.hdr)|*.jpg;*.png;*.hdr";
             if (dialog.ShowDialog() != true) return;
 
             var mainwnd = Window.GetWindow(Application.Current.MainWindow) as MainWindow;

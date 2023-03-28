@@ -586,23 +586,46 @@ const env_light = {
                     negz = props.negz;
                 }
                 
-                let cube_img = imageLoader.loadCubeFromFile(
-                    url+"/"+posx, url+"/"+negx, 
-                    url+"/"+posy, url+"/"+negy, 
-                    url+"/"+posz, url+"/"+negz);
-                
-                let envLight = null;
-                if (cube_img!=null)
+                if (posx.split('.').pop()=="hdr")
                 {
-                    let envMapCreator = new EnvironmentMapCreator();
-                    envLight = envMapCreator.create(cube_img);
+                    let cube_img = HDRImageLoader.loadCubeFromFile(
+                        url+"/"+posx, url+"/"+negx, 
+                        url+"/"+posy, url+"/"+negy, 
+                        url+"/"+posz, url+"/"+negz);
+                        
+                    let envLight = null;
+                    if (cube_img!=null)
+                    {
+                        let envMapCreator = new EnvironmentMapCreator();
+                        envLight = envMapCreator.create(cube_img);
+                    }
+                    else
+                    {
+                        envLight = new EnvironmentMap();
+                    }
+                    
+                    doc.scene.indirectLight = envLight;
                 }
                 else
                 {
-                    envLight = new EnvironmentMap();
+                    let cube_img = imageLoader.loadCubeFromFile(
+                        url+"/"+posx, url+"/"+negx, 
+                        url+"/"+posy, url+"/"+negy, 
+                        url+"/"+posz, url+"/"+negz);
+                    
+                    let envLight = null;
+                    if (cube_img!=null)
+                    {
+                        let envMapCreator = new EnvironmentMapCreator();
+                        envLight = envMapCreator.create(cube_img);
+                    }
+                    else
+                    {
+                        envLight = new EnvironmentMap();
+                    }
+                    
+                    doc.scene.indirectLight = envLight;
                 }
-                
-                doc.scene.indirectLight = envLight;
             }
         }
         else if (type == "probe_grid")

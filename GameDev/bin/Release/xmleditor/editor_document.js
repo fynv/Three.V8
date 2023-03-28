@@ -115,8 +115,6 @@ class EnvMapGen
             }
             else
             {
-                let down_img = this.cube_target.getCubeImage();
-                
                 let url = "assets/textures";
                 let posx = "env_face0.jpg";
                 let negx = "env_face1.jpg";
@@ -153,15 +151,35 @@ class EnvMapGen
                 {
                     negz = props.negz;
                 }
-                        
-                let res = imageSaver.saveCubeToFile(down_img, 
-                    url+"/"+posx, url+"/"+negx, 
-                    url+"/"+posy, url+"/"+negy, 
-                    url+"/"+posz, url+"/"+negz);
-                    
-                if (!res)
+                
+                if (posx.split('.').pop()=="hdr")
                 {
-                    print("Failed to save enviroment map.");
+                    let down_img = this.cube_target.getHDRCubeImage();
+                    
+                    let res = HDRImageSaver.saveCubeToFile(down_img, 
+                        url+"/"+posx, url+"/"+negx, 
+                        url+"/"+posy, url+"/"+negy, 
+                        url+"/"+posz, url+"/"+negz);
+                        
+                    if (!res)
+                    {
+                        print("Failed to save enviroment map.");
+                    }
+                    
+                }
+                else
+                {
+                    let down_img = this.cube_target.getCubeImage();
+                            
+                    let res = imageSaver.saveCubeToFile(down_img, 
+                        url+"/"+posx, url+"/"+negx, 
+                        url+"/"+posy, url+"/"+negy, 
+                        url+"/"+posz, url+"/"+negz);
+                        
+                    if (!res)
+                    {
+                        print("Failed to save enviroment map.");
+                    }
                 }
             }
             
@@ -1080,22 +1098,44 @@ const create_cube_env_light = (doc, props) => {
             negz = props.negz;
         }
         
-        let cube_img = imageLoader.loadCubeFromFile(
-            url+"/"+posx, url+"/"+negx, 
-            url+"/"+posy, url+"/"+negy, 
-            url+"/"+posz, url+"/"+negz);
-            
-        let envLight = null;
-        if (cube_img!=null)
+        if (posx.split('.').pop()=="hdr")
         {
-            let envMapCreator = new EnvironmentMapCreator();
-            envLight = envMapCreator.create(cube_img);
+            let cube_img = HDRImageLoader.loadCubeFromFile(
+                url+"/"+posx, url+"/"+negx, 
+                url+"/"+posy, url+"/"+negy, 
+                url+"/"+posz, url+"/"+negz);
+                
+            let envLight = null;
+            if (cube_img!=null)
+            {
+                let envMapCreator = new EnvironmentMapCreator();
+                envLight = envMapCreator.create(cube_img);
+            }
+            else
+            {
+                envLight = new EnvironmentMap();
+            }
+            doc.scene.indirectLight = envLight;
         }
         else
         {
-            envLight = new EnvironmentMap();
+            let cube_img = imageLoader.loadCubeFromFile(
+                url+"/"+posx, url+"/"+negx, 
+                url+"/"+posy, url+"/"+negy, 
+                url+"/"+posz, url+"/"+negz);
+                
+            let envLight = null;
+            if (cube_img!=null)
+            {
+                let envMapCreator = new EnvironmentMapCreator();
+                envLight = envMapCreator.create(cube_img);
+            }
+            else
+            {
+                envLight = new EnvironmentMap();
+            }
+            doc.scene.indirectLight = envLight;
         }
-        doc.scene.indirectLight = envLight;
     }
     
     return proxy;
@@ -1396,28 +1436,57 @@ const tuning_cube_env_light = (doc, obj, input) =>{
                 negz = props.negz;
             }
             
-            let cube_img = imageLoader.loadCubeFromFile(
-                url+"/"+posx, url+"/"+negx, 
-                url+"/"+posy, url+"/"+negy, 
-                url+"/"+posz, url+"/"+negz);
-                
-            let envLight = null;
-            if (cube_img!=null)
+            if (posx.split('.').pop()=="hdr")
             {
-                let envMapCreator = new EnvironmentMapCreator();
-                envLight = envMapCreator.create(cube_img);
+                let cube_img = HDRImageLoader.loadCubeFromFile(
+                    url+"/"+posx, url+"/"+negx, 
+                    url+"/"+posy, url+"/"+negy, 
+                    url+"/"+posz, url+"/"+negz);
+                    
+                let envLight = null;
+                if (cube_img!=null)
+                {
+                    let envMapCreator = new EnvironmentMapCreator();
+                    envLight = envMapCreator.create(cube_img);
+                }
+                else
+                {
+                    envLight = new EnvironmentMap();
+                }
+                
+                if (props.hasOwnProperty('dynamic_map'))
+                {
+                    envLight.dynamicMap = string_to_boolean(props.dynamic_map);
+                }
+                
+                doc.scene.indirectLight = envLight;
             }
             else
             {
-                envLight = new EnvironmentMap();
-            }
             
-            if (props.hasOwnProperty('dynamic_map'))
-            {
-                envLight.dynamicMap = string_to_boolean(props.dynamic_map);
+                let cube_img = imageLoader.loadCubeFromFile(
+                    url+"/"+posx, url+"/"+negx, 
+                    url+"/"+posy, url+"/"+negy, 
+                    url+"/"+posz, url+"/"+negz);
+                    
+                let envLight = null;
+                if (cube_img!=null)
+                {
+                    let envMapCreator = new EnvironmentMapCreator();
+                    envLight = envMapCreator.create(cube_img);
+                }
+                else
+                {
+                    envLight = new EnvironmentMap();
+                }
+                
+                if (props.hasOwnProperty('dynamic_map'))
+                {
+                    envLight.dynamicMap = string_to_boolean(props.dynamic_map);
+                }
+                
+                doc.scene.indirectLight = envLight;
             }
-            
-            doc.scene.indirectLight = envLight;
         }
     }
     return "";
