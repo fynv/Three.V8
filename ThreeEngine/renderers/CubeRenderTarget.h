@@ -5,6 +5,7 @@
 class GLCubemap;
 class GLRenderTarget;
 class CubeImage;
+class HDRCubeImage;
 class CubeRenderTarget
 {
 public:
@@ -19,6 +20,7 @@ public:
 	bool update_framebuffers(int width, int height);
 	
 	void GetCubeImage(CubeImage& image);
+	void GetHDRCubeImage(HDRCubeImage& image);
 	
 };
 

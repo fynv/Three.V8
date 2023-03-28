@@ -42,6 +42,12 @@ private:
 	static void UpdateAnimation(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 	static void SetToonShading(const v8::FunctionCallbackInfo<v8::Value>& info);
+
+	// lightmaps
+	static void GetIsBakable(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void SetLightmap(const v8::FunctionCallbackInfo<v8::Value>& info);
+	static void GetLightmap(const v8::FunctionCallbackInfo<v8::Value>& info);
+	static void InitializeLightmap(const v8::FunctionCallbackInfo<v8::Value>& info);
 };
 
 
@@ -71,6 +77,10 @@ v8::Local<v8::FunctionTemplate> WrapperGLTFModel::create_template(v8::Isolate* i
 	templ->InstanceTemplate()->Set(isolate, "updateAnimation", v8::FunctionTemplate::New(isolate, UpdateAnimation));
 
 	templ->InstanceTemplate()->Set(isolate, "setToonShading", v8::FunctionTemplate::New(isolate, SetToonShading));
+
+	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "isBakable").ToLocalChecked(), GetIsBakable, 0);
+	templ->InstanceTemplate()->Set(isolate, "setLightmap", v8::FunctionTemplate::New(isolate, SetLightmap));
+	templ->InstanceTemplate()->Set(isolate, "getLightmap", v8::FunctionTemplate::New(isolate, GetLightmap));
 
 	return templ;
 }
@@ -356,4 +366,42 @@ void WrapperGLTFModel::SetToonShading(const v8::FunctionCallbackInfo<v8::Value>&
 		}
 	}
 	self->set_toon_shading(mode, width, wire_color);
+}
+
+void WrapperGLTFModel::GetIsBakable(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	GLTFModel* self = lctx.self<GLTFModel>();
+	v8::Local<v8::Boolean> bakable = v8::Boolean::New(lctx.isolate, self->lightmap != nullptr);
+	info.GetReturnValue().Set(bakable);
+}
+
+void WrapperGLTFModel::SetLightmap(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	GLTFModel* self = lctx.self<GLTFModel>();
+
+	v8::Local<v8::Object> holder_image = info[0].As<v8::Object>();
+	HDRImage* image = lctx.jobj_to_obj<HDRImage>(holder_image);
+	self->load_lightmap(*image);
+}
+
+void WrapperGLTFModel::GetLightmap(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	GLTFModel* self = lctx.self<GLTFModel>();
+
+	v8::Local<v8::Object> holder_image = lctx.instantiate("HDRImage");
+	HDRImage* image = lctx.jobj_to_obj<HDRImage>(holder_image);
+	self->lightmap->GetImage(*image);
+
+	info.GetReturnValue().Set(holder_image);
+}
+
+void WrapperGLTFModel::InitializeLightmap(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	GLTFModel* self = lctx.self<GLTFModel>();
+	GLRenderer* renderer = lctx.jobj_to_obj<GLRenderer>(info[0]);
+	self->init_lightmap(renderer);
 }

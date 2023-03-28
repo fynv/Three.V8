@@ -25,6 +25,8 @@ private:
 	static void UpdateProbe(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void UpdateProbes(const v8::FunctionCallbackInfo<v8::Value>& info);
 
+	static void UpdateLightmap(const v8::FunctionCallbackInfo<v8::Value>& info);
+
 	static void GetUseSSAO(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void SetUseSSAO(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
 	
@@ -40,6 +42,8 @@ v8::Local<v8::FunctionTemplate> WrapperGLRenderer::create_template(v8::Isolate* 
 	templ->InstanceTemplate()->Set(isolate, "renderCube", v8::FunctionTemplate::New(isolate, RenderCube));
 	templ->InstanceTemplate()->Set(isolate, "updateProbe", v8::FunctionTemplate::New(isolate, UpdateProbe));
 	templ->InstanceTemplate()->Set(isolate, "updateProbes", v8::FunctionTemplate::New(isolate, UpdateProbes));
+
+	templ->InstanceTemplate()->Set(isolate, "updateLightmap", v8::FunctionTemplate::New(isolate, UpdateLightmap));
 
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "useSSAO").ToLocalChecked(), GetUseSSAO, SetUseSSAO);
 	
@@ -203,6 +207,32 @@ void WrapperGLRenderer::UpdateProbes(const v8::FunctionCallbackInfo<v8::Value>& 
 		num_probes = self->updateProbes(*scene, *probe_grid, start_idx, num_directions, rate_vis, rate_irr);
 	}
 	info.GetReturnValue().Set(lctx.num_to_jnum(num_probes));
+}
+
+void WrapperGLRenderer::UpdateLightmap(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	GLRenderer* self = lctx.self<GLRenderer>();
+	Scene* scene = lctx.jobj_to_obj<Scene>(info[0]);
+	GLTFModel* model = lctx.jobj_to_obj<GLTFModel>(info[1]);
+
+	int start_idx = 0;
+	int num_directions = 64;
+	float k = 1.0f;
+	if (info.Length() > 2)
+	{
+		lctx.jnum_to_num(info[2], start_idx);
+	}
+	if (info.Length() > 3)
+	{
+		lctx.jnum_to_num(info[3], num_directions);
+	}
+	if (info.Length() > 4)
+	{
+		lctx.jnum_to_num(info[4], k);
+	}
+
+	self->updateLightmap(*scene, *model->lightmap, *model->lightmap_target, start_idx, num_directions, k);
 }
 
 void WrapperGLRenderer::GetUseSSAO(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)

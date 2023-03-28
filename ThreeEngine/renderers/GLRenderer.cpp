@@ -3282,7 +3282,7 @@ void GLRenderer::rasterize_atlas(GLTFModel* model)
 
 }
 
-int GLRenderer::updateLightmap(Scene& scene, Lightmap& lm, LightmapRenderTarget& src, int start_texel, int num_directions)
+int GLRenderer::updateLightmap(Scene& scene, Lightmap& lm, LightmapRenderTarget& src, int start_texel, int num_directions, float k)
 {
 	int max_texels = (1 << 17) / num_directions;
 	if (max_texels < 1) max_texels = 1;
@@ -3303,7 +3303,7 @@ int GLRenderer::updateLightmap(Scene& scene, Lightmap& lm, LightmapRenderTarget&
 	LightmapRayList lmrl(&src, &bvh_target, start_texel, start_texel + num_texels, num_directions);
 	bvh_renderer.render_lightmap(scene, lmrl, bvh_target);
 
-	bvh_renderer.update_lightmap(bvh_target, lmrl, lm, start_texel, 1.0f);
+	bvh_renderer.update_lightmap(bvh_target, lmrl, lm, start_texel, k);
 	
 
 	return num_texels;

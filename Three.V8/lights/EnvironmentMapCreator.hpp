@@ -3,6 +3,7 @@
 #include "WrapperUtils.hpp"
 #include <lights/EnvironmentMapCreator.h>
 #include <utils/Image.h>
+#include <utils/HDRImage.h>
 
 class WrapperEnvironmentMapCreator
 {
@@ -61,6 +62,11 @@ void WrapperEnvironmentMapCreator::Create(const v8::FunctionCallbackInfo<v8::Val
 	if (clsname == "CubeImage")
 	{
 		CubeImage* image = lctx.jobj_to_obj<CubeImage>(holder_image);
+		creator->Create(image, self);
+	}
+	else if (clsname == "HDRCubeImage")
+	{
+		HDRCubeImage* image = lctx.jobj_to_obj<HDRCubeImage>(holder_image);
 		creator->Create(image, self);
 	}
 	else if (clsname == "CubeBackground")

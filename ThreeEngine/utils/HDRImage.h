@@ -20,6 +20,7 @@ public:
 
 	friend class Lightmap;
 	friend class HDRImageLoader;
+	friend class CubeRenderTarget;
 	
 private:
 	int m_width = 0;

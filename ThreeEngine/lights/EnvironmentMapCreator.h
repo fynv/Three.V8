@@ -11,6 +11,7 @@
 #include <gtx/quaternion.hpp>
 #include "renderers/GLUtils.h"
 #include "utils/Image.h"
+#include "utils/HDRImage.h"
 #include "lights/EnvironmentMap.h"
 #include "backgrounds/Background.h"
 #include "renderers/CubeRenderTarget.h"
@@ -26,6 +27,7 @@ public:
 	void CreateReflection(ReflectionMap& reflection, const GLCubemap* cubemap);
 	
 	void Create(const CubeImage* image, EnvironmentMap* envMap);
+	void Create(const HDRCubeImage* image, EnvironmentMap* envMap);
 	void Create(const CubeBackground* background, EnvironmentMap* envMap);
 	void Create(const CubeRenderTarget* target, EnvironmentMap* envMap, bool irradiance_only);
 
