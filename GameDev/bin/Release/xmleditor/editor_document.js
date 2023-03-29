@@ -104,7 +104,7 @@ class LightmapBaker
             {
                 item.count = item.model.initializeLightmap(renderer);
             }
-            let num_rays = (8 << this.iter);
+            let num_rays = (64 << this.iter);
             let count_texels = renderer.updateLightmap(this.doc.scene, item.model, this.idx_texel, num_rays, 1.0);
             this.idx_texel += count_texels;
             if (this.idx_texel>=item.count)
