@@ -372,7 +372,7 @@ void GLTFModel::batch_primitives()
 
 }
 
-void GLTFModel::init_lightmap(GLRenderer* renderer, int width, int height, int texels_per_unit)
+void GLTFModel::init_lightmap(GLRenderer* renderer, int width, int height, float texels_per_unit)
 {
 	if (lightmap == nullptr)
 	{

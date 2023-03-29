@@ -58,8 +58,8 @@ public:
 
 	int lightmap_width = -1;
 	int lightmap_height = -1;
-	int lightmap_texels_per_unit = 128;
-	void CreateAtlas(int texelsPerUnit = 128);
+	float lightmap_texels_per_unit = 128.0f;
+	void CreateAtlas(float texelsPerUnit = 128.0f);
 
 };
 

@@ -114,7 +114,7 @@ void Primitive::compute_wires()
 }
 
 
-Lightmap::Lightmap(int width, int height, int texels_per_unit)
+Lightmap::Lightmap(int width, int height, float texels_per_unit)
 	:width(width), height(height), texels_per_unit(texels_per_unit)
 {
 	lightmap = std::unique_ptr<GLTexture2D>(new GLTexture2D);

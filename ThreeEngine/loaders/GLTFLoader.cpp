@@ -871,10 +871,10 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 		{
 			int width = extras["lightmap_width"].Get<int>();
 			int height = extras["lightmap_height"].Get<int>();
-			int texels_per_unit = 128;
+			float texels_per_unit = 128.0;
 			if (extras.find("lightmap_texels_per_unit") != extras.end())
 			{
-				texels_per_unit = extras["lightmap_texels_per_unit"].Get<int>();
+				texels_per_unit = (float)extras["lightmap_texels_per_unit"].Get<double>();
 			}
 			model_out->lightmap = std::unique_ptr<Lightmap>(new Lightmap(width, height, texels_per_unit));
 		}

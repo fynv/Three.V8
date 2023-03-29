@@ -66,11 +66,11 @@ class HDRImage;
 class Lightmap
 {
 public:
-	Lightmap(int width, int height, int texels_per_unit = 128);
+	Lightmap(int width, int height, float texels_per_unit = 128.0f);
 	Lightmap(const HDRImage& image);
 
 	int width, height;
-	int texels_per_unit = 128;
+	float texels_per_unit = 128.0f;
 	std::unique_ptr<GLTexture2D> lightmap;
 
 	void LoadImage(const HDRImage& image);

@@ -1109,7 +1109,7 @@ void DataModel::CreateModel(GLTFModel* model_out)
 	}
 }
 
-void DataModel::CreateAtlas(int texelsPerUnit)
+void DataModel::CreateAtlas(float texelsPerUnit)
 {
 	std::vector<Primitive*> primitives;
 	std::vector<glm::mat4> trans;
@@ -1165,7 +1165,7 @@ void DataModel::CreateAtlas(int texelsPerUnit)
 	xatlas::ChartOptions chartOptions;
 	xatlas::PackOptions packOptions;
 	packOptions.padding = 1;
-	packOptions.texelsPerUnit = float(texelsPerUnit);
+	packOptions.texelsPerUnit = texelsPerUnit;
 
 	printf("Generating atlas...\n");
 	xatlas::Generate(atlas, chartOptions, packOptions);

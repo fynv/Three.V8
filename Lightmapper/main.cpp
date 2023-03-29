@@ -17,10 +17,10 @@ int main(int argc, char* argv[])
 		fn_output = argv[2];
 	}
 
-	int texels_per_unit = 128;
+	float texels_per_unit = 128.0f;
 	if (argc > 3)
 	{
-		texels_per_unit = atoi(argv[3]);
+		texels_per_unit = atof(argv[3]);
 	}
 
 	DataModel model;
@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
 
 	printf("lightmap width: %d\n", model.lightmap_width);
 	printf("lightmap height: %d\n", model.lightmap_height);
-	printf("lightmap texels_per_unit: %d\n", model.lightmap_texels_per_unit);
+	printf("lightmap texels_per_unit: %f\n", model.lightmap_texels_per_unit);
 
 	return 0;
 }
