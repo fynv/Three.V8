@@ -3228,6 +3228,8 @@ void GLRenderer::rasterize_atlas(GLTFModel* model)
 	glClearBufferfv(GL_COLOR, 0, zero);
 	glClearBufferfv(GL_COLOR, 1, zero);
 
+	glDisable(GL_BLEND);
+
 	std::vector<const GLTexture2D*> tex_lst(model->m_textures.size());
 	for (size_t i = 0; i < tex_lst.size(); i++)
 	{
