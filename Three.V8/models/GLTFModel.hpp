@@ -82,6 +82,7 @@ v8::Local<v8::FunctionTemplate> WrapperGLTFModel::create_template(v8::Isolate* i
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "isBakable").ToLocalChecked(), GetIsBakable, 0);
 	templ->InstanceTemplate()->Set(isolate, "setLightmap", v8::FunctionTemplate::New(isolate, SetLightmap));
 	templ->InstanceTemplate()->Set(isolate, "getLightmap", v8::FunctionTemplate::New(isolate, GetLightmap));
+	templ->InstanceTemplate()->Set(isolate, "initializeLightmap", v8::FunctionTemplate::New(isolate, InitializeLightmap));
 
 	return templ;
 }
