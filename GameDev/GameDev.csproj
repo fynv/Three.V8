@@ -132,6 +132,9 @@
     <Compile Include="ScaleTuner.xaml.cs">
       <DependentUpon>ScaleTuner.xaml</DependentUpon>
     </Compile>
+    <Compile Include="SceneTuner.xaml.cs">
+      <DependentUpon>SceneTuner.xaml</DependentUpon>
+    </Compile>
     <Compile Include="SimpleMaterialTuner.xaml.cs">
       <DependentUpon>SimpleMaterialTuner.xaml</DependentUpon>
     </Compile>
@@ -288,6 +291,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="ScaleTuner.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="SceneTuner.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

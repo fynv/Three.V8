@@ -840,6 +840,19 @@ const model = {
             {
                 model.batchPrimitives();
             }
+            
+            if (model.isBakable)
+            {   
+                if (props.hasOwnProperty('lightmap'))
+                {
+                    let filename = props.lightmap;
+                    let hdr_img = HDRImageLoader.loadFile(filename);
+                    if (hdr_img!=null)
+                    {
+                        model.setLightmap(hdr_img);
+                    }
+                }
+            }
         }
         
         if (parent != null) {

@@ -39,6 +39,12 @@ namespace GameDev
                 chk_is_building.IsChecked = is_building;
             }
 
+            fn_lightmap.Text = "";
+            if (att.ContainsKey("lightmap"))
+            {
+                fn_lightmap.Text = att["lightmap"].ToString();
+            }
+
             obj3d_tuner = new Object3DTuner(game_player, jobj);
             stack.Children.Add(obj3d_tuner);
 
@@ -102,6 +108,50 @@ namespace GameDev
 
                 game_player.SendMessageToUser("tuning", tuning.ToString());
             }
+        }
+
+        private void set_lightmap()
+        {
+            JObject tuning = new JObject();
+            tuning["lightmap"] = fn_lightmap.Text;
+
+            var att = (JObject)jobj["attributes"];
+            att["lightmap"] = tuning["lightmap"];
+
+            game_player.SendMessageToUser("tuning", tuning.ToString());
+        }
+
+        private void fn_lightmap_LostFocus(object sender, RoutedEventArgs e)
+        {
+            set_lightmap();
+        }
+
+        private void fn_lightmap_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Return)
+            {
+                set_lightmap();
+            }
+        }
+
+        private void btn_browse_lightmap_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog();
+            dialog.Filter = "HDR Image(*.hdr)|*.hdr";
+            if (dialog.ShowDialog() != true) return;
+
+            var mainwnd = Window.GetWindow(Application.Current.MainWindow) as MainWindow;
+            string cur_path = mainwnd.cur_path;
+
+            string path = dialog.FileName;
+            if (!path.StartsWith(cur_path))
+            {
+                MessageBox.Show("Failed to parse path");
+                return;
+            }
+            string rel_path = path.Substring(cur_path.Length + 1);
+            fn_lightmap.Text = rel_path;
+            set_lightmap();
         }
     }
 }

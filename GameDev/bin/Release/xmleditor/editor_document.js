@@ -54,6 +54,88 @@ function string_to_boolean(string) {
     }
 }
 
+class LightmapBaker
+{
+    constructor(doc, iterations)
+    {
+        this.doc = doc;
+        this.lst = [];
+        for (let obj of doc.bakables)
+        {
+            let xml_node = doc.internal_index[obj.uuid].xml_node;
+            let attributes = xml_node.attributes;
+            if ("lightmap" in attributes)
+            {
+                this.lst.push({ model: obj, lightmap: attributes.lightmap, count: -1 });
+            }
+        }
+        if (this.lst.length<1)
+        {
+            print("No bakable object found!");
+            doc.lightmap_bake = null; 
+            return;
+        }
+        
+        this.iterations = iterations;
+        this.iter = 0;
+        this.idx_model = 0;
+        this.idx_texel = 0;
+        this.check_time = now();
+    }
+    
+    render(renderer)
+    {
+        let frame_time = now();
+        if (frame_time - this.check_time>=500)
+        {
+            print(`Building LOD Probe-Grid, iteration: ${this.iter+1}/${this.iterations}, model: ${this.idx_model+1}/${this.lst.length}, texel: ${this.idx_texel +1}`);
+            this.check_time = frame_time;
+        }
+        
+        while(now()-frame_time<10)
+        {
+            if (this.doc.lightmap_bake == null) break;
+            let item = this.lst[this.idx_model];
+            if (item.count<0)
+            {
+                item.count = item.model.initializeLightmap(renderer);
+            }
+            let num_rays = (8 << this.iter);
+            let count_texels = renderer.updateLightmap(this.doc.scene, item.model, this.idx_texel, num_rays, 1.0);
+            this.idx_texel += count_texels;
+            if (this.idx_texel>=item.count)
+            {
+                renderer.filterLightmap(item.model);
+                this.idx_texel = 0;
+                this.idx_model++;
+                if (this.idx_model >= this.lst.length)
+                {
+                    this.idx_model = 0;
+                    this.iter++;
+                    if (this.iter >= this.iterations)
+                    {
+                        this.doc.lightmap_bake = null; 
+                        print("Saving lightmaps.");
+                        for (let item of this.lst)
+                        {
+                            let hdr_image = item.model.getLightmap();
+                            let res = HDRImageSaver.saveFile(hdr_image, item.lightmap);
+                            if (!res)
+                            {
+                                print(`Failed to save ${item.lightmap}`);
+                            }
+                        }
+                        
+                    }
+                    
+                }
+                
+            }
+        }
+        
+    }
+}
+
 class EnvMapGen
 {
     constructor(doc, proxy, xml_node, irradiance_only = false)
@@ -561,6 +643,9 @@ const scene = {
         create_default_sky(doc);
         create_default_env_light(doc);
         return doc.scene;
+    },
+    generate: (doc, obj, input) =>{
+        generate_lightmap(doc, input);
     }
 }
 
@@ -1703,6 +1788,12 @@ const initialize_lod_probe_grid = (doc, obj, input) =>{
     return probe_grid.numberOfProbes;
 }
 
+
+const generate_lightmap = (doc, input) =>{
+    let iterations = parseInt(input.iterations);
+    doc.lightmap_bake = new LightmapBaker(doc, iterations)
+}
+
 const generate_cube_env_light = (doc, obj, input) =>{
     let node = doc.internal_index[obj.uuid].xml_node;
     let props = node.attributes;
@@ -2143,10 +2234,25 @@ const model = {
         {
             if (props.hasOwnProperty('is_building') && string_to_boolean(props.is_building))
             {
-                
                 model.batchPrimitives();
             }
+            
+            if (model.isBakable)
+            {
+                doc.bakables.push(model);
+                
+                if (props.hasOwnProperty('lightmap'))
+                {
+                    let filename = props.lightmap;
+                    let hdr_img = HDRImageLoader.loadFile(filename);
+                    if (hdr_img!=null)
+                    {
+                        model.setLightmap(hdr_img);
+                    }
+                }
+            }
         }
+        
         
         if (parent != null) {
             parent.add(model);
@@ -2205,6 +2311,21 @@ const model = {
                 {
                     obj.batchPrimitives();
                 }
+            }
+            
+            if ("lightmap" in input)
+            {
+                props.lightmap = input.lightmap;
+                if (obj.isBakable)
+                {
+                    let filename = input.lightmap;
+                    let hdr_img = HDRImageLoader.loadFile(filename);
+                    if (hdr_img!=null)
+                    {
+                        obj.setLightmap(hdr_img);
+                    }
+                }
+                
             }
             tuning_object3d(doc, obj, input);
         }
@@ -2560,7 +2681,9 @@ export class Document
         this.internal_index = {};
         this.external_index = {};
         this.external_index.index = {};
+        this.bakables = [];
         
+        this.lightmap_bake = null;
         this.env_gen = null;
         this.probe_grid_bake = null;
         this.lod_probe_grid_bake = null;
@@ -2580,6 +2703,11 @@ export class Document
     render(renderer)
     {
         this.renderer = renderer;
+        
+        if (this.lightmap_bake!=null)
+        {
+            this.lightmap_bake.render(renderer);
+        }
         
         if (this.env_gen!=null)
         {
@@ -2677,6 +2805,14 @@ export class Document
             const tag = this.Tags[obj.tag];
             if (tag.hasOwnProperty('remove')) {
                 tag.remove(this, obj);
+            }
+        }
+        
+        {
+            let index = this.bakables.indexOf(obj);
+            if (index>=0)
+            {
+                 this.bakables.splice(index, 1);
             }
         }
         

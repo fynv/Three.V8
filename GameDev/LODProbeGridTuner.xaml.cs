@@ -78,8 +78,6 @@ namespace GameDev
             }
 
             tuner_iterations.value = 6;
-
-            tuner_iterations.value = 6;
         }
 
         private void load_data()

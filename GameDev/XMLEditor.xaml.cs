@@ -676,6 +676,8 @@ namespace GameDev
                 if (tag == "scene")
                 {
                     grp_scene_objs.IsEnabled = true;
+                    var tuner = new SceneTuner(game_player, picked_obj);
+                    property_area.Children.Add(tuner);
                 }
                 else if (tag == "fog")
                 {
