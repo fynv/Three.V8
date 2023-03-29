@@ -1137,13 +1137,32 @@ void DataModel::CreateAtlas(float texelsPerUnit)
 		glm::mat4 norm_mat = glm::transpose(glm::inverse(model_mat));
 
 		Primitive* prim = primitives[i];
+		int num_pos = (int)prim->positions.size();
+
+		std::vector<glm::vec3> pos(num_pos);
+		std::vector<glm::vec3> norm;
+		if (prim->normals.size() > 0)
+		{
+			norm.resize(num_pos);
+		}
+
+		for (int j = 0; j < num_pos; j++)
+		{
+			pos[j] = glm::vec3(model_mat * glm::vec4(prim->positions[j], 1.0f));
+			if (prim->normals.size() > 0)
+			{
+				norm[j] = glm::vec3(norm_mat * glm::vec4(prim->normals[j], 0.0f));
+			}
+		}
+
+
 		xatlas::MeshDecl meshDecl;
-		meshDecl.vertexCount = (unsigned)prim->positions.size();
-		meshDecl.vertexPositionData = prim->positions.data();
+		meshDecl.vertexCount = (unsigned)pos.size();
+		meshDecl.vertexPositionData = pos.data();
 		meshDecl.vertexPositionStride = sizeof(float) * 3;
 		if (prim->normals.size() > 0)
 		{
-			meshDecl.vertexNormalData = prim->normals.data();
+			meshDecl.vertexNormalData = norm.data();
 			meshDecl.vertexNormalStride = sizeof(float) * 3;
 		}
 		if (prim->texcoords.size() > 0)
