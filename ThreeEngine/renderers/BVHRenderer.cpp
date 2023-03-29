@@ -1613,27 +1613,30 @@ void BVHRenderer::filter_lightmap(const LightmapRenderTarget& atlas, const Light
 		LightmapFiltering = std::unique_ptr<LightmapFilter>(new LightmapFilter);
 	}
 
+	for (int i = 0; i < 4; i++)
 	{
-		LightmapFilter::RenderParams params;
-		params.width = width;
-		params.height = height;
-		params.texel_size = texel_size;
-		params.light_map_in = lightmap.lightmap.get();
-		params.light_map_out = tmp.lightmap.get();
-		params.atlas_position = atlas.m_tex_position.get();
-		params.model_matrix = model_mat;
-		LightmapFiltering->filter(params);
-	}
+		{
+			LightmapFilter::RenderParams params;
+			params.width = width;
+			params.height = height;
+			params.texel_size = texel_size;
+			params.light_map_in = lightmap.lightmap.get();
+			params.light_map_out = tmp.lightmap.get();
+			params.atlas_position = atlas.m_tex_position.get();
+			params.model_matrix = model_mat;
+			LightmapFiltering->filter(params);
+		}
 
-	{
-		LightmapFilter::RenderParams params;
-		params.width = width;
-		params.height = height;
-		params.texel_size = texel_size;
-		params.light_map_in = tmp.lightmap.get();
-		params.light_map_out = lightmap.lightmap.get();
-		params.atlas_position = atlas.m_tex_position.get();
-		params.model_matrix = model_mat;
-		LightmapFiltering->filter(params);
+		{
+			LightmapFilter::RenderParams params;
+			params.width = width;
+			params.height = height;
+			params.texel_size = texel_size;
+			params.light_map_in = tmp.lightmap.get();
+			params.light_map_out = lightmap.lightmap.get();
+			params.atlas_position = atlas.m_tex_position.get();
+			params.model_matrix = model_mat;
+			LightmapFiltering->filter(params);
+		}
 	}
 }
