@@ -11,6 +11,7 @@
 #include <models/GLTFModel.h>
 #include <models/GeometryCreator.h>
 #include <utils/Image.h>
+#include <renderers/LightmapRenderTarget.h>
 
 class WrapperGLTFModel
 {
@@ -404,4 +405,8 @@ void WrapperGLTFModel::InitializeLightmap(const v8::FunctionCallbackInfo<v8::Val
 	GLTFModel* self = lctx.self<GLTFModel>();
 	GLRenderer* renderer = lctx.jobj_to_obj<GLRenderer>(info[0]);
 	self->init_lightmap(renderer);
+
+	int count = self->lightmap_target->count_valid;
+	info.GetReturnValue().Set(lctx.num_to_jnum(count));
 }
+
