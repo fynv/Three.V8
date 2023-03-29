@@ -72,7 +72,6 @@ class LightmapBaker
         if (this.lst.length<1)
         {
             print("No bakable object found!");
-            doc.lightmap_bake = null; 
             return;
         }
         
@@ -85,6 +84,11 @@ class LightmapBaker
     
     render(renderer)
     {
+        if (this.lst.length<1)
+        {
+            this.doc.lightmap_bake = null;
+            return;
+        }
         let frame_time = now();
         if (frame_time - this.check_time>=500)
         {
