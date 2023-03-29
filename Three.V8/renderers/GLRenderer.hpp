@@ -232,7 +232,8 @@ void WrapperGLRenderer::UpdateLightmap(const v8::FunctionCallbackInfo<v8::Value>
 		lctx.jnum_to_num(info[4], k);
 	}
 
-	self->updateLightmap(*scene, *model->lightmap, *model->lightmap_target, start_idx, num_directions, k);
+	int num_texels = self->updateLightmap(*scene, *model->lightmap, *model->lightmap_target, start_idx, num_directions, k);
+	info.GetReturnValue().Set(lctx.num_to_jnum(num_texels));
 }
 
 void WrapperGLRenderer::GetUseSSAO(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
