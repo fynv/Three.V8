@@ -26,6 +26,7 @@ private:
 	static void UpdateProbes(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 	static void UpdateLightmap(const v8::FunctionCallbackInfo<v8::Value>& info);
+	static void FilterLightmap(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 	static void GetUseSSAO(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void SetUseSSAO(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
@@ -44,6 +45,7 @@ v8::Local<v8::FunctionTemplate> WrapperGLRenderer::create_template(v8::Isolate* 
 	templ->InstanceTemplate()->Set(isolate, "updateProbes", v8::FunctionTemplate::New(isolate, UpdateProbes));
 
 	templ->InstanceTemplate()->Set(isolate, "updateLightmap", v8::FunctionTemplate::New(isolate, UpdateLightmap));
+	templ->InstanceTemplate()->Set(isolate, "filterLightmap", v8::FunctionTemplate::New(isolate, FilterLightmap));
 
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "useSSAO").ToLocalChecked(), GetUseSSAO, SetUseSSAO);
 	
@@ -235,6 +237,16 @@ void WrapperGLRenderer::UpdateLightmap(const v8::FunctionCallbackInfo<v8::Value>
 	int num_texels = self->updateLightmap(*scene, *model->lightmap, *model->lightmap_target, start_idx, num_directions, k);
 	info.GetReturnValue().Set(lctx.num_to_jnum(num_texels));
 }
+
+
+void WrapperGLRenderer::FilterLightmap(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	GLRenderer* self = lctx.self<GLRenderer>();	
+	GLTFModel* model = lctx.jobj_to_obj<GLTFModel>(info[0]);	
+	self->filterLightmap(*model->lightmap, *model->lightmap_target);
+}
+
 
 void WrapperGLRenderer::GetUseSSAO(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
