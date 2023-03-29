@@ -260,21 +260,53 @@ void DataModel::LoadGlb(const char* fn_glb)
 			Primitive& primitive_out = mesh_out.primitives[j];
 			primitive_out.material = primitive_in.material;
 
-			int id_indices_in = primitive_in.indices;
-			tinygltf::Accessor& acc_indices_in = model.accessors[id_indices_in];
-			int num_face = (int)(acc_indices_in.count / 3);
-			tinygltf::BufferView& view_indices_in = model.bufferViews[acc_indices_in.bufferView];
-			const glm::ivec3* p_indices = (const glm::ivec3*)(model.buffers[view_indices_in.buffer].data.data() + view_indices_in.byteOffset + acc_indices_in.byteOffset);
-			primitive_out.indices.resize((size_t)num_face);
-			memcpy(primitive_out.indices.data(), p_indices, sizeof(glm::ivec3) * (size_t)num_face);
-
 			int id_pos_in = primitive_in.attributes["POSITION"];
 			tinygltf::Accessor& acc_pos_in = model.accessors[id_pos_in];
 			int num_pos = (int)acc_pos_in.count;
 			tinygltf::BufferView& view_pos_in = model.bufferViews[acc_pos_in.bufferView];
 			const glm::vec3* p_pos = (const glm::vec3*)(model.buffers[view_pos_in.buffer].data.data() + view_pos_in.byteOffset + acc_pos_in.byteOffset);
 			primitive_out.positions.resize((size_t)num_pos);
-			memcpy(primitive_out.positions.data(), p_pos, sizeof(glm::vec3) * (size_t)num_pos);
+			memcpy(primitive_out.positions.data(), p_pos, sizeof(glm::vec3)* (size_t)num_pos);
+
+			int id_indices_in = primitive_in.indices;			
+			if (id_indices_in >= 0)
+			{
+				tinygltf::Accessor& acc_indices_in = model.accessors[id_indices_in];
+				int num_face = (int)(acc_indices_in.count / 3);
+				tinygltf::BufferView& view_indices_in = model.bufferViews[acc_indices_in.bufferView];				
+				primitive_out.indices.resize((size_t)num_face);
+
+				if (acc_indices_in.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE)
+				{
+					const glm::u8vec3* p_indices = (const glm::u8vec3*)(model.buffers[view_indices_in.buffer].data.data() + view_indices_in.byteOffset + acc_indices_in.byteOffset);
+					for (int i = 0; i < num_face; i++)
+					{
+						primitive_out.indices[i] = glm::ivec3(p_indices[i]);
+					}					
+				}
+				else if (acc_indices_in.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT)
+				{
+					const glm::u16vec3* p_indices = (const glm::u16vec3*)(model.buffers[view_indices_in.buffer].data.data() + view_indices_in.byteOffset + acc_indices_in.byteOffset);
+					for (int i = 0; i < num_face; i++)
+					{
+						primitive_out.indices[i] = glm::ivec3(p_indices[i]);
+					}
+				}
+				else if (acc_indices_in.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT)
+				{
+					const glm::u32vec3* p_indices = (const glm::u32vec3*)(model.buffers[view_indices_in.buffer].data.data() + view_indices_in.byteOffset + acc_indices_in.byteOffset);
+					memcpy(primitive_out.indices.data(), p_indices, sizeof(glm::ivec3)* (size_t)num_face);
+				}			
+			}
+			else
+			{
+				primitive_out.indices.resize((size_t)num_pos/3);
+				int* p_ind = (int*)primitive_out.indices.data();
+				for (int i = 0; i < num_pos; i++)
+				{
+					p_ind[i] = i;
+				}
+			}				
 
 			if (primitive_in.attributes.find("NORMAL") != primitive_in.attributes.end())
 			{
