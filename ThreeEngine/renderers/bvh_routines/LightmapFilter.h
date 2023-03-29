@@ -18,6 +18,7 @@ public:
 		GLTexture2D* light_map_in;
 		GLTexture2D* light_map_out;
 		GLTexture2D* atlas_position;
+		glm::mat4 model_matrix;
 	};
 
 	void filter(const RenderParams& params);

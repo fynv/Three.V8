@@ -3310,7 +3310,7 @@ int GLRenderer::updateLightmap(Scene& scene, Lightmap& lm, LightmapRenderTarget&
 
 }
 
-void GLRenderer::filterLightmap(Lightmap& lm, LightmapRenderTarget& src)
+void GLRenderer::filterLightmap(Lightmap& lm, LightmapRenderTarget& src, const glm::mat4& model_mat)
 {
-	bvh_renderer.filter_lightmap(src, lm);
+	bvh_renderer.filter_lightmap(src, lm, model_mat);
 }

@@ -46,7 +46,7 @@ public:
 
 	void render_lightmap(Scene& scene, LightmapRayList& lmrl, BVHRenderTarget& target);
 	void update_lightmap(const BVHRenderTarget& source, const LightmapRayList& lmrl, const Lightmap& lightmap, int id_start_texel, float mix_rate = 1.0f);
-	void filter_lightmap(const LightmapRenderTarget& atlas, const Lightmap& lightmap);
+	void filter_lightmap(const LightmapRenderTarget& atlas, const Lightmap& lightmap, const glm::mat4& model_mat);
 
 private:
 	std::unique_ptr<CompWeightedOIT> oit_resolver;

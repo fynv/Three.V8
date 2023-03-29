@@ -244,7 +244,7 @@ void WrapperGLRenderer::FilterLightmap(const v8::FunctionCallbackInfo<v8::Value>
 	LocalContext lctx(info);
 	GLRenderer* self = lctx.self<GLRenderer>();	
 	GLTFModel* model = lctx.jobj_to_obj<GLTFModel>(info[0]);	
-	self->filterLightmap(*model->lightmap, *model->lightmap_target);
+	self->filterLightmap(*model->lightmap, *model->lightmap_target, model->matrixWorld);
 }
 
 

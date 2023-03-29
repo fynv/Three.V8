@@ -78,7 +78,7 @@ public:
 	void rasterize_atlas(GLTFModel* model);
 
 	int updateLightmap(Scene& scene, Lightmap& lm, LightmapRenderTarget& src, int start_texel, int num_directions = 64, float k = 1.0f);
-	void filterLightmap(Lightmap& lm, LightmapRenderTarget& src);
+	void filterLightmap(Lightmap& lm, LightmapRenderTarget& src, const glm::mat4& model_mat);
 
 private:
 	std::unique_ptr<WeightedOIT> oit_resolvers[2];
