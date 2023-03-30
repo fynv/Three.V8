@@ -110,7 +110,7 @@ vec2 get_mean_dis_common(in vec3 dir, int idx)
 
 int get_probe_idx(in ivec3 ipos)
 {
-	return vert.x + (vert.y + vert.z*uDivisions.y)*uDivisions.x;
+	return ipos.x + (ipos.y + ipos.z*uDivisions.y)*uDivisions.x;
 }
 
 #elif HAS_LOD_PROBE_GRID
@@ -162,7 +162,7 @@ void main()
 
 #if HAS_PROBE_GRID
 	pos_normalized.y = pow(pos_normalized.y, 1.0/uYpower);
-	ivec3 divs = uDivisions;
+	ivec3 divs = uDivisions.xyz;
 #elif HAS_LOD_PROBE_GRID
 	ivec3 divs = uBaseDivisions.xyz * (1<<uSubDivisionLevel);
 #endif
@@ -209,23 +209,47 @@ void main()
 	}
 
 	float delta0 = length(irr - lightmap_irr);
+	
+	float deltas[8];
+	int order[8];
 
+	for (int i=0; i<8; i++)
+	{
+		vec3 irr_i = irrs[i];
+		float delta =  length(irr_i - lightmap_irr);
+		int j=0;
+		for (; j<i; j++)
+		{
+			if (delta>deltas[j]) break;
+		}
+		for (int k = i; k>j; k--)
+		{
+			deltas[k] = deltas[k-1];
+			order[k] = order[k-1];
+		}
+		deltas[j] = delta;
+		order[j] = i;
+	}	
+
+	float sum_weight = 1.0;
 	uint mask = 0xFF;
 	for (int i=0; i<8; i++)
 	{
-		int x = i & 1;
-		int y = (i >> 1) & 1;
-		int z = (i >> 2) & 1;
+		int j = order[i];
+
+		int x = j & 1;
+		int y = (j >> 1) & 1;
+		int z = (j >> 2) & 1;
 
 		vec3 w = vec3(1.0) - abs(vec3(x,y,z) - frac_voxel);
 		float weight = w.x * w.y * w.z;
 		if (weight > 0.0)
 		{
-			vec3 irr_i = irrs[i];
+			vec3 irr_j = irrs[j];
 			vec3 irr1;
-			if (weight < 1.0)
+			if (weight < sum_weight)
 			{
-				irr1 = (irr - irr_i * weight)/(1.0 - weight);
+				irr1 = (irr - irr_j * weight)/(sum_weight - weight);
 			}
 			else
 			{
@@ -233,9 +257,13 @@ void main()
 			}
 
 			float delta1 = length(irr1 - lightmap_irr);
-			if (delta1 > delta0) continue;
+			if (delta1 > delta0) break;
+
+			irr -= irr_j * weight;
+			sum_weight -= weight;
+			delta0 = delta1;
 		}
-		mask = mask & (~(1<<i));
+		mask = mask & (~(1<<j));
 	}
 	imageStore(uImgProbeVis, texel_coord, uvec4(mask));	
 }

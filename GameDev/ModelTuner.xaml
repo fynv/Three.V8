@@ -19,6 +19,9 @@
                 <Button x:Name="btn_browse_lightmap" Content="Browse" Margin="5" Padding="5" Click="btn_browse_lightmap_Click"/>
             </StackPanel>
             <CheckBox x:Name="chk_is_building" VerticalAlignment="Center" Content="is building" Checked="chk_is_building_Checked" Unchecked="chk_is_building_Checked"/>
+            <!--<StackPanel Orientation="Horizontal">
+                <Button x:Name="btn_generate_lightmap_probe_vis" Content="Test" Margin="5" Padding="5" Click="btn_generate_lightmap_probe_vis_Click"/>
+            </StackPanel>-->
         </StackPanel>
     </GroupBox>
 </UserControl>

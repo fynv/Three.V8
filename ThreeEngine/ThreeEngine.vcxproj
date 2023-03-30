@@ -210,7 +210,13 @@
     <ClCompile Include="renderers\LightmapRayList.cpp" />
     <ClCompile Include="renderers\LightmapRenderTarget.cpp" />
     <ClCompile Include="renderers\ProbeRenderTarget.cpp" />
+    <ClCompile Include="renderers\routines\CompressLightmap.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="renderers\routines\CopyDepth.cpp" />
+    <ClCompile Include="renderers\routines\DecompressLightmap.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="renderers\routines\DepthOnly.cpp" />
     <ClCompile Include="renderers\routines\DirectionalShadowCast.cpp" />
     <ClCompile Include="renderers\routines\DrawFog.cpp" />
@@ -342,7 +348,9 @@
     <ClInclude Include="renderers\LightmapRayList.h" />
     <ClInclude Include="renderers\LightmapRenderTarget.h" />
     <ClInclude Include="renderers\ProbeRenderTarget.h" />
+    <ClInclude Include="renderers\routines\CompressLightmap.h" />
     <ClInclude Include="renderers\routines\CopyDepth.h" />
+    <ClInclude Include="renderers\routines\DecompressLightmap.h" />
     <ClInclude Include="renderers\routines\DepthOnly.h" />
     <ClInclude Include="renderers\routines\DirectionalShadowCast.h" />
     <ClInclude Include="renderers\routines\DrawFog.h" />

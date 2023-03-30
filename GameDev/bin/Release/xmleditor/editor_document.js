@@ -2346,6 +2346,13 @@ const model = {
             tuning_object3d(doc, obj, input);
         }
         return "";
+    },
+    
+    generate: (doc, obj, input) =>{
+        if (doc.renderer.compressLightmap(doc.scene, obj))
+        {
+            doc.renderer.decompressLightmap(doc.scene, obj);
+        }
     }
 }
 

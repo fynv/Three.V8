@@ -27,6 +27,8 @@ private:
 
 	static void UpdateLightmap(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void FilterLightmap(const v8::FunctionCallbackInfo<v8::Value>& info);
+//	static void CompressLightmap(const v8::FunctionCallbackInfo<v8::Value>& info);
+//	static void DecompressLightmap(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 	static void GetUseSSAO(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void SetUseSSAO(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
@@ -46,6 +48,8 @@ v8::Local<v8::FunctionTemplate> WrapperGLRenderer::create_template(v8::Isolate* 
 
 	templ->InstanceTemplate()->Set(isolate, "updateLightmap", v8::FunctionTemplate::New(isolate, UpdateLightmap));
 	templ->InstanceTemplate()->Set(isolate, "filterLightmap", v8::FunctionTemplate::New(isolate, FilterLightmap));
+//	templ->InstanceTemplate()->Set(isolate, "compressLightmap", v8::FunctionTemplate::New(isolate, CompressLightmap));
+//	templ->InstanceTemplate()->Set(isolate, "decompressLightmap", v8::FunctionTemplate::New(isolate, DecompressLightmap));
 
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "useSSAO").ToLocalChecked(), GetUseSSAO, SetUseSSAO);
 	
@@ -246,6 +250,28 @@ void WrapperGLRenderer::FilterLightmap(const v8::FunctionCallbackInfo<v8::Value>
 	GLTFModel* model = lctx.jobj_to_obj<GLTFModel>(info[0]);	
 	self->filterLightmap(*model->lightmap, *model->lightmap_target, model->matrixWorld);
 }
+
+#if 0
+void WrapperGLRenderer::CompressLightmap(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	GLRenderer* self = lctx.self<GLRenderer>();
+	Scene* scene = lctx.jobj_to_obj<Scene>(info[0]);
+	GLTFModel* model = lctx.jobj_to_obj<GLTFModel>(info[1]);
+	bool res = self->compressLightmap(*scene, model);
+	info.GetReturnValue().Set(v8::Boolean::New(lctx.isolate, res));
+}
+
+void WrapperGLRenderer::DecompressLightmap(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	GLRenderer* self = lctx.self<GLRenderer>();
+	Scene* scene = lctx.jobj_to_obj<Scene>(info[0]);
+	GLTFModel* model = lctx.jobj_to_obj<GLTFModel>(info[1]);
+	bool res = self->decompressLightmap(*scene, model);
+	info.GetReturnValue().Set(v8::Boolean::New(lctx.isolate, res));
+}
+#endif
 
 
 void WrapperGLRenderer::GetUseSSAO(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)

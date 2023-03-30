@@ -153,5 +153,11 @@ namespace GameDev
             fn_lightmap.Text = rel_path;
             set_lightmap();
         }
+
+        /*private void btn_generate_lightmap_probe_vis_Click(object sender, RoutedEventArgs e)
+        {
+            JObject tuning = new JObject();
+            game_player.SendMessageToUser("generate", tuning.ToString());
+        }*/
     }
 }

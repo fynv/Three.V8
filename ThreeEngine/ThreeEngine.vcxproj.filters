@@ -483,6 +483,12 @@
     <ClCompile Include="loaders\HDRImageLoader.cpp">
       <Filter>Source Files\loaders</Filter>
     </ClCompile>
+    <ClCompile Include="renderers\routines\CompressLightmap.cpp">
+      <Filter>Source Files\renderers\routines</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\routines\DecompressLightmap.cpp">
+      <Filter>Source Files\renderers\routines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -883,6 +889,12 @@
     </ClInclude>
     <ClInclude Include="loaders\HDRImageLoader.h">
       <Filter>Header Files\loaders</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\routines\DecompressLightmap.h">
+      <Filter>Header Files\renderers\routines</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\routines\CompressLightmap.h">
+      <Filter>Header Files\renderers\routines</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

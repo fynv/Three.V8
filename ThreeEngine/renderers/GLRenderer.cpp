@@ -3442,6 +3442,8 @@ bool GLRenderer::decompressLightmap(Scene& scene, GLTFModel* model)
 	params.lod_probe_grid = lights.lod_probe_grid;
 	params.light_map = model->lightmap->lightmap.get();	
 	lightmap_decompressor[idx]->decompress(params);
+
+	//bvh_renderer.filter_lightmap(*model->lightmap_target, *model->lightmap, model->matrixWorld);
 	
 	return true;
 }

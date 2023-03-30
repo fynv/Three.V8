@@ -110,7 +110,7 @@ vec2 get_mean_dis_common(in vec3 dir, int idx)
 
 int get_probe_idx(in ivec3 ipos)
 {
-	return vert.x + (vert.y + vert.z*uDivisions.y)*uDivisions.x;
+	return ipos.x + (ipos.y + ipos.z*uDivisions.y)*uDivisions.x;
 }
 
 #elif HAS_LOD_PROBE_GRID
@@ -160,9 +160,9 @@ void main()
 	vec3 size_grid = uCoverageMax.xyz - uCoverageMin.xyz;
 	vec3 pos_normalized = (pos - uCoverageMin.xyz)/size_grid;
 
-	#if HAS_PROBE_GRID
+#if HAS_PROBE_GRID
 	pos_normalized.y = pow(pos_normalized.y, 1.0/uYpower);
-	ivec3 divs = uDivisions;
+	ivec3 divs = uDivisions.xyz;
 #elif HAS_LOD_PROBE_GRID
 	ivec3 divs = uBaseDivisions.xyz * (1<<uSubDivisionLevel);
 #endif
