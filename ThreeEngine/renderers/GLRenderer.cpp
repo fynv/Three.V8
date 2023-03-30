@@ -1846,6 +1846,7 @@ void GLRenderer::_pre_render(Scene& scene)
 	lights.reflection_map = nullptr;
 	lights.environment_map = nullptr;
 	lights.probe_grid = nullptr;
+	lights.lod_probe_grid = nullptr;
 	lights.ambient_light = nullptr;
 	lights.hemisphere_light = nullptr;
 
@@ -3316,3 +3317,132 @@ void GLRenderer::filterLightmap(Lightmap& lm, LightmapRenderTarget& src, const g
 {
 	bvh_renderer.filter_lightmap(src, lm, model_mat);
 }
+
+#if 0
+bool GLRenderer::compressLightmap(Scene& scene, GLTFModel* model)
+{
+	if (model->lightmap == nullptr) return false;
+	if (model->lightmap_target == nullptr)
+	{
+		model->init_lightmap_target(this);
+	}
+
+	Lights& lights = scene.lights;
+	lights.probe_grid = nullptr;
+	lights.lod_probe_grid = nullptr;
+
+	while (scene.indirectLight)
+	{
+		{
+			ProbeGrid* probeGrid = dynamic_cast<ProbeGrid*>(scene.indirectLight);
+			if (probeGrid != nullptr)
+			{
+				probeGrid->updateConstant();
+				lights.probe_grid = probeGrid;
+				break;
+			}
+
+		}
+		{
+			LODProbeGrid* probeGrid = dynamic_cast<LODProbeGrid*>(scene.indirectLight);
+			if (probeGrid != nullptr)
+			{
+				probeGrid->updateConstant();
+				lights.lod_probe_grid = probeGrid;
+				break;
+			}
+
+		}
+		break;
+	}
+	bool has_probe_grid = lights.probe_grid != nullptr;
+	bool has_lod_probe_grid = lights.lod_probe_grid != nullptr;
+	if (!has_probe_grid && !has_lod_probe_grid) return false;
+
+	int idx = has_lod_probe_grid ? 1 : 0;
+	if (lightmap_compressor[idx] == nullptr)
+	{
+		lightmap_compressor[idx] = std::unique_ptr<CompressLightmap>(new CompressLightmap(has_probe_grid, has_lod_probe_grid));
+	}
+
+	if (model->lightmap_probe_vis == nullptr)
+	{
+		int width = model->lightmap->width;
+		int height = model->lightmap->height;
+		model->lightmap_probe_vis = std::unique_ptr<ProbeVisibilityMap>(new ProbeVisibilityMap(width, height));
+	}
+
+	uint8_t value = 255;
+	glClearTexImage(model->lightmap_probe_vis->tex->tex_id, 0, GL_RED_INTEGER, GL_UNSIGNED_BYTE, &value);
+
+	CompressLightmap::RenderParams params;
+	params.atlas = model->lightmap_target.get();
+	params.light_map = model->lightmap->lightmap.get();
+	params.probe_grid = lights.probe_grid;
+	params.lod_probe_grid = lights.lod_probe_grid;
+	params.probe_visibility_map = model->lightmap_probe_vis->tex.get();
+	lightmap_compressor[idx]->compress(params);
+
+	return true;
+}
+
+bool GLRenderer::decompressLightmap(Scene& scene, GLTFModel* model)
+{
+	if (model->lightmap == nullptr || model->lightmap_probe_vis == nullptr) return false;
+	if (model->lightmap_target == nullptr)
+	{
+		model->init_lightmap_target(this);
+	}
+
+	Lights& lights = scene.lights;
+	lights.probe_grid = nullptr;
+	lights.lod_probe_grid = nullptr;
+
+	while (scene.indirectLight)
+	{
+		{
+			ProbeGrid* probeGrid = dynamic_cast<ProbeGrid*>(scene.indirectLight);
+			if (probeGrid != nullptr)
+			{
+				probeGrid->updateConstant();
+				lights.probe_grid = probeGrid;
+				break;
+			}
+
+		}
+		{
+			LODProbeGrid* probeGrid = dynamic_cast<LODProbeGrid*>(scene.indirectLight);
+			if (probeGrid != nullptr)
+			{
+				probeGrid->updateConstant();
+				lights.lod_probe_grid = probeGrid;
+				break;
+			}
+
+		}
+		break;
+	}
+	bool has_probe_grid = lights.probe_grid != nullptr;
+	bool has_lod_probe_grid = lights.lod_probe_grid != nullptr;
+	if (!has_probe_grid && !has_lod_probe_grid) return false;
+
+	int idx = has_lod_probe_grid ? 1 : 0;
+	if (lightmap_decompressor[idx] == nullptr)
+	{
+		lightmap_decompressor[idx] = std::unique_ptr<DecompressLightmap>(new DecompressLightmap(has_probe_grid, has_lod_probe_grid));
+	}
+
+	glm::vec4 zero = { 0.0f, 0.0f, 0.0f, 0.0f };
+	glClearTexImage(model->lightmap->lightmap->tex_id, 0, GL_RGBA, GL_FLOAT, &zero);
+
+	DecompressLightmap::RenderParams params;
+	params.atlas = model->lightmap_target.get();
+	params.probe_visibility_map = model->lightmap_probe_vis->tex.get();	
+	params.probe_grid = lights.probe_grid;
+	params.lod_probe_grid = lights.lod_probe_grid;
+	params.light_map = model->lightmap->lightmap.get();	
+	lightmap_decompressor[idx]->decompress(params);
+	
+	return true;
+}
+#endif

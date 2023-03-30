@@ -31,6 +31,8 @@
 #include "renderers/routines/SceneToVolume.h"
 
 #include "renderers/routines/RasterizeAtlas.h"
+//#include "renderers/routines/CompressLightmap.h"
+//#include "renderers/routines/DecompressLightmap.h"
 
 #include "BVHRenderer.h"
 
@@ -79,6 +81,9 @@ public:
 
 	int updateLightmap(Scene& scene, Lightmap& lm, LightmapRenderTarget& src, int start_texel, int num_directions = 64, float k = 1.0f);
 	void filterLightmap(Lightmap& lm, LightmapRenderTarget& src, const glm::mat4& model_mat);
+
+//	bool compressLightmap(Scene& scene, GLTFModel* model);
+//	bool decompressLightmap(Scene& scene, GLTFModel* model);
 
 private:
 	std::unique_ptr<WeightedOIT> oit_resolvers[2];
@@ -191,6 +196,9 @@ private:
 
 	std::unique_ptr<RasterizeAtlas> atlas_rasterizer[2];
 	void rasterize_atlas_primitive(const RasterizeAtlas::RenderParams& params);
+
+//	std::unique_ptr<CompressLightmap> lightmap_compressor[2];
+//	std::unique_ptr<DecompressLightmap> lightmap_decompressor[2];
 
 	BVHRenderer bvh_renderer;		
 };

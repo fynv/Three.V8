@@ -77,6 +77,17 @@ public:
 	void GetImage(HDRImage& image);
 };
 
+#if 0
+class ProbeVisibilityMap
+{
+public:
+	ProbeVisibilityMap(int width, int height);
+
+	int width, height;
+	std::unique_ptr<GLTexture2D> tex;
+};
+#endif
+
 class Node
 {
 public:

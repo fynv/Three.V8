@@ -49,6 +49,9 @@ public:
 
 	std::unique_ptr<Lightmap> lightmap;
 	std::unique_ptr<LightmapRenderTarget> lightmap_target;
+//	std::unique_ptr<ProbeVisibilityMap> lightmap_probe_vis;
+
+	void init_lightmap_target(GLRenderer* renderer);
 	void init_lightmap(GLRenderer* renderer, int width = -1, int height = -1, float texels_per_unit = 128.0f);
 	void load_lightmap(const HDRImage& img);
 	void load_lightmap(const char* fn);

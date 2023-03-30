@@ -162,6 +162,21 @@ void Lightmap::GetImage(HDRImage& image)
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+#if 0
+ProbeVisibilityMap::ProbeVisibilityMap(int width, int height)
+	:width(width), height(height)
+{
+	tex = std::unique_ptr<GLTexture2D>(new GLTexture2D);
+	glBindTexture(GL_TEXTURE_2D, tex->tex_id);
+	glTexStorage2D(GL_TEXTURE_2D, 1, GL_R8UI, width, height);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+#endif
+
 struct ModelConst
 {
 	glm::mat4 ModelMat;

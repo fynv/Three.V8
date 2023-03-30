@@ -372,6 +372,35 @@ void GLTFModel::batch_primitives()
 
 }
 
+void GLTFModel::init_lightmap_target(GLRenderer* renderer)
+{
+	lightmap_target = std::unique_ptr<LightmapRenderTarget>(new LightmapRenderTarget);
+	lightmap_target->update_framebuffer(lightmap->width, lightmap->height);
+	renderer->rasterize_atlas(this);
+
+	std::vector<float> alpha_mask(lightmap->width * lightmap->height);
+
+	glBindTexture(GL_TEXTURE_2D, lightmap_target->m_tex_position->tex_id);
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_ALPHA, GL_FLOAT, alpha_mask.data());
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	std::vector<glm::u16vec2> lst_valid;
+	for (int i = 0; i < lightmap->width * lightmap->height; i++)
+	{
+		float f = alpha_mask[i];
+		if (f > 0.5f)
+		{
+			uint16_t x = (uint16_t)(i % lightmap->width);
+			uint16_t y = (uint16_t)(i / lightmap->width);
+			lst_valid.push_back({ x,y });
+		}
+	}
+
+	lightmap_target->count_valid = (int)lst_valid.size();
+	lightmap_target->valid_list = std::unique_ptr<TextureBuffer>(new TextureBuffer(sizeof(glm::u16vec2) * lightmap_target->count_valid, GL_RG16UI));
+	lightmap_target->valid_list->upload(lst_valid.data());
+}
+
 void GLTFModel::init_lightmap(GLRenderer* renderer, int width, int height, float texels_per_unit)
 {
 	if (lightmap == nullptr)
@@ -385,36 +414,11 @@ void GLTFModel::init_lightmap(GLRenderer* renderer, int width, int height, float
 		texels_per_unit = lightmap->texels_per_unit;
 	}	
 
-	lightmap_target = std::unique_ptr<LightmapRenderTarget>(new LightmapRenderTarget);
-	lightmap_target->update_framebuffer(width, height);
-	renderer->rasterize_atlas(this);
-
 	{
 		glm::vec4 zero = { 0.0f, 0.0f, 0.0f, 0.0f };
 		glClearTexImage(lightmap->lightmap->tex_id, 0, GL_RGBA, GL_FLOAT, &zero);
 	}
-
-	std::vector<float> alpha_mask(lightmap->width * lightmap->height);
-
-	glBindTexture(GL_TEXTURE_2D, lightmap_target->m_tex_position->tex_id);
-	glGetTexImage(GL_TEXTURE_2D, 0, GL_ALPHA, GL_FLOAT, alpha_mask.data());
-	glBindTexture(GL_TEXTURE_2D, 0);
-
-	std::vector<glm::u16vec2> lst_valid;
-	for (int i = 0; i < lightmap->width * lightmap->height; i++)
-	{		
-		float f = alpha_mask[i];
-		if (f > 0.5f)
-		{
-			uint16_t x = (uint16_t)(i % lightmap->width);
-			uint16_t y = (uint16_t)(i / lightmap->width);
-			lst_valid.push_back({ x,y });	
-		}	
-	}
-
-	lightmap_target->count_valid = (int)lst_valid.size();		
-	lightmap_target->valid_list = std::unique_ptr<TextureBuffer>(new TextureBuffer(sizeof(glm::u16vec2) * lightmap_target->count_valid, GL_RG16UI));
-	lightmap_target->valid_list->upload(lst_valid.data());
+	init_lightmap_target(renderer);	
 }
 
 #include "utils/HDRImage.h"
