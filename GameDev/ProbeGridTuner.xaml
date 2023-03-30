@@ -43,6 +43,10 @@
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="Iterations:" VerticalAlignment="Center"/>
                         <local:NumberTuner x:Name="tuner_iterations" Margin="5"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Number of rays(final iteration):" VerticalAlignment="Center"/>
+                        <local:NumberTuner x:Name="tuner_num_rays" Margin="5" VerticalAlignment="Center"/>
                         <Button x:Name="btn_start" Margin="5" Click="btn_start_Click">Start</Button>
                     </StackPanel>
                 </StackPanel>

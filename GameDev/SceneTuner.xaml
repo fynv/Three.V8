@@ -9,10 +9,16 @@
     <GroupBox Header="Scene Tuning">
         <StackPanel>
             <GroupBox Header="Lightmaps">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Iterations:" VerticalAlignment="Center"/>
-                    <local:NumberTuner x:Name="tuner_iterations" Margin="5" VerticalAlignment="Center"/>
-                    <Button x:Name="btn_bake" Margin="5" Padding="5" Click="btn_bake_Click">Bake</Button>
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Iterations:" VerticalAlignment="Center"/>
+                        <local:NumberTuner x:Name="tuner_iterations" Margin="5" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Number of rays(final iteration):" VerticalAlignment="Center"/>
+                        <local:NumberTuner x:Name="tuner_num_rays" Margin="5" VerticalAlignment="Center"/>
+                        <Button x:Name="btn_bake" Margin="5" Padding="5" Click="btn_bake_Click">Bake</Button>
+                    </StackPanel>
                 </StackPanel>
             </GroupBox>
         </StackPanel>

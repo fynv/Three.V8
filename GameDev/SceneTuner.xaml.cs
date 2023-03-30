@@ -21,12 +21,16 @@ namespace GameDev
             this.jobj = jobj;
 
             tuner_iterations.value = 6;
+            tuner_num_rays.value = 2048;
+            tuner_num_rays.step = 2;
+            tuner_num_rays.exponential = true;
         }
 
         private void btn_bake_Click(object sender, RoutedEventArgs e)
         {
             JObject tuning = new JObject();
             tuning["iterations"] = tuner_iterations.value;
+            tuning["num_rays"] = tuner_num_rays.value;
             game_player.SendMessageToUser("generate", tuning.ToString());
         }
     }

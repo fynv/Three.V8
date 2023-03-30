@@ -78,6 +78,9 @@ namespace GameDev
             }
 
             tuner_iterations.value = 6;
+            tuner_num_rays.value = 8192;
+            tuner_num_rays.step = 2;
+            tuner_num_rays.exponential = true;
         }
 
         private void load_data()
@@ -231,6 +234,7 @@ namespace GameDev
         {
             JObject tuning = new JObject();
             tuning["iterations"] = tuner_iterations.value;
+            tuning["num_rays"] = tuner_num_rays.value;
             game_player.SendMessageToUser("generate", tuning.ToString());
         }
 

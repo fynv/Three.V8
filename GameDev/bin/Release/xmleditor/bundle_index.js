@@ -4768,7 +4768,7 @@ function string_to_boolean(string) {
 
 class LightmapBaker
 {
-    constructor(doc, iterations)
+    constructor(doc, iterations, num_rays)
     {
         this.doc = doc;
         this.lst = [];
@@ -4788,6 +4788,7 @@ class LightmapBaker
         }
         
         this.iterations = iterations;
+        this.num_rays_final = num_rays;
         this.iter = 0;
         this.idx_model = 0;
         this.idx_texel = 0;
@@ -4801,22 +4802,28 @@ class LightmapBaker
             this.doc.lightmap_bake = null;
             return;
         }
-        let frame_time = now();
-        if (frame_time - this.check_time>=500)
-        {
-            print(`Building LOD Probe-Grid, iteration: ${this.iter+1}/${this.iterations}, model: ${this.idx_model+1}/${this.lst.length}, texel: ${this.idx_texel +1}`);
-            this.check_time = frame_time;
-        }
         
-        while(now()-frame_time<10)
+        let frame_time = now();
+        
+        while(this.doc.lightmap_bake != null)
         {
-            if (this.doc.lightmap_bake == null) break;
+            let cur_time = now();
+            if (cur_time -frame_time>=10) break;
+            
             let item = this.lst[this.idx_model];
             if (item.count<0)
             {
                 item.count = item.model.initializeLightmap(renderer);
             }
-            let num_rays = (64 << this.iter);
+        
+            if (cur_time - this.check_time>=500)
+            {
+                print(`Building LOD Probe-Grid, iteration: ${this.iter+1}/${this.iterations}, model: ${this.idx_model+1}/${this.lst.length}, texel: ${this.idx_texel +1}/${item.count}`);
+                this.check_time = cur_time;
+            }
+            
+            let num_rays = (this.num_rays_final >> (this.iterations - this.iter));
+            if (num_rays < 1) num_rays = 1;
             let count_texels = renderer.updateLightmap(this.doc.scene, item.model, this.idx_texel, num_rays, 1.0);
             this.idx_texel += count_texels;
             if (this.idx_texel>=item.count)
@@ -4989,7 +4996,7 @@ class EnvMapGen
 
 class GPUProbeGridBaker
 {
-    constructor(doc, proxy, xml_node, iterations)
+    constructor(doc, proxy, xml_node, iterations, num_rays)
     {
         this.doc = doc;
         this.xml_node = xml_node;
@@ -5019,6 +5026,7 @@ class GPUProbeGridBaker
         
         this.probe_idx = 0;
         this.iterations = iterations;
+        this.num_rays_final = num_rays;
         this.iter = 0;
         this.check_time = now();
     }
@@ -5036,7 +5044,7 @@ class GPUProbeGridBaker
         while(now()-frame_time<10)
         {
             if (this.doc.probe_grid_bake == null) break;
-            let num_rays = (256 << this.iter);
+            let num_rays = (this.num_rays_final >> (this.iterations -  this.iter));
             let num_probes = renderer.updateProbes(this.doc.scene, this.probe_grid, this.probe_idx, num_rays, 0.5, 1.0);
             this.probe_idx += num_probes;
             if (this.probe_idx>=this.probe_count)
@@ -5067,7 +5075,7 @@ class GPUProbeGridBaker
 
 class GPULODProbeGridBaker
 {
-    constructor(doc, proxy, xml_node, iterations)
+    constructor(doc, proxy, xml_node, iterations, num_rays)
     {
         this.doc = doc;
         this.xml_node = xml_node;
@@ -5082,6 +5090,7 @@ class GPULODProbeGridBaker
         this.probe_idx = 0;
         
         this.iterations = iterations;
+        this.num_rays_final = num_rays;
         this.iter = 0;
         this.check_time = now();
         
@@ -5100,7 +5109,7 @@ class GPULODProbeGridBaker
         while(now()-frame_time<10)
         {
             if (this.doc.lod_probe_grid_bake == null) break;
-            let num_rays = (256 << this.iter);
+            let num_rays = (this.num_rays_final >> (this.iterations -  this.iter));
             let num_probes = renderer.updateProbes(this.doc.scene, this.probe_grid, this.probe_idx, num_rays, 0.5, 1.0);
             this.probe_idx += num_probes;
             if (this.probe_idx>=this.probe_count)
@@ -6310,7 +6319,8 @@ const initialize_lod_probe_grid = (doc, obj, input) =>{
 
 const generate_lightmap = (doc, input) =>{
     let iterations = parseInt(input.iterations);
-    doc.lightmap_bake = new LightmapBaker(doc, iterations);
+    let num_rays = parseInt(input.num_rays);
+    doc.lightmap_bake = new LightmapBaker(doc, iterations, num_rays);
 };
 
 const generate_cube_env_light = (doc, obj, input) =>{
@@ -6338,7 +6348,8 @@ const generate_cube_env_light = (doc, obj, input) =>{
 const generate_probe_grid = (doc, obj, input) =>{
     let node = doc.internal_index[obj.uuid].xml_node;
     let iterations = parseInt(input.iterations);
-    doc.probe_grid_bake = new GPUProbeGridBaker(doc, obj, node, iterations);
+    let num_rays = parseInt(input.num_rays);
+    doc.probe_grid_bake = new GPUProbeGridBaker(doc, obj, node, iterations, num_rays);
 };
 
 
@@ -6346,7 +6357,8 @@ const generate_lod_probe_grid = (doc, obj, input) =>{
     initialize_lod_probe_grid(doc, obj);
     let node = doc.internal_index[obj.uuid].xml_node;
     let iterations = parseInt(input.iterations);
-    doc.lod_probe_grid_bake = new GPULODProbeGridBaker(doc, obj, node, iterations);
+    let num_rays = parseInt(input.num_rays);
+    doc.lod_probe_grid_bake = new GPULODProbeGridBaker(doc, obj, node, iterations, num_rays);
 };
 
 const env_light = {
