@@ -1623,6 +1623,7 @@ void BVHRenderer::filter_lightmap(const LightmapRenderTarget& atlas, const Light
 			params.light_map_in = lightmap.lightmap.get();
 			params.light_map_out = tmp.lightmap.get();
 			params.atlas_position = atlas.m_tex_position.get();
+			params.atlas_normal = atlas.m_tex_normal.get();
 			params.model_matrix = model_mat;
 			LightmapFiltering->filter(params);
 		}
@@ -1635,6 +1636,7 @@ void BVHRenderer::filter_lightmap(const LightmapRenderTarget& atlas, const Light
 			params.light_map_in = tmp.lightmap.get();
 			params.light_map_out = lightmap.lightmap.get();
 			params.atlas_position = atlas.m_tex_position.get();
+			params.atlas_normal = atlas.m_tex_normal.get();
 			params.model_matrix = model_mat;
 			LightmapFiltering->filter(params);
 		}

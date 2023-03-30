@@ -7,10 +7,11 @@ R"(#version 430
 
 layout (location = 0) uniform sampler2D uTexSource;
 layout (location = 1) uniform sampler2D uTexPosition;
+layout (location = 2) uniform sampler2D uTexNormal;
 layout (binding=0, rgba16f) uniform image2D uOut;
 
-layout (location = 2) uniform float uTexelSize;
-layout (location = 3) uniform mat4 uInvModelMat;
+layout (location = 3) uniform float uTexelSize;
+layout (location = 4) uniform mat4 uInvModelMat;
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
@@ -22,6 +23,8 @@ void main()
 
 	vec4 pos0 = texelFetch(uTexPosition, id, 0);
 	if (pos0.w < 0.5) return;
+
+	vec3 norm0 = texelFetch(uTexNormal, id, 0).xyz;
 
 	vec3 acc_col = vec3(0.0);
 	float acc_weight = 0.0;
@@ -36,6 +39,10 @@ void main()
 
 			float k = length(uInvModelMat * vec4(pos1.xyz - pos0.xyz, 0.0))/uTexelSize;
 			float w = pow(0.5, k);
+			if (w < 0.001) continue;
+
+			vec3 norm1 =  texelFetch(uTexNormal, id1, 0).xyz;
+			w *= clamp(dot(norm0, norm1), 0.0, 1.0);
 			if (w < 0.001) continue;
 
 			vec3 col = texelFetch(uTexSource, id1, 0).xyz;
@@ -71,12 +78,16 @@ void LightmapFilter::filter(const RenderParams& params)
 	glBindTexture(GL_TEXTURE_2D, params.atlas_position->tex_id);
 	glUniform1i(1, 1);
 
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, params.atlas_normal->tex_id);
+	glUniform1i(2, 2);
+
 	glBindImageTexture(0, params.light_map_out->tex_id, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
 
-	glUniform1f(2, params.texel_size);
+	glUniform1f(3, params.texel_size);
 
 	glm::mat4 invModel = glm::inverse(params.model_matrix);
-	glUniformMatrix4fv(3, 1, false, (float*)&invModel);
+	glUniformMatrix4fv(4, 1, false, (float*)&invModel);
 
 	glm::ivec2 blocks = { (width + 7) / 8, (height + 7) / 8 };
 	glDispatchCompute(blocks.x, blocks.y, 1);
