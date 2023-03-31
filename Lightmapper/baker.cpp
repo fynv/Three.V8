@@ -91,8 +91,7 @@ Test::Test(int width, int height)
 	model.init_lightmap(&renderer);*/
 
 	GLTFLoader::LoadModelFromFile(&model, "fireplace_room_atlas.glb");
-	scene.add(&model);
-	//model.load_lightmap("lightmap.hdr");
+	scene.add(&model);	
 	model.init_lightmap(&renderer);
 
 	ambient_dummy.set_dynamic_map(true);
@@ -162,7 +161,7 @@ void Test::Draw(int width, int height)
 		idx_texel += count;
 		if (idx_texel >= num_texels)
 		{
-			renderer.filterLightmap(lightmap, source);
+			renderer.filterLightmap(lightmap, source, model.matrixWorld);
 			idx_texel = 0;
 			iter++;
 

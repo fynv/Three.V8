@@ -264,6 +264,12 @@
     <ClInclude Include="savers\HDRImageSaver.hpp">
       <Filter>Header Files\savers</Filter>
     </ClInclude>
+    <ClInclude Include="utils\DDSImage.hpp">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="loaders\DDSImageLoader.hpp">
+      <Filter>Header Files\loaders</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="binding.cpp">

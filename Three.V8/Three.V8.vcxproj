@@ -161,6 +161,7 @@
     <ClInclude Include="lights\LODProbeGridWidget.hpp" />
     <ClInclude Include="lights\ProbeGrid.hpp" />
     <ClInclude Include="lights\ProbeGridWidget.hpp" />
+    <ClInclude Include="loaders\DDSImageLoader.hpp" />
     <ClInclude Include="loaders\FileLoader.hpp" />
     <ClInclude Include="loaders\GLTFLoader.hpp" />
     <ClInclude Include="loaders\HDRImageLoader.hpp" />
@@ -190,6 +191,7 @@
     <ClInclude Include="savers\ProbeGridSaver.hpp" />
     <ClInclude Include="scenes\Fog.hpp" />
     <ClInclude Include="scenes\Scene.hpp" />
+    <ClInclude Include="utils\DDSImage.hpp" />
     <ClInclude Include="utils\HDRImage.hpp" />
     <ClInclude Include="utils\Image.hpp" />
     <ClInclude Include="utils\Text.hpp" />

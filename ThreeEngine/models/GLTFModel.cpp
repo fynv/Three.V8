@@ -437,11 +437,16 @@ void GLTFModel::load_lightmap(const HDRImage& img)
 
 }
 
-void GLTFModel::load_lightmap(const char* fn)
+void GLTFModel::load_lightmap(const DDSImage& img)
 {
-	HDRImage img;
-	HDRImageLoader::LoadFile(&img, fn);
-	load_lightmap(img);
+	if (lightmap == nullptr)
+	{
+		lightmap = std::unique_ptr<Lightmap>(new Lightmap(img));
+	}
+	else
+	{
+		lightmap->LoadImage(img);
+	}
 }
 
 void GLTFModel::setAnimationFrame(const AnimationFrame& frame)

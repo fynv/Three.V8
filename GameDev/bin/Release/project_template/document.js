@@ -846,10 +846,22 @@ const model = {
                 if (props.hasOwnProperty('lightmap'))
                 {
                     let filename = props.lightmap;
-                    let hdr_img = HDRImageLoader.loadFile(filename);
-                    if (hdr_img!=null)
+                    let ext = filename.split('.').pop().toLowerCase();
+                    if (ext=="hdr")
                     {
-                        model.setLightmap(hdr_img);
+                        let hdr_img = HDRImageLoader.loadFile(filename);
+                        if (hdr_img!=null)
+                        {
+                            model.setLightmap(hdr_img);
+                        }
+                    }
+                    else if (ext=="dds")
+                    {
+                        let dds_img = DDSImageLoader.loadFile(filename);
+                        if (dds_img!=null)
+                        {
+                            model.setLightmap(dds_img);
+                        }
                     }
                 }
             }

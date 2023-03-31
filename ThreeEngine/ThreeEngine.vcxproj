@@ -169,6 +169,7 @@
     <ClCompile Include="lights\ProbeGrid.cpp" />
     <ClCompile Include="lights\ProbeGridWidget.cpp" />
     <ClCompile Include="lights\ProbeRayList.cpp" />
+    <ClCompile Include="loaders\DDSImageLoader.cpp" />
     <ClCompile Include="loaders\FileLoader.cpp" />
     <ClCompile Include="loaders\GLTFLoader.cpp" />
     <ClCompile Include="loaders\HDRImageLoader.cpp" />
@@ -244,6 +245,7 @@
     <ClCompile Include="savers\ProbeGridSaver.cpp" />
     <ClCompile Include="scenes\Fog.cpp" />
     <ClCompile Include="scenes\Scene.cpp" />
+    <ClCompile Include="utils\DDSImage.cpp" />
     <ClCompile Include="utils\HDRImage.cpp" />
     <ClCompile Include="utils\Image.cpp" />
     <ClCompile Include="volume\routines\DrawIsosurface.cpp" />
@@ -306,6 +308,7 @@
     <ClInclude Include="lights\ProbeGrid.h" />
     <ClInclude Include="lights\ProbeGridWidget.h" />
     <ClInclude Include="lights\ProbeRayList.h" />
+    <ClInclude Include="loaders\DDSImageLoader.h" />
     <ClInclude Include="loaders\FileLoader.h" />
     <ClInclude Include="loaders\GLTFLoader.h" />
     <ClInclude Include="loaders\HDRImageLoader.h" />
@@ -378,6 +381,7 @@
     <ClInclude Include="savers\ProbeGridSaver.h" />
     <ClInclude Include="scenes\Fog.h" />
     <ClInclude Include="scenes\Scene.h" />
+    <ClInclude Include="utils\DDSImage.h" />
     <ClInclude Include="utils\HDRImage.h" />
     <ClInclude Include="utils\Image.h" />
     <ClInclude Include="utils\Semaphore.h" />

@@ -489,6 +489,12 @@
     <ClCompile Include="renderers\routines\DecompressLightmap.cpp">
       <Filter>Source Files\renderers\routines</Filter>
     </ClCompile>
+    <ClCompile Include="utils\DDSImage.cpp">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="loaders\DDSImageLoader.cpp">
+      <Filter>Source Files\loaders</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -895,6 +901,12 @@
     </ClInclude>
     <ClInclude Include="renderers\routines\CompressLightmap.h">
       <Filter>Header Files\renderers\routines</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\DDSImage.h">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="loaders\DDSImageLoader.h">
+      <Filter>Header Files\loaders</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

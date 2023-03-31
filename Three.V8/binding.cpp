@@ -31,6 +31,7 @@ V8VM::~V8VM()
 
 #include "utils/Image.hpp"
 #include "utils/HDRImage.hpp"
+#include "utils/DDSImage.hpp"
 
 #include "core/Object3D.hpp"
 
@@ -68,6 +69,7 @@ V8VM::~V8VM()
 #include "loaders/FileLoader.hpp"
 #include "loaders/ImageLoader.hpp"
 #include "loaders/HDRImageLoader.hpp"
+#include "loaders/DDSImageLoader.hpp"
 #include "loaders/GLTFLoader.hpp"
 #include "loaders/ProbeGridLoader.hpp"
 #include "loaders/LODProbeGridLoader.hpp"
@@ -140,6 +142,7 @@ GlobalDefinitions GameContext::s_globals =
 		{ "CubeImage", WrapperCubeImage::New,  WrapperCubeImage::create_template },
 		{ "HDRImage", WrapperHDRImage::New,  WrapperHDRImage::create_template },
 		{ "HDRCubeImage", WrapperHDRCubeImage::New,  WrapperHDRCubeImage::create_template },
+		{ "DDSImage", WrapperDDSImage::New,  WrapperDDSImage::create_template },
 		{ "DirectionalLight", WrapperDirectionalLight::New, WrapperDirectionalLight::create_template },
 		{ "EnvironmentMap", WrapperEnvironmentMap::New, WrapperEnvironmentMap::create_template },
 		{ "ProbeGrid", WrapperProbeGrid::New, WrapperProbeGrid::create_template },
@@ -182,6 +185,7 @@ GlobalDefinitions GameContext::s_globals =
 		{ "fileLoader", WrapperFileLoader::create_template },
 		{ "imageLoader", WrapperImageLoader::create_template},
 		{ "HDRImageLoader", WrapperHDRImageLoader::create_template},
+		{ "DDSImageLoader", WrapperDDSImageLoader::create_template},
 		{ "gltfLoader", WrapperGLTFLoader::create_template},	
 		{ "probeGridLoader", WrapperProbeGridLoader::create_template},
 		{ "LODProbeGridLoader", WrapperLODProbeGridLoader::create_template},

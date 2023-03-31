@@ -383,9 +383,18 @@ void WrapperGLTFModel::SetLightmap(const v8::FunctionCallbackInfo<v8::Value>& in
 	LocalContext lctx(info);
 	GLTFModel* self = lctx.self<GLTFModel>();
 
-	v8::Local<v8::Object> holder_image = info[0].As<v8::Object>();
-	HDRImage* image = lctx.jobj_to_obj<HDRImage>(holder_image);
-	self->load_lightmap(*image);
+	v8::Local<v8::Object> holder_image = info[0].As<v8::Object>();	
+	std::string clsname = lctx.jstr_to_str(holder_image->GetConstructorName());
+	if (clsname == "HDRImage")
+	{
+		HDRImage* image = lctx.jobj_to_obj<HDRImage>(holder_image);
+		self->load_lightmap(*image);
+	}
+	else if (clsname == "DDSImage")
+	{
+		DDSImage* image = lctx.jobj_to_obj<DDSImage>(holder_image);
+		self->load_lightmap(*image);
+	}
 }
 
 void WrapperGLTFModel::GetLightmap(const v8::FunctionCallbackInfo<v8::Value>& info)

@@ -63,17 +63,20 @@ public:
 };
 
 class HDRImage;
+class DDSImage;
 class Lightmap
 {
 public:
 	Lightmap(int width, int height, float texels_per_unit = 128.0f);
 	Lightmap(const HDRImage& image);
+	Lightmap(const DDSImage& image);
 
 	int width, height;
 	float texels_per_unit = 128.0f;
 	std::unique_ptr<GLTexture2D> lightmap;
 
 	void LoadImage(const HDRImage& image);
+	void LoadImage(const DDSImage& image);
 	void GetImage(HDRImage& image);
 };
 

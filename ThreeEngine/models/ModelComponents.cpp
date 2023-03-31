@@ -3,6 +3,7 @@
 #include <unordered_set>
 #include "ModelComponents.h"
 #include "utils/HDRImage.h"
+#include "utils/DDSImage.h"
 
 template <typename T>
 inline glm::ivec3 t_get_indices(T* indices, int face_id)
@@ -141,10 +142,45 @@ Lightmap::Lightmap(const HDRImage& image)
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+Lightmap::Lightmap(const DDSImage& image)
+	:width(image.width()), height(image.height())
+{
+	lightmap = std::unique_ptr<GLTexture2D>(new GLTexture2D);
+
+	size_t size = DDSImage::get_size(width, height, DDSImage::Format::BC6H);
+
+	lightmap = std::unique_ptr<GLTexture2D>(new GLTexture2D);
+	glBindTexture(GL_TEXTURE_2D, lightmap->tex_id);
+	glTexStorage2D(GL_TEXTURE_2D, 1, GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT, width, height);
+	glCompressedTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT, size, image.data());
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
 void Lightmap::LoadImage(const HDRImage& image)
 {
 	glBindTexture(GL_TEXTURE_2D, lightmap->tex_id);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_FLOAT, image.data());
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void Lightmap::LoadImage(const DDSImage& image)
+{
+	if (image.format() != DDSImage::Format::BC6H) return;
+
+	size_t size = DDSImage::get_size(width, height, DDSImage::Format::BC6H);
+
+	lightmap = std::unique_ptr<GLTexture2D>(new GLTexture2D);
+	glBindTexture(GL_TEXTURE_2D, lightmap->tex_id);
+	glTexStorage2D(GL_TEXTURE_2D, 1, GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT, width, height);
+	glCompressedTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT, size, image.data());
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
