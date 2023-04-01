@@ -1,5 +1,6 @@
 #include <glm.hpp>
 #include "HDRImageLoader.h"
+#include "utils/Image.h"
 #include "utils/HDRImage.h"
 #include "utils/Utils.h"
 
@@ -107,5 +108,38 @@ void HDRImageLoader::LoadCubeFromMemory(HDRCubeImage* image,
 		LoadMemory(&image->images[3], data_yn, size_yn, false);
 		LoadMemory(&image->images[4], data_zp, size_zp, false);
 		LoadMemory(&image->images[5], data_zn, size_zn, false);
+	}
+}
+
+inline void add(int count, glm::vec3* hdr, const HDRImageLoader::Range& range, const glm::u8vec4* ldr)
+{
+	for (int i = 0; i < count; i++)
+	{
+		glm::vec3 v_hdr = hdr[i];
+		glm::u8vec3 s_ldr = ldr[i];
+		v_hdr += glm::vec3(s_ldr) / 255.0f * (range.high - range.low) + range.low;
+		hdr[i] = v_hdr;
+	}
+}
+
+
+void HDRImageLoader::FromImages(HDRImage* image, const Image** ldr, const Range* ranges, int count)
+{
+	if (count < 1) return;
+	free(image->m_buffer);
+	image->m_width = ldr[0]->width();
+	image->m_height = ldr[0]->height();
+	size_t buf_size = (size_t)image->m_width * (size_t)image->m_height * 3 * sizeof(float);
+	image->m_buffer = (float*)malloc(buf_size);
+	memset(image->m_buffer, 0, buf_size);
+
+	glm::vec3* p_out = (glm::vec3*)image->m_buffer;
+
+	for (int i = 0; i < count; i++)
+	{
+		const Image* img = ldr[i];
+		const Range& range = ranges[i];		
+		const glm::u8vec4* p_in = (const glm::u8vec4*)img->data();
+		add(image->m_width * image->m_height, p_out, range, p_in);
 	}
 }

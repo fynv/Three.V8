@@ -863,6 +863,31 @@ const model = {
                             model.setLightmap(dds_img);
                         }
                     }
+                    else if (ext=="csv")
+                    {
+                        let text = fileLoader.loadTextFile(filename);
+                        if (text!=null)
+                        {
+                            let path = filename.match(/(.*)[\/\\]/)[1]||'';
+                            let images = [];
+                            let ranges = [];
+                            let lines = text.split(/\r?\n/);
+                            for(let line of lines)
+                            {
+                                let fields = line.split(",");
+                                if (fields.length<7) continue;
+                                let fn_img = fields[0];
+                                let img = imageLoader.loadFile(path + "/" + fn_img);
+                                if (img == null) continue;
+                                let low = new Vector3(parseFloat(fields[1]), parseFloat(fields[2]), parseFloat(fields[3]));
+                                let high = new Vector3(parseFloat(fields[4]), parseFloat(fields[5]), parseFloat(fields[6]));
+                                images.push(img);
+                                ranges.push({low, high});
+                            }
+                            let hdr_img = HDRImageLoader.fromImages(images, ranges);
+                            model.setLightmap(hdr_img);
+                        }
+                    }
                 }
             }
         }

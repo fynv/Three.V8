@@ -13,6 +13,7 @@ private:
 	static void LoadMemory(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void LoadCubeFromFile(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void LoadCubeFromMemory(const v8::FunctionCallbackInfo<v8::Value>& info);
+	static void FromImages(const v8::FunctionCallbackInfo<v8::Value>& info);
 };
 
 
@@ -23,6 +24,7 @@ v8::Local<v8::ObjectTemplate> WrapperHDRImageLoader::create_template(v8::Isolate
 	templ->Set(isolate, "loadMemory", v8::FunctionTemplate::New(isolate, LoadMemory));
 	templ->Set(isolate, "loadCubeFromFile", v8::FunctionTemplate::New(isolate, LoadCubeFromFile));
 	templ->Set(isolate, "loadCubeFromMemory", v8::FunctionTemplate::New(isolate, LoadCubeFromMemory));
+	templ->Set(isolate, "fromImages", v8::FunctionTemplate::New(isolate, FromImages));
 	return templ;
 }
 
@@ -104,3 +106,34 @@ void WrapperHDRImageLoader::LoadCubeFromMemory(const v8::FunctionCallbackInfo<v8
 
 	info.GetReturnValue().Set(holder);
 }
+
+void WrapperHDRImageLoader::FromImages(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+
+	v8::Local<v8::Array> lst_images = info[0].As<v8::Array>();
+	v8::Local<v8::Array> lst_ranges = info[1].As<v8::Array>();
+
+	int count = (int)lst_images->Length();
+	std::vector<const Image*> images(count);
+	std::vector<HDRImageLoader::Range> ranges(count);
+
+	for (int i = 0; i < count; i++)
+	{
+		Image* img = lctx.jobj_to_obj<Image>(lst_images->Get(lctx.context, i).ToLocalChecked());
+		images[i] = img;
+		v8::Local<v8::Object> j_range = lst_ranges->Get(lctx.context, i).ToLocalChecked().As<v8::Object>();
+		v8::Local<v8::Value> j_low = lctx.get_property(j_range, "low");
+		v8::Local<v8::Value> j_high = lctx.get_property(j_range, "high");
+		HDRImageLoader::Range range;
+		lctx.jvec3_to_vec3(j_low, range.low);
+		lctx.jvec3_to_vec3(j_high, range.high);		
+		ranges[i] = range;
+	}
+
+	v8::Local<v8::Object> holder = lctx.instantiate("HDRImage");
+	HDRImage* self = lctx.jobj_to_obj<HDRImage>(holder);	
+	HDRImageLoader::FromImages(self, images.data(), ranges.data(), count);	
+	info.GetReturnValue().Set(holder);
+}
+
