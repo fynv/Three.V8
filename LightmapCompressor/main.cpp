@@ -88,9 +88,6 @@ int main(int argc, char* argv[])
 		mode = argv[3];
 	}
 
-	std::vector<std::string> filenames;
-	std::vector<Range> ranges;	
-
 	int width;
 	int height;
 	int chn;
@@ -100,6 +97,9 @@ int main(int argc, char* argv[])
 
 	if (mode == "jpeg")
 	{
+
+		std::vector<std::string> filenames;
+		std::vector<Range> ranges;
 
 		int max_level = 5;
 
