@@ -125,8 +125,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>../thirdparty/glew/lib; ../thirdparty/glfw/lib; ../thirdparty/draco/lib;../thirdparty/portaudio/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glew.lib;glfw3.lib; opengl32.lib; draco.lib;portaudio.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../thirdparty/glew/lib;../thirdparty/glfw/lib;../thirdparty/draco/lib;../thirdparty/portaudio/lib;../thirdparty/webp/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glew.lib;glfw3.lib;opengl32.lib;draco.lib;portaudio.lib;libsharpyuv.lib;libwebp.lib;libwebpdecoder.lib;libwebpdemux.lib;libwebpmux.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

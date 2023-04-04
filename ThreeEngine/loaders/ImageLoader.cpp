@@ -1,8 +1,10 @@
+#include <vector>
 #include "ImageLoader.h"
 #include "utils/Image.h"
 #include "utils/Utils.h"
-
 #include "stb_image.h"
+
+#include "webp/decode.h"
 
 void ImageLoader::s_flip_x(uint8_t* data, int width, int height)
 {
@@ -30,12 +32,32 @@ void ImageLoader::LoadFile(Image* image, const char* fn, bool flip_x)
 
 	free(image->m_buffer);
 
-	int chn;
-	stbi_uc* rgba = stbi_load(fn, &image->m_width, &image->m_height, &chn, 4);	
-	size_t buf_size = (size_t)image->m_width * (size_t)image->m_height * 4;
-	image->m_buffer = (uint8_t*)malloc(buf_size);
-	memcpy(image->m_buffer, rgba, buf_size);
-	stbi_image_free(rgba);
+	std::string filename = fn;
+	if (filename.substr(filename.find_last_of(".") + 1) == "webp")
+	{
+		FILE* fp = fopen(fn, "rb");
+		fseek(fp, 0, SEEK_END);
+		size_t size = (size_t)ftell(fp);
+		fseek(fp, 0, SEEK_SET);
+		std::vector<uint8_t> data(size);
+		fread(data.data(), 1, size, fp);
+		fclose(fp);
+
+		uint8_t* rgba = WebPDecodeRGBA(data.data(), data.size(), &image->m_width, &image->m_height);
+		size_t buf_size = (size_t)image->m_width * (size_t)image->m_height * 4;
+		image->m_buffer = (uint8_t*)malloc(buf_size);
+		memcpy(image->m_buffer, rgba, buf_size);
+		WebPFree(rgba);
+	}
+	else
+	{
+		int chn;
+		stbi_uc* rgba = stbi_load(fn, &image->m_width, &image->m_height, &chn, 4);
+		size_t buf_size = (size_t)image->m_width * (size_t)image->m_height * 4;
+		image->m_buffer = (uint8_t*)malloc(buf_size);
+		memcpy(image->m_buffer, rgba, buf_size);
+		stbi_image_free(rgba);
+	}
 
 	if (flip_x)
 	{
@@ -61,6 +83,21 @@ void ImageLoader::LoadMemory(Image* image, unsigned char* data, size_t size, boo
 
 }
 
+void ImageLoader::LoadMemoryWebp(Image* image, unsigned char* data, size_t size, bool flip_x)
+{
+	free(image->m_buffer);
+
+	uint8_t* rgba = WebPDecodeRGBA(data, size, &image->m_width, &image->m_height);
+	size_t buf_size = (size_t)image->m_width * (size_t)image->m_height * 4;
+	image->m_buffer = (uint8_t*)malloc(buf_size);
+	memcpy(image->m_buffer, rgba, buf_size);
+	WebPFree(rgba);
+
+	if (flip_x)
+	{
+		s_flip_x(image->m_buffer, image->m_width, image->m_height);
+	}
+}
 
 void ImageLoader::LoadCubeFromFile(CubeImage* image, const char* fn_xp, const char* fn_xn, 
 	const char* fn_yp, const char* fn_yn, const char* fn_zp, const char* fn_zn, bool flip_x)

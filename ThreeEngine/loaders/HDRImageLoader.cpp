@@ -143,3 +143,31 @@ void HDRImageLoader::FromImages(HDRImage* image, const Image** ldr, const Range*
 		add(image->m_width * image->m_height, p_out, range, p_in);
 	}
 }
+
+void HDRImageLoader::FromRGBM(HDRImage* image, const Image* rgbm, float rate)
+{
+	free(image->m_buffer);
+	image->m_width = rgbm->width();
+	image->m_height = rgbm->height();
+	size_t buf_size = (size_t)image->m_width * (size_t)image->m_height * 3 * sizeof(float);
+	image->m_buffer = (float*)malloc(buf_size);
+
+	const glm::u8vec4* p_rgbm = (const glm::u8vec4*)rgbm->data();
+	glm::vec3* p_hdr = (glm::vec3*)image->m_buffer;
+	for (int i = 0; i < image->m_width * image->m_height; i++)
+	{
+		glm::vec4 f_rgbm = glm::vec4(p_rgbm[i]) / 255.0f;
+		p_hdr[i] = glm::vec3(f_rgbm) * f_rgbm.w * rate;
+	}
+}
+
+void HDRImageLoader::FromRGBM(HDRCubeImage* image, const CubeImage* rgbm, float rate)
+{
+	FromRGBM(&image->images[0], &rgbm->images[0], rate);
+	FromRGBM(&image->images[1], &rgbm->images[1], rate);
+	FromRGBM(&image->images[2], &rgbm->images[2], rate);
+	FromRGBM(&image->images[3], &rgbm->images[3], rate);
+	FromRGBM(&image->images[4], &rgbm->images[4], rate);
+	FromRGBM(&image->images[5], &rgbm->images[5], rate);
+
+}

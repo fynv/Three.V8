@@ -137,7 +137,7 @@ namespace GameDev
         private void btn_browse_lightmap_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new OpenFileDialog();
-            dialog.Filter = "HDR Image(*.hdr)|*.hdr|DDS Image(*.dds)|*.dds|List(*.csv)|*.csv";
+            dialog.Filter = "HDR Image(*.hdr)|*.hdr|DDS Image(*.dds)|*.dds|List(*.csv)|*.csv|RGBM(*.webp,*.png)|*.webp;*.png";
             if (dialog.ShowDialog() != true) return;
 
             var mainwnd = Window.GetWindow(Application.Current.MainWindow) as MainWindow;

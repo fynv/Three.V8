@@ -4,6 +4,7 @@
 #include <cstdint>
 
 class Image;
+class CubeImage;
 class HDRImage;
 class HDRCubeImage;
 class HDRImageLoader
@@ -28,5 +29,8 @@ public:
 		glm::vec3 high;
 	};
 	static void FromImages(HDRImage* image, const Image** ldr, const Range* ranges, int count);
+
+	static void FromRGBM(HDRImage* image, const Image* rgbm, float rate);
+	static void FromRGBM(HDRCubeImage* image, const CubeImage* rgbm, float rate);
 };
 

@@ -34,6 +34,7 @@ The Windows implementation requires Visual Studio 2022 to be built, becuase:
 * [openssl](https://www.nuget.org/packages/openssl): For https.
 * [nanovg](https://github.com/memononen/nanovg): For embedded GUI subsystem.
 * [stb_image](https://github.com/nothings/stb): For loading images.
+* [libwebp](https://github.com/webmproject/libwebp): For loading webp images
 * [glm](https://github.com/g-truc/glm): For geometry maths.
 * [glew](https://github.com/nigels-com/glew): For OpenGL Wrangling.
 * [bvh](https://github.com/madmann91/bvh): For acceleration of ray-casting.

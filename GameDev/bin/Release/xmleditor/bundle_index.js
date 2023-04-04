@@ -6797,6 +6797,15 @@ const model = {
                             model.setLightmap(dds_img);
                         }
                     }
+                    else if (ext=="png" || ext == "webp")
+                    {
+                        let img = imageLoader.loadFile(filename);
+                        if (img!=null)
+                        {
+                            let hdr_img = HDRImageLoader.fromRGBM(img);
+                            model.setLightmap(hdr_img);
+                        }
+                    }
                     else if (ext=="csv")
                     {
                         let text = fileLoader.loadTextFile(filename);
@@ -6907,6 +6916,15 @@ const model = {
                         if (dds_img!=null)
                         {
                             obj.setLightmap(dds_img);
+                        }
+                    }
+                    else if (ext=="png" || ext == "webp")
+                    {
+                        let img = imageLoader.loadFile(filename);
+                        if (img!=null)
+                        {
+                            let hdr_img = HDRImageLoader.fromRGBM(img);
+                            obj.setLightmap(hdr_img);
                         }
                     }
                     else if (ext=="csv")

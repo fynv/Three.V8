@@ -14,6 +14,7 @@ private:
 	static void LoadCubeFromFile(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void LoadCubeFromMemory(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void FromImages(const v8::FunctionCallbackInfo<v8::Value>& info);
+	static void FromRGBM(const v8::FunctionCallbackInfo<v8::Value>& info);
 };
 
 
@@ -25,6 +26,7 @@ v8::Local<v8::ObjectTemplate> WrapperHDRImageLoader::create_template(v8::Isolate
 	templ->Set(isolate, "loadCubeFromFile", v8::FunctionTemplate::New(isolate, LoadCubeFromFile));
 	templ->Set(isolate, "loadCubeFromMemory", v8::FunctionTemplate::New(isolate, LoadCubeFromMemory));
 	templ->Set(isolate, "fromImages", v8::FunctionTemplate::New(isolate, FromImages));
+	templ->Set(isolate, "fromRGBM", v8::FunctionTemplate::New(isolate, FromRGBM));
 	return templ;
 }
 
@@ -137,3 +139,35 @@ void WrapperHDRImageLoader::FromImages(const v8::FunctionCallbackInfo<v8::Value>
 	info.GetReturnValue().Set(holder);
 }
 
+void WrapperHDRImageLoader::FromRGBM(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	
+	float rate = 16.0f;
+	if (info.Length() > 1)
+	{
+		lctx.jnum_to_num(info[1], rate);
+	}
+
+	v8::Local<v8::Object> holder_img = info[0].As<v8::Object>();
+	std::string clsname = lctx.jstr_to_str(holder_img->GetConstructorName());
+
+	if (clsname == "Image")
+	{
+		Image* img = lctx.jobj_to_obj<Image>(holder_img);
+		
+		v8::Local<v8::Object> holder = lctx.instantiate("HDRImage");
+		HDRImage* self = lctx.jobj_to_obj<HDRImage>(holder);
+		HDRImageLoader::FromRGBM(self, img, rate);
+		info.GetReturnValue().Set(holder);
+	}
+	else if (clsname == "CubeImage")
+	{
+		CubeImage* img = lctx.jobj_to_obj<CubeImage>(holder_img);
+
+		v8::Local<v8::Object> holder = lctx.instantiate("HDRCubeImage");
+		HDRCubeImage* self = lctx.jobj_to_obj<HDRCubeImage>(holder);
+		HDRImageLoader::FromRGBM(self, img, rate);
+		info.GetReturnValue().Set(holder);
+	}
+}
