@@ -20,5 +20,10 @@ public:
 		unsigned char* data_xp, size_t size_xp, unsigned char* data_xn, size_t size_xn,
 		unsigned char* data_yp, size_t size_yp, unsigned char* data_yn, size_t size_yn,
 		unsigned char* data_zp, size_t size_zp, unsigned char* data_zn, size_t size_zn, bool flip_x = true);
+
+	static void LoadCubeFromMemoryWebp(CubeImage* image,
+		unsigned char* data_xp, size_t size_xp, unsigned char* data_xn, size_t size_xn,
+		unsigned char* data_yp, size_t size_yp, unsigned char* data_yn, size_t size_yn,
+		unsigned char* data_zp, size_t size_zp, unsigned char* data_zn, size_t size_zn, bool flip_x = true);
 };
 

@@ -146,3 +146,28 @@ void ImageLoader::LoadCubeFromMemory(CubeImage* image,
 		LoadMemory(&image->images[5], data_zn, size_zn, false);
 	}
 }
+
+void ImageLoader::LoadCubeFromMemoryWebp(CubeImage* image,
+	unsigned char* data_xp, size_t size_xp, unsigned char* data_xn, size_t size_xn,
+	unsigned char* data_yp, size_t size_yp, unsigned char* data_yn, size_t size_yn,
+	unsigned char* data_zp, size_t size_zp, unsigned char* data_zn, size_t size_zn, bool flip_x)
+{
+	if (flip_x)
+	{
+		LoadMemoryWebp(&image->images[1], data_xp, size_xp, true);
+		LoadMemoryWebp(&image->images[0], data_xn, size_xn, true);
+		LoadMemoryWebp(&image->images[2], data_yp, size_yp, true);
+		LoadMemoryWebp(&image->images[3], data_yn, size_yn, true);
+		LoadMemoryWebp(&image->images[4], data_zp, size_zp, true);
+		LoadMemoryWebp(&image->images[5], data_zn, size_zn, true);
+	}
+	else
+	{
+		LoadMemoryWebp(&image->images[0], data_xp, size_xp, false);
+		LoadMemoryWebp(&image->images[1], data_xn, size_xn, false);
+		LoadMemoryWebp(&image->images[2], data_yp, size_yp, false);
+		LoadMemoryWebp(&image->images[3], data_yn, size_yn, false);
+		LoadMemoryWebp(&image->images[4], data_zp, size_zp, false);
+		LoadMemoryWebp(&image->images[5], data_zn, size_zn, false);
+	}
+}
