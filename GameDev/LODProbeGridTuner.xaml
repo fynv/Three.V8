@@ -39,6 +39,7 @@
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="Normal Bias:" VerticalAlignment="Center"/>
                 <local:NumberTuner x:Name="tuner_normal_bias" Margin="5" ValueChanged="tuner_normal_bias_ValueChanged"/>
+                <CheckBox x:Name="chk_per_primitive" VerticalAlignment="Center" Content="Per-primitive interpolation" Checked="chk_per_primitive_Checked" Unchecked="chk_per_primitive_Checked"/>
             </StackPanel>
             <GroupBox Header="Baking">
                 <StackPanel>

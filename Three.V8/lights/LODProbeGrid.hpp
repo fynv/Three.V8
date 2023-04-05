@@ -30,6 +30,9 @@ public:
 	static void GetNormalBias(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void SetNormalBias(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
 
+	static void GetPerPrimitive(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
+	static void SetPerPrimitive(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
+
 	static void Initialize(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void ConstructVisibility(const v8::FunctionCallbackInfo<v8::Value>& info);
 
@@ -57,6 +60,8 @@ v8::Local<v8::FunctionTemplate> WrapperLODProbeGrid::create_template(v8::Isolate
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "numberOfProbes").ToLocalChecked(), GetNumberOfProbes, 0);
 
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "normalBias").ToLocalChecked(), GetNormalBias, SetNormalBias);
+
+	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "perPrimitive").ToLocalChecked(), GetPerPrimitive, SetPerPrimitive);
 
 	templ->InstanceTemplate()->Set(isolate, "initialize", v8::FunctionTemplate::New(isolate, Initialize));
 	templ->InstanceTemplate()->Set(isolate, "constructVisibility", v8::FunctionTemplate::New(isolate, ConstructVisibility));
@@ -223,6 +228,21 @@ void WrapperLODProbeGrid::SetNormalBias(v8::Local<v8::String> property, v8::Loca
 	LocalContext lctx(info);
 	LODProbeGrid* self = lctx.self<LODProbeGrid>();
 	lctx.jnum_to_num(value, self->normal_bias);
+}
+
+
+void WrapperLODProbeGrid::GetPerPrimitive(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	LODProbeGrid* self = lctx.self<LODProbeGrid>();
+	info.GetReturnValue().Set(v8::Boolean::New(lctx.isolate, self->per_primitive));
+}
+
+void WrapperLODProbeGrid::SetPerPrimitive(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
+{
+	LocalContext lctx(info);
+	LODProbeGrid* self = lctx.self<LODProbeGrid>();
+	self->per_primitive = value.As<v8::Boolean>()->Value();
 }
 
 void WrapperLODProbeGrid::ConstructVisibility(const v8::FunctionCallbackInfo<v8::Value>& info)

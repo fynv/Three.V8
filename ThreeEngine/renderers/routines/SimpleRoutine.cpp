@@ -1430,7 +1430,14 @@ void SimpleRoutine::_render_common(const RenderParams& params)
 
 	if (m_options.has_environment_map)
 	{
-		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_environment_map, params.lights->environment_map->m_constant.m_id);
+		if (params.lights->environment_map != nullptr)
+		{
+			glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_environment_map, params.lights->environment_map->m_constant.m_id);
+		}
+		else if (params.primitive->envMap != nullptr)
+		{
+			glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_environment_map, params.primitive->envMap->m_constant.m_id);
+		}
 	}
 
 	if (m_options.has_probe_grid)

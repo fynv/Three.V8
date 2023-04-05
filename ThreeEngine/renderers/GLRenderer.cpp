@@ -271,9 +271,25 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 		options.has_probe_grid = lights->probe_grid != nullptr;
 		if (options.has_probe_grid)
 		{
-			options.probe_reference_recorded = lights->probe_grid->record_references;
+			if (lights->probe_grid->per_primitive)
+			{
+				options.has_probe_grid = false;
+				options.has_environment_map = true;
+			}
+			else
+			{
+				options.probe_reference_recorded = lights->probe_grid->record_references;
+			}
 		}
 		options.has_lod_probe_grid = lights->lod_probe_grid != nullptr;
+		if (options.has_lod_probe_grid)
+		{
+			if (lights->lod_probe_grid->per_primitive)
+			{
+				options.has_lod_probe_grid = false;
+				options.has_environment_map = true;
+			}
+		}
 		options.has_ambient_light = lights->ambient_light != nullptr;
 		options.has_hemisphere_light = lights->hemisphere_light != nullptr;
 		options.use_ssao = m_use_ssao;
@@ -858,9 +874,25 @@ void GLRenderer::render_primitive_simple(const SimpleRoutine::RenderParams& para
 		options.has_probe_grid = lights->probe_grid != nullptr;
 		if (options.has_probe_grid)
 		{
-			options.probe_reference_recorded = lights->probe_grid->record_references;
+			if (lights->probe_grid->per_primitive)
+			{
+				options.has_probe_grid = false;
+				options.has_environment_map = true;
+			}
+			else
+			{
+				options.probe_reference_recorded = lights->probe_grid->record_references;
+			}
 		}
 		options.has_lod_probe_grid = lights->lod_probe_grid != nullptr;
+		if (options.has_lod_probe_grid)
+		{
+			if (lights->lod_probe_grid->per_primitive)
+			{
+				options.has_lod_probe_grid = false;
+				options.has_environment_map = true;
+			}
+		}
 		options.has_ambient_light = lights->ambient_light != nullptr;
 		options.has_hemisphere_light = lights->hemisphere_light != nullptr;
 	}
@@ -1904,6 +1936,104 @@ void GLRenderer::_pre_render(Scene& scene)
 			}
 		}
 		break;
+	}
+
+	if (lights.probe_grid != nullptr && lights.probe_grid->per_primitive)
+	{
+		for (size_t i_model = 0; i_model < scene.simple_models.size(); i_model++)
+		{
+			SimpleModel* model = scene.simple_models[i_model];
+			Primitive* prim = &model->geometry;
+			if (prim->envMap == nullptr)
+			{
+				prim->envMap = std::unique_ptr<EnvironmentMap>(new EnvironmentMap);
+			}
+
+			glm::vec3 position = (prim->min_pos + prim->max_pos) * 0.5f;
+			position = glm::vec3(model->matrixWorld * glm::vec4(position, 1.0f));
+			lights.probe_grid->get_probe(position, *prim->envMap);			
+		}
+
+		for (size_t i_model = 0; i_model < scene.gltf_models.size(); i_model++)
+		{
+			GLTFModel* model = scene.gltf_models[i_model];
+			if (model->batched_mesh != nullptr) continue;
+
+			for (size_t i = 0; i < model->m_meshs.size(); i++)
+			{
+				Mesh& mesh = model->m_meshs[i];
+				glm::mat4 matrix = model->matrixWorld;
+				if (mesh.node_id >= 0 && mesh.skin_id < 0)
+				{
+					Node& node = model->m_nodes[mesh.node_id];
+					matrix *= node.g_trans;
+				}
+
+				for (size_t j = 0; j < mesh.primitives.size(); j++)
+				{
+					Primitive& primitive = mesh.primitives[j];
+					if (primitive.envMap == nullptr)
+					{
+						primitive.envMap = std::unique_ptr<EnvironmentMap>(new EnvironmentMap);
+					}
+					glm::vec3 position = (primitive.min_pos + primitive.max_pos) * 0.5f;
+					position = glm::vec3(matrix * glm::vec4(position, 1.0f));
+					lights.probe_grid->get_probe(position, *primitive.envMap);
+
+				}
+
+			}
+
+		}
+
+
+	}
+
+	if (lights.lod_probe_grid != nullptr && lights.lod_probe_grid->per_primitive)
+	{
+		for (size_t i_model = 0; i_model < scene.simple_models.size(); i_model++)
+		{
+			SimpleModel* model = scene.simple_models[i_model];
+			Primitive* prim = &model->geometry;
+			if (prim->envMap == nullptr)
+			{
+				prim->envMap = std::unique_ptr<EnvironmentMap>(new EnvironmentMap);
+			}
+
+			glm::vec3 position = (prim->min_pos + prim->max_pos) * 0.5f;
+			position = glm::vec3(model->matrixWorld * glm::vec4(position, 1.0f));
+			lights.lod_probe_grid->get_probe(position, *prim->envMap);
+		}
+
+		for (size_t i_model = 0; i_model < scene.gltf_models.size(); i_model++)
+		{
+			GLTFModel* model = scene.gltf_models[i_model];
+			if (model->batched_mesh != nullptr) continue;
+
+			for (size_t i = 0; i < model->m_meshs.size(); i++)
+			{
+				Mesh& mesh = model->m_meshs[i];
+				glm::mat4 matrix = model->matrixWorld;
+				if (mesh.node_id >= 0 && mesh.skin_id < 0)
+				{
+					Node& node = model->m_nodes[mesh.node_id];
+					matrix *= node.g_trans;
+				}
+
+				for (size_t j = 0; j < mesh.primitives.size(); j++)
+				{
+					Primitive& primitive = mesh.primitives[j];
+					if (primitive.envMap == nullptr)
+					{
+						primitive.envMap = std::unique_ptr<EnvironmentMap>(new EnvironmentMap);
+					}
+					glm::vec3 position = (primitive.min_pos + primitive.max_pos) * 0.5f;
+					position = glm::vec3(matrix * glm::vec4(position, 1.0f));
+					lights.lod_probe_grid->get_probe(position, *primitive.envMap);
+
+				}
+			}
+		}
 	}
 }
 

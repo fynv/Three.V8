@@ -637,3 +637,63 @@ void ProbeGrid::download_probes()
 
 	updated = false;
 }
+
+void ProbeGrid::get_probe(const glm::vec3& position, EnvironmentMap& envMap) const
+{
+	glm::vec3 size_grid = coverage_max - coverage_min;
+	glm::vec3 pos_normalized = (position - coverage_min) / size_grid;
+	pos_normalized.y = powf(pos_normalized.y, 1.0f / ypower);
+	glm::vec3 pos_voxel = pos_normalized * glm::vec3(divisions) - 0.5f;
+	pos_voxel = glm::clamp(pos_voxel, glm::vec3(0.0f), glm::vec3(divisions) - 1.0f);
+
+	glm::ivec3 i_voxel = glm::clamp(glm::ivec3(pos_voxel), glm::ivec3(0), glm::ivec3(divisions) - glm::ivec3(2));
+	glm::vec3 frac_voxel = pos_voxel - glm::vec3(i_voxel);
+
+	float sum_weight = 0.0f;
+	glm::vec4 sumSH[9];
+	for (int i = 0; i < 9; i++)
+	{
+		sumSH[i] = glm::vec4(0.0f);
+	}
+
+	for (int z = 0; z < 2; z++)
+	{
+		for (int y = 0; y < 2; y++)
+		{
+			for (int x = 0; x < 2; x++)
+			{
+				glm::vec3 w = glm::vec3(1.0f) - glm::abs(glm::vec3(x, y, z) - frac_voxel);
+				float weight = w.x * w.y * w.z;
+				if (weight > 0.0f)
+				{
+					sum_weight += weight;
+
+					glm::ivec3 vert = i_voxel + glm::ivec3(x, y, z);
+					int idx = vert.x + (vert.y + vert.z * divisions.y) * divisions.x;
+					const glm::vec4* p_sh = m_probe_data.data() + idx * 9;
+					for (int i = 0; i < 9; i++)
+					{
+						sumSH[i] += p_sh[i] * weight;
+					}
+				}
+			}
+		}
+	}
+
+	if (sum_weight > 0.0f)
+	{
+		for (int i = 0; i < 9; i++)
+		{
+			envMap.shCoefficients[i] = sumSH[i] / sum_weight;
+		}		
+	}
+	else
+	{
+		memset(envMap.shCoefficients, 0, sizeof(glm::vec4) * 9);
+	}
+	
+	envMap.updateConstant();
+}
+
+
+

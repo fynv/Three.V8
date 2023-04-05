@@ -313,6 +313,10 @@ class ProbeGridBaker
         {
             this.probe_grid.normalBias = parseFloat(props.normal_bias);
         }
+        if (props.hasOwnProperty('per_primitive'))
+        {
+            this.probe_grid.perPrimitive = string_to_boolean(props.per_primitive);
+        }
         this.doc.scene.indirectLight = this.probe_grid;
         
         let divisions = this.probe_grid.divisions;
@@ -507,6 +511,10 @@ class GPUProbeGridBaker
         if (props.hasOwnProperty('normal_bias'))
         {
             this.probe_grid.normalBias = parseFloat(props.normal_bias);
+        }
+        if (props.hasOwnProperty('per_primitive'))
+        {
+            this.probe_grid.perPrimitive = string_to_boolean(props.per_primitive);
         }
         this.doc.scene.indirectLight = this.probe_grid;
         
@@ -1300,6 +1308,11 @@ const create_probe_grid = (doc, props) => {
         probe_grid.normalBias = parseFloat(props.normal_bias);
     }
     
+    if (props.hasOwnProperty('per_primitive'))
+    {
+        probe_grid.perPrimitive =string_to_boolean(props.per_primitive);
+    }
+    
     doc.scene.indirectLight = probe_grid;
     
     return proxy;
@@ -1362,6 +1375,11 @@ const create_lod_probe_grid = (doc, props) => {
     if (props.hasOwnProperty('normal_bias'))
     {
         probe_grid.normalBias = parseFloat(props.normal_bias);
+    }
+    
+    if (props.hasOwnProperty('per_primitive'))
+    {
+        probe_grid.perPrimitive =string_to_boolean(props.per_primitive);
     }
     
     doc.scene.indirectLight = probe_grid;
@@ -1668,6 +1686,12 @@ const tuning_probe_grid =  (doc, obj, input) =>{
         doc.scene.indirectLight.normalBias = parseFloat(input.normal_bias);
     }
     
+    if ("per_primitive" in input)
+    {
+        props.per_primitive = input.per_primitive;
+        doc.scene.indirectLight.perPrimitive =string_to_boolean(input.per_primitive);
+    }
+    
     if ("auto_area" in input)
     {
         let aabb = doc.scene.getBoundingBox();
@@ -1765,6 +1789,12 @@ const tuning_lod_probe_grid =  (doc, obj, input) =>{
     {
         props.normal_bias = input.normal_bias;
         obj.probeGrid.normalBias = parseFloat(input.normal_bias);
+    }
+    
+    if ("per_primitive" in input)
+    {
+        props.per_primitive = input.per_primitive;
+        obj.probeGrid.perPrimitive =string_to_boolean(input.per_primitive);
     }
     
     if ("auto_area" in input)

@@ -666,6 +666,11 @@ const env_light = {
                 probe_grid.normalBias = parseFloat(props.normal_bias);
             }
             
+            if (props.hasOwnProperty('per_primitive'))
+            {
+                probe_grid.perPrimitive =string_to_boolean(props.per_primitive);
+            }
+            
             if (props.hasOwnProperty('auto_update') )
             {
                 doc.probeUpdater = new ProbeUpdater(doc, probe_grid);
@@ -708,6 +713,11 @@ const env_light = {
             if (props.hasOwnProperty('normal_bias'))
             {
                 probe_grid.normalBias = parseFloat(props.normal_bias);
+            }
+            
+            if (props.hasOwnProperty('per_primitive'))
+            {
+                probe_grid.perPrimitive =string_to_boolean(props.per_primitive);
             }
             doc.scene.indirectLight = probe_grid;
         }

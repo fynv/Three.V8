@@ -6,6 +6,7 @@
 #include "lights/IndirectLight.h"
 
 class Scene;
+class EnvironmentMap;
 class ProbeGrid : public IndirectLight
 {
 public:
@@ -44,6 +45,9 @@ public:
 
 	bool updated = false;
 	void download_probes();
+
+	bool per_primitive = false;
+	void get_probe(const glm::vec3& position, EnvironmentMap& envMap) const;
 
 private:
 	void _presample_irradiance();

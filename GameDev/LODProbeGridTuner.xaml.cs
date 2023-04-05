@@ -17,6 +17,7 @@ namespace GameDev
     {
         private CGamePlayer game_player = null;
         private JObject jobj = null;
+        private bool initialized = false;
 
         public LODProbeGridTuner(CGamePlayer game_player, JObject jobj)
         {
@@ -77,10 +78,18 @@ namespace GameDev
                 tuner_normal_bias.value = float.Parse(att["normal_bias"].ToString());
             }
 
+            if (att.ContainsKey("per_primitive"))
+            {
+                bool per_primitive = att["per_primitive"].ToObject<bool>();
+                chk_per_primitive.IsChecked = per_primitive;
+            }
+
             tuner_iterations.value = 6;
             tuner_num_rays.value = 8192;
             tuner_num_rays.step = 2;
             tuner_num_rays.exponential = true;
+
+            initialized = true;
         }
 
         private void load_data()
@@ -275,6 +284,21 @@ namespace GameDev
             {
                 att["sub_division_level"] = ret["sub_division_level"];
                 tuner_sub_div.value = float.Parse(ret["sub_division_level"].ToString());
+            }
+        }
+
+        private void chk_per_primitive_Checked(object sender, RoutedEventArgs e)
+        {
+            if (initialized)
+            {
+                JObject tuning = new JObject();
+                tuning["per_primitive"] = $"{chk_per_primitive.IsChecked == true}";
+
+                var att = (JObject)jobj["attributes"];
+                att["per_primitive"] = tuning["per_primitive"];
+
+                game_player.SendMessageToUser("tuning", tuning.ToString());
+
             }
         }
     }

@@ -6,6 +6,7 @@
 #include <gtx/quaternion.hpp>
 #include "renderers/GLUtils.h"
 #include "core/CWBVH.h"
+#include "lights/EnvironmentMap.h"
 
 typedef std::unique_ptr<GLBuffer> Attribute;
 
@@ -60,6 +61,8 @@ public:
 	std::unique_ptr<CWBVH> cwbvh;
 
 	Attribute lightmap_uv_buf;
+
+	std::unique_ptr<EnvironmentMap> envMap;
 };
 
 class HDRImage;

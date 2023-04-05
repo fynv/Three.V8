@@ -1448,3 +1448,92 @@ void LODProbeGrid::download_probes()
 	}
 	updated = false;
 }
+
+int LODProbeGrid::get_probe_idx(const glm::ivec3& ipos) const
+{
+	int base_offset = base_divisions.x * base_divisions.y * base_divisions.z;
+
+	glm::ivec3 ipos_base = ipos / (1 << sub_division_level);
+	int node_idx = ipos_base.x + (ipos_base.y + ipos_base.z * base_divisions.y) * base_divisions.x;
+	int probe_idx = m_sub_index[node_idx];
+
+	int lod = 0;
+	int digit_mask = 1 << (sub_division_level - 1);
+
+	int num_probes = getNumberOfProbes();
+	while (lod < sub_division_level && probe_idx >= num_probes)
+	{
+		int offset = base_offset + (probe_idx - num_probes) * 8;
+		int sub = 0;
+		if ((ipos.x & digit_mask) != 0) sub += 1;
+		if ((ipos.y & digit_mask) != 0) sub += 2;
+		if ((ipos.z & digit_mask) != 0) sub += 4;
+		node_idx = offset + sub;
+		probe_idx = m_sub_index[node_idx];
+
+		lod++;
+		digit_mask >>= 1;
+	}
+
+	return probe_idx;
+
+}
+
+void LODProbeGrid::get_probe(const glm::vec3& position, EnvironmentMap& envMap) const
+{
+	glm::ivec3 divs = base_divisions * (1 << sub_division_level);
+
+	glm::vec3 size_grid = coverage_max - coverage_min;
+	glm::vec3 pos_normalized = (position - coverage_min) / size_grid;
+	glm::vec3 pos_voxel = pos_normalized * glm::vec3(divs) - 0.5f;
+	pos_voxel = glm::clamp(pos_voxel, glm::vec3(0.0f), glm::vec3(divs) - 1.0f);
+
+	glm::ivec3 i_voxel = glm::clamp(glm::ivec3(pos_voxel), glm::ivec3(0), glm::ivec3(divs) - glm::ivec3(2));
+	glm::vec3 frac_voxel = pos_voxel - glm::vec3(i_voxel);
+
+	float sum_weight = 0.0f;
+	glm::vec4 sumSH[9];
+	for (int i = 0; i < 9; i++)
+	{
+		sumSH[i] = glm::vec4(0.0f);
+	}
+
+	for (int z = 0; z < 2; z++)
+	{
+		for (int y = 0; y < 2; y++)
+		{
+			for (int x = 0; x < 2; x++)
+			{
+				glm::vec3 w = glm::vec3(1.0f) - glm::abs(glm::vec3(x, y, z) - frac_voxel);
+				float weight = w.x * w.y * w.z;
+				if (weight > 0.0f)
+				{
+					sum_weight += weight;
+
+					glm::ivec3 vert = i_voxel + glm::ivec3(x, y, z);
+					int idx_probe = get_probe_idx(vert);
+					const glm::vec4* p_sh = m_probe_data.data() + idx_probe * 10 + 1;
+					for (int i = 0; i < 9; i++)
+					{
+						sumSH[i] += p_sh[i] * weight;
+					}
+				}
+			}
+		}
+	}
+
+	if (sum_weight > 0.0f)
+	{
+		for (int i = 0; i < 9; i++)
+		{
+			envMap.shCoefficients[i] = sumSH[i] / sum_weight;
+		}
+	}
+	else
+	{
+		memset(envMap.shCoefficients, 0, sizeof(glm::vec4) * 9);
+	}
+
+	envMap.updateConstant();
+}
+

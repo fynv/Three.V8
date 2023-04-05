@@ -8,6 +8,7 @@
 class GLRenderer;
 class Scene;
 class ProbeGrid;
+class EnvironmentMap;
 class LODProbeGrid : public IndirectLight
 {
 public:
@@ -49,7 +50,11 @@ public:
 
 	bool updated = false;
 	void download_probes();
+
+	bool per_primitive = false;
+	void get_probe(const glm::vec3& position, EnvironmentMap& envMap) const;
 	
 private:		
 	void _presample_irradiance();
+	int get_probe_idx(const glm::ivec3& ipos) const;
 };
