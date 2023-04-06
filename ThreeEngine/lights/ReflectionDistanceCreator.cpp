@@ -16,11 +16,11 @@ layout(local_size_x = 8, local_size_y = 8) in;
 
 void main()
 {
-	ivec2 size = textureSize(uDepthTex, 0);
+	ivec2 size = imageSize(uDisImg);
 	ivec2 id = ivec3(gl_GlobalInvocationID).xy;
 	if (id.x>= size.x || id.y >=size.y) return;
 	vec2 UV = (vec2(id)+0.5)/vec2(size);
-	float depth = texelFetch(uDepthTex, id, 0).x;
+	float depth = textureLod(uDepthTex, UV, 0.0).x;
 	vec3 pos_clip = vec3(UV, depth)*2.0-1.0;
 	vec4 view_pos = uInvProjMat* vec4(pos_clip, 1.0);
 	view_pos/=view_pos.w;
@@ -60,7 +60,7 @@ void ReflectionDistanceCreator::Create(const CubeRenderTarget* target, Reflectio
 		glUniformMatrix4fv(1, 1, GL_FALSE, (float*)&projectionMatrixInverse);		
 		glBindImageTexture(0, reflection->tex_id_dis, 0, GL_FALSE, i, GL_WRITE_ONLY, GL_R32F);		
 
-		glm::ivec2 blocks = { (target->m_width + 7) / 8, (target->m_height + 7) / 8 };
+		glm::ivec2 blocks = { 512 / 8, 512/ 8 };
 		glDispatchCompute(blocks.x, blocks.y, 1);		
 	}
 	glUseProgram(0);	

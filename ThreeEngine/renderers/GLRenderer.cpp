@@ -2980,7 +2980,7 @@ void GLRenderer::_render_cube(Scene& scene, CubeRenderTarget& target, const glm:
 	}
 }
 
-#define REFLECTION_RAY_MARCHING 0
+#define REFLECTION_RAY_MARCHING 1
 
 void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 {
