@@ -609,18 +609,30 @@ vec3 getReflectionDir(in vec3 dir, in vec3 norm)
 	float max_alpha = acos(proj);
 	float sin_max_alpha = sin(max_alpha);
 	float dis0 = textureLod(uReflectionDis, dir, 0.0).x;
+	
+	float delta0 = 0.0;
+	vec3 v0 = dis0 * dir;	
 
-	float step = max(PI / 100.0f, max_alpha/30.0f);
+	float step = max(PI / 100.0, max_alpha/30.0);
 	
 	uint seed = InitRandomSeed(uint(gl_FragCoord.x), uint(gl_FragCoord.y));
-	float delta = RandomFloat(seed) * step;
+	float start = RandomFloat(seed) * step;
 
-	for (float alpha = delta; alpha < max_alpha - 0.0001; alpha += step)
+	for (float alpha = start; alpha < max_alpha - 0.0001; alpha += step)
 	{
 		float ray_dis = sin_max_alpha * dis0 / sin(max_alpha -alpha);
 		vec3 sample_dir = cos(alpha)*dir + sin(alpha)*dir_y;
 		float sample_dis = textureLod(uReflectionDis, sample_dir, 0.0).x;
-		if (sample_dis <= ray_dis) return sample_dir;
+		float delta = ray_dis - sample_dis;
+		vec3 v = ray_dis * sample_dir;
+		if (delta>=0.0) 
+		{
+			float k = -delta0/(delta - delta0);			
+			return normalize((1.0 - k) * v0 + k *v);
+		}
+		delta0 = delta;
+		v0 = v;
+		
 	}
 
 	return refl_dir;
