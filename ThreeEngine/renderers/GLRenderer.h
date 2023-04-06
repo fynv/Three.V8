@@ -25,6 +25,7 @@
 #include "renderers/routines/Picking.h"
 
 #include "lights/EnvironmentMapCreator.h"
+#include "lights/ReflectionDistanceCreator.h"
 #include "renderers/routines/DepthOnly.h"
 #include "renderers/routines/SSAO.h"
 
@@ -188,6 +189,7 @@ private:
 	std::unique_ptr<DrawTexture> TextureDraw;
 
 	std::unique_ptr<EnvironmentMapCreator> EnvCreator;
+	std::unique_ptr<ReflectionDistanceCreator> ReflDisCreator;
 
 	std::unique_ptr<SceneToVolume> SceneVolumeConvert;
 	void scene_to_volume_primitive(const SceneToVolume::RenderParams& params);

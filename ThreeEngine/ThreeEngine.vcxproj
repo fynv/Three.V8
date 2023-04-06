@@ -169,6 +169,7 @@
     <ClCompile Include="lights\ProbeGrid.cpp" />
     <ClCompile Include="lights\ProbeGridWidget.cpp" />
     <ClCompile Include="lights\ProbeRayList.cpp" />
+    <ClCompile Include="lights\ReflectionDistanceCreator.cpp" />
     <ClCompile Include="loaders\DDSImageLoader.cpp" />
     <ClCompile Include="loaders\FileLoader.cpp" />
     <ClCompile Include="loaders\GLTFLoader.cpp" />
@@ -308,6 +309,7 @@
     <ClInclude Include="lights\ProbeGrid.h" />
     <ClInclude Include="lights\ProbeGridWidget.h" />
     <ClInclude Include="lights\ProbeRayList.h" />
+    <ClInclude Include="lights\ReflectionDistanceCreator.h" />
     <ClInclude Include="loaders\DDSImageLoader.h" />
     <ClInclude Include="loaders\FileLoader.h" />
     <ClInclude Include="loaders\GLTFLoader.h" />

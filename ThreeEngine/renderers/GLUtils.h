@@ -80,7 +80,8 @@ class ReflectionMap
 {
 public:
 	unsigned tex_id;
-	ReflectionMap();
+	unsigned tex_id_dis;
+	ReflectionMap(bool has_distance = false);
 	~ReflectionMap();
 
 	bool allocated = false;

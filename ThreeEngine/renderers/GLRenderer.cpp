@@ -263,8 +263,7 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 	options.has_glossiness_map = material->tex_idx_glossinessMap >= 0;
 	options.num_directional_lights = lights->num_directional_lights;
 	options.num_directional_shadows = lights->num_directional_shadows;
-	options.has_lightmap = params.tex_lightmap != nullptr;
-	options.has_reflection_map = lights->reflection_map != nullptr;	
+	options.has_lightmap = params.tex_lightmap != nullptr;	
 	if (!options.has_lightmap)
 	{
 		options.has_environment_map = lights->environment_map != nullptr;
@@ -294,6 +293,16 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 		options.has_hemisphere_light = lights->hemisphere_light != nullptr;
 		options.use_ssao = m_use_ssao;
 	}
+
+	options.has_reflection_map = lights->reflection_map != nullptr;
+	if (options.has_reflection_map)
+	{
+		if (lights->reflection_map->tex_id_dis != (unsigned)(-1))
+		{
+			options.has_reflection_distance = true;
+		}
+	}
+
 	options.has_fog = params.constant_fog != nullptr;	
 	options.tone_shading = material->tone_shading;
 	StandardRoutine* routine = get_routine(options);
@@ -319,8 +328,7 @@ void GLRenderer::render_primitives(const StandardRoutine::RenderParams& params, 
 	options.has_glossiness_map = material->tex_idx_glossinessMap >= 0;
 	options.num_directional_lights = lights->num_directional_lights;
 	options.num_directional_shadows = lights->num_directional_shadows;
-	options.has_lightmap = params.tex_lightmap != nullptr;
-	options.has_reflection_map = lights->reflection_map != nullptr;
+	options.has_lightmap = params.tex_lightmap != nullptr;	
 	if (!options.has_lightmap)
 	{
 		options.has_environment_map = lights->environment_map != nullptr;
@@ -333,6 +341,14 @@ void GLRenderer::render_primitives(const StandardRoutine::RenderParams& params, 
 		options.has_ambient_light = lights->ambient_light != nullptr;
 		options.has_hemisphere_light = lights->hemisphere_light != nullptr;
 		options.use_ssao = m_use_ssao;
+	}
+	options.has_reflection_map = lights->reflection_map != nullptr;
+	if (options.has_reflection_map)
+	{
+		if (lights->reflection_map->tex_id_dis != (unsigned)(-1))
+		{
+			options.has_reflection_distance = true;
+		}
 	}
 	options.has_fog = params.constant_fog != nullptr;	
 	options.tone_shading = material->tone_shading;
@@ -2964,6 +2980,8 @@ void GLRenderer::_render_cube(Scene& scene, CubeRenderTarget& target, const glm:
 	}
 }
 
+#define REFLECTION_RAY_MARCHING 0
+
 void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 {
 	if (scene.indirectLight != nullptr && scene.indirectLight->dynamic_map)
@@ -2971,7 +2989,11 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 		IndirectLight* light = scene.indirectLight;
 		if (light->reflection == nullptr)
 		{
-			light->reflection = std::unique_ptr<ReflectionMap>(new ReflectionMap);
+#if REFLECTION_RAY_MARCHING
+			light->reflection = std::unique_ptr<ReflectionMap>(new ReflectionMap(true));
+#else
+			light->reflection = std::unique_ptr<ReflectionMap>(new ReflectionMap(false));
+#endif
 		}
 
 	}
@@ -2985,10 +3007,14 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 		camera.updateMatrixWorld(false);
 		glm::vec3 cam_pos = camera.getWorldPosition();
 		float delta = glm::length(cam_pos - light->camera_position);
-		if (delta > 0.1f)
+		if (delta > 0.0f)
 		{
 			light->camera_position = cam_pos;
 
+#if REFLECTION_RAY_MARCHING
+			light->probe_position = cam_pos;
+
+#else
 			//glm::vec3 pos = probe_space_center_cube(scene, camera.getWorldPosition(), p_cam->z_near, p_cam->z_far, *light);
 
 			glm::vec3 sum = glm::vec3(0.0f);
@@ -3002,6 +3028,7 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 			pos.z = 0.5f * pos.z + 0.5f * cam_pos.z;
 			//light->probe_position = 0.8f * light->probe_position + 0.2f * pos;
 			light->probe_position = pos;
+#endif			
 
 			_render_cube(scene, *light->cube_target, light->probe_position, p_cam->z_near, p_cam->z_far);
 
@@ -3011,6 +3038,14 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 			}
 
 			EnvCreator->CreateReflection(*light->reflection, light->cube_target->m_cube_map.get());
+
+#if REFLECTION_RAY_MARCHING
+			if (ReflDisCreator == nullptr)
+			{
+				ReflDisCreator = std::unique_ptr<ReflectionDistanceCreator>(new ReflectionDistanceCreator);
+			}
+			ReflDisCreator->Create(light->cube_target.get(), light->reflection.get(), p_cam->z_near, p_cam->z_far);
+#endif
 		}
 	
 	}

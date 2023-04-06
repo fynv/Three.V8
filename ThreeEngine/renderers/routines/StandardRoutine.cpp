@@ -86,7 +86,32 @@ void main()
 
 static std::string g_frag_part0 =
 R"(#version 430
+
 #DEFINES#
+
+uint InitRandomSeed(uint val0, uint val1)
+{
+	uint v0 = val0, v1 = val1, s0 = 0u;
+
+	for (uint n = 0u; n < 16u; n++)
+	{
+		s0 += 0x9e3779b9u;
+		v0 += ((v1 << 4) + 0xa341316cu) ^ (v1 + s0) ^ ((v1 >> 5) + 0xc8013ea4u);
+		v1 += ((v0 << 4) + 0xad90777du) ^ (v0 + s0) ^ ((v0 >> 5) + 0x7e95761eu);
+	}
+
+	return v0;
+}
+
+uint RandomInt(inout uint seed)
+{
+    return (seed = 1664525u * seed + 1013904223u);
+}
+
+float RandomFloat(inout uint seed)
+{
+	return (float(RandomInt(seed) & 0x00FFFFFFu) / float(0x01000000));
+}
 
 layout (location = LOCATION_VARYING_VIEWDIR) in vec3 vViewDir;
 layout (location = LOCATION_VARYING_NORM) in vec3 vNorm;
@@ -567,6 +592,41 @@ vec3 getReflRadiance(in vec3 reflectVec, float roughness)
 {
 	return GetReflectionAt(reflectVec, uReflectionMap, roughness);
 }
+
+#if HAS_REFLECTION_DISTANCE
+
+layout (location = LOCATION_TEX_REFLECTION_DISTANCE) uniform samplerCube uReflectionDis;
+
+vec3 getReflectionDir(in vec3 dir, in vec3 norm)
+{
+	vec3 refl_dir = reflect(dir, norm);	
+	float proj = dot(refl_dir, dir);
+	if (proj >= 1.0) return dir;
+	else if (proj <= -1.0) return -dir;
+	
+	vec3 dir_y = normalize(refl_dir - proj * dir);
+
+	float max_alpha = acos(proj);
+	float sin_max_alpha = sin(max_alpha);
+	float dis0 = textureLod(uReflectionDis, dir, 0.0).x;
+
+	float step = max(PI / 100.0f, max_alpha/30.0f);
+	
+	uint seed = InitRandomSeed(uint(gl_FragCoord.x), uint(gl_FragCoord.y));
+	float delta = RandomFloat(seed) * step;
+
+	for (float alpha = delta; alpha < max_alpha - 0.0001; alpha += step)
+	{
+		float ray_dis = sin_max_alpha * dis0 / sin(max_alpha -alpha);
+		vec3 sample_dir = cos(alpha)*dir + sin(alpha)*dir_y;
+		float sample_dis = textureLod(uReflectionDis, sample_dir, 0.0).x;
+		if (sample_dis <= ray_dis) return sample_dir;
+	}
+
+	return refl_dir;
+}
+
+#endif
 
 #endif
 
@@ -1058,6 +1118,8 @@ void main()
 	material.specularColor = mix( vec3( 0.04 ), base_color.xyz, metallicFactor );	
 #endif
 
+	bool has_specular = length(material.specularColor)>0.0;
+
 	vec3 dxy = max(abs(dFdx(norm)), abs(dFdy(norm)));
 	float geometryRoughness = max(max(dxy.x, dxy.y), dxy.z);	
 	material.roughness += geometryRoughness;
@@ -1136,29 +1198,32 @@ void main()
 		diffuse += diffuse_light* material.diffuseColor;
 #endif
 
+		if (has_specular)
+		{
 #if (TONE_SHADING & 2) == 0
-		specular += irradiance * BRDF_GGX( directLight.direction, viewDir, norm, material.specularColor, material.specularF90, material.roughness );
+			specular += irradiance * BRDF_GGX( directLight.direction, viewDir, norm, material.specularColor, material.specularF90, material.roughness );
 #else
-		float specular_thresh = light_source.specular_thresh;
-		float specular_high =  light_source.specular_high;
-		float specular_low =  light_source.specular_low;
+			float specular_thresh = light_source.specular_thresh;
+			float specular_high =  light_source.specular_high;
+			float specular_low =  light_source.specular_low;
 
-		vec3 specular_light = irradiance * BRDF_GGX_Toon(directLight.direction, viewDir, norm, material.roughness);
-		float lum_specular = luminance(specular_light);
-		if (lum_specular > specular_thresh)
-		{
-			specular_light *= specular_high/lum_specular;
-		}
-		else if (lum_specular>0.0)
-		{
-			specular_light *= specular_low/lum_specular;
-		}
-		else
-		{
-			specular_light = vec3(specular_low);
-		}
-		specular += specular_light* material.specularColor;
+			vec3 specular_light = irradiance * BRDF_GGX_Toon(directLight.direction, viewDir, norm, material.roughness);
+			float lum_specular = luminance(specular_light);
+			if (lum_specular > specular_thresh)
+			{
+				specular_light *= specular_high/lum_specular;
+			}
+			else if (lum_specular>0.0)
+			{
+				specular_light *= specular_low/lum_specular;
+			}
+			else
+			{
+				specular_light = vec3(specular_low);
+			}
+			specular += specular_light* material.specularColor;
 #endif
+		}
 	}
 #endif
 
@@ -1167,25 +1232,43 @@ void main()
 	vec3 light_color = lm.w>0.0 ? lm.xyz/lm.w : vec3(0.0);
 	diffuse += material.diffuseColor * light_color;
 
-#if HAS_REFLECTION_MAP
-	vec3 reflectVec = reflect(-viewDir, norm);
-	reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );		
-	vec3 radiance = getRadiance(reflectVec, material.roughness, light_color * PI);
-	specular +=  material.specularColor * radiance;
+	if (has_specular)
+	{
+#if HAS_REFLECTION_MAP	
+#if HAS_REFLECTION_DISTANCE
+		vec3 reflectVec = getReflectionDir(-viewDir, norm);
+#else	
+		vec3 reflectVec = reflect(-viewDir, norm);	
+#endif // HAS_REFLECTION_DISTANCE
+		reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );			
+		vec3 radiance = getRadiance(reflectVec, material.roughness, light_color * PI);
+		specular +=  material.specularColor * radiance;
 #else
-	specular += material.specularColor * light_color;
-#endif
+		specular += material.specularColor * light_color;
+#endif // HAS_REFLECTION_MAP
+	}
 	
 #elif HAS_INDIRECT_LIGHT
 	{
 		vec3 irradiance = getIrradiance(norm);
+		vec3 radiance = vec3(0.0);
+
+		if (has_specular)
+		{
 #if HAS_REFLECTION_MAP
-		vec3 reflectVec = reflect(-viewDir, norm);
-		reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );		
-		vec3 radiance = getRadiance(reflectVec, material.roughness, irradiance);
+
+#if HAS_REFLECTION_DISTANCE
+			vec3 reflectVec = getReflectionDir(-viewDir, norm);
 #else
-		vec3 radiance = irradiance * RECIPROCAL_PI;
-#endif
+			vec3 reflectVec = reflect(-viewDir, norm);		
+#endif // HAS_REFLECTION_DISTANCE
+			reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );		
+			radiance = getRadiance(reflectVec, material.roughness, irradiance);
+
+#else
+			radiance = irradiance * RECIPROCAL_PI;
+#endif  // HAS_REFLECTION_MAP
+		}
 
 #if USE_SSAO && IS_OPAQUE
 		{
@@ -1222,30 +1305,32 @@ void main()
 		diffuse += diffuse_light* material.diffuseColor;
 #endif
 
+		if (has_specular)
+		{
 #if (TONE_SHADING & 8) == 0
-		specular +=  material.specularColor * radiance;
+			specular +=  material.specularColor * radiance;
 #else		
-		float specular_thresh = uSpecularThresh;
-		float specular_high = uSpecularHigh;
-		float specular_low = uSpecularLow;
+			float specular_thresh = uSpecularThresh;
+			float specular_high = uSpecularHigh;
+			float specular_low = uSpecularLow;
 
-		vec3 specular_light = radiance;
-		float lum_specular = luminance(specular_light);
-		if (lum_specular > specular_thresh)
-		{
-			specular_light *= specular_high/lum_specular;
-		}
-		else if (lum_specular>0.0)
-		{
-			specular_light *= specular_low/lum_specular;
-		}
-		else
-		{
-			specular_light = vec3(specular_low);
-		}
-		specular += specular_light* material.specularColor;		
-
+			vec3 specular_light = radiance;
+			float lum_specular = luminance(specular_light);
+			if (lum_specular > specular_thresh)
+			{
+				specular_light *= specular_high/lum_specular;
+			}
+			else if (lum_specular>0.0)
+			{
+				specular_light *= specular_low/lum_specular;
+			}
+			else
+			{
+				specular_light = vec3(specular_low);
+			}
+			specular += specular_light* material.specularColor;
 #endif
+		}
 	}
 #endif
 
@@ -1727,6 +1812,22 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 		bindings.location_tex_reflection_map = bindings.location_tex_lightmap;
 	}
 
+	if (options.has_reflection_distance)
+	{
+		defines += "#define HAS_REFLECTION_DISTANCE 1\n";
+		bindings.location_tex_reflection_distance = bindings.location_tex_reflection_map + 1;
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_TEX_REFLECTION_DISTANCE %d\n", bindings.location_tex_reflection_distance);
+			defines += line;
+		}
+	}
+	else
+	{
+		defines += "#define HAS_REFLECTION_DISTANCE 0\n";
+		bindings.location_tex_reflection_distance = bindings.location_tex_reflection_map;
+	}
+
 	if (options.has_environment_map)
 	{
 		defines += "#define HAS_ENVIRONMENT_MAP 1\n";
@@ -1815,7 +1916,7 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 
 	if (options.has_probe_grid || options.has_lod_probe_grid)
 	{
-		bindings.location_tex_irradiance = bindings.location_tex_reflection_map + 1;
+		bindings.location_tex_irradiance = bindings.location_tex_reflection_distance + 1;
 		bindings.location_tex_visibility = bindings.location_tex_irradiance + 1;
 		{
 			char line[64];
@@ -1830,8 +1931,8 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	}
 	else
 	{
-		bindings.location_tex_irradiance = bindings.location_tex_reflection_map;
-		bindings.location_tex_visibility = bindings.location_tex_reflection_map;
+		bindings.location_tex_irradiance = bindings.location_tex_reflection_distance;
+		bindings.location_tex_visibility = bindings.location_tex_reflection_distance;
 	}
 
 	if (options.has_ambient_light)
@@ -2121,6 +2222,14 @@ void StandardRoutine::_render_common(const RenderParams& params)
 		glActiveTexture(GL_TEXTURE0 + texture_idx);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, params.lights->reflection_map->tex_id);
 		glUniform1i(m_bindings.location_tex_reflection_map, texture_idx);
+		texture_idx++;
+	}
+
+	if (m_options.has_reflection_distance)
+	{
+		glActiveTexture(GL_TEXTURE0 + texture_idx);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, params.lights->reflection_map->tex_id_dis);
+		glUniform1i(m_bindings.location_tex_reflection_distance, texture_idx);
 		texture_idx++;
 	}
 

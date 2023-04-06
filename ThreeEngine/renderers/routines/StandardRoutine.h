@@ -31,6 +31,7 @@ public:
 		int num_directional_lights = 0;
 		int num_directional_shadows = 0;
 		bool has_reflection_map = false;
+		bool has_reflection_distance = false;
 		bool has_environment_map = false;
 		bool has_probe_grid = false;
 		bool probe_reference_recorded = false;
@@ -96,6 +97,7 @@ private:
 		int location_tex_directional_shadow_depth;
 		int location_tex_lightmap;
 		int location_tex_reflection_map;
+		int location_tex_reflection_distance;
 		int binding_environment_map;
 		int binding_probe_grid;		
 		int location_tex_irradiance;
