@@ -7,11 +7,16 @@
 class ReflectionDistanceCreator
 {
 public:
-	ReflectionDistanceCreator();
+	ReflectionDistanceCreator(bool msaa = true);
 	~ReflectionDistanceCreator();
 
 	void Create(const CubeRenderTarget* target, ReflectionMap* reflection, float z_near, float z_far);
 
 private:
-	std::unique_ptr<GLProgram> m_prog;
+	bool m_msaa;
+	std::unique_ptr<GLProgram> m_prog_linearize;
+	std::unique_ptr<GLProgram> m_prog_filter;
+
+	unsigned m_tex_tmp0;
+
 };

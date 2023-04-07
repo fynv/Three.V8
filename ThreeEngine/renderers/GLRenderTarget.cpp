@@ -30,13 +30,20 @@ GLRenderTarget::GLRenderTarget(bool default_buffer, bool msaa)
 }
 
 
-GLRenderTarget::GLRenderTarget(CubeRenderTarget* cube_target, int idx)
+GLRenderTarget::GLRenderTarget(CubeRenderTarget* cube_target, int idx, bool msaa)
 {
 	m_cube_target = cube_target;
 	m_cube_face_idx = idx;
 
 	glGenFramebuffers(1, &m_fbo_video);
+
 	m_tex_depth = std::unique_ptr<GLTexture2D>(new GLTexture2D);
+
+	if (msaa)
+	{
+		glGenFramebuffers(1, &m_fbo_msaa);
+		m_tex_msaa = std::unique_ptr<GLTexture2D>(new GLTexture2D);	
+	}	
 }
 
 GLRenderTarget::~GLRenderTarget()
@@ -90,8 +97,13 @@ bool GLRenderTarget::update_framebuffers(int width, int height)
 		{
 			glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_msaa);
 
+			unsigned internalFormat = GL_SRGB8_ALPHA8;
+			if (m_cube_target != nullptr)
+			{
+				internalFormat = GL_RGBA16F;
+			}
 			glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_tex_msaa->tex_id);
-			glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_SRGB8_ALPHA8, width, height, true);
+			glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, internalFormat, width, height, true);
 			glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, m_tex_msaa->tex_id, 0);
 

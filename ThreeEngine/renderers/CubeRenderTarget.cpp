@@ -21,22 +21,16 @@ CubeRenderTarget::~CubeRenderTarget()
 bool CubeRenderTarget::update_framebuffers(int width, int height)
 {
 	if (m_width != width || m_height != height)
-	{
-		int lods = 1;
-		int div = width / 256;
-		if (div > 1)
-		{
-			lods = (int)(logf((float)div) / logf(2.0f)) + 1;
-		}
+	{	
 
 		m_cube_map = std::unique_ptr<GLCubemap>(new GLCubemap);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, m_cube_map->tex_id);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);		
-		glTexStorage2D(GL_TEXTURE_CUBE_MAP, lods, GL_RGBA16F, width, height);	
+		glTexStorage2D(GL_TEXTURE_CUBE_MAP, 1, GL_RGBA16F, width, height);	
 		glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 
 		for (int i = 0; i < 6; i++)

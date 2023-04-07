@@ -11,7 +11,7 @@ class GLRenderTarget
 {
 public:
 	GLRenderTarget(bool default_buffer, bool msaa);
-	GLRenderTarget(CubeRenderTarget* cube_target, int idx);
+	GLRenderTarget(CubeRenderTarget* cube_target, int idx, bool msaa = true);
 	~GLRenderTarget();
 
 	CubeRenderTarget* m_cube_target = nullptr;

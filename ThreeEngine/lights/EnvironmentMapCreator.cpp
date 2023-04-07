@@ -713,33 +713,6 @@ void EnvironmentMapCreator::PresampleSH(const glm::vec4 shCoefficients[9], glm::
 
 void EnvironmentMapCreator::CreateReflection(ReflectionMap& reflection, const GLCubemap* cubemap)
 {
-	bool has_mips;
-	int input_width, input_height;
-	{
-		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap->tex_id);
-		glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_TEXTURE_WIDTH, &input_width);
-		glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_TEXTURE_HEIGHT, &input_height);
-
-		int v;
-		glGetTexParameteriv(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, &v);
-		has_mips = v == GL_LINEAR_MIPMAP_LINEAR;
-	}	
-
-	int input_lods = 1;
-	if (has_mips)
-	{
-		int div = input_width / 256;
-		if (div > 1)
-		{
-			input_lods = (int)(logf((float)div) / logf(2.0f)) + 1;
-		}
-
-		if (input_lods > 1)
-		{
-			glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
-		}
-	}
-
 	// downsample pass
 	glUseProgram(m_prog_downsample->m_id);
 
@@ -752,7 +725,7 @@ void EnvironmentMapCreator::CreateReflection(ReflectionMap& reflection, const GL
 
 		glBindImageTexture(0, m_tex_src, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 
-		glUniform1f(1, (float)(input_lods-1));
+		glUniform1f(1, 0.0f);
 
 		glDispatchCompute(128 / 8, 128 / 8, 6);
 	}
