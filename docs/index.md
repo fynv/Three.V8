@@ -16,7 +16,10 @@ The user script APIs consist of
 | Class Name                                                | Description                                                  |
 | --------------------------------------------------------  | ------------------------------------------------------------ |
 | [Image](Image.html)                                       | Represents an image that resides in CPU memory.              |
-| [CubeImage](CubeImage.html)                               | Represents an an cubemap image that resides in CPU memory.   |
+| [CubeImage](CubeImage.html)                               | Represents a cubemap image that resides in CPU memory.       |
+| [DDSImage](DDSImage.html)                                 | Represents a dds-image that resides in CPU memory.           |
+| [HDRImage](HDRImage.html)                                 | Represents a HDR image that resides in CPU memory.           |
+| [HDRCubeImage](HDRCubeImage.html)                         | Represents a HDR cubemap image that resides in CPU memory.   |
 | [Object3D](Object3D.html)                                 | Base class of all 3D objects visible to user script.         |
 | [Camera](Camera.html)                                     | Base class for cameras.                                      |
 | [PerspectiveCamera](PerspectiveCamera.html)               | Perspective camera                                           |
@@ -24,6 +27,7 @@ The user script APIs consist of
 | [ColorBackground](ColorBackground.html)                   | A background that has a monotone color.                      |
 | [CubeBackground](CubeBackground.html)                     | A background using a CubeMap.                                |
 | [HemisphereBackground](HemisphereBackground.html)         | A background that has a sky color and a ground color.        |
+| [BackgroundScene](BackgroundScene.html)                   | Use another scene as background.                             | 
 | [Light](Light.html)                                       | Abstract class for all direct lights.                        |
 | [DirectionalLight](DirectionalLight.html)                 | A light that gets emitted in a specific direction.           |
 | [IndirectLight](IndirectLight.html)                       | Abstract class for all indirect lights                       |
@@ -31,8 +35,11 @@ The user script APIs consist of
 | [EnvironmentMapCreator](EnvironmentMapCreator.html)       | Cube-map filter that generates environmaps                   |
 | [AmbientLight](AmbientLight.html)                         | Uniform indirect light                                       |
 | [HemisphereLight](HemisphereLight.html)                   | Gradient indirect light                                      |
+| [ProbeGrid](ProbeGrid.html)                               | An uniform grid of light-probes                              |
+| [LODProbeGrid](LODProbeGrid.html)                         | A mixed resolution grid of light-probes                      |
 | [SimpleModel](SimpleModel.html)                           | A Model containing a single simple geometry                  |
 | [GLTFModel](GLTFModel.html)                               | A Model that has a GLTF style internal structure.            |
+| [AnimationMixer](AnimationMixer.html)                     | Utility for linear blending of animation clips.              |
 | [Scene](Scene.html)                                       | 3D Object collection for rendering                           |
 | [Fog](Fog.html)                                           | Represents the particle substance in the air                 |
 | [GLRenderer](GLRenderer.html)                             | Manages rendering routines, including shaders                |
@@ -42,6 +49,8 @@ The user script APIs consist of
 | [GamePlayer](GamePlayer.html)                             | Wrapper for the host GamePlayer object.                      |
 | [FileLoader](FileLoader.html)                             | Provides a few interfaces to loading local files.            |
 | [ImageLoader](ImageLoader.html)                           | Provides a few interfaces to load images.                    |
+| [DDSImageLoader](DDSImageLoader.html)                     | Provides a few interfaces to load dds-images.                |
+| [HDRImageLoader](HDRImageLoader.html)                     | Provides a few interfaces to load HDR images.                |
 | [GLTFLoader](GLTFLoader.html)                             | Provides a few interfaces to load GLTF models.               |
 | [ImageSaver](ImageSaver.html)                             | Provides a few interfaces to save images. (PC only)          |
 
@@ -77,6 +86,10 @@ The user script APIs consist of
 | [MMLazyVideo](MMLazyVideo.html)                           | Represents an image source from a video-file.                |
 | [MMVideo](MMVideo.html)                                   | Represents a background video-file player.                   |
 | [MMAudio](MMAudio.html)                                   | Represents a background audio-file player.                   |
+| [OpusRecorder](OpusRecorder.html)                         | Record from an audio device and encode as a raw opus stream. |
+| [OpusPlayer](OpusPlayer.html)                             | Play back a raw opus stream.                                 |
+| [AVCRecorder](AVCRecorder.html)                           | Record from a video device and encode as a raw AVC stream.   |
+| [AVCPlayer](AVCPlayer.html)                               | Play back a raw AVC stream.                                  |
 
 
 # Global Functions
@@ -143,6 +156,8 @@ These are engine class singletons that can be used directly in user script.
 | gamePlayer                                                | Instance of [GamePlayer](GamePlayer.html).                   |
 | fileLoader                                                | Instance of [FileLoader](FileLoader.html).                   |
 | imageLoader                                               | Instance of [ImageLoader](ImageLoader.html).                 |
+| DDSImageLoader                                            | Instance of [DDSImageLoader](DDSImageLoader.html).           |
+| HDRImageLoader                                            | Instance of [HDRImageLoader](HDRImageLoader.html).           |
 | gltfLoader                                                | Instance of [GLTFLoader](GLTFLoader.html).                   |
 | imageSaver                                                | Instance of [ImageSaver](ImageSaver.html).                   |
 | http                                                      | Instance of [HttpClient](HttpClient.html).                   |

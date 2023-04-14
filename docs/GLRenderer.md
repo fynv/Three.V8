@@ -10,14 +10,13 @@ The OpenGL renderer displays your beautifully crafted scenes using OpenGL.
 | --------------------------------------------------------------| -------------------------------------------------------------- |
 | **Constructors**                                              |                                                                |
 | [GLRenderer()](#glrenderer)                                   | Creates a new GLRenderer.                                      |
+| **Properties**                                                |                                                                |
+| [useSSAO](#usessao)                                           | Whether enable SSAO.                                           |
 | **Methods**                                                   |                                                                |
 | [dispose](#dispose)                                           | Dispose the unmanaged resource.                                |
 | [render](#render)                                             | Renders a scene.                                               |
-| [renderCube](#rendercube)                                     | Renders a scene to a cubemap                                   |
-| [renderLayers](#renderlayers)                                 | Renders each layer successively                                |
-| [renderLayersToCube](#renderlayerstocube)                     | Renders each layer successively to a cubemap                   |
-| [renderCelluloid](#rendercelluloid)                           | Renders a scene to 3 separate render targets. PC Only.         |
-
+| [renderCube](#rendercube)                                     | Renders a scene to a cubemap.                                  |
+| [renderTexture](#rendertexture)                               | Render a 2d media to screen.                                   |
 
 # Constructors
 
@@ -26,6 +25,14 @@ The OpenGL renderer displays your beautifully crafted scenes using OpenGL.
 `GLRenderer`()
 
 Create a GLRenderer.
+
+# Properties
+
+## useSSAO
+
+`.useSSAO`: Boolean
+
+Whether enable SSAO. 
 
 # Methods
 
@@ -59,64 +66,11 @@ Renders `scene` using `camera` to `target`.
 
 Renders `scene` to a cubemap `target` centered at `position`.
 
-## renderLayers()
+## renderTexture()
 
-`.renderLayers`(`layers`: Array): undefined
+`.renderTexure`(`img`: [GLRenderTarget](GLRenderTarget.html)/[MMCamera](MMCamera.html)/[MMLazyVideo](MMLazyVideo.html)/[MMVideo](MMVideo.html)/[AVCPlayer](AVCPlayer.html), `x`:Number, `y`:Number, `width`:Number, `height`:Number, `alpha = 1.0`:Number, `target=undefined`: [UI3DViewer](UI3DViewer.html)/[GLRenderTarget](GLRenderTarget.html)): undefined
 
-Renders each layer successively to the main view of the game-player.
+Render a 2D media to screen.
 
-Should be called from the [`render()`](index.html#render) callback function.
-
-Each item of `layers` should have the properties:
-
-`.scene`: [Scene](Scene.html) 
-
-The scene to be rendered
-
-`.camera`: [Camera](Camera.html)
-
-The camera to be used to render the scene.
-
-`.renderLayers`(`layers`: Array,  `ui3dviewer`: [UI3DViewer](UI3DViewer.html)): undefined
-
-Renders each layer successively to `ui3dviewer`.
-
-Should be called from the [`onRender()`](UI3DViewer.html#onrender) callback function of the `ui3dviewer`.
-
-`.renderLayers`(`layers`: Array, `target`: [GLRenderTarget](GLRenderTarget.html)): undefined
-
-Renders each layer successively to `target`.
-
-## renderLayersToCube()
-
-`.renderLayersToCube`(`layers`: Array, `target`:  [CubeRenderTarget](CubeRenderTarget.html)): undefined
-
-Renders each layer successively to a cubemap `target`.
-
-Each item of `layers` should have the properties:
-
-`.scene`: [Scene](Scene.html) 
-
-The scene to be rendered
-
-`.position`: Object
-
-The center of the cubemap in the scene
-
-`.near`: Number
-
-Near z value (positive)
-
-`.far`: Number
-
-Far z value (positive)
-
-## renderCelluloid()
-
-PC Only.
-
-`renderCelluloid`(`scene`: [Scene](Scene.html), `camera`: [Camera](Camera.html), `base`: [GLRenderTarget](GLRenderTarget.html), `lighting`: [GLRenderTarget](GLRenderTarget.html), `alpha`: [GLRenderTarget](GLRenderTarget.html)): undefined
-
-Renders `scene` using `camera` to 3 separate render targets, each containing: the base-color, the lighting, the tranparent layer.
-
+When `target` is not specified, the media is rendered to the main view of the game-player by default.
 

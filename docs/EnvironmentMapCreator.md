@@ -34,11 +34,15 @@ Dispose the unmanaged resource.
 
 Create an EnvironmentMap object using a cubemap image.
 
+`.create`(`image`: [HDRCubeImage](HDRCubeImage.html)): EnvironmentMap
+
+Create an EnvironmentMap object using a HDR cubemap image.
+
  `.create`(`background`: [CubeBackground](CubeBackground.html)): EnvironmentMap
 
 Create an EnvironmentMap object using a cubemap background.
 
-`.create`(`background`: [CubeRenderTarget](CubeRenderTarget.html)): EnvironmentMap
+`.create`(`target`: [CubeRenderTarget](CubeRenderTarget.html), `irradiance_only = false`: Boolean): EnvironmentMap
 
 Create an EnvironmentMap object using a cubemap render target.
 

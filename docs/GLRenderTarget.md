@@ -15,6 +15,7 @@ Can be used as an extra parameter to [GLRenderer.render()](GLRenderer.html#rende
 | **Methods**                                                   |                                                                |
 | [dispose](#dispose)                                           | Dispose the unmanaged resource.                                |
 | [getImage](#getimage)                                         | Get the rendering result as an [Image](Image.html)             |
+| [setSize](#setsize)                                           | Update the size of the render target.                          |
 
 # Constructors
 
@@ -46,4 +47,8 @@ Dispose the unmanaged resource.
 
 Returns the rendering result as an [Image](Image.html) object.
 
+## setSize()
 
+`.setSize`(`width`: Number, `height`: Number): undefined
+
+Update the size of the render target.

@@ -31,11 +31,13 @@ Can be used as an image source.
 
 ## MMVideo()
 
-`MMVideo`(`playAudio`: Boolean, `idx_audio_dev`: Number, `speed`: Number)
+`MMVideo`(`filename`: String, `playAudio`: Boolean, `idx_audio_dev`: Number, `speed`: Number)
 
 Creates a video-file player.
 
 ### Parameters
+
+`filename`: url to local or http video source.
 
 `playAudio`: whether to play audio. Default true.
 

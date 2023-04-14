@@ -12,6 +12,8 @@ Acceleration structure for ray-casting.
 | [BoundingVolumeHierarchy()](#boundingvolumehierarchy)         | Creates a new BoundingVolumeHierarchy.                         |
 | **Methods**                                                   |                                                                |
 | [dispose](#dispose)                                           | Dispose the unmanaged resource.                                |
+| [update](#update)                                             | Update the BVH with a new model.                               |
+| [remove](#remove)                                             | Remove a model from the BVH.                                   |
 | [intersect](#intersect)                                       | Intersect the given ray with the acceleration structure.       |
 
 # Constructors
@@ -29,6 +31,18 @@ Create a BoundingVolumeHierarchy from a list of [Object3D](Object3D.html) object
 `.dispose`(): undefined
 
 Dispose the unmanaged resource.
+
+## update()
+
+`.update`(`obj`: [Object3D](Object3D.html)): undefined
+
+Update the BVH with a new model.
+
+## remove()
+
+`.remove`(`obj`: [Object3D](Object3D.html)): undefined
+
+Remove a model from the BVH.
 
 ## intersect()
 

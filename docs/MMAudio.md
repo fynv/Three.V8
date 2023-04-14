@@ -26,11 +26,13 @@ Class that represents a background audio-file player.
 
 ## MMAudio()
 
-`MMAudio`(`idx_audio_dev`: Number, `speed`: Number)
+`MMAudio`(`filename`: String, `idx_audio_dev`: Number, `speed`: Number)
 
 Creates a audio-file player.
 
 ### Parameters
+
+`filename`: url to local or http video source.
 
 `idx_audio_dev`: index of the audio-out device.
 

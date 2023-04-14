@@ -39,6 +39,6 @@ Load 6 images from local files to form a cubemap image.
 
 ## loadCubeFromMemory()
 
-`.loadCubeFromMemory`(`buf0`: ArrayBuffer, `buf1`: ArrayBuffer, `buf2`: ArrayBuffer, `buf3`: ArrayBuffer, `buf4`: ArrayBuffer, `buf5`: ArrayBuffer) : CubeImage 
+`.loadCubeFromMemory`(`buf0`: ArrayBuffer, `buf1`: ArrayBuffer, `buf2`: ArrayBuffer, `buf3`: ArrayBuffer, `buf4`: ArrayBuffer, `buf5`: ArrayBuffer) : [CubeImage](CubeImage.html) 
 
 Load 6 images from memory buffers to form a cubemap image.

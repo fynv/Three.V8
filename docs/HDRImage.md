@@ -1,19 +1,17 @@
 [<--Home](index.html)
 
-# class CubeImage
+# class HDRImage
 
-Class that represents a cubemap image that resides in CPU memory.
+Class that represents a HDR image that resides in CPU memory. 
 
-A CubeImage contains 6 images.
+Usually not created directly. Use [HDRImageLoader](HDRImageLoader.html) class to create an HDR image.
 
-Usually not created directly. Use [ImageLoader](ImageLoader.html) class to create a cubemap image.
-
-`class CubeImage`
+`class HDRImage`
 
 | Name                              | Description                                                    |
 | ----------------------------------| -------------------------------------------------------------- |
 | **Constructors**                  |                                                                |
-| [CubeImage()](#cubeimage)         | Creates a cube image.                                          |
+| [HDRImage()](#hdrimage)           | Creates a HDR image.                                           |
 | **Properties**                    |                                                                |
 | [width](#width)                   | Width of the image.                                            |
 | [height](#height)                 | Height of the image.                                           |
@@ -22,11 +20,21 @@ Usually not created directly. Use [ImageLoader](ImageLoader.html) class to creat
 
 # Constructors
 
-## CubeImage()
+## HDRImage()
 
-`CubeImage`()
+`HDRImage`()
 
-Note that this constructor is not intended to be called directly.
+Creates an empty HDR image.
+
+`HDRImage`(`width`: Number, `height`: Number)
+
+Create an HDR image of specified size.
+
+### Parameters
+
+`width`: width of image
+
+`height`: height of image
 
 # Properties
 

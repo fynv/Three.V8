@@ -19,14 +19,16 @@ Inheritance [Object3D](Object3D.html) --> GLTFModel
 | [animations](#animations)                                     | Info of internal animation clips.                              |
 | **Methods**                                                   |                                                                |
 | [setTexture](#settexture)                                     | Replace a texture using texture name.                          |
+| [batchPrimitives](#batchprimitives)                           | Batch together primitives of the same materials.               |
 | [setAnimationFrame](#setanimationframe)                       | Assign the current stage of movable parts.                     |
-| [getAnimation](#getanimation)                                 | Get an loaded animation clip by name.                          |
+| [getAnimation](#getanimation)                                 | Get a loaded animation clip by name.                           |
 | [getAnimations](#getanimations)                               | Get all loaded animation clips.                                |
 | [addAnimation](#addanimation)                                 | Add an animation clip to the model.                            |
 | [addAnimations](#addanimations)                               | Add multiple animation clips to the model.                     |
 | [playAnimation](#playanimation)                               | Play the animation clip of the given name.                     |
 | [stopAnimation](#stopanimation)                               | Stop the animation clip of the given name.                     |
 | [updateAnimation](#updateanimation)                           | Update the movable parts according to the current frame.       |
+| [setLightmap](#setlightmap)                                   | Set a lightmap image for the model.                            |
 
 # Constructors
 
@@ -40,27 +42,27 @@ Creates a new GLTFModel. Usually not created directly. Use [GLTFLoader](GLTFLoad
 
 See the base [Object3D](Object3D.html#properties) class for common properties.
 
-## minPos()
+## minPos
 
 `.minPos`: Object
 
 Read-only property for bounding box min-position.
 
-## maxPos()
+## maxPos
 
 `.maxPos`: Object
 
 Read-only property for bounding box max-position.
 
-## meshes()
+## meshes
 
 `.meshes`: Object
 
 Read-only property for displaying the info of internal meshes.
 
-## animations()
+## animations
 
-`.animations`: Object
+`.animations`: Array
 
 Read-only property for displaying the info of internal animation clips.
 
@@ -89,6 +91,12 @@ Usa a video-file image source `mmlazyvideo` to replace the texture of `name`.
 `.setTexture`(`name`: String, `mmvideo`: [MMVideo](MMVideo.html)): undefined
 
 Usa a video-file player `mmvideo` to replace the texture of `name`.
+
+## batchPrimitives()
+
+`.batchPrimitives`(): undefined
+
+Batch together primitives of the same materials.
 
 ## setAnimationFrame()
 
@@ -150,7 +158,7 @@ Scale state of the node.
 
 `.getAnimation`(`name`: String): Object
 
-Get an loaded animation clip by name. 
+Get a loaded animation clip by name. 
 
 ### The returned object has the following properties:
 
@@ -287,4 +295,10 @@ Stop the animation clip of the given name.
 `.updateAnimation`(): undefined
 
 Update the movable parts according to the current frame. This function should be called from the `render` callback function.
+
+## setLightmap()
+
+`.setLightmap`(`img`: [HDRImage](HDRImage.html)): undefined
+
+Set a lightmap image for the model.
 

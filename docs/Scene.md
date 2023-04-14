@@ -15,6 +15,9 @@ Inheritance [Object3D](Object3D.html) --> Scene
 | **Properties**                                                |                                                                |
 | [background](#background)                                     | Object used as background                                      |
 | [indirectLight](#indirectlight)                               | Object used as the indirect light-source.                      |
+| [fog](#fog)                                                   | Object representing the particle substance in the air.         |
+| **Methods**                                                   |                                                                |
+| [getBoundingBox](#getboundingbox)                             | Get the bounding-box of the whole scene                        |
 
 # Constructors
 
@@ -55,6 +58,15 @@ Readable and writable.
 # Methods
 
 See the base [Object3D](Object3D.html#methods) class for common methods.
+
+## getBoundingBox()
+
+`.getBoundingBox`() : Object
+
+Get the bounding-box of the whole scene.
+
+The returned object contains a 'minPos' property and a 'maxPos' property, each of which is a Vector3.
+
 
 
 

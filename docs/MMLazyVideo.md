@@ -29,7 +29,7 @@ Class that represents an image source from a video-file.
 
 ## MMLazyVideo()
 
-`MMLazyVideo`(`speed`: Number)
+`MMLazyVideo`(`filename`: String, `speed`: Number)
 
 Creates a video-file source.
 

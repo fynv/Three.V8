@@ -12,6 +12,8 @@ Base class of all 3D objects visible to user script.
 | [Object3D()](#object3d)                                     | Base class of all 3D objects.                        |
 | **Properties**                                              |                                                      |
 | [name](#name)                                               |                                                      |
+| [isBuidling](#isbuilding)                                   | Whether this object is part of the buildings.        |
+| [moved](#moved)                                             | Whether this object is moved after last shadowmap update. |
 | [parent](#parent)                                           |                                                      |
 | [children](#children)                                       |                                                      |
 | [up](#up)                                                   | Up direction of object                               |
@@ -81,6 +83,26 @@ Can be created to group 3D objects together.
 `.name`: String
 
 Readable and writable. Default is an empty string.
+
+## isBuilding
+
+`.isBuilding`: Boolean
+
+The engine uses a separate shadow-map for buildings which updates at a lower rate.
+
+`isBuilding` marks whether the object is part of the buildings.
+
+Readable and writable. Default is `false`.
+
+## moved
+
+`.moved`: Boolean
+
+The engine uses a separate shadow-map for buildings which updates at a lower rate.
+
+`moved` marks whether the object has been moved since last time the shadow-map is updated.
+
+Readable and writable. Default is `true`.
 
 ## parent
 
