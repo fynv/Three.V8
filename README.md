@@ -90,7 +90,7 @@ Twitter: @feiyangvr
 
 You can use the mobile engine in your own product by business cooperation with Vulcan Eon.
 
-Or, more preferable, try hiring me, if you can help me to get out of my god-damned homeland. 
+Or, more preferable, try hiring me.
 
 ![Android.png](docs/Android.png)
 

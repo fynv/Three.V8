@@ -1303,6 +1303,7 @@ wrappers of engine objects. The classes are defined in native code. </p>
 <p><a href="ColorBackground.html">ColorBackground</a>: Use a monotone color.</p>
 <p><a href="CubeBackground.html">CubeBackground</a>: Use a cubemap.</p>
 <p><a href="HemisphereBackground.html">HemisphereBackground</a>: Use a gradient change from sky-color to ground-color.</p>
+<p><a href="BackgroundScene.html">BackgroundScene</a>: Use another scene as background. </p>
 <p>ColorBackground:</p>
 <pre><code class="fenced-code-block language-js">bg <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">ColorBackground</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
 bg<span class="token punctuation">.</span><span class="token function">setColor</span><span class="token punctuation">(</span><span class="token number">0.26225</span><span class="token punctuation">,</span> <span class="token number">0.51492</span><span class="token punctuation">,</span> <span class="token number">0.67244</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
@@ -1379,6 +1380,8 @@ Since that no lighting has been set, the models appear black.</p>
 <p><a href="AmbientLight.html">AmbientLight</a>: corresponding to ColorBackground. Monotone ambient light.</p>
 <p><a href="EnvironmentMap.html">EnvironmentMap</a>: corresponding to CubeBackground. Image based lighting.</p>
 <p><a href="HemisphereLight.html">HemisphereLight</a>: corresponding to HemisphereBackground. Gradient ambient light.</p>
+<p><a href="ProbeGrid.html">ProbeGrid</a>: an uniform grid of light-probes.</p>
+<p><a href="LODProbeGrid.html">LODProbeGrid</a>: a mixed-resolution grid of light-probes.</p>
 <p>AmbientLight:</p>
 <pre><code class="fenced-code-block language-js">envLight <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">AmbientLight</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
 envLight<span class="token punctuation">.</span><span class="token function">setColor</span><span class="token punctuation">(</span><span class="token number">0.0</span><span class="token punctuation">,</span> <span class="token number">0.52</span><span class="token punctuation">,</span> <span class="token number">1.0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>

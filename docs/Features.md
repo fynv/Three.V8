@@ -80,6 +80,8 @@ When user choose to use a Three.V8 background, now we have the following options
 
 [HemisphereBackground](HemisphereBackground.html): Use a gradient change from sky-color to ground-color.
 
+[BackgroundScene](BackgroundScene.html): Use another scene as background. 
+
 ColorBackground:
 
 ```js
@@ -191,6 +193,10 @@ Currently we have to following options for indirect light source.
 [EnvironmentMap](EnvironmentMap.html): corresponding to CubeBackground. Image based lighting.
 
 [HemisphereLight](HemisphereLight.html): corresponding to HemisphereBackground. Gradient ambient light.
+
+[ProbeGrid](ProbeGrid.html): an uniform grid of light-probes.
+
+[LODProbeGrid](LODProbeGrid.html): a mixed-resolution grid of light-probes.
 
 AmbientLight:
 
