@@ -52,7 +52,9 @@ The user script APIs consist of
 | [DDSImageLoader](DDSImageLoader.html)                     | Provides a few interfaces to load dds-images.                |
 | [HDRImageLoader](HDRImageLoader.html)                     | Provides a few interfaces to load HDR images.                |
 | [GLTFLoader](GLTFLoader.html)                             | Provides a few interfaces to load GLTF models.               |
-| [ImageSaver](ImageSaver.html)                             | Provides a few interfaces to save images. (PC only)          |
+| [ProbeGridLoader](ProbeGridLoader.html)                   | Provides a few interfaces to load probe-grids.               |
+| [LODProbeGridLoader](LODProbeGridLoader.html)             | Provides a few interfaces to load lod-probe-grids.           |
+| [Text](Text.html)                                         | Provides a few interfaces for text conversion.               |
 
 
 # Engine Classes (Network)
@@ -60,6 +62,7 @@ The user script APIs consist of
 | Class Name                                                | Description                                                  |
 | --------------------------------------------------------  | ------------------------------------------------------------ |
 | [HttpClient](HttpClient.html)                             | Provides a few interfaces to make HTTP requests.             |
+| [WSClient](WSClient.html)                                 | Maintains a websocket connection at the client side.         |
 
 # Engine Classes (GUI)
 
@@ -77,6 +80,7 @@ The user script APIs consist of
 | [UITextBlock](UITextBlock.html)                           | Non-editable multi-lined text element in a UI.               |
 | [UILineEdit](UILineEdit.html)                             | Editable text box in a UI.                                   |
 | [UI3DViewer](UI3DViewer.html)                             | Object for embedding a 3D view in a UI.                      |
+| [UIDraggable](UIDraggable.html)                           | A draggable ui-panel.                                        |
 
 # Engine Classes (Multimedia)
 
@@ -159,7 +163,9 @@ These are engine class singletons that can be used directly in user script.
 | DDSImageLoader                                            | Instance of [DDSImageLoader](DDSImageLoader.html).           |
 | HDRImageLoader                                            | Instance of [HDRImageLoader](HDRImageLoader.html).           |
 | gltfLoader                                                | Instance of [GLTFLoader](GLTFLoader.html).                   |
-| imageSaver                                                | Instance of [ImageSaver](ImageSaver.html).                   |
+| probeGridLoader                                           | Instance of [ProbeGridLoader](ProbeGridLoader.html).         |
+| LODProbeGridLoader                                        | Instance of [LODProbeGridLoader](LODProbeGridLoader.html).   |
+| text                                                      | Instance of [Text](Text.html)                                |
 | http                                                      | Instance of [HttpClient](HttpClient.html).                   |
 | UIManager                                                 | Instance of [UIManager](UIManager.html).                     |
 

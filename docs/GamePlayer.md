@@ -13,12 +13,13 @@ No constructor, exposed as a global object [`gamePlayer`](index.html#global-obje
 | **Properties**                                                |                                                                |
 | [width](#width)                                               | Current video width                                            |
 | [height](#height)                                             | Current video height                                           |
+| [picking](#picking)                                           | Whether picking is enabled                                     |
 | **Methods**                                                   |                                                                |
-| [setMouseCapture()](#setmousecapture)                         | Set the mouse capture state to True.                           |
-| [releaseMouseCapture()](#releasemousecapture)                 | Set the mouse capture state to False.                          |
+| [message()](#message)                                         | Send a general message to the game player.                     |
 | [hasFont()](#hasfont)                                         | Check if the font of `name` has been loaded.                   |
 | [createFontFromFile()](#createfontfromfile)                   | Load font from local file.                                     |
 | [createFontFromMemory()](#createfontfrommemory)               | Load font from a memory buffer.                                |
+| [pickObject()](#pickobject)                                   | Pick the object visible at screen location x,y.                |
 
 # Properties
 
@@ -34,19 +35,21 @@ Read-only value of current video width.
 
 Read-only value of current video height.
 
+## picking
+
+`.picking`: Boolean
+
+Whether picking is enabled.
+
 # Methods
 
-## setMouseCapture()
+## message()
 
-`.setMouseCapture`(): undefined
+`.message`(`name`: String, `msg`: String) : String
 
-Set the mouse capture state to True.
+Send a general message to the game player.
 
-## releaseMouseCapture()
-
- `.releaseMouseCapture`(): undefined
-
-Set the mouse capture state to False.
+Pointer capture/release messages are sent through this interface, using names "setPointerCapture" and "releasePointerCapture".
 
 ## hasFont()
 
@@ -80,7 +83,13 @@ Load font from a memory buffer.
 `data`: memory buffer containing the binary data of the TrueType font.
 
 
+## pickObject()
 
+`.pickObject`(`x`:Number, `y`:Number): Object
+
+Pick the object visible at screen location x,y.
+
+The returned object contains a "name" property.
 
 
 
