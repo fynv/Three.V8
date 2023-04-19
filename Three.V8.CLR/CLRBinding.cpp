@@ -82,6 +82,7 @@ namespace CLRBinding
 	void CGLControl::MakeCurrent()
 	{
 		wglMakeCurrent(m_hdc, m_hrc);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
 	void CGLControl::SetFramerate(float fps)
@@ -107,7 +108,7 @@ namespace CLRBinding
 	{
 		if (m_hdc != nullptr)
 		{
-			wglMakeCurrent(m_hdc, m_hrc);
+			this->MakeCurrent();
 			Control::OnPaint(e);
 			SwapBuffers(m_hdc);
 		}

@@ -3253,7 +3253,7 @@ void GLRenderer::renderTexture(GLTexture2D* tex, int x, int y, int width, int he
 	{
 		TextureDraw = std::unique_ptr<DrawTexture>(new DrawTexture(false, flipY));
 	}	
-	glBindFramebuffer(GL_FRAMEBUFFER, target.m_fbo_video);
+	glBindFramebuffer(GL_FRAMEBUFFER, target.m_fbo_video==0? target.m_fbo_default : target.m_fbo_video);
 	TextureDraw->render(tex->tex_id, x, target.m_height - (y + height), width, height, alpha<1.0f, alpha);
 }
 
