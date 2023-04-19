@@ -81,6 +81,10 @@ void GamePlayer::Idle()
 
 void GamePlayer::Draw(int width, int height)
 {	
+	int cur_fbo;
+	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &cur_fbo);
+	m_render_target.m_fbo_default = cur_fbo;
+
 	bool size_changed =  m_render_target.update_framebuffers(width, height);
 	if (size_changed && m_pick_target != nullptr)
 	{
@@ -110,8 +114,9 @@ void GamePlayer::Draw(int width, int height)
 	if (m_context != nullptr)
 	{
 		// render UI
-		m_ui_renderer.render(*m_context->GetUIManager(), width, height);
+		m_ui_renderer.render(*m_context->GetUIManager(), width, height, cur_fbo);
 	}
+	glBindFramebuffer(GL_FRAMEBUFFER, cur_fbo);
 }
 
 inline v8::Local<v8::Object> g_CreateMouseEvent(v8::Isolate* isolate, v8::Local<v8::Context> context, int button, int clicks, int delta, int x, int y)

@@ -791,7 +791,7 @@ private:
 
 };
 
-void GLUIRenderer::render(UIManager& UI, int width_wnd, int height_wnd)
+void GLUIRenderer::render(UIManager& UI, int width_wnd, int height_wnd, unsigned fbo_id)
 {	
 	double t = time_sec();
 	double delta_t = 0.0;
@@ -820,7 +820,7 @@ void GLUIRenderer::render(UIManager& UI, int width_wnd, int height_wnd)
 
 		arenderer.RenderViews(&blitter);
 
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);		
+		glBindFramebuffer(GL_FRAMEBUFFER, fbo_id);
 		glEnable(GL_FRAMEBUFFER_SRGB);
 		blitter.render(area->render_target.m_tex_video->tex_id, arenderer.x0, height_wnd - (arenderer.y0 + arenderer.h), arenderer.w, arenderer.h, true);
 

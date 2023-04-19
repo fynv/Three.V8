@@ -29,6 +29,7 @@ public:
 	std::unique_ptr<GLTexture2D> m_tex_msaa;
 	std::unique_ptr<GLTexture2D> m_tex_depth;
 
+	unsigned m_fbo_default = 0;
 	unsigned m_fbo_video = 0;
 	unsigned m_fbo_msaa = -1;
 	bool update_framebuffers(int width, int height);

@@ -144,7 +144,12 @@ void GLRenderTarget::bind_buffer()
 	}
 	else
 	{
-		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_video);
+		unsigned fbo = m_fbo_video;
+		if (m_fbo_video == 0)
+		{
+			fbo = m_fbo_default;
+		}
+		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 	}	
 }
 
@@ -153,15 +158,20 @@ void GLRenderTarget::resolve_msaa()
 {
 	if (m_fbo_msaa != (unsigned)(-1))
 	{
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo_video);
+		unsigned fbo = m_fbo_video;
+		if (m_fbo_video == 0)
+		{
+			fbo = m_fbo_default;
+		}		
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
 		glBlitFramebuffer(0, 0, m_width, m_height, 0, 0, m_width, m_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo_video);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
 	}
 }
 
 void GLRenderTarget::blit_buffer(int width_wnd, int height_wnd, int margin)
 {
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo_default);
 
 	glViewport(0, 0, width_wnd, height_wnd);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -194,7 +204,7 @@ void GLRenderTarget::blit_buffer(int width_wnd, int height_wnd, int margin)
 		int offset_y = (height_wnd - m_height) / 2;
 		glBlitFramebuffer(0, 0, m_width, m_height, offset_x, offset_y, offset_x + m_width, offset_y + m_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 	}
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo_default);
 }
 
 void GLRenderTarget::GetImage(Image& image)

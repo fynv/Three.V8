@@ -19,7 +19,7 @@ public:
 	int CreateImage(Image* img);
 	void DeleteImage(int img_id);
 
-	void render(UIManager& UI, int width_wnd, int height_wnd);
+	void render(UIManager& UI, int width_wnd, int height_wnd, unsigned fbo_id);
 
 private:
 	NVGcontext* vg;
