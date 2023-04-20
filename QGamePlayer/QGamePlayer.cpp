@@ -17,6 +17,9 @@ QGamePlayer::QGamePlayer()
 	connect(m_ui.glControl, SIGNAL(OnMouseUp(QMouseEvent*)), this, SLOT(OnMouseUp(QMouseEvent*)));
 	connect(m_ui.glControl, SIGNAL(OnMouseMove(QMouseEvent*)), this, SLOT(OnMouseMove(QMouseEvent*)));
 	connect(m_ui.glControl, SIGNAL(OnWheel(QWheelEvent*)), this, SLOT(OnWheel(QWheelEvent*)));
+	connect(m_ui.glControl, SIGNAL(OnChar(int)), this, SLOT(OnChar(int)));
+	connect(m_ui.glControl, SIGNAL(OnControlKey(int)), this, SLOT(OnControlKey(int)));
+	connect(m_ui.btn_rotate, SIGNAL(clicked()), this, SLOT(btn_rotate_Click()));
 
 	press_timer.setSingleShot(true);
 	press_timer.setInterval(std::chrono::milliseconds(500));
@@ -81,8 +84,101 @@ struct MouseEventArgs
 	int y;
 };
 
-inline MouseEventArgs convert_args(QMouseEvent* event)
+
+void QGamePlayer::OnLongPress()
 {
+	m_game_player->OnLongPress(x_down, y_down);
+}
+
+void QGamePlayer::OnMouseDown(QMouseEvent* event)
+{
+	if (m_game_player == nullptr) return;	
+	m_ui.glControl->makeCurrent();
+
+	int button = -1;
+	if (event->button() == Qt::MouseButton::LeftButton)
+	{
+		button = 0;
+	}
+	else if (event->button() == Qt::MouseButton::MiddleButton)
+	{
+		button = 1;
+	}
+	else if (event->button() == Qt::MouseButton::RightButton)
+	{
+		button = 2;
+	}
+	else if (event->button() == Qt::MouseButton::XButton1)
+	{
+		button = 3;
+	}
+	else if (event->button() == Qt::MouseButton::XButton2)
+	{
+		button = 4;
+	}
+
+	MouseEventArgs args;
+	args.button = button;
+	args.clicks = 1;
+	args.delta = 0;
+	args.x = event->x();
+	args.y = event->y();	
+	m_game_player->OnMouseDown(args.button, args.clicks, args.delta, args.x, args.y);
+
+	if (event->button() == Qt::MouseButton::LeftButton)
+	{
+		x_down = event->x();
+		y_down = event->y();
+		press_timer.start();
+	}
+}
+
+void QGamePlayer::OnMouseUp(QMouseEvent* event)
+{
+	if (m_game_player == nullptr) return;	
+	m_ui.glControl->makeCurrent();
+
+	int button = -1;
+	if (event->button() == Qt::MouseButton::LeftButton)
+	{
+		button = 0;
+	}
+	else if (event->button() == Qt::MouseButton::MiddleButton)
+	{
+		button = 1;
+	}
+	else if (event->button() == Qt::MouseButton::RightButton)
+	{
+		button = 2;
+	}
+	else if (event->button() == Qt::MouseButton::XButton1)
+	{
+		button = 3;
+	}
+	else if (event->button() == Qt::MouseButton::XButton2)
+	{
+		button = 4;
+	}
+
+	MouseEventArgs args;
+	args.button = button;
+	args.clicks = 0;
+	args.delta = 0;
+	args.x = event->x();
+	args.y = event->y();	
+	m_game_player->OnMouseUp(args.button, args.clicks, args.delta, args.x, args.y);
+
+	if (press_timer.isActive())
+	{
+		press_timer.stop();
+	}
+}
+
+void QGamePlayer::OnMouseMove(QMouseEvent* event)
+{
+	if (m_game_player == nullptr) return;	
+	m_ui.glControl->makeCurrent();
+
 	int button = -1;
 	if (event->buttons().testFlag(Qt::MouseButton::LeftButton))
 	{
@@ -107,53 +203,10 @@ inline MouseEventArgs convert_args(QMouseEvent* event)
 
 	MouseEventArgs args;
 	args.button = button;
-	args.clicks = event->type() == QMouseEvent::MouseButtonPress ? 1: 0;
+	args.clicks = 0;
 	args.delta = 0;
 	args.x = event->x();
-	args.y = event->y();
-	return args;
-
-}
-
-void QGamePlayer::OnLongPress()
-{
-	m_game_player->OnLongPress(x_down, y_down);
-}
-
-void QGamePlayer::OnMouseDown(QMouseEvent* event)
-{
-	if (m_game_player == nullptr) return;
-	m_ui.glControl->setFocus();
-	m_ui.glControl->makeCurrent();
-	MouseEventArgs args = convert_args(event);		
-	m_game_player->OnMouseDown(args.button, args.clicks, args.delta, args.x, args.y);
-
-	if (event->button() == Qt::MouseButton::LeftButton)
-	{
-		x_down = event->x();
-		y_down = event->y();
-		press_timer.start();
-	}
-}
-
-void QGamePlayer::OnMouseUp(QMouseEvent* event)
-{
-	if (m_game_player == nullptr) return;	
-	m_ui.glControl->makeCurrent();
-	MouseEventArgs args = convert_args(event);	
-	m_game_player->OnMouseUp(args.button, args.clicks, args.delta, args.x, args.y);
-
-	if (press_timer.isActive())
-	{
-		press_timer.stop();
-	}
-}
-
-void QGamePlayer::OnMouseMove(QMouseEvent* event)
-{
-	if (m_game_player == nullptr) return;	
-	m_ui.glControl->makeCurrent();
-	MouseEventArgs args = convert_args(event);	
+	args.y = event->y();	
 	m_game_player->OnMouseMove(args.button, args.clicks, args.delta, args.x, args.y);
 
 	if (press_timer.isActive())
@@ -184,3 +237,38 @@ void QGamePlayer::OnWheel(QWheelEvent* event)
 	args.y = qRound(event->position().y());
 	m_game_player->OnMouseWheel(args.button, args.clicks, args.delta, args.x, args.y);
 }
+
+void QGamePlayer::OnChar(int charCode)
+{
+	if (m_game_player == nullptr) return;
+	m_ui.glControl->makeCurrent();
+	m_game_player->OnChar(charCode);
+}
+
+void QGamePlayer::OnControlKey(int code)
+{
+	if (m_game_player == nullptr) return;
+	m_ui.glControl->makeCurrent();
+	m_game_player->OnControlKey(code);
+}
+
+void QGamePlayer::btn_rotate_Click()
+{
+	if (!is_portrait)
+	{
+		this->setFixedSize(500, 720);
+		m_ui.glControl->setFixedSize(360, 640);
+		m_ui.btn_rotate->setText(tr("To Landscape"));
+		is_portrait = true;
+	}
+	else
+	{
+		this->setFixedSize(800, 450);
+		m_ui.glControl->setFixedSize(640, 360);
+		m_ui.btn_rotate->setText(tr("To Portrait"));
+		is_portrait = false;
+
+	}
+
+}
+

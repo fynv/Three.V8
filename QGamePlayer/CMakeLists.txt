@@ -117,7 +117,7 @@ set (DEFINES  ${DEFINES}
 include_directories(${INCLUDE_DIR})
 add_definitions(${DEFINES})
 add_executable (QGamePlayer ${SOURCES} ${HEADERS})
-set_property(TARGET QGamePlayer PROPERTY WIN32_EXECUTABLE false)
+set_property(TARGET QGamePlayer PROPERTY WIN32_EXECUTABLE true)
 
 target_link_directories(QGamePlayer PUBLIC ${LINK_DIR})
 target_link_libraries(QGamePlayer ${LINK_LIBS})

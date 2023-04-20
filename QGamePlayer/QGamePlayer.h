@@ -26,6 +26,11 @@ private slots:
 
 	void OnLongPress();
 
+	void OnChar(int charCode);
+	void OnControlKey(int code);
+
+	void btn_rotate_Click();
+
 private:
 	void LoadScript(QString path);
 
@@ -36,4 +41,6 @@ private:
 
 	QTimer press_timer;
 	int x_down, y_down;
+
+	bool is_portrait = false;
 };
