@@ -23,11 +23,14 @@ main.cpp
 QGamePlayer.ui
 QGamePlayer.cpp
 GLControl.cpp
+PlayerWindow.ui
+PlayerWindow.cpp
 resources/resources.qrc
 )
 
 set(HEADERS 
 QGamePlayer.h
+PlayerWindow.h
 GLControl.h
 )
 

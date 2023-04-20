@@ -1,45 +1,97 @@
-#include <GL/glew.h>
+#include <QFile>
 #include <QFileInfo>
-#include <QFileDialog>
+#include <QJsonDocument>
+#include <QJsonValue>
+#include <QJsonObject>
+#include <QJsonArray>
 #include <QMouseEvent>
-#include "QGamePlayer.h"
+#include "PlayerWindow.h"
 
-QGamePlayer::QGamePlayer()
+PlayerWindow::PlayerWindow(const char* path_proj, int idx)
 {
-	this->setFixedSize(800, 450);
 	m_ui.setupUi(this);
 	m_ui.glControl->SetFramerate(60.0f);
+	m_ui.consoleTextEdit->addAction(m_ui.actionClearConsole);	
+	
+	QString filename = QString::fromLocal8Bit(path_proj);
+	QFile file;
+	file.setFileName(filename);
+	file.open(QIODevice::ReadOnly | QIODevice::Text);
+	QString text = file.readAll();
+	file.close();
+
+	QJsonDocument json_doc = QJsonDocument::fromJson(text.toUtf8());
+	QJsonObject obj_proj = json_doc.object();
+	QJsonObject obj_target = obj_proj.value("targets").toArray()[idx].toObject();
+	QString name = obj_target.value("name").toString();
+	QString output = obj_target.value("output").toString();
+
+	this->setWindowTitle(name);
+
+	QString dir_proj = QFileInfo(filename).path();
+	m_script_path = QFileInfo(dir_proj + "/" + output).absoluteFilePath();
+	
+	if (obj_target.contains("width") && obj_target.contains("height"))
+	{
+		int width = obj_target.value("width").toInt();
+		int height = obj_target.value("height").toInt();
+
+		this->resize(width, height);
+	}
+
+	QList<int> sizes(2);
+	sizes[0] = this->height();
+	sizes[1] = 0;
+	m_ui.splitter->setSizes(sizes);
 
 	connect(m_ui.glControl, SIGNAL(OnInit()), this, SLOT(OnInit()));
 	connect(m_ui.glControl, SIGNAL(OnPaint(int, int)), this, SLOT(OnPaint(int, int)));
-	connect(m_ui.btn_load, SIGNAL(clicked()), this, SLOT(BtnLoad_Click()));
 	connect(m_ui.glControl, SIGNAL(OnMouseDown(QMouseEvent*)), this, SLOT(OnMouseDown(QMouseEvent*)));
 	connect(m_ui.glControl, SIGNAL(OnMouseUp(QMouseEvent*)), this, SLOT(OnMouseUp(QMouseEvent*)));
 	connect(m_ui.glControl, SIGNAL(OnMouseMove(QMouseEvent*)), this, SLOT(OnMouseMove(QMouseEvent*)));
 	connect(m_ui.glControl, SIGNAL(OnWheel(QWheelEvent*)), this, SLOT(OnWheel(QWheelEvent*)));
 	connect(m_ui.glControl, SIGNAL(OnChar(int)), this, SLOT(OnChar(int)));
-	connect(m_ui.glControl, SIGNAL(OnControlKey(int)), this, SLOT(OnControlKey(int)));
-	connect(m_ui.btn_rotate, SIGNAL(clicked()), this, SLOT(btn_rotate_Click()));
+	connect(m_ui.glControl, SIGNAL(OnControlKey(int)), this, SLOT(OnControlKey(int)));	
 
 	press_timer.setSingleShot(true);
 	press_timer.setInterval(std::chrono::milliseconds(500));
 	connect(&press_timer, SIGNAL(timeout()), this, SLOT(OnLongPress()));
+
+	connect(m_ui.actionClearConsole, SIGNAL(triggered()), this, SLOT(OnClearConsole()));
 }
 
-QGamePlayer::~QGamePlayer()
+PlayerWindow::~PlayerWindow()
 {
 	m_ui.glControl->makeCurrent();
 	m_game_player = nullptr;
 }
 
-void QGamePlayer::LoadScript(QString path)
+void PlayerWindow::LoadScript(QString path)
 {
 	QString resource_root = QFileInfo(path).path();
 	QString script_filename = QFileInfo(path).fileName();
 	m_game_player->LoadScript(resource_root.toLocal8Bit().data(), script_filename.toLocal8Bit().data());
 }
 
-void QGamePlayer::OnInit()
+
+void PlayerWindow::print_std(void* p_self, const char* cstr)
+{
+	PlayerWindow* self = (PlayerWindow*)p_self;
+	QString text = QString::fromLocal8Bit(cstr);	
+	self->m_ui.consoleTextEdit->setTextColor(QColor::fromRgbF(0.0f, 0.0f, 0.0f));
+	self->m_ui.consoleTextEdit->append(text);
+
+}
+
+void PlayerWindow::err_std(void* p_self, const char* cstr)
+{
+	PlayerWindow* self = (PlayerWindow*)p_self;
+	QString text = QString::fromLocal8Bit(cstr);
+	self->m_ui.consoleTextEdit->setTextColor(QColor::fromRgbF(1.0f, 0.0f, 0.0f));
+	self->m_ui.consoleTextEdit->append(text);
+}
+
+void PlayerWindow::OnInit()
 {
 	int width = m_ui.glControl->width();
 	int height = m_ui.glControl->width();
@@ -47,29 +99,17 @@ void QGamePlayer::OnInit()
 	QString path = QCoreApplication::applicationFilePath();
 	std::string cpath = path.toLocal8Bit().toStdString();
 	m_game_player = std::unique_ptr<GamePlayer>(new GamePlayer(cpath.c_str(), width, height));
+	m_game_player->SetPrintCallbacks(this, print_std, err_std);
 
-	LoadScript(default_script);
+	LoadScript(m_script_path);
 }
 
-void QGamePlayer::OnPaint(int width, int height)
-{
-	if (m_game_player == nullptr) return;	
-
-	m_game_player->Draw(width, height);
-	m_game_player->Idle();	
-}
-
-void QGamePlayer::BtnLoad_Click()
+void PlayerWindow::OnPaint(int width, int height)
 {
 	if (m_game_player == nullptr) return;
 
-	QFileDialog openFileDialog(this);
-	openFileDialog.setNameFilter(tr("Script Files (*.js)"));
-	if (openFileDialog.exec())
-	{
-		m_ui.glControl->makeCurrent();
-		LoadScript(openFileDialog.selectedFiles()[0]);
-	}
+	m_game_player->Draw(width, height);
+	m_game_player->Idle();
 }
 
 
@@ -83,14 +123,14 @@ struct MouseEventArgs
 };
 
 
-void QGamePlayer::OnLongPress()
+void PlayerWindow::OnLongPress()
 {
 	m_game_player->OnLongPress(x_down, y_down);
 }
 
-void QGamePlayer::OnMouseDown(QMouseEvent* event)
+void PlayerWindow::OnMouseDown(QMouseEvent* event)
 {
-	if (m_game_player == nullptr) return;	
+	if (m_game_player == nullptr) return;
 	m_ui.glControl->makeCurrent();
 
 	int button = -1;
@@ -120,7 +160,7 @@ void QGamePlayer::OnMouseDown(QMouseEvent* event)
 	args.clicks = 1;
 	args.delta = 0;
 	args.x = event->x();
-	args.y = event->y();	
+	args.y = event->y();
 	m_game_player->OnMouseDown(args.button, args.clicks, args.delta, args.x, args.y);
 
 	if (event->button() == Qt::MouseButton::LeftButton)
@@ -131,9 +171,9 @@ void QGamePlayer::OnMouseDown(QMouseEvent* event)
 	}
 }
 
-void QGamePlayer::OnMouseUp(QMouseEvent* event)
+void PlayerWindow::OnMouseUp(QMouseEvent* event)
 {
-	if (m_game_player == nullptr) return;	
+	if (m_game_player == nullptr) return;
 	m_ui.glControl->makeCurrent();
 
 	int button = -1;
@@ -163,7 +203,7 @@ void QGamePlayer::OnMouseUp(QMouseEvent* event)
 	args.clicks = 0;
 	args.delta = 0;
 	args.x = event->x();
-	args.y = event->y();	
+	args.y = event->y();
 	m_game_player->OnMouseUp(args.button, args.clicks, args.delta, args.x, args.y);
 
 	if (press_timer.isActive())
@@ -172,9 +212,9 @@ void QGamePlayer::OnMouseUp(QMouseEvent* event)
 	}
 }
 
-void QGamePlayer::OnMouseMove(QMouseEvent* event)
+void PlayerWindow::OnMouseMove(QMouseEvent* event)
 {
-	if (m_game_player == nullptr) return;	
+	if (m_game_player == nullptr) return;
 	m_ui.glControl->makeCurrent();
 
 	int button = -1;
@@ -204,7 +244,7 @@ void QGamePlayer::OnMouseMove(QMouseEvent* event)
 	args.clicks = 0;
 	args.delta = 0;
 	args.x = event->x();
-	args.y = event->y();	
+	args.y = event->y();
 	m_game_player->OnMouseMove(args.button, args.clicks, args.delta, args.x, args.y);
 
 	if (press_timer.isActive())
@@ -222,8 +262,8 @@ void QGamePlayer::OnMouseMove(QMouseEvent* event)
 	}
 }
 
-void QGamePlayer::OnWheel(QWheelEvent* event)
-{	
+void PlayerWindow::OnWheel(QWheelEvent* event)
+{
 	if (m_game_player == nullptr) return;
 	m_ui.glControl->makeCurrent();
 
@@ -236,37 +276,22 @@ void QGamePlayer::OnWheel(QWheelEvent* event)
 	m_game_player->OnMouseWheel(args.button, args.clicks, args.delta, args.x, args.y);
 }
 
-void QGamePlayer::OnChar(int charCode)
+void PlayerWindow::OnChar(int charCode)
 {
 	if (m_game_player == nullptr) return;
 	m_ui.glControl->makeCurrent();
 	m_game_player->OnChar(charCode);
 }
 
-void QGamePlayer::OnControlKey(int code)
+void PlayerWindow::OnControlKey(int code)
 {
 	if (m_game_player == nullptr) return;
 	m_ui.glControl->makeCurrent();
 	m_game_player->OnControlKey(code);
 }
 
-void QGamePlayer::btn_rotate_Click()
+void PlayerWindow::OnClearConsole()
 {
-	if (!is_portrait)
-	{
-		this->setFixedSize(500, 720);
-		m_ui.glControl->setFixedSize(360, 640);
-		m_ui.btn_rotate->setText(tr("To Landscape"));
-		is_portrait = true;
-	}
-	else
-	{
-		this->setFixedSize(800, 450);
-		m_ui.glControl->setFixedSize(640, 360);
-		m_ui.btn_rotate->setText(tr("To Portrait"));
-		is_portrait = false;
-
-	}
-
+	m_ui.consoleTextEdit->clear();
 }
 
