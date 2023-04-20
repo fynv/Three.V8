@@ -141,6 +141,7 @@ void GLRenderTarget::bind_buffer()
 	if (m_fbo_msaa!=(unsigned)(-1))
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_msaa);
+		glEnable(GL_MULTISAMPLE);
 	}
 	else
 	{
