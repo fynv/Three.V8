@@ -41,8 +41,8 @@ void QGamePlayer::LoadScript(QString path)
 
 void QGamePlayer::OnInit()
 {
-	int width = m_ui.glControl->width();
-	int height = m_ui.glControl->width();
+	int width, height;
+	m_ui.glControl->GetPhysicalSize(width, height);
 
 	QString path = QCoreApplication::applicationFilePath();
 	std::string cpath = path.toLocal8Bit().toStdString();

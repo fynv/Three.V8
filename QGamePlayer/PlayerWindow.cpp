@@ -22,9 +22,9 @@ PlayerWindow::PlayerWindow(const char* path_proj, int idx)
 
 	QJsonDocument json_doc = QJsonDocument::fromJson(text.toUtf8());
 	QJsonObject obj_proj = json_doc.object();
-	QJsonObject obj_target = obj_proj.value("targets").toArray()[idx].toObject();
-	QString name = obj_target.value("name").toString();
-	QString output = obj_target.value("output").toString();
+	QJsonObject obj_target = obj_proj["targets"].toArray()[idx].toObject();
+	QString name = obj_target["name"].toString();
+	QString output = obj_target["output"].toString();
 
 	this->setWindowTitle(name);
 
@@ -33,8 +33,8 @@ PlayerWindow::PlayerWindow(const char* path_proj, int idx)
 	
 	if (obj_target.contains("width") && obj_target.contains("height"))
 	{
-		int width = obj_target.value("width").toInt();
-		int height = obj_target.value("height").toInt();
+		int width = obj_target["width"].toInt();
+		int height = obj_target["height"].toInt();
 
 		this->resize(width, height);
 	}

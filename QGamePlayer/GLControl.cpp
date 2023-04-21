@@ -30,6 +30,15 @@ void GLControl::SetFramerate(float fps)
 	this->update();
 }
 
+void GLControl::GetPhysicalSize(int& width, int& height)
+{
+	HWND hwnd = (HWND)(this->winId());
+	RECT rect;
+	GetClientRect(hwnd, &rect);
+	width = rect.right - rect.left;
+	height = rect.bottom - rect.top;
+}
+
 void GLControl::initializeGL()
 {
 	glewInit();
@@ -42,7 +51,10 @@ void GLControl::paintGL()
 	painter.begin(this);
 	painter.beginNativePainting();
 
-	emit OnPaint(this->width(), this->height());
+	int width, height;
+	GetPhysicalSize(width, height);
+
+	emit OnPaint(width, height);
 
 	painter.endNativePainting();
 	painter.end();

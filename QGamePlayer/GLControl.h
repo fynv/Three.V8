@@ -11,6 +11,7 @@ public:
 	virtual ~GLControl();
 
 	void SetFramerate(float fps);
+	void GetPhysicalSize(int& width, int& height);
 
 signals:
 	void OnInit();

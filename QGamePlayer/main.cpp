@@ -1,7 +1,7 @@
+#include <QFile>
 #include <memory>
 #include "QGameplayer.h"
 #include "PlayerWindow.h"
-#include <utils/Utils.h>
 
 int main(int argc, char* argv[])
 {
@@ -17,7 +17,7 @@ int main(int argc, char* argv[])
 		wnd2 = std::unique_ptr<PlayerWindow>(new PlayerWindow(argv[1], idx));
 		wnd2->show();
 	}
-	else if (exists_test(".\\client\\project.json"))
+	else if (QFile::exists(".\\client\\project.json"))
 	{
 		wnd2 = std::unique_ptr<PlayerWindow>(new PlayerWindow(".\\client\\project.json", 0));
 		wnd2->show();
