@@ -63,12 +63,11 @@ void QGamePlayer::BtnLoad_Click()
 {
 	if (m_game_player == nullptr) return;
 
-	QFileDialog openFileDialog(this);
-	openFileDialog.setNameFilter(tr("Script Files (*.js)"));
-	if (openFileDialog.exec())
+	QString filename = QFileDialog::getOpenFileName(this, tr("Open Script"), QString(), tr("Script Files (*.js)"));
+	if (!filename.isNull())
 	{
 		m_ui.glControl->makeCurrent();
-		LoadScript(openFileDialog.selectedFiles()[0]);
+		LoadScript(filename);
 	}
 }
 

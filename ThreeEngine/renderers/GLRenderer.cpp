@@ -2980,21 +2980,24 @@ void GLRenderer::_render_cube(Scene& scene, CubeRenderTarget& target, const glm:
 	}
 }
 
-#define REFLECTION_RAY_MARCHING 1
+#define REFLECTION_RAY_MARCHING 0
 
 void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 {
 	if (scene.indirectLight != nullptr && scene.indirectLight->dynamic_map)
 	{
 		IndirectLight* light = scene.indirectLight;
+#if REFLECTION_RAY_MARCHING
+		if (light->reflection == nullptr || light->reflection->tex_id_dis == (unsigned)(-1))
+		{
+			light->reflection = std::unique_ptr<ReflectionMap>(new ReflectionMap(true));
+		}
+#else
 		if (light->reflection == nullptr)
 		{
-#if REFLECTION_RAY_MARCHING
-			light->reflection = std::unique_ptr<ReflectionMap>(new ReflectionMap(true));
-#else
 			light->reflection = std::unique_ptr<ReflectionMap>(new ReflectionMap(false));
-#endif
 		}
+#endif
 
 	}
 	_pre_render(scene);
