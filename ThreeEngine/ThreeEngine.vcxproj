@@ -246,6 +246,7 @@
     <ClCompile Include="savers\ProbeGridSaver.cpp" />
     <ClCompile Include="scenes\Fog.cpp" />
     <ClCompile Include="scenes\Scene.cpp" />
+    <ClCompile Include="utils\Cube2Octa.cpp" />
     <ClCompile Include="utils\DDSImage.cpp" />
     <ClCompile Include="utils\HDRImage.cpp" />
     <ClCompile Include="utils\Image.cpp" />
@@ -383,6 +384,7 @@
     <ClInclude Include="savers\ProbeGridSaver.h" />
     <ClInclude Include="scenes\Fog.h" />
     <ClInclude Include="scenes\Scene.h" />
+    <ClInclude Include="utils\Cube2Octa.h" />
     <ClInclude Include="utils\DDSImage.h" />
     <ClInclude Include="utils\HDRImage.h" />
     <ClInclude Include="utils\Image.h" />

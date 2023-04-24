@@ -498,6 +498,9 @@
     <ClCompile Include="lights\ReflectionDistanceCreator.cpp">
       <Filter>Source Files\lights</Filter>
     </ClCompile>
+    <ClCompile Include="utils\Cube2Octa.cpp">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -913,6 +916,9 @@
     </ClInclude>
     <ClInclude Include="lights\ReflectionDistanceCreator.h">
       <Filter>Header Files\lights</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\Cube2Octa.h">
+      <Filter>Header Files\utils</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
