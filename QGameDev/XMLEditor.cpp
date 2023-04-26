@@ -3,6 +3,8 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QMouseEvent>
+#include <QJsonDocument>
+#include <QJsonArray>
 #include "XMLEditor.h"
 #include "JsonUtils.h"
 
@@ -30,6 +32,8 @@ XMLEditor::XMLEditor(QWidget* parent, QString file_path, QString resource_root)
 
 	connect(m_ui.tab, SIGNAL(currentChanged(int)), this, SLOT(tab_SelectionChanged(int)));
 	connect(m_ui.btn_apply, SIGNAL(clicked()), this, SLOT(btn_apply_Click()));
+	connect(m_ui.btn_picking, SIGNAL(toggled(bool)), this, SLOT(btn_picking_toggled(bool)));
+	connect(m_ui.scene_graph, SIGNAL(currentItemChanged(QTreeWidgetItem*, QTreeWidgetItem*)), this, SLOT(scene_graph_current_changed(QTreeWidgetItem*, QTreeWidgetItem*)));
 
 	connect(m_ui.webView, SIGNAL(navigationCompleted()), this, SLOT(OnNavigationCompleted()));
 	QString local_path = QCoreApplication::applicationDirPath();
@@ -187,6 +191,7 @@ void XMLEditor::OnInit()
 	std::string cpath = path.toLocal8Bit().toStdString();
 	m_game_player = std::unique_ptr<GamePlayer>(new GamePlayer(cpath.c_str(), width, height));
 	m_game_player->SetPrintCallbacks(this, print_std, err_std);
+	m_game_player->SetUserMessageCallback(this, user_message_callback);
 	
 	QString local_path = QCoreApplication::applicationDirPath();
 	QString script_filename = local_path + "\\xmleditor\\bundle_index.js";
@@ -497,3 +502,211 @@ void XMLEditor::btn_apply_Click()
 	});
 }
 
+void XMLEditor::btn_picking_toggled(bool checked)
+{
+	m_ui.scene_graph->setEnabled(!checked);
+	if (m_game_player == nullptr) return;
+	m_ui.glControl->makeCurrent();
+	m_game_player->SendMessageToUser("picking", checked?"on":"off");
+}
+
+void XMLEditor::update_index_item(QTreeWidgetItem* item, const QJsonObject& obj)
+{
+	QJsonObject dict = index["index"].toObject();
+	QJsonArray children = obj["children"].toArray();	
+	for (size_t i = 0; i < children.size(); i++)
+	{
+		QString key = children[i].toString();				
+		QJsonObject child = dict[key].toObject();
+		QString tagName = child["tagName"].toString();
+		QJsonObject attributes = child["attributes"].toObject();
+		QString name;
+		if (attributes.contains("name"))
+		{
+			name = attributes["name"].toString();
+		}
+		else
+		{
+			name = tagName;
+		}		
+
+		QString icon_name = "object3d.png";
+		QString tooltip = "General 3D Object";
+		if (tagName == "camera")
+		{
+			icon_name = "camera.png";
+			tooltip = tr("A Camera");
+		}
+		else if (tagName == "fog")
+		{
+			icon_name = "fog.png";
+			tooltip = tr("Fog settings");
+		}
+		else if (tagName == "sky")
+		{
+			icon_name = "sky.png";
+			tooltip = tr("Sky settings");
+		}
+		else if (tagName == "env_light")
+		{
+			icon_name = "env_light.png";
+			tooltip = tr("Environment light settings");
+		}
+		else if (tagName == "control")
+		{
+			icon_name = "control.png";
+			tooltip = tr("Control settings");
+		}
+		else if (tagName == "group")
+		{
+			icon_name = "group.png";
+			tooltip = tr("Group of 3D Objects");
+		}
+		else if (tagName == "plane")
+		{
+			icon_name = "plane.png";
+			tooltip = tr("Rectangle Plane");
+		}
+		else if (tagName == "box")
+		{
+			icon_name = "box.png";
+			tooltip = tr("3D Box Shape");
+		}
+		else if (tagName == "sphere")
+		{
+			icon_name = "sphere.png";
+			tooltip = tr("3D Sphere Shape");
+		}
+		else if (tagName == "model")
+		{
+			icon_name = "model.png";
+			tooltip = tr("3D Model");
+		}
+		else if (tagName == "avatar")
+		{
+			icon_name = "avatar.png";
+			tooltip = tr("3D Avatar");
+		}
+		else if (tagName == "directional_light")
+		{
+			icon_name = "directional_light.png";
+			tooltip = tr("Directional light");
+		}
+
+		QTreeWidgetItem* subitem = new QTreeWidgetItem(item);
+		subitem->setText(0, name);
+		subitem->setIcon(0, QIcon(QString(":/images/")+ icon_name));
+		subitem->setToolTip(0, tooltip);
+		subitem->setData(0, Qt::UserRole, key);
+		TreeItemMap[key] = subitem;
+		update_index_item(subitem, child);
+	}
+	item->setExpanded(true);
+}
+
+void XMLEditor::update_index()
+{
+	m_ui.scene_graph->clear();
+	TreeItemMap.clear();
+
+	QString key = index["root"].toString();
+	QJsonObject dict = index["index"].toObject();
+	QJsonObject root = dict[key].toObject();
+	QString tagName = root["tagName"].toString();
+	QJsonObject attributes = root["attributes"].toObject();
+	QString name;
+	if (attributes.contains("name"))
+	{
+		name = attributes["name"].toString();
+	}
+	else
+	{
+		name = tagName;
+	}
+
+	QTreeWidgetItem* item = new QTreeWidgetItem(m_ui.scene_graph->invisibleRootItem());
+	item->setText(0, name);
+	item->setIcon(0, QIcon(":/images/scene.png"));
+	item->setToolTip(0, tr("Root item of the scene"));
+	item->setData(0, Qt::UserRole, key);
+	TreeItemMap[key] = item;
+	update_index_item(item, root);
+}
+
+std::string XMLEditor::index_loaded(const char* json_str)
+{
+	QJsonDocument doc = QJsonDocument::fromJson(json_str);
+	index = doc.object();
+	update_index();
+	return "";
+}
+
+std::string XMLEditor::object_picked(const char* key)
+{
+	picked_key = key;
+	if (tuner != nullptr)
+	{
+		m_ui.property_area->removeWidget(tuner);
+		tuner->deleteLater();
+	}
+
+	static QSet<QString> tags3d = { "scene", "group", "plane", "box", "sphere", "model", "avatar", "directional_light" };
+
+	m_ui.grp_scene_objs->setEnabled(false);
+	m_ui.grp_3d_objs->setEnabled(false);
+	if (picked_key != "")
+	{
+		QJsonObject picked_obj = index["index"].toObject()[picked_key].toObject();
+		QString tag = picked_obj["tagName"].toString();
+		printf("%s\n", tag.toLocal8Bit().data());
+		if (tags3d.contains(tag))
+		{
+			m_ui.grp_3d_objs->setEnabled(true);
+		}
+		if (tag == "scene")
+		{
+			m_ui.grp_scene_objs->setEnabled(true);
+		}
+
+		QTreeWidgetItem* treeItem = TreeItemMap[picked_key];
+		treeItem->setSelected(true);
+	}
+	m_ui.btn_picking->setChecked(false);
+	return "";
+}
+
+std::string XMLEditor::user_message_callback(void* ptr, const char* name, const char* msg)
+{
+	XMLEditor* self = (XMLEditor*)ptr;
+	std::string s_name = name;
+	if (s_name == "index_loaded")
+	{
+		return self->index_loaded(msg);
+	}
+	else if (s_name == "object_picked")
+	{
+		return self->object_picked(msg);
+	}
+	else if (s_name == "object_created")
+	{
+
+	}
+	else if (s_name == "object_removed")
+	{
+
+	}
+	return "";
+}
+
+
+void XMLEditor::scene_graph_current_changed(QTreeWidgetItem* current, QTreeWidgetItem* previous)
+{
+	if (m_ui.btn_picking->isChecked()) return;
+	if (current != nullptr)
+	{
+		QString key = current->data(0, Qt::UserRole).toString();
+		if (m_game_player == nullptr) return;
+		m_ui.glControl->makeCurrent();
+		m_game_player->SendMessageToUser("pick_obj", key.toUtf8().data());
+	}
+}

@@ -2,6 +2,7 @@
 
 #include "Editor.h"
 #include "ui_XMLEditor.h"
+#include <QJsonObject>
 #include <GamePlayer.h>
 
 class XMLEditor : public Editor
@@ -41,6 +42,11 @@ private:
 	QString resource_root;
 	std::unique_ptr<GamePlayer> m_game_player;
 
+	QJsonObject index;
+	QMap<QString, QTreeWidgetItem*> TreeItemMap;
+	QWidget* tuner = nullptr;
+	QString picked_key = "";
+
 	QTimer press_timer;
 	int x_down, y_down;
 	
@@ -67,6 +73,13 @@ private:
 	static void print_std(void* p_self, const char* cstr);
 	static void err_std(void* p_self, const char* cstr);
 
+	void update_index_item(QTreeWidgetItem* item, const QJsonObject& obj);
+	void update_index();
+
+	std::string index_loaded(const char* json_str);
+	std::string object_picked(const char* key);
+	static std::string user_message_callback(void* ptr, const char* name, const char* msg);
+
 private slots:
 	void OnInit();
 	void OnPaint(int width, int height);
@@ -85,6 +98,8 @@ private slots:
 
 	void tab_SelectionChanged(int idx);
 	void btn_apply_Click();
+	void btn_picking_toggled(bool checked);
+	void scene_graph_current_changed(QTreeWidgetItem* current, QTreeWidgetItem* previous);
 };
 
 #include "JsonUtils.h"

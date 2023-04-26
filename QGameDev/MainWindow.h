@@ -125,6 +125,7 @@ void MainWindow::CloseTab(int idx, TCallback callback)
 				int idx = m_ui.tabWidgetEditor->indexOf(editor);
 				QString filepath = m_ui.tabWidgetEditor->tabToolTip(idx);
 				m_ui.tabWidgetEditor->removeTab(idx);
+				editor->deleteLater();
 				opened_tabs.remove(filepath);
 				callback(true);
 			}
