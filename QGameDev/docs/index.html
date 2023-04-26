@@ -1264,13 +1264,9 @@ pre[class*="language-"] {
 <p>See <a href="api/index.html">Three.V8 User Script APIs</a> for the detail of the APIs.</p>
 <h2 class="atx" id="the-engine">The Engine</h2>
 <p>Three.V8 is a cross-platform 3D application engine. 
-Developer can use the engine to develop their own cross-platform 3D applications in JavaScript.
-Apps developed using Three.V8 can run in all supported platforms using the engine for the specific platform. </p>
-<p>Three.V8 exposes its own set of engine APIs which can be called by the apps to implement their required functionalities.
-There is a separate documentation about the detail of the <a href="api/index.html">APIs</a>.</p>
-<p>The design of the engine is similar to other script-based game engines. 
-However, as an application engine, Three.V8 also provides basic APIs for networking, multimedia and GUI apart from its 3D functionalities.
-The GUI system is based on the built-in graphics library of the engine so that the appearance of the GUI is highly consistent across different platforms.</p>
+Developer can use the engine to develop their own cross-platform 3D applications in JavaScript. Apps developed using Three.V8 can run in all supported platforms using the engine for the specific platform. </p>
+<p>Three.V8 exposes its own set of engine APIs which can be called by the apps to implement their required functionalities. There is a separate documentation about the detail of the <a href="api/index.html">APIs</a>.</p>
+<p>The design of the engine is similar to other script-based game engines.  However, as an application engine, Three.V8 also provides basic APIs for networking, multimedia and GUI apart from its 3D functionalities. The GUI system is based on the built-in graphics library of the engine so that the appearance of the GUI is highly consistent across different platforms.</p>
 <p><img alt="" src="UIWin.jpg">
 <strong>GUI appearance in Windows</strong></p>
 <p><img alt="" src="UIAndroid.png">
@@ -1278,19 +1274,19 @@ The GUI system is based on the built-in graphics library of the engine so that t
 <h2 class="atx" id="structure-of-an-app">Structure of an App</h2>
 <p>An app developed using Three.V8 is consisted of a code part and a data part. 
 The code part can be consisted of multiple JavaScript file during development. 
-However, all the code need to be bundled togather using Rollup.js or other bundlers
+However, all the code need to be bundled togather using <a href="https://rollupjs.org/">Rollup.js</a> 
 before it can be run with the engine. The bundling procedural is automated by the IDE.</p>
-<p>The data part is consisted of multiple data files of arbitary formats. They should either be deployed together 
-with the bundled code inside the final App or placed at a remote server to be downloaded at run-time.
-Those deployed inside the App can be referenced using paths relative to the bundled code.</p>
+<p>The data part is consisted of multiple data files of arbitary formats. They should either be deployed together with the bundled code inside the final App or placed at a remote server to be downloaded at run-time. Those deployed inside the App can be referenced using paths relative to the bundled code.</p>
 <h2 class="atx" id="the-ide">The IDE</h2>
 <p><img alt="" src="UILayout.jpg"></p>
 <p>The GUI of the IDE is consisted of ① Menu bar ② Side bar ③ Editor area and ④ Log area.</p>
 <h3 class="atx" id="external-dependencies">External Dependencies</h3>
 <ul>
-<li>Code editors are based on Microsoft WebView2. Make sure to get the <a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">runtime</a> installed before starting the IDE.</li>
-<li>Bundling is performed using <a href="https://rollupjs.org/">Rollup.js</a>. Make sure to install the npm package (globally) before trying to run any target.</li>
+<li>Code editors are based on Microsoft WebView2. </li>
+<li>Bundling is performed using <a href="https://rollupjs.org/">Rollup.js</a>. </li>
 </ul>
+<p>The IDE checkes whether WebView2 runtime is available when it starts. A installer is lauched automatically if it is not.</p>
+<p>A pre-packaged rollup.exe is provided and used by the IDE to bundle the source code automatically.</p>
 <h3 class="atx" id="menus">Menus</h3>
 <p>Use File-New-Project to create a new project. A project is a directory containing a "project.json" file. "project.json" marks the directory as a GameDev project, and maintains a list of bundle targets.</p>
 <p>Use File-New-File to add files to the project directory. You can also right-click a directory item in the side-bar to create files at a specified position.</p>
@@ -1300,15 +1296,15 @@ Those deployed inside the App can be referenced using paths relative to the bund
 <p>The "Targets" tab provides a list-view of the managed bundle targets. </p>
 <p><img alt="" src="Targets.jpg"></p>
 <p>Use buttons at ① to add/remove bundle targets or open the "Edit Target" window ③.</p>
-<p>Right click the Target item at ② for context menu, where you get options to run the target or create a shortcut of the App on the desktop. To run the target, you can also just double click the item. A bundling process will be triggered by calling the external "rollup" tool if a JavaScript file is modified. A separate process will be started by launching GamePlayer.exe with the path of the bundled JavaScript file. Note the bundled JavaScript files are hidden in the "Files" tab, because you should never edit these files manually.</p>
+<p>Right click the Target item at ② for context menu, where you get options to run the target or create a shortcut of the App on the desktop. To run the target, you can also just double click the item. A bundling process will be triggered by calling the external "rollup" tool if a JavaScript file is modified. A separate process will be started by launching the GamePlayer passing the information of the target. Note the bundled JavaScript files are hidden in the "Files" tab, because you should never edit these files manually.</p>
 <h3 class="atx" id="editors">Editors</h3>
 <p>GameDev provides editors for file formats most commonly used in a Three.V8 project, which are JavaScript, XML and JSON. </p>
 <p>In this IDE, we use specifically structured XML files to represent 3D Scenes and a dedicated <a href="scene_editor.html">scene editor</a> is provided.</p>
 <h3 class="atx" id="logs">Logs</h3>
 <p>Currently the "Console" tab of the log areas mainly shows outputs from the bundling process and the scene editor.</p>
-<p>Since that a running Target has its own process (GamePlayer.exe), their outputs can be seen in their own consoles.</p>
+<p>Since that a running Target has its own process (QGamePlayer.exe), their outputs can be seen in their own consoles.</p>
 <p><img alt="" src="gameplayer.jpg"></p>
-<p>The console of GamePlayer.exe is hidden by default, and can be shown by dragging.</p>
+<p>The console of the GamePlayer is hidden by default, and can be shown by dragging.</p>
 </article>
 </body>
 </html>

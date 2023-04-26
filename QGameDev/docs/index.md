@@ -20,15 +20,11 @@ See [Three.V8 User Script APIs](api/index.html) for the detail of the APIs.
 ## The Engine
 
 Three.V8 is a cross-platform 3D application engine. 
-Developer can use the engine to develop their own cross-platform 3D applications in JavaScript.
-Apps developed using Three.V8 can run in all supported platforms using the engine for the specific platform. 
+Developer can use the engine to develop their own cross-platform 3D applications in JavaScript. Apps developed using Three.V8 can run in all supported platforms using the engine for the specific platform. 
 
-Three.V8 exposes its own set of engine APIs which can be called by the apps to implement their required functionalities.
-There is a separate documentation about the detail of the [APIs](api/index.html).
+Three.V8 exposes its own set of engine APIs which can be called by the apps to implement their required functionalities. There is a separate documentation about the detail of the [APIs](api/index.html).
 
-The design of the engine is similar to other script-based game engines. 
-However, as an application engine, Three.V8 also provides basic APIs for networking, multimedia and GUI apart from its 3D functionalities.
-The GUI system is based on the built-in graphics library of the engine so that the appearance of the GUI is highly consistent across different platforms.
+The design of the engine is similar to other script-based game engines.  However, as an application engine, Three.V8 also provides basic APIs for networking, multimedia and GUI apart from its 3D functionalities. The GUI system is based on the built-in graphics library of the engine so that the appearance of the GUI is highly consistent across different platforms.
 
 ![](UIWin.jpg)
 **GUI appearance in Windows**
@@ -40,12 +36,10 @@ The GUI system is based on the built-in graphics library of the engine so that t
 
 An app developed using Three.V8 is consisted of a code part and a data part. 
 The code part can be consisted of multiple JavaScript file during development. 
-However, all the code need to be bundled togather using Rollup.js or other bundlers
+However, all the code need to be bundled togather using [Rollup.js](https://rollupjs.org/) 
 before it can be run with the engine. The bundling procedural is automated by the IDE.
 
-The data part is consisted of multiple data files of arbitary formats. They should either be deployed together 
-with the bundled code inside the final App or placed at a remote server to be downloaded at run-time.
-Those deployed inside the App can be referenced using paths relative to the bundled code.
+The data part is consisted of multiple data files of arbitary formats. They should either be deployed together with the bundled code inside the final App or placed at a remote server to be downloaded at run-time. Those deployed inside the App can be referenced using paths relative to the bundled code.
 
 ## The IDE
 
@@ -55,8 +49,13 @@ The GUI of the IDE is consisted of ① Menu bar ② Side bar ③ Editor area and
 
 ### External Dependencies
 
-* Code editors are based on Microsoft WebView2. Make sure to get the [runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) installed before starting the IDE.
-* Bundling is performed using [Rollup.js](https://rollupjs.org/). Make sure to install the npm package (globally) before trying to run any target.
+* Code editors are based on Microsoft WebView2. 
+* Bundling is performed using [Rollup.js](https://rollupjs.org/). 
+
+The IDE checkes whether WebView2 runtime is available when it starts. A installer is lauched automatically if it is not.
+
+A pre-packaged rollup.exe is provided and used by the IDE to bundle the source code automatically.
+
 
 ### Menus
 
@@ -76,7 +75,7 @@ The "Targets" tab provides a list-view of the managed bundle targets.
 
 Use buttons at ① to add/remove bundle targets or open the "Edit Target" window ③.
 
-Right click the Target item at ② for context menu, where you get options to run the target or create a shortcut of the App on the desktop. To run the target, you can also just double click the item. A bundling process will be triggered by calling the external "rollup" tool if a JavaScript file is modified. A separate process will be started by launching GamePlayer.exe with the path of the bundled JavaScript file. Note the bundled JavaScript files are hidden in the "Files" tab, because you should never edit these files manually.
+Right click the Target item at ② for context menu, where you get options to run the target or create a shortcut of the App on the desktop. To run the target, you can also just double click the item. A bundling process will be triggered by calling the external "rollup" tool if a JavaScript file is modified. A separate process will be started by launching the GamePlayer passing the information of the target. Note the bundled JavaScript files are hidden in the "Files" tab, because you should never edit these files manually.
 
 ### Editors
 
@@ -88,11 +87,11 @@ In this IDE, we use specifically structured XML files to represent 3D Scenes and
 
 Currently the "Console" tab of the log areas mainly shows outputs from the bundling process and the scene editor.
 
-Since that a running Target has its own process (GamePlayer.exe), their outputs can be seen in their own consoles.
+Since that a running Target has its own process (QGamePlayer.exe), their outputs can be seen in their own consoles.
 
 ![](gameplayer.jpg)
 
-The console of GamePlayer.exe is hidden by default, and can be shown by dragging.
+The console of the GamePlayer is hidden by default, and can be shown by dragging.
 
 
 
