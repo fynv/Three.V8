@@ -1,0 +1,24 @@
+<RCC>
+  <qresource>
+    <file>images/avatar.png</file>
+    <file>images/box.png</file>
+    <file>images/camera.png</file>
+    <file>images/control.png</file>
+    <file>images/directional_light.png</file>
+    <file>images/doc.png</file>
+    <file>images/env_light.png</file>
+    <file>images/fog.png</file>
+    <file>images/folder.png</file>
+    <file>images/group.png</file>
+    <file>images/js.png</file>
+    <file>images/json.png</file>
+    <file>images/model.png</file>
+    <file>images/object3d.png</file>
+    <file>images/plane.png</file>
+    <file>images/scene.png</file>
+    <file>images/sky.png</file>
+    <file>images/sphere.png</file>
+    <file>images/target.png</file>
+    <file>images/xml.png</file>
+  </qresource>
+</RCC>

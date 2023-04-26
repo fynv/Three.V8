@@ -104,6 +104,11 @@
             <height>0</height>
            </size>
           </property>
+          <property name="font">
+           <font>
+            <family>Courier New</family>
+           </font>
+          </property>
           <property name="contextMenuPolicy">
            <enum>Qt::ActionsContextMenu</enum>
           </property>

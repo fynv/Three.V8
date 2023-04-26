@@ -1,0 +1,11 @@
+{
+    "project_name": "xmleditor",
+    "targets": [
+        {
+            "dirty": false,
+            "input": "index.js",
+            "name": "Target",
+            "output": "bundle_index.js"
+        }
+    ]
+}

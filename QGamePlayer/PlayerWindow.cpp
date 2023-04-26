@@ -77,7 +77,7 @@ void PlayerWindow::LoadScript(QString path)
 void PlayerWindow::print_std(void* p_self, const char* cstr)
 {
 	PlayerWindow* self = (PlayerWindow*)p_self;
-	QString text = QString::fromLocal8Bit(cstr);	
+	QString text = QString::fromUtf8(cstr);	
 	self->m_ui.consoleTextEdit->setTextColor(QColor::fromRgbF(0.0f, 0.0f, 0.0f));
 	self->m_ui.consoleTextEdit->append(text);
 
@@ -86,7 +86,7 @@ void PlayerWindow::print_std(void* p_self, const char* cstr)
 void PlayerWindow::err_std(void* p_self, const char* cstr)
 {
 	PlayerWindow* self = (PlayerWindow*)p_self;
-	QString text = QString::fromLocal8Bit(cstr);
+	QString text = QString::fromUtf8(cstr);
 	self->m_ui.consoleTextEdit->setTextColor(QColor::fromRgbF(1.0f, 0.0f, 0.0f));
 	self->m_ui.consoleTextEdit->append(text);
 }
