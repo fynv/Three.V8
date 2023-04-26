@@ -657,8 +657,7 @@ std::string XMLEditor::object_picked(const char* key)
 	if (picked_key != "")
 	{
 		QJsonObject picked_obj = index["index"].toObject()[picked_key].toObject();
-		QString tag = picked_obj["tagName"].toString();
-		printf("%s\n", tag.toLocal8Bit().data());
+		QString tag = picked_obj["tagName"].toString();		
 		if (tags3d.contains(tag))
 		{
 			m_ui.grp_3d_objs->setEnabled(true);
@@ -669,7 +668,7 @@ std::string XMLEditor::object_picked(const char* key)
 		}
 
 		QTreeWidgetItem* treeItem = TreeItemMap[picked_key];
-		treeItem->setSelected(true);
+		m_ui.scene_graph->setCurrentItem(treeItem);
 	}
 	m_ui.btn_picking->setChecked(false);
 	return "";

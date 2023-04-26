@@ -88,6 +88,7 @@ void DrawWire::render(const RenderParams& params)
 	const GeometrySet& geo = params.primitive->geometry[params.primitive->geometry.size() - 1];
 
 	glEnable(GL_DEPTH_TEST);
+	glDepthMask(GL_TRUE);
 	glDepthFunc(GL_LEQUAL);
 	glDisable(GL_CULL_FACE);
 
