@@ -78,7 +78,12 @@ private:
 
 	std::string index_loaded(const char* json_str);
 	std::string object_picked(const char* key);
+	std::string object_created(const char* json_str);
+	std::string object_removed(const char* key);
 	static std::string user_message_callback(void* ptr, const char* name, const char* msg);
+
+	void req_create_scene_obj(QString tag);
+	void req_create_obj3d(QString tag);
 
 private slots:
 	void OnInit();
@@ -100,6 +105,19 @@ private slots:
 	void btn_apply_Click();
 	void btn_picking_toggled(bool checked);
 	void scene_graph_current_changed(QTreeWidgetItem* current, QTreeWidgetItem* previous);
+	void scene_graph_context_menu(const QPoint& pos);
+
+	void btn_create_fog_Click();
+	void btn_create_sky_Click();
+	void btn_create_env_light_Click();
+	void btn_create_group_Click();
+	void btn_create_plane_Click();
+	void btn_create_box_Click();
+	void btn_create_sphere_Click();
+	void btn_create_model_Click();
+	void btn_create_directional_light_Click();
+
+
 };
 
 #include "JsonUtils.h"

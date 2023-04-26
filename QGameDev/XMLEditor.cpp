@@ -5,6 +5,7 @@
 #include <QMouseEvent>
 #include <QJsonDocument>
 #include <QJsonArray>
+#include <QMenu>
 #include "XMLEditor.h"
 #include "JsonUtils.h"
 
@@ -34,6 +35,17 @@ XMLEditor::XMLEditor(QWidget* parent, QString file_path, QString resource_root)
 	connect(m_ui.btn_apply, SIGNAL(clicked()), this, SLOT(btn_apply_Click()));
 	connect(m_ui.btn_picking, SIGNAL(toggled(bool)), this, SLOT(btn_picking_toggled(bool)));
 	connect(m_ui.scene_graph, SIGNAL(currentItemChanged(QTreeWidgetItem*, QTreeWidgetItem*)), this, SLOT(scene_graph_current_changed(QTreeWidgetItem*, QTreeWidgetItem*)));
+	connect(m_ui.scene_graph, SIGNAL(customContextMenuRequested(const QPoint&)), this, SLOT(scene_graph_context_menu(const QPoint&)));
+
+	connect(m_ui.btn_create_fog, SIGNAL(clicked()), this, SLOT(btn_create_fog_Click()));
+	connect(m_ui.btn_create_sky, SIGNAL(clicked()), this, SLOT(btn_create_sky_Click()));
+	connect(m_ui.btn_create_env_light, SIGNAL(clicked()), this, SLOT(btn_create_env_light_Click()));
+	connect(m_ui.btn_create_group, SIGNAL(clicked()), this, SLOT(btn_create_group_Click()));
+	connect(m_ui.btn_create_plane, SIGNAL(clicked()), this, SLOT(btn_create_plane_Click()));
+	connect(m_ui.btn_create_box, SIGNAL(clicked()), this, SLOT(btn_create_box_Click()));
+	connect(m_ui.btn_create_sphere, SIGNAL(clicked()), this, SLOT(btn_create_sphere_Click()));
+	connect(m_ui.btn_create_model, SIGNAL(clicked()), this, SLOT(btn_create_model_Click()));
+	connect(m_ui.btn_create_directional_light, SIGNAL(clicked()), this, SLOT(btn_create_directional_light_Click()));
 
 	connect(m_ui.webView, SIGNAL(navigationCompleted()), this, SLOT(OnNavigationCompleted()));
 	QString local_path = QCoreApplication::applicationDirPath();
@@ -634,9 +646,8 @@ void XMLEditor::update_index()
 }
 
 std::string XMLEditor::index_loaded(const char* json_str)
-{
-	QJsonDocument doc = QJsonDocument::fromJson(json_str);
-	index = doc.object();
+{	
+	index = QJsonDocument::fromJson(json_str).object();
 	update_index();
 	return "";
 }
@@ -674,6 +685,54 @@ std::string XMLEditor::object_picked(const char* key)
 	return "";
 }
 
+std::string XMLEditor::object_created(const char* json_str)
+{
+	QJsonObject key_map = index["index"].toObject();
+	QJsonObject info = QJsonDocument::fromJson(json_str).object();
+	for (size_t i = 0; i < info.size(); i++)
+	{
+		QString key = info.keys()[i];
+		QJsonObject node = info[key].toObject();
+		QString key_parent = node["parent"].toString();
+		QJsonObject parent = key_map[key_parent].toObject();
+		key_map[key] = node;
+		QJsonArray children = parent["children"].toArray();
+		children.append(key);
+		parent["children"] = children;
+		key_map[key_parent] = parent;
+	}
+	index["index"] = key_map;
+	update_index();
+	return "";
+}
+
+std::string XMLEditor::object_removed(const char* key)
+{
+	QJsonObject key_map = index["index"].toObject();
+	QJsonObject node = key_map[key].toObject();
+	key_map.remove(key);
+
+	QString key_parent = node["parent"].toString();
+	QJsonObject parent = key_map[key_parent].toObject();
+	QJsonArray children = parent["children"].toArray();
+
+	for (size_t i = 0; i < children.size(); i++)
+	{
+		QString child_key = children[i].toString();
+		if (child_key == key)
+		{
+			children.removeAt(i);
+			break;
+		}
+	}
+	parent["children"] = children;
+	key_map[key_parent] = parent;
+	index["index"] = key_map;
+	update_index();
+
+	return "";
+}
+
 std::string XMLEditor::user_message_callback(void* ptr, const char* name, const char* msg)
 {
 	XMLEditor* self = (XMLEditor*)ptr;
@@ -688,11 +747,11 @@ std::string XMLEditor::user_message_callback(void* ptr, const char* name, const 
 	}
 	else if (s_name == "object_created")
 	{
-
+		return self->object_created(msg);
 	}
 	else if (s_name == "object_removed")
 	{
-
+		return self->object_removed(msg);
 	}
 	return "";
 }
@@ -708,4 +767,128 @@ void XMLEditor::scene_graph_current_changed(QTreeWidgetItem* current, QTreeWidge
 		m_ui.glControl->makeCurrent();
 		m_game_player->SendMessageToUser("pick_obj", key.toUtf8().data());
 	}
+}
+
+void XMLEditor::scene_graph_context_menu(const QPoint& pos)
+{
+	QTreeWidgetItem* item = m_ui.scene_graph->itemAt(pos);
+	if (item == nullptr) return;
+
+	QString key = item->data(0, Qt::UserRole).toString();
+	if (key == index["root"].toString()) return;
+
+	QJsonObject obj = index["index"].toObject()[key].toObject();
+	QString tag = obj["tagName"].toString();
+	QJsonObject att = obj["attributes"].toObject();
+	QString name;
+	if (att.contains("name"))
+	{
+		name = att["name"].toString();
+	}
+	else
+	{
+		name = tag;
+	}
+
+	QMenu menu(tr("Item Operations"), this);
+	QAction action_remove(tr("Remove"));
+	connect(&action_remove, &QAction::triggered, [this,key,tag, name]() {
+		if (QMessageBox::question(this, tr("Remove Item"), tr("Remove ") + tag + tr(" object") + "\"" + name + tr("\" and all its children from scene?")) == QMessageBox::Yes)
+		{
+			m_ui.glControl->makeCurrent();
+			m_game_player->SendMessageToUser("remove", key.toUtf8().data());
+		}		
+	});
+	menu.addAction(&action_remove);
+
+	menu.exec(m_ui.scene_graph->viewport()->mapToGlobal(pos));
+
+}
+
+void XMLEditor::req_create_scene_obj(QString tag)
+{
+	QJsonObject key_map = index["index"].toObject();
+	QJsonObject base_obj = key_map[picked_key].toObject();
+	QJsonArray children = base_obj["children"].toArray();
+
+	QString key_existing = "";
+	for (int i = 0; i < children.size(); i++)
+	{
+		QString key = children[i].toString();
+		QJsonObject child = key_map[key].toObject();
+		if (child["tagName"].toString() == tag)
+		{
+			key_existing = key;
+			break;
+		}
+	}
+
+	if (key_existing != "")
+	{
+		m_ui.glControl->makeCurrent();
+		m_game_player->SendMessageToUser("pick_obj", key_existing.toUtf8().data());
+		return;
+	}
+
+	QJsonObject req;
+	req["base_key"] = picked_key;
+	req["tag"] = tag;	
+
+	m_ui.glControl->makeCurrent();
+	m_game_player->SendMessageToUser("create", QJsonDocument(req).toJson().data());
+}
+
+void XMLEditor::req_create_obj3d(QString tag)
+{
+	QJsonObject req;
+	req["base_key"] = picked_key;
+	req["tag"] = tag;
+
+	m_ui.glControl->makeCurrent();
+	m_game_player->SendMessageToUser("create", QJsonDocument(req).toJson().data());
+}
+
+void XMLEditor::btn_create_fog_Click()
+{
+	req_create_scene_obj("fog");
+}
+
+void XMLEditor::btn_create_sky_Click()
+{
+	req_create_scene_obj("sky");
+}
+
+void XMLEditor::btn_create_env_light_Click()
+{
+	req_create_scene_obj("env_light");
+}
+
+void XMLEditor::btn_create_group_Click()
+{
+	req_create_obj3d("group");
+}
+
+void XMLEditor::btn_create_plane_Click()
+{
+	req_create_obj3d("plane");
+}
+
+void XMLEditor::btn_create_box_Click()
+{
+	req_create_obj3d("box");
+}
+
+void XMLEditor::btn_create_sphere_Click()
+{
+	req_create_obj3d("sphere");
+}
+
+void XMLEditor::btn_create_model_Click()
+{
+	req_create_obj3d("model");
+}
+
+void XMLEditor::btn_create_directional_light_Click()
+{
+	req_create_obj3d("directional_light");
 }
