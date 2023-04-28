@@ -1,4 +1,4 @@
-﻿import { OrbitControls } from "./controls/OrbitControls.js";
+import { OrbitControls } from "./controls/OrbitControls.js";
 import { Vector3 } from "./math/Vector3.js";
 import { Vector4 } from "./math/Vector4.js";
 import { Matrix4 } from "./math/Matrix4.js";
@@ -3066,6 +3066,7 @@ export class Document
     
     pick_obj(key)
     {
+        if (key == this.picked_key) return;
         let obj = null;
         if (key!="") 
         {

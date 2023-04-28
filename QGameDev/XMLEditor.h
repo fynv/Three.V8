@@ -4,6 +4,7 @@
 #include "ui_XMLEditor.h"
 #include <QJsonObject>
 #include <GamePlayer.h>
+#include "Tuner.h"
 
 class XMLEditor : public Editor
 {
@@ -44,7 +45,7 @@ private:
 
 	QJsonObject index;
 	QMap<QString, QTreeWidgetItem*> TreeItemMap;
-	QWidget* tuner = nullptr;
+	Tuner* tuner = nullptr;
 	QString picked_key = "";
 
 	QTimer press_timer;
@@ -116,6 +117,8 @@ private slots:
 	void btn_create_sphere_Click();
 	void btn_create_model_Click();
 	void btn_create_directional_light_Click();
+
+	void tuner_update(QJsonObject tuning);
 
 
 };

@@ -33,6 +33,8 @@ Basically, you first select an existing item as the parent item, then click a to
 
 ## Fog Item
 
+![](Fog_Tuning.jpg)
+
 The fog item describes particle scattering material in the air across the scene. It can be used to obscure the objects at a far distance, and is all essential for generating the Tyndall effect. The Fog Item has 2 properties, density and color. The bigger the density is, the faster the light attenuates.
 
 ## Sky Item

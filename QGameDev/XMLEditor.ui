@@ -507,10 +507,7 @@
          </layout>
         </item>
         <item>
-         <widget class="QStackedWidget" name="property_area">
-          <widget class="QWidget" name="page"/>
-          <widget class="QWidget" name="page_2"/>
-         </widget>
+         <widget class="QStackedWidget" name="property_area"/>
         </item>
        </layout>
       </widget>

@@ -43,10 +43,16 @@ JsonEditor.ui
 JsonEditor.cpp
 XMLEditor.ui
 XMLEditor.cpp
+ColorTuner.ui
+ColorTuner.cpp
+Tuner.cpp
+FogTuner.ui
+FogTuner.cpp
 resources/resources.qrc
 )
 
 set(HEADERS
+ColorUtils.h
 GLControl.h
 JsonUtils.h
 MainWindow.h
@@ -61,6 +67,9 @@ HelpPage.h
 JSEditor.h
 JsonEditor.h
 XMLEditor.h
+ColorTuner.h
+Tuner.h
+FogTuner.h
 )
 
 set (INCLUDE_DIR

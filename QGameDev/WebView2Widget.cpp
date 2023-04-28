@@ -153,6 +153,71 @@ void WebView2Widget::initialize(QString src)
 										QApplication::sendEvent(this, key_press);
 									}
 
+									// Ctrl + Z
+									if (key == 'Z' && ctrl && (!shift) && (!alt))
+									{
+										args->put_Handled(TRUE);
+										QKeyEvent* key_press = new QKeyEvent(eventType, Qt::Key_Z, modifiers);
+										QApplication::sendEvent(this, key_press);
+									}
+
+									// Ctrl + Y
+									if (key == 'Y' && ctrl && (!shift) && (!alt))
+									{
+										args->put_Handled(TRUE);
+										QKeyEvent* key_press = new QKeyEvent(eventType, Qt::Key_Y, modifiers);
+										QApplication::sendEvent(this, key_press);
+									}
+
+									// Ctrl + /
+									if (key == '/' && ctrl && (!shift) && (!alt))
+									{
+										args->put_Handled(TRUE);
+										QKeyEvent* key_press = new QKeyEvent(eventType, Qt::Key_Slash, modifiers);
+										QApplication::sendEvent(this, key_press);
+									}									
+
+									// Ctrl + U
+									// Ctrl + Shift + U
+									if (key == 'U' && ctrl && (!alt))
+									{
+										args->put_Handled(TRUE);
+										QKeyEvent* key_press = new QKeyEvent(eventType, Qt::Key_U, modifiers);
+										QApplication::sendEvent(this, key_press);
+									}
+
+									// Ctrl + F
+									if (key == 'F' && ctrl && (!shift) && (!alt))
+									{
+										args->put_Handled(TRUE);
+										QKeyEvent* key_press = new QKeyEvent(eventType, Qt::Key_F, modifiers);
+										QApplication::sendEvent(this, key_press);
+									}
+
+									// Ctrl + K
+									// Ctrl + Shift + K
+									if (key == 'K' && ctrl && (!alt))
+									{
+										args->put_Handled(TRUE);
+										QKeyEvent* key_press = new QKeyEvent(eventType, Qt::Key_K, modifiers);
+										QApplication::sendEvent(this, key_press);
+									}
+
+									// Ctrl + H
+									if (key == 'H' && ctrl && (!shift) && (!alt))
+									{
+										args->put_Handled(TRUE);
+										QKeyEvent* key_press = new QKeyEvent(eventType, Qt::Key_H, modifiers);
+										QApplication::sendEvent(this, key_press);
+									}
+
+									// Ctrl + L
+									if (key == 'L' && ctrl && (!shift) && (!alt))
+									{
+										args->put_Handled(TRUE);
+										QKeyEvent* key_press = new QKeyEvent(eventType, Qt::Key_L, modifiers);
+										QApplication::sendEvent(this, key_press);
+									}
 									return S_OK;
 
 								}).Get(), &token);

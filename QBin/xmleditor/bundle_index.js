@@ -7577,6 +7577,7 @@ class Document
     
     pick_obj(key)
     {
+        if (key == this.picked_key) return;
         let obj = null;
         if (key!="") 
         {

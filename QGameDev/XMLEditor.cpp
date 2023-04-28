@@ -8,6 +8,7 @@
 #include <QMenu>
 #include "XMLEditor.h"
 #include "JsonUtils.h"
+#include "FogTuner.h"
 
 XMLEditor::XMLEditor(QWidget* parent, QString file_path, QString resource_root)
 	: Editor(parent)
@@ -652,6 +653,16 @@ std::string XMLEditor::index_loaded(const char* json_str)
 	return "";
 }
 
+void XMLEditor::tuner_update(QJsonObject tuning)
+{
+	QJsonObject key_map = index["index"].toObject();
+	key_map[picked_key] = tuner->jobj;
+	index["index"] = key_map;
+
+	m_ui.glControl->makeCurrent();
+	m_game_player->SendMessageToUser("tuning", QJsonDocument(tuning).toJson());
+}
+
 std::string XMLEditor::object_picked(const char* key)
 {
 	picked_key = key;
@@ -659,6 +670,7 @@ std::string XMLEditor::object_picked(const char* key)
 	{
 		m_ui.property_area->removeWidget(tuner);
 		tuner->deleteLater();
+		tuner = nullptr;
 	}
 
 	static QSet<QString> tags3d = { "scene", "group", "plane", "box", "sphere", "model", "avatar", "directional_light" };
@@ -668,7 +680,7 @@ std::string XMLEditor::object_picked(const char* key)
 	if (picked_key != "")
 	{
 		QJsonObject picked_obj = index["index"].toObject()[picked_key].toObject();
-		QString tag = picked_obj["tagName"].toString();		
+		QString tag = picked_obj["tagName"].toString();
 		if (tags3d.contains(tag))
 		{
 			m_ui.grp_3d_objs->setEnabled(true);
@@ -676,6 +688,16 @@ std::string XMLEditor::object_picked(const char* key)
 		if (tag == "scene")
 		{
 			m_ui.grp_scene_objs->setEnabled(true);
+		}
+		else if (tag == "fog")
+		{			
+			tuner = new FogTuner(m_ui.property_area, picked_obj);
+			m_ui.property_area->addWidget(tuner);
+		}
+
+		if (tuner != nullptr)
+		{
+			connect(tuner, SIGNAL(update(QJsonObject)), this, SLOT(tuner_update(QJsonObject)));
 		}
 
 		QTreeWidgetItem* treeItem = TreeItemMap[picked_key];
