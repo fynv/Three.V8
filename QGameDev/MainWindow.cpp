@@ -377,19 +377,9 @@ void MainWindow::closeEvent(QCloseEvent* event)
 	if (m_ui.tabWidgetEditor->count() > 0)
 	{
 		event->ignore();
-		for (int i = 0; i < m_ui.tabWidgetEditor->count(); i++)
-		{
-			CloseTab(i, [this](bool closed)
-			{
-				if (m_ui.tabWidgetEditor->count() == 0)
-				{
-					close();
-				}
-			});
-		}
+		RecursiveClose();
 		return;
 	}
-
 	QMainWindow::closeEvent(event);
 }
 
@@ -1159,6 +1149,24 @@ void MainWindow::OnClearConsole()
 void MainWindow::CloseTab(int idx)
 {
 	this->CloseTab(idx, [](bool closed) {});
+}
+
+
+void MainWindow::RecursiveClose()
+{
+	CloseTab(0, [this](bool closed) {
+		if (closed)
+		{
+			if (m_ui.tabWidgetEditor->count() == 0)
+			{
+				close();
+			}
+			else
+			{
+				RecursiveClose();
+			}
+		}
+	});
 }
 
 void MainWindow::console_std(QString str)

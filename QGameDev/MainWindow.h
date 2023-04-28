@@ -63,6 +63,8 @@ private:
 	template<typename TCallback>
 	void CloseTab(int idx, TCallback callback);
 
+	void RecursiveClose();
+
 	void SetDirty();
 	void SaveTab(int idx);
 	void SaveAsTab(int idx);
