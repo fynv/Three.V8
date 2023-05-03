@@ -223,7 +223,7 @@ void GLTFModel::batch_primitives()
 	}	
 
 	std::unique_ptr<PrimitiveBatch> batchers[8];
-	GLDynBuffer subModel(sizeof(ModelConst), GL_UNIFORM_BUFFER);
+	GLBuffer subModel(sizeof(ModelConst), GL_UNIFORM_BUFFER);
 
 	batched_mesh = std::unique_ptr<Mesh>(new Mesh);
 	{

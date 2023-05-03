@@ -103,19 +103,6 @@ private:
 	GLBuffer(const GLBuffer&);
 };
 
-class GLDynBuffer
-{
-public:
-	unsigned m_id = -1;
-	unsigned m_target = 0x8892;
-	size_t m_size = 0;
-	GLDynBuffer(size_t size, unsigned target = 0x8892 /*GL_ARRAY_BUFFER*/);
-	~GLDynBuffer();
-	void upload(const void* data);
-	const GLDynBuffer& operator = (const GLDynBuffer& in);
-private:
-	GLDynBuffer(const GLDynBuffer&);
-};
 
 class TextureBuffer : public GLBuffer
 {

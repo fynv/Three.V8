@@ -45,7 +45,7 @@ DrawSkyBox::DrawSkyBox()
 	m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(vert_shader, frag_shader));
 }
 
-void DrawSkyBox::render(const GLDynBuffer* constant_camera, const GLCubemap* cubemap)
+void DrawSkyBox::render(const GLBuffer* constant_camera, const GLCubemap* cubemap)
 {
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_BLEND);

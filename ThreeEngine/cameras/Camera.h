@@ -18,6 +18,6 @@ public:
 	virtual void lookAt(const glm::vec3& target) override;
 	virtual glm::vec3 getWorldDirection() override;
 
-	GLDynBuffer m_constant;
+	GLBuffer m_constant;
 	void updateConstant();
 };

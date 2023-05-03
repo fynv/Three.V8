@@ -13,7 +13,7 @@ public:
 	glm::vec3 groundColor = { 0.01f, 0.025f, 0.025f };
 	float intensity = 1.0f;
 
-	GLDynBuffer m_constant;
+	GLBuffer m_constant;
 	void updateConstant();
 
 };

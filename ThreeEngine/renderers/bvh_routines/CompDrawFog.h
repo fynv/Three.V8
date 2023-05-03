@@ -23,7 +23,7 @@ public:
 
 	struct RenderParams
 	{		
-		const GLDynBuffer* constant_fog;
+		const GLBuffer* constant_fog;
 		const Lights* lights;
 		const BVHRenderTarget* target;		
 	};

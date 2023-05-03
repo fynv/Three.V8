@@ -750,7 +750,7 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 			if (mesh_out.primitives[0].num_targets > 0)
 			{
 				mesh_out.weights.resize(mesh_out.primitives[0].num_targets, 0.0f);				
-				mesh_out.buf_weights = std::unique_ptr<GLDynBuffer>(new GLDynBuffer(sizeof(float) * mesh_out.primitives[0].num_targets, GL_SHADER_STORAGE_BUFFER));
+				mesh_out.buf_weights = std::unique_ptr<GLBuffer>(new GLBuffer(sizeof(float) * mesh_out.primitives[0].num_targets, GL_SHADER_STORAGE_BUFFER));
 			}
 		}
 	}
@@ -835,7 +835,7 @@ inline void load_model(tinygltf::Model& model, GLTFModel* model_out)
 		tinygltf::Accessor& acc_mats = model.accessors[skin_in.inverseBindMatrices];
 		tinygltf::BufferView& view_mats = model.bufferViews[acc_mats.bufferView];
 		memcpy(skin_out.inverseBindMatrices.data(), model.buffers[view_mats.buffer].data.data() + view_mats.byteOffset + acc_mats.byteOffset, sizeof(glm::mat4)* num_joints);
-		skin_out.buf_rela_mat = std::unique_ptr<GLDynBuffer>(new GLDynBuffer(sizeof(glm::mat4) * num_joints));
+		skin_out.buf_rela_mat = std::unique_ptr<GLBuffer>(new GLBuffer(sizeof(glm::mat4) * num_joints));
 	}
 
 	for (size_t i = 0; i < num_nodes; i++)

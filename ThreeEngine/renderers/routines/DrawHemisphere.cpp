@@ -54,7 +54,7 @@ DrawHemisphere::DrawHemisphere()
     m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(vert_shader, frag_shader));
 }
 
-void DrawHemisphere::render(const GLDynBuffer* constant_camera, const GLDynBuffer* constant_hemisphere)
+void DrawHemisphere::render(const GLBuffer* constant_camera, const GLBuffer* constant_hemisphere)
 {
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_BLEND);

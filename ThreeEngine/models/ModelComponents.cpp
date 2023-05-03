@@ -221,6 +221,6 @@ struct ModelConst
 
 Mesh::Mesh()
 {
-	model_constant = std::unique_ptr<GLDynBuffer>(new GLDynBuffer(sizeof(ModelConst)));
+	model_constant = std::unique_ptr<GLBuffer>(new GLBuffer(sizeof(ModelConst)));
 }
 

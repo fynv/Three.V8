@@ -40,7 +40,7 @@ public:
 
 	int getNumberOfProbes() const;
 
-	GLDynBuffer m_constant;
+	GLBuffer m_constant;
 	void updateConstant();
 	
 	void initialize(GLRenderer& renderer, Scene& scene);

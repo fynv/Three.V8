@@ -385,42 +385,6 @@ const GLBuffer& GLBuffer::operator = (const GLBuffer& in)
 	return *this;
 }
 
-
-GLDynBuffer::GLDynBuffer(size_t size, unsigned target)
-{
-	m_target = target;
-	m_size = size;
-	glGenBuffers(1, &m_id);
-	glBindBuffer(m_target, m_id);
-	glBufferStorage(m_target, m_size, nullptr, GL_DYNAMIC_STORAGE_BIT);
-	glBindBuffer(m_target, 0);
-}
-
-GLDynBuffer::~GLDynBuffer()
-{
-	if (m_id != -1)
-	{
-		glDeleteBuffers(1, &m_id);
-	}
-}
-
-void GLDynBuffer::upload(const void* data)
-{
-	glBindBuffer(m_target, m_id);
-	glBufferSubData(m_target, 0, m_size, data);	
-	glBindBuffer(m_target, 0);
-}
-
-const GLDynBuffer& GLDynBuffer::operator = (const GLDynBuffer& in)
-{
-	glBindBuffer(GL_COPY_READ_BUFFER, in.m_id);
-	glBindBuffer(GL_COPY_WRITE_BUFFER, m_id);
-	glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, m_size);
-	glBindBuffer(GL_COPY_READ_BUFFER, 0);
-	glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
-	return *this;
-}
-
 TextureBuffer::TextureBuffer(size_t size, unsigned internalFormat)
 	: GLBuffer(size, GL_TEXTURE_BUFFER)
 {

@@ -28,8 +28,8 @@ public:
 		bool force_cull;
 		const GLTexture2D** tex_list;
 		const MeshStandardMaterial** material_list;
-		const GLDynBuffer* constant_shadow;
-		const GLDynBuffer* constant_model;
+		const GLBuffer* constant_shadow;
+		const GLBuffer* constant_model;
 		const Primitive* primitive;
 	};
 

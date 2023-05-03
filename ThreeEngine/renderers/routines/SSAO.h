@@ -35,7 +35,7 @@ public:
 	{
 		const Buffers* buffers;
 		const GLTexture2D* depth_in;
-		const GLDynBuffer* constant_camera;
+		const GLBuffer* constant_camera;
 	};
 
 	void render(const RenderParams& params);

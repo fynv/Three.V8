@@ -49,14 +49,14 @@ public:
 	{
 		const GLTexture2D** tex_list;
 		const MeshStandardMaterial** material_list;		
-		const GLDynBuffer* constant_model;
+		const GLBuffer* constant_model;
 		const Primitive* primitive;
 		const Lights* lights;
 		const GLTexture2D* tex_lightmap;
-		const GLDynBuffer* constant_fog;
+		const GLBuffer* constant_fog;
 
 		const BVHRenderTarget* target;
-		const GLDynBuffer* constant_camera;
+		const GLBuffer* constant_camera;
 		const ProbeRayList* prl;
 		const LightmapRayList* lmrl;
 	};

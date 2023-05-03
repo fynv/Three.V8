@@ -109,7 +109,7 @@ class Skin
 public:
 	std::vector<int> joints;
 	std::vector<glm::mat4> inverseBindMatrices;
-	std::unique_ptr<GLDynBuffer> buf_rela_mat;
+	std::unique_ptr<GLBuffer> buf_rela_mat;
 };
 
 class Mesh
@@ -118,10 +118,10 @@ public:
 	Mesh();
 	int node_id = -1;
 	int skin_id = -1;
-	std::unique_ptr<GLDynBuffer> model_constant;
+	std::unique_ptr<GLBuffer> model_constant;
 	std::vector<Primitive> primitives;
 	std::vector<float> weights;
-	std::unique_ptr<GLDynBuffer> buf_weights;
+	std::unique_ptr<GLBuffer> buf_weights;
 	bool needUpdateMorphTargets = false;
 
 };

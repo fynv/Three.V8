@@ -19,7 +19,7 @@ public:
 	int num_probes;
 	int num_directions;
 
-	GLDynBuffer m_constant;
+	GLBuffer m_constant;
 	void updateConstant();
 
 	std::vector<glm::vec4> positions;

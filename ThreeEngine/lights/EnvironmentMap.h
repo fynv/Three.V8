@@ -12,7 +12,7 @@ public:
 
 	glm::vec4 shCoefficients[9];
 
-	GLDynBuffer m_constant;
+	GLBuffer m_constant;
 	void updateConstant();
 	
 };

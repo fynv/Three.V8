@@ -16,7 +16,7 @@ public:
 	{
 		const GLTexture2D** tex_list;
 		const MeshStandardMaterial** material_list;
-		const GLDynBuffer* constant_model;
+		const GLBuffer* constant_model;
 		const Primitive* primitive;
 	};
 

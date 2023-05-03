@@ -27,8 +27,8 @@ public:
 	{
 		const GLTexture2D** tex_list;
 		const MeshStandardMaterial** material_list;
-		const GLDynBuffer* constant_camera;
-		const GLDynBuffer* constant_model;
+		const GLBuffer* constant_camera;
+		const GLBuffer* constant_model;
 		const Primitive* primitive;
 		unsigned idx;
 	};

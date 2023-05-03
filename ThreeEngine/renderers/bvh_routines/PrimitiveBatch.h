@@ -24,7 +24,7 @@ public:
 	struct Params
 	{
 		int offset;
-		const GLDynBuffer* constant_model;
+		const GLBuffer* constant_model;
 		const Primitive* primitive_in;
 		const Primitive* primitive_out;
 	};

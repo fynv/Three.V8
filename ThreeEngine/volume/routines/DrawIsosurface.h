@@ -32,7 +32,7 @@ public:
 		const VolumeIsosurfaceModel* model;
 		const GLTexture2D* tex_depth;
 		const Lights* lights;
-		const GLDynBuffer* constant_fog;
+		const GLBuffer* constant_fog;
 	};
 
 	void render(const RenderParams& params);

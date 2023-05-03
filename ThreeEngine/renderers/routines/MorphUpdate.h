@@ -10,7 +10,7 @@ public:
 
 	struct Params
 	{
-		GLDynBuffer* buf_weights;
+		GLBuffer* buf_weights;
 		const Primitive* primitive;
 	};
 	void update(const Params& params);

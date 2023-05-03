@@ -228,7 +228,7 @@ CompSkyBox::CompSkyBox(int target_mode) : m_target_mode(target_mode)
 	m_prog = (std::unique_ptr<GLProgram>)(new GLProgram(comp_shader));
 }
 
-void CompSkyBox::render(const GLDynBuffer* constant_camera, const GLCubemap* cubemap, const BVHRenderTarget* target)
+void CompSkyBox::render(const GLBuffer* constant_camera, const GLCubemap* cubemap, const BVHRenderTarget* target)
 {
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 

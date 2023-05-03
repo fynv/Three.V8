@@ -19,8 +19,8 @@ public:
 	{
 		const Fog* fog;
 
-		const GLDynBuffer* constant_diretional_light;
-		const GLDynBuffer* constant_diretional_shadow;
+		const GLBuffer* constant_diretional_light;
+		const GLBuffer* constant_diretional_shadow;
 		unsigned tex_shadow;
 
 		const BVHRenderTarget* target;

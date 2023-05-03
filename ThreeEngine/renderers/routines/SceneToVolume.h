@@ -20,7 +20,7 @@ public:
 		glm::vec3 coverage_min;
 		glm::vec3 coverage_max;
 		glm::ivec3 divisions;
-		const GLDynBuffer* constant_model;
+		const GLBuffer* constant_model;
 		const Primitive* primitive;
 	};
 

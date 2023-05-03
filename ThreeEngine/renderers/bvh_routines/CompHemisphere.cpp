@@ -236,7 +236,7 @@ CompHemisphere::CompHemisphere(int target_mode) : m_target_mode(target_mode)
 }
 
 
-void CompHemisphere::render(const GLDynBuffer* constant_camera, const GLDynBuffer* constant_hemisphere, const BVHRenderTarget* target)
+void CompHemisphere::render(const GLBuffer* constant_camera, const GLBuffer* constant_hemisphere, const BVHRenderTarget* target)
 {
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
@@ -256,7 +256,7 @@ void CompHemisphere::render(const GLDynBuffer* constant_camera, const GLDynBuffe
 	glUseProgram(0);
 }
 
-void CompHemisphere::render(const ProbeRayList* prl, const GLDynBuffer* constant_hemisphere, const BVHRenderTarget* target)
+void CompHemisphere::render(const ProbeRayList* prl, const GLBuffer* constant_hemisphere, const BVHRenderTarget* target)
 {
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
@@ -277,7 +277,7 @@ void CompHemisphere::render(const ProbeRayList* prl, const GLDynBuffer* constant
 	glUseProgram(0);
 }
 
-void CompHemisphere::render(const LightmapRayList* lmrl, const GLDynBuffer* constant_hemisphere, const BVHRenderTarget* target)
+void CompHemisphere::render(const LightmapRayList* lmrl, const GLBuffer* constant_hemisphere, const BVHRenderTarget* target)
 {
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 

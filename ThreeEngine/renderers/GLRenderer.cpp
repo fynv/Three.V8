@@ -1853,7 +1853,7 @@ void GLRenderer::_pre_render(Scene& scene)
 			lights.constant_directional_lights = nullptr;
 			if (lights.num_directional_lights > 0)
 			{
-				lights.constant_directional_lights = std::unique_ptr<GLDynBuffer>(new GLDynBuffer(const_directional_lights.size() * sizeof(ConstDirectionalLight), GL_UNIFORM_BUFFER));
+				lights.constant_directional_lights = std::unique_ptr<GLBuffer>(new GLBuffer(const_directional_lights.size() * sizeof(ConstDirectionalLight), GL_UNIFORM_BUFFER));
 			}
 			lights.hash_directional_lights = 0;
 
@@ -1876,7 +1876,7 @@ void GLRenderer::_pre_render(Scene& scene)
 			lights.constant_directional_shadows = nullptr;
 			if (lights.num_directional_shadows > 0)
 			{
-				lights.constant_directional_shadows = std::unique_ptr<GLDynBuffer>(new GLDynBuffer(const_directional_shadows.size() * sizeof(ConstDirectionalShadow), GL_UNIFORM_BUFFER));
+				lights.constant_directional_shadows = std::unique_ptr<GLBuffer>(new GLBuffer(const_directional_shadows.size() * sizeof(ConstDirectionalShadow), GL_UNIFORM_BUFFER));
 			}
 			lights.hash_directional_shadows = 0;
 		}

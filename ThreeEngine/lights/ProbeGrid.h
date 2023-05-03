@@ -33,7 +33,7 @@ public:
 	void allocate_probes();
 	void presample_probe(int idx);
 
-	GLDynBuffer m_constant;
+	GLBuffer m_constant;
 	void updateConstant();
 
 	void construct_visibility(Scene& scene);

@@ -35,7 +35,7 @@ public:
 	glm::vec3 direction();
 	void makeConst(ConstDirectionalLight& const_light);
 
-	GLDynBuffer m_constant;
+	GLBuffer m_constant;
 	void updateConstant();
 
 	void lookAtTarget();

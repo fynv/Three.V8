@@ -11,7 +11,7 @@ class SimpleModel : public Object3D
 public:
 	SimpleModel();
 	
-	GLDynBuffer m_constant;
+	GLBuffer m_constant;
 	void updateConstant();
 
 	GLTexture2D texture;

@@ -24,7 +24,7 @@ public:
 
 	Material m_material;
 
-	GLDynBuffer m_constant;
+	GLBuffer m_constant;
 	void updateConstant();
 
 	void set_color(const glm::vec3& color);

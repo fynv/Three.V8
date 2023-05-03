@@ -13,7 +13,7 @@ public:
 	int max_num_steps = 50;
 	float min_step = 0.15f;
 
-	GLDynBuffer m_constant;
+	GLBuffer m_constant;
 	void updateConstant();
 };
 

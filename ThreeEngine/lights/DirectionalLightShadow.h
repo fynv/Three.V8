@@ -44,7 +44,7 @@ public:
 	bool m_force_cull = true;
 	void setProjection(float left, float right, float bottom, float top, float zNear, float zFar);
 	
-	GLDynBuffer constant_shadow;
+	GLBuffer constant_shadow;
 	glm::mat4 m_lightVPSBMatrix;
 
 	void makeConst(ConstDirectionalShadow& const_shadow);

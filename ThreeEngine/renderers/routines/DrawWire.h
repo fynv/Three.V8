@@ -11,8 +11,8 @@ public:
 
 	struct RenderParams
 	{	
-		const GLDynBuffer* constant_camera;
-		const GLDynBuffer* constant_model;
+		const GLBuffer* constant_camera;
+		const GLBuffer* constant_model;
 		const Primitive* primitive;
 		float radius;
 		glm::vec3 wire_color;

@@ -24,7 +24,7 @@ public:
 	int texels_per_row;
 	int num_rows;
 
-	GLDynBuffer m_constant;
+	GLBuffer m_constant;
 	void updateConstant();
 
 };

@@ -8,7 +8,7 @@ class DrawSkyBox
 public:
 	DrawSkyBox();
 
-	void render(const GLDynBuffer* constant_camera, const GLCubemap* cubemap);
+	void render(const GLBuffer* constant_camera, const GLCubemap* cubemap);
 
 private:
 	std::unique_ptr<GLProgram> m_prog;

@@ -11,7 +11,7 @@ class CompSkyBox
 public:
 	CompSkyBox(int target_mode = 0);
 
-	void render(const GLDynBuffer* constant_camera, const GLCubemap* cubemap, const BVHRenderTarget* target);
+	void render(const GLBuffer* constant_camera, const GLCubemap* cubemap, const BVHRenderTarget* target);
 	void render(const ProbeRayList* prl, const GLCubemap* cubemap, const BVHRenderTarget* target);
 	void render(const LightmapRayList* lmrl, const GLCubemap* cubemap, const BVHRenderTarget* target);
 

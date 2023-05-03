@@ -26,11 +26,11 @@ public:
 
 	struct RenderParams
 	{		
-		const GLDynBuffer* constant_fog;
+		const GLBuffer* constant_fog;
 		const Lights* lights;
 		
 		const BVHRenderTarget* target;
-		const GLDynBuffer* constant_camera;
+		const GLBuffer* constant_camera;
 		const ProbeRayList* prl;
 		const LightmapRayList* lmrl;
 	};

@@ -23,8 +23,8 @@ public:
 	struct RenderParams
 	{
 		const GLTexture2D* tex_depth;
-		const GLDynBuffer* constant_camera;
-		const GLDynBuffer* constant_fog;
+		const GLBuffer* constant_camera;
+		const GLBuffer* constant_fog;
 		const Lights* lights;
 	};
 

@@ -21,7 +21,7 @@ public:
 		const MeshStandardMaterial** material_list;
 		const Primitive* primitive;
 		const BVHRenderTarget* target;
-		const GLDynBuffer* constant_camera;
+		const GLBuffer* constant_camera;
 		const ProbeRayList* prl;
 		const LightmapRayList* lmrl;
 	};
