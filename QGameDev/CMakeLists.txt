@@ -48,6 +48,16 @@ ColorTuner.cpp
 Tuner.cpp
 FogTuner.ui
 FogTuner.cpp
+SkyTuner.ui
+SkyTuner.cpp
+UniformSkyTuner.ui
+UniformSkyTuner.cpp
+HemisphereSkyTuner.ui
+HemisphereSkyTuner.cpp
+CubeSkyTuner.ui
+CubeSkyTuner.cpp
+BackgroundSceneTuner.ui
+BackgroundSceneTuner.cpp
 resources/resources.qrc
 )
 
@@ -70,6 +80,11 @@ XMLEditor.h
 ColorTuner.h
 Tuner.h
 FogTuner.h
+SkyTuner.h
+UniformSkyTuner.h
+HemisphereSkyTuner.h
+CubeSkyTuner.h
+BackgroundSceneTuner.h
 )
 
 set (INCLUDE_DIR

@@ -9,6 +9,7 @@
 #include "XMLEditor.h"
 #include "JsonUtils.h"
 #include "FogTuner.h"
+#include "SkyTuner.h"
 
 XMLEditor::XMLEditor(QWidget* parent, QString file_path, QString resource_root)
 	: Editor(parent)
@@ -691,12 +692,16 @@ std::string XMLEditor::object_picked(const char* key)
 		}
 		else if (tag == "fog")
 		{			
-			tuner = new FogTuner(m_ui.property_area, picked_obj);
-			m_ui.property_area->addWidget(tuner);
+			tuner = new FogTuner(m_ui.property_area, picked_obj);			
+		}
+		else if (tag == "sky")
+		{
+			tuner = new SkyTuner(m_ui.property_area, picked_obj);			
 		}
 
 		if (tuner != nullptr)
 		{
+			m_ui.property_area->addWidget(tuner);
 			connect(tuner, SIGNAL(update(QJsonObject)), this, SLOT(tuner_update(QJsonObject)));
 		}
 

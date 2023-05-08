@@ -39,7 +39,7 @@ The fog item describes particle scattering material in the air across the scene.
 
 ## Sky Item
 
-The sky item describes the background of the scene, which is shown when no there are no 3D objects. There are 4 types of skys you can select from the dropbox.
+The sky item describes the background of the scene, which is shown behind all 3D objects. There are 4 types of skys you can select from the dropbox.
 
 ![](sky_types.jpg)
 
