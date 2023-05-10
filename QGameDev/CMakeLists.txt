@@ -45,6 +45,10 @@ XMLEditor.ui
 XMLEditor.cpp
 ColorTuner.ui
 ColorTuner.cpp
+Vec3Tuner.ui
+Vec3Tuner.cpp
+IVec3Tuner.ui
+IVec3Tuner.cpp
 Tuner.cpp
 FogTuner.ui
 FogTuner.cpp
@@ -58,6 +62,18 @@ CubeSkyTuner.ui
 CubeSkyTuner.cpp
 BackgroundSceneTuner.ui
 BackgroundSceneTuner.cpp
+EnvLightTuner.ui
+EnvLightTuner.cpp
+AmbientLightTuner.ui
+AmbientLightTuner.cpp
+HemisphereLightTuner.ui
+HemisphereLightTuner.cpp
+EnvMapTuner.ui
+EnvMapTuner.cpp
+ProbeGridTuner.ui
+ProbeGridTuner.cpp
+LODProbeGridTuner.ui
+LODProbeGridTuner.cpp
 resources/resources.qrc
 )
 
@@ -78,6 +94,8 @@ JSEditor.h
 JsonEditor.h
 XMLEditor.h
 ColorTuner.h
+Vec3Tuner.h
+IVec3Tuner.h
 Tuner.h
 FogTuner.h
 SkyTuner.h
@@ -85,6 +103,12 @@ UniformSkyTuner.h
 HemisphereSkyTuner.h
 CubeSkyTuner.h
 BackgroundSceneTuner.h
+EnvLightTuner.h
+AmbientLightTuner.h
+HemisphereLightTuner.h
+EnvMapTuner.h
+ProbeGridTuner.h
+LODProbeGridTuner.h
 )
 
 set (INCLUDE_DIR

@@ -13,6 +13,8 @@ public:
 
 	QJsonObject jobj;
 
+	virtual void update_result(QJsonObject res) {}
+
 signals:
 	void update(QJsonObject tuning);
 

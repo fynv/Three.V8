@@ -119,6 +119,8 @@ private slots:
 	void btn_create_directional_light_Click();
 
 	void tuner_update(QJsonObject tuning);
+	void tuner_generate(QJsonObject tuning);
+	void tuner_initialize();
 
 
 };

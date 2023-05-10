@@ -10,6 +10,7 @@
 #include "JsonUtils.h"
 #include "FogTuner.h"
 #include "SkyTuner.h"
+#include "EnvLightTuner.h"
 
 XMLEditor::XMLEditor(QWidget* parent, QString file_path, QString resource_root)
 	: Editor(parent)
@@ -656,12 +657,46 @@ std::string XMLEditor::index_loaded(const char* json_str)
 
 void XMLEditor::tuner_update(QJsonObject tuning)
 {
+	{
+		QJsonObject key_map = index["index"].toObject();
+		key_map[picked_key] = tuner->jobj;
+		index["index"] = key_map;
+	}
+
+	m_ui.glControl->makeCurrent();
+	std::string res = m_game_player->SendMessageToUser("tuning", QJsonDocument(tuning).toJson());
+	if (res!="")
+	{
+		tuner->update_result(QJsonDocument::fromJson(res.c_str()).object());	
+		QJsonObject key_map = index["index"].toObject();
+		key_map[picked_key] = tuner->jobj;
+		index["index"] = key_map;
+	}
+}
+
+void XMLEditor::tuner_generate(QJsonObject tuning)
+{
 	QJsonObject key_map = index["index"].toObject();
 	key_map[picked_key] = tuner->jobj;
 	index["index"] = key_map;
 
 	m_ui.glControl->makeCurrent();
-	m_game_player->SendMessageToUser("tuning", QJsonDocument(tuning).toJson());
+	m_game_player->SendMessageToUser("generate", QJsonDocument(tuning).toJson());
+
+}
+
+void XMLEditor::tuner_initialize()
+{
+	m_ui.glControl->makeCurrent();
+	std::string res = m_game_player->SendMessageToUser("initialize", "{}");
+	if (res != "")
+	{
+		EnvLightTuner* env_tuner = dynamic_cast<EnvLightTuner*>(tuner);
+		if (env_tuner != nullptr)
+		{
+			env_tuner->initialize_result(QString::fromUtf8(res));
+		}
+	}
 }
 
 std::string XMLEditor::object_picked(const char* key)
@@ -692,11 +727,17 @@ std::string XMLEditor::object_picked(const char* key)
 		}
 		else if (tag == "fog")
 		{			
-			tuner = new FogTuner(m_ui.property_area, picked_obj);			
+			tuner = new FogTuner(m_ui.property_area, picked_obj);
 		}
 		else if (tag == "sky")
 		{
-			tuner = new SkyTuner(m_ui.property_area, picked_obj);			
+			tuner = new SkyTuner(m_ui.property_area, picked_obj);
+		}
+		else if (tag == "env_light")
+		{
+			tuner = new EnvLightTuner(m_ui.property_area, picked_obj);
+			connect(tuner, SIGNAL(generate(QJsonObject)), this, SLOT(tuner_generate(QJsonObject)));
+			connect(tuner, SIGNAL(initialize()), this, SLOT(tuner_initialize()));
 		}
 
 		if (tuner != nullptr)
