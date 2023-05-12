@@ -11,6 +11,10 @@
 #include "FogTuner.h"
 #include "SkyTuner.h"
 #include "EnvLightTuner.h"
+#include "GroupTuner.h"
+#include "PlaneTuner.h"
+#include "BoxTuner.h"
+#include "SphereTuner.h"
 
 XMLEditor::XMLEditor(QWidget* parent, QString file_path, QString resource_root)
 	: Editor(parent)
@@ -672,6 +676,12 @@ void XMLEditor::tuner_update(QJsonObject tuning)
 		key_map[picked_key] = tuner->jobj;
 		index["index"] = key_map;
 	}
+
+	if (tuning.contains("name"))
+	{
+		QTreeWidgetItem* item = TreeItemMap[picked_key];
+		item->setText(0, tuning["name"].toString());
+	}
 }
 
 void XMLEditor::tuner_generate(QJsonObject tuning)
@@ -738,6 +748,22 @@ std::string XMLEditor::object_picked(const char* key)
 			tuner = new EnvLightTuner(m_ui.property_area, picked_obj);
 			connect(tuner, SIGNAL(generate(QJsonObject)), this, SLOT(tuner_generate(QJsonObject)));
 			connect(tuner, SIGNAL(initialize()), this, SLOT(tuner_initialize()));
+		}
+		else if (tag == "group")
+		{
+			tuner = new GroupTuner(m_ui.property_area, picked_obj);
+		}
+		else if (tag == "plane")
+		{
+			tuner = new PlaneTuner(m_ui.property_area, picked_obj);
+		}
+		else if (tag == "box")
+		{
+			tuner = new BoxTuner(m_ui.property_area, picked_obj);
+		}
+		else if (tag == "sphere")
+		{
+			tuner = new SphereTuner(m_ui.property_area, picked_obj);
 		}
 
 		if (tuner != nullptr)

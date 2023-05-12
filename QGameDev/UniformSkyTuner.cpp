@@ -6,7 +6,7 @@ UniformSkyTuner::UniformSkyTuner(QWidget* parent, const QJsonObject& jobj)
 	: Tuner(parent, jobj)
 {
 	m_ui.setupUi(this);
-	connect(m_ui.tuner_color, SIGNAL(value_changed()), this, SLOT(tuner_color_ValueChanged()));
+	connect(m_ui.tuner_color, SIGNAL(valueChanged()), this, SLOT(tuner_color_ValueChanged()));
 
 	QJsonObject att = jobj["attributes"].toObject();
 

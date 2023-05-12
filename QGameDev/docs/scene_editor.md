@@ -151,10 +151,9 @@ Here we specify Base Divisions which is the size of the base grid before sub-div
 
 There is a "Sub-division level" field for specifying the biggest level of sub-divsions that can happen. 
 
-
 ## Group Item
 
-A group item is a 3D object you can put into scene-graph as a common parent of several child objects. The group object itself does not contain any geometry, so only its transformations are taking effect.
+A group item is a 3D object you can put into scene-graph as a common parent of several child objects. The group object itself does not contain any geometry, so only its transformations (position/rotation/scale) are taking effect.
 
 ![](group.jpg)
 
@@ -170,10 +169,10 @@ These are simple geometry objects.
 
 ![](sphere.jpg)
 
-There property pages share many in common.
-For each of them, the geometry options come first, followed by the transformation properties, then material properties(Color/Texture/Metalness/Roughness).
+Their property pages share many in common.
+For each of them, the transformation properties come first, followed by geometry options, then material properties(Color/Texture/Metalness/Roughness).
 
-Check the "is building" option if the object is part of building and should be hit-tested at run time.
+Check the "is building" option if the object is part of building and should be hit-tested at run time. Other side-effects when you check it: 1. A separate shadow map might be used to render these objects at low frequency. 2. "Per-primitive interpolation" will never be used for these objects.
 
 ## Model Item
 

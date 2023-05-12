@@ -1341,7 +1341,7 @@ The data is loaded if the file exists, or generated using the "Baking" processes
 <p>Here we specify Base Divisions which is the size of the base grid before sub-divisions.</p>
 <p>There is a "Sub-division level" field for specifying the biggest level of sub-divsions that can happen. </p>
 <h2 class="atx" id="group-item">Group Item</h2>
-<p>A group item is a 3D object you can put into scene-graph as a common parent of several child objects. The group object itself does not contain any geometry, so only its transformations are taking effect.</p>
+<p>A group item is a 3D object you can put into scene-graph as a common parent of several child objects. The group object itself does not contain any geometry, so only its transformations (position/rotation/scale) are taking effect.</p>
 <p><img alt="" src="group.jpg"></p>
 <p>These transformation properties are common to all 3D objects, you can also find them when another 3D object is selected.</p>
 <h2 class="atx" id="planeboxsphere-items">Plane/Box/Sphere Items</h2>
@@ -1349,9 +1349,9 @@ The data is loaded if the file exists, or generated using the "Baking" processes
 <p><img alt="" src="plane.jpg"></p>
 <p><img alt="" src="box.jpg"></p>
 <p><img alt="" src="sphere.jpg"></p>
-<p>There property pages share many in common.
-For each of them, the geometry options come first, followed by the transformation properties, then material properties(Color/Texture/Metalness/Roughness).</p>
-<p>Check the "is building" option if the object is part of building and should be hit-tested at run time.</p>
+<p>Their property pages share many in common.
+For each of them, the transformation properties come first, followed by geometry options, then material properties(Color/Texture/Metalness/Roughness).</p>
+<p>Check the "is building" option if the object is part of building and should be hit-tested at run time. Other side-effects when you check it: 1. A separate shadow map might be used to render these objects at low frequency. 2. "Per-primitive interpolation" will never be used for these objects.</p>
 <h2 class="atx" id="model-item">Model Item</h2>
 <p>A model item is defined by a model file. It also has an "is building" option, check it when the model defines part of the building.</p>
 <p><img alt="" src="model.jpg"></p>

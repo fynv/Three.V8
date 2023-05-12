@@ -49,6 +49,12 @@ Vec3Tuner.ui
 Vec3Tuner.cpp
 IVec3Tuner.ui
 IVec3Tuner.cpp
+AngleTuner.ui
+AngleTuner.cpp
+RotationTuner.ui
+RotationTuner.cpp
+ScaleTuner.ui
+ScaleTuner.cpp
 Tuner.cpp
 FogTuner.ui
 FogTuner.cpp
@@ -74,6 +80,18 @@ ProbeGridTuner.ui
 ProbeGridTuner.cpp
 LODProbeGridTuner.ui
 LODProbeGridTuner.cpp
+Object3DTuner.ui
+Object3DTuner.cpp
+GroupTuner.ui
+GroupTuner.cpp
+SimpleMaterialTuner.ui
+SimpleMaterialTuner.cpp
+PlaneTuner.ui
+PlaneTuner.cpp
+BoxTuner.ui
+BoxTuner.cpp
+SphereTuner.ui
+SphereTuner.cpp
 resources/resources.qrc
 )
 
@@ -96,6 +114,9 @@ XMLEditor.h
 ColorTuner.h
 Vec3Tuner.h
 IVec3Tuner.h
+AngleTuner.h
+RotationTuner.h
+ScaleTuner.h
 Tuner.h
 FogTuner.h
 SkyTuner.h
@@ -109,6 +130,12 @@ HemisphereLightTuner.h
 EnvMapTuner.h
 ProbeGridTuner.h
 LODProbeGridTuner.h
+Object3DTuner.h
+GroupTuner.h
+SimpleMaterialTuner.h
+PlaneTuner.h
+BoxTuner.h
+SphereTuner.h
 )
 
 set (INCLUDE_DIR

@@ -6,8 +6,8 @@ HemisphereLightTuner::HemisphereLightTuner(QWidget* parent, const QJsonObject& j
 	: Tuner(parent, jobj)
 {
 	m_ui.setupUi(this);
-	connect(m_ui.tuner_sky_color, SIGNAL(value_changed()), this, SLOT(tuner_sky_color_ValueChanged()));
-	connect(m_ui.tuner_ground_color, SIGNAL(value_changed()), this, SLOT(tuner_ground_color_ValueChanged()));
+	connect(m_ui.tuner_sky_color, SIGNAL(valueChanged()), this, SLOT(tuner_sky_color_ValueChanged()));
+	connect(m_ui.tuner_ground_color, SIGNAL(valueChanged()), this, SLOT(tuner_ground_color_ValueChanged()));
 
 	QJsonObject att = jobj["attributes"].toObject();
 

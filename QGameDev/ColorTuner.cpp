@@ -45,5 +45,5 @@ void ColorTuner::btn_Click()
 	float r, g, b;
 	toLinear(color, r, g, b);
 	set_color(r, g, b);
-	emit value_changed();
+	emit valueChanged();
 }

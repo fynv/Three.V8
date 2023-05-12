@@ -14,7 +14,7 @@ public:
 	void set_color(float r, float g, float b);
 
 signals:
-	void value_changed();
+	void valueChanged();
 
 private:
 	Ui_ColorTuner m_ui;
