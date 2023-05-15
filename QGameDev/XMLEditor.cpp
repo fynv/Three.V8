@@ -15,6 +15,9 @@
 #include "PlaneTuner.h"
 #include "BoxTuner.h"
 #include "SphereTuner.h"
+#include "ModelTuner.h"
+#include "DirectionalLightTuner.h"
+#include "SceneTuner.h"
 
 XMLEditor::XMLEditor(QWidget* parent, QString file_path, QString resource_root)
 	: Editor(parent)
@@ -734,6 +737,8 @@ std::string XMLEditor::object_picked(const char* key)
 		if (tag == "scene")
 		{
 			m_ui.grp_scene_objs->setEnabled(true);
+			tuner = new SceneTuner(m_ui.property_area, picked_obj);
+			connect(tuner, SIGNAL(generate(QJsonObject)), this, SLOT(tuner_generate(QJsonObject)));
 		}
 		else if (tag == "fog")
 		{			
@@ -764,6 +769,14 @@ std::string XMLEditor::object_picked(const char* key)
 		else if (tag == "sphere")
 		{
 			tuner = new SphereTuner(m_ui.property_area, picked_obj);
+		}
+		else if (tag == "model" || tag == "avatar")
+		{
+			tuner = new ModelTuner(m_ui.property_area, picked_obj, tag == "avatar");
+		}
+		else if (tag == "directional_light")
+		{
+			tuner = new DirectionalLightTuner(m_ui.property_area, picked_obj);
 		}
 
 		if (tuner != nullptr)

@@ -94,6 +94,8 @@ EnvMapTuner::~EnvMapTuner()
 
 void EnvMapTuner::tuner_probe_pos_ValueChanged()
 {
+	if (!initialized) return;
+
 	float x, y, z;
 	m_ui.tuner_probe_pos->get_value(x, y, z);
 	QJsonObject tuning;

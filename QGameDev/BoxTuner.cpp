@@ -22,7 +22,7 @@ BoxTuner::BoxTuner(QWidget* parent, const QJsonObject& jobj)
 
 	if (att.contains("is_building"))
 	{
-		bool is_building = att["is_building"].toBool();
+		bool is_building = decodeJsonBoolLiteral(att["is_building"].toString());
 		m_ui.chk_is_building->setChecked(is_building);
 	}
 

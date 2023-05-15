@@ -27,5 +27,5 @@ QString encodeJsonBoolLiteral(bool value)
 
 bool decodeJsonBoolLiteral(const QString& json)
 {
-    return QJsonDocument::fromJson((QString("[") + json + "]").toUtf8()).array()[0].toBool();
+    return QJsonDocument::fromJson((QString("[") + json.toLower() + "]").toUtf8()).array()[0].toBool();
 }

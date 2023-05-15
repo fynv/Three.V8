@@ -17,6 +17,7 @@
   - [Plane/Box/Sphere Items](#planeboxsphere-items)
   - [Model Item](#model-item)
   - [Directional Light Item](#directional-light-item)
+  - [Scene Item](#scene-item)
 
 ![](scene_editor.jpg)
 
@@ -176,7 +177,7 @@ Check the "is building" option if the object is part of building and should be h
 
 ## Model Item
 
-A model item is defined by a model file. It also has an "is building" option, check it when the model defines part of the building.
+A model item is defined by a model file. It also has an "is building" option, check it when the model defines part of the building. When a model contains a 2nd uv-set, it can have a lightmap attached to it. The "lightmap" field specifies the path of the lightmap. The the file exists, it will be loaded. The editor can bake the lightmaps for you, see [Scene Item](#scene-item) part for detail.
 
 ![](model.jpg)
 
@@ -197,4 +198,25 @@ When "Cast Shadow" is checked, a shadow will be used, which covers the areas def
 ![](directional_light2.jpg)
 
 The shadow-map covered area is visualized by the wires.
+
+Clicking "Auto Detect" will set a shadowed area that covers the whole scene.
+
+The "Radius" option is for soft-shadowing. 
+
+The "Bias" option offsets the shadow-map value a little to reduce artifacts at double-sided faces. When the "Force Cull" option is checked, all surfaces are treated as single sided when casting shadow.
+
+## Scene Item
+
+The root item of the scene. When it is selected, options and operations that applies to the whole scene will be shown. Currently, it is only used for lightmap baking, which involves the lightmap attached to all models within the scene.
+
+![](scene.jpg)
+
+Baking options include the number of "iterations" and the "number of rays" casted from each pixel of the lightmaps in the last iteration. The number of iterations basically equals to the number of bounces in path-tracing, and the number of rays casted in each iteration is increasing. For iterations=6, number of rays(final iteration) = 2048, the number of rays of the i-th iterations are:
+
+* iteration 1: 64 rays
+* iteration 2: 128 rays
+* iteration 3: 256 rays
+* iteration 4: 512 rays
+* iteration 5: 1024 rays
+* iteration 6: 2048 rays
 

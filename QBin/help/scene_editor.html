@@ -1265,6 +1265,7 @@ pre[class*="language-"] {
 <li><a href="#planeboxsphere-items">Plane/Box/Sphere Items</a></li>
 <li><a href="#model-item">Model Item</a></li>
 <li><a href="#directional-light-item">Directional Light Item</a></li>
+<li><a href="#scene-item">Scene Item</a></li>
 </ul>
 </li>
 </ul>
@@ -1353,7 +1354,7 @@ The data is loaded if the file exists, or generated using the "Baking" processes
 For each of them, the transformation properties come first, followed by geometry options, then material properties(Color/Texture/Metalness/Roughness).</p>
 <p>Check the "is building" option if the object is part of building and should be hit-tested at run time. Other side-effects when you check it: 1. A separate shadow map might be used to render these objects at low frequency. 2. "Per-primitive interpolation" will never be used for these objects.</p>
 <h2 class="atx" id="model-item">Model Item</h2>
-<p>A model item is defined by a model file. It also has an "is building" option, check it when the model defines part of the building.</p>
+<p>A model item is defined by a model file. It also has an "is building" option, check it when the model defines part of the building. When a model contains a 2nd uv-set, it can have a lightmap attached to it. The "lightmap" field specifies the path of the lightmap. The the file exists, it will be loaded. The editor can bake the lightmaps for you, see <a href="#scene-item">Scene Item</a> part for detail.</p>
 <p><img alt="" src="model.jpg"></p>
 <h2 class="atx" id="directional-light-item">Directional Light Item</h2>
 <p>A directional light is a light source located far away from the scene, such as the sunlight.</p>
@@ -1364,6 +1365,21 @@ For each of them, the transformation properties come first, followed by geometry
 <p>When "Cast Shadow" is checked, a shadow will be used, which covers the areas defined by the Left/Right/Bottom/Top/Near/Far properties.</p>
 <p><img alt="" src="directional_light2.jpg"></p>
 <p>The shadow-map covered area is visualized by the wires.</p>
+<p>Clicking "Auto Detect" will set a shadowed area that covers the whole scene.</p>
+<p>The "Radius" option is for soft-shadowing. </p>
+<p>The "Bias" option offsets the shadow-map value a little to reduce artifacts at double-sided faces. When the "Force Cull" option is checked, all surfaces are treated as single sided when casting shadow.</p>
+<h2 class="atx" id="scene-item">Scene Item</h2>
+<p>The root item of the scene. When it is selected, options and operations that applies to the whole scene will be shown. Currently, it is only used for lightmap baking, which involves the lightmap attached to all models within the scene.</p>
+<p><img alt="" src="scene.jpg"></p>
+<p>Baking options include the number of "iterations" and the "number of rays" casted from each pixel of the lightmaps in the last iteration. The number of iterations basically equals to the number of bounces in path-tracing, and the number of rays casted in each iteration is increasing. For iterations=6, number of rays(final iteration) = 2048, the number of rays of the i-th iterations are:</p>
+<ul>
+<li>iteration 1: 64 rays</li>
+<li>iteration 2: 128 rays</li>
+<li>iteration 3: 256 rays</li>
+<li>iteration 4: 512 rays</li>
+<li>iteration 5: 1024 rays</li>
+<li>iteration 6: 2048 rays</li>
+</ul>
 </article>
 </body>
 </html>

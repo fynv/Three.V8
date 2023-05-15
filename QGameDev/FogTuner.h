@@ -17,5 +17,6 @@ private slots:
 
 private:
 	Ui_FogTuner m_ui;	
+	bool initialized = false;
 };
 

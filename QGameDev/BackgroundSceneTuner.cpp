@@ -30,6 +30,8 @@ BackgroundSceneTuner::BackgroundSceneTuner(QWidget* parent, const QJsonObject& j
 	{
 		m_ui.tuner_far->setValue(att["far"].toString().toDouble());
 	}
+
+	initialized = true;
 }
 
 BackgroundSceneTuner::~BackgroundSceneTuner()
@@ -74,6 +76,7 @@ void BackgroundSceneTuner::btn_browse_Click()
 
 void BackgroundSceneTuner::tuner_near_ValueChanged(double value)
 {
+	if (!initialized) return;
 	QJsonObject tuning;
 	tuning["near"] = QString::number(m_ui.tuner_near->value());
 
@@ -86,6 +89,7 @@ void BackgroundSceneTuner::tuner_near_ValueChanged(double value)
 
 void BackgroundSceneTuner::tuner_far_ValueChanged(double value)
 {
+	if (!initialized) return;
 	QJsonObject tuning;
 	tuning["far"] = QString::number(m_ui.tuner_far->value());
 

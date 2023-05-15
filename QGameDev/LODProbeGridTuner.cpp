@@ -173,6 +173,8 @@ void LODProbeGridTuner::btn_browse_Click()
 
 void LODProbeGridTuner::tuner_divisions_ValueChanged()
 {
+	if (!initialized) return;
+
 	int x, y, z;
 	m_ui.tuner_divisions->get_value(x, y, z);
 	QJsonObject tuning;
@@ -187,6 +189,8 @@ void LODProbeGridTuner::tuner_divisions_ValueChanged()
 
 void LODProbeGridTuner::tuner_coverage_min_ValueChanged()
 {
+	if (!initialized) return;
+
 	float x, y, z;
 	m_ui.tuner_coverage_min->get_value(x, y, z);
 	QJsonObject tuning;
@@ -201,6 +205,8 @@ void LODProbeGridTuner::tuner_coverage_min_ValueChanged()
 
 void LODProbeGridTuner::tuner_coverage_max_ValueChanged()
 {
+	if (!initialized) return;
+
 	float x, y, z;
 	m_ui.tuner_coverage_max->get_value(x, y, z);
 	QJsonObject tuning;
@@ -215,6 +221,8 @@ void LODProbeGridTuner::tuner_coverage_max_ValueChanged()
 
 void LODProbeGridTuner::tuner_sub_div_ValueChanged(int value)
 {
+	if (!initialized) return;
+
 	QJsonObject tuning;
 	tuning["sub_division_level"] = QString::number(value);
 
@@ -233,6 +241,8 @@ void LODProbeGridTuner::initialize_result(QString res)
 
 void LODProbeGridTuner::tuner_normal_bias_ValueChanged(double value)
 {
+	if (!initialized) return;
+
 	QJsonObject tuning;
 	tuning["normal_bias"] = QString::number(m_ui.tuner_normal_bias->value());
 

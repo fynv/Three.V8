@@ -28,6 +28,8 @@ FogTuner::FogTuner(QWidget* parent, const QJsonObject& jobj)
 		b = color[2].toFloat();
 	}
 	m_ui.tuner_color->set_color(r, g, b);	
+
+	initialized = true;
 }
 
 FogTuner::~FogTuner()
@@ -37,6 +39,7 @@ FogTuner::~FogTuner()
 
 void FogTuner::tuner_density_ValueChanged(double value)
 {
+	if (!initialized) return;
 	QJsonObject tuning;
 	tuning["density"] = QString::number(m_ui.tuner_density->value());
 

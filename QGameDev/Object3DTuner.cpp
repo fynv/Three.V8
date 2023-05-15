@@ -52,6 +52,8 @@ Object3DTuner::Object3DTuner(QWidget* parent, const QJsonObject& jobj)
 		float z = values[2].toFloat();
 		m_ui.tuner_scale->set_value(x, y, z);
 	}
+
+	initialized = true;
 }
 
 Object3DTuner::~Object3DTuner()
@@ -73,6 +75,8 @@ void Object3DTuner::update_name()
 
 void Object3DTuner::tuner_pos_ValueChanged()
 {
+	if (!initialized) return;
+
 	float x, y, z;
 	m_ui.tuner_pos->get_value(x, y, z);
 	QJsonObject tuning;
@@ -87,6 +91,8 @@ void Object3DTuner::tuner_pos_ValueChanged()
 
 void Object3DTuner::tuner_rot_ValueChanged()
 {
+	if (!initialized) return;
+
 	int x, y, z;
 	m_ui.tuner_rot->get_value(x, y, z);
 	QJsonObject tuning;
@@ -101,6 +107,8 @@ void Object3DTuner::tuner_rot_ValueChanged()
 
 void Object3DTuner::tuner_scale_ValueChanged()
 {
+	if (!initialized) return;
+
 	float x, y, z;
 	m_ui.tuner_scale->get_value(x, y, z);
 	QJsonObject tuning;

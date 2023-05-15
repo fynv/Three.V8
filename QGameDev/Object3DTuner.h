@@ -19,6 +19,8 @@ private slots:
 	void tuner_rot_ValueChanged();
 	void tuner_scale_ValueChanged();
 	
+private:
+	bool initialized = false;
 
 };
 

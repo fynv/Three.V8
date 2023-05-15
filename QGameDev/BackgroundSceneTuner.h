@@ -19,6 +19,7 @@ private slots:
 
 private:
 	Ui_BackgroundSceneTuner m_ui;
+	bool initialized = false;
 
 	void update_scene();
 };

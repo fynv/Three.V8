@@ -92,6 +92,12 @@ BoxTuner.ui
 BoxTuner.cpp
 SphereTuner.ui
 SphereTuner.cpp
+ModelTuner.ui
+ModelTuner.cpp
+DirectionalLightTuner.ui
+DirectionalLightTuner.cpp
+SceneTuner.ui
+SceneTuner.cpp
 resources/resources.qrc
 )
 
@@ -136,6 +142,9 @@ SimpleMaterialTuner.h
 PlaneTuner.h
 BoxTuner.h
 SphereTuner.h
+ModelTuner.h
+DirectionalLightTuner.h
+SceneTuner.h
 )
 
 set (INCLUDE_DIR

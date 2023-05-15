@@ -172,6 +172,8 @@ void ProbeGridTuner::btn_browse_Click()
 
 void ProbeGridTuner::tuner_divisions_ValueChanged()
 {
+	if (!initialized) return;
+
 	int x, y, z;
 	m_ui.tuner_divisions->get_value(x, y, z);
 	QJsonObject tuning;
@@ -186,6 +188,8 @@ void ProbeGridTuner::tuner_divisions_ValueChanged()
 
 void ProbeGridTuner::tuner_coverage_min_ValueChanged()
 {
+	if (!initialized) return;
+
 	float x, y, z;
 	m_ui.tuner_coverage_min->get_value(x, y, z);
 	QJsonObject tuning;
@@ -200,6 +204,8 @@ void ProbeGridTuner::tuner_coverage_min_ValueChanged()
 
 void ProbeGridTuner::tuner_coverage_max_ValueChanged()
 {
+	if (!initialized) return;
+
 	float x, y, z;
 	m_ui.tuner_coverage_max->get_value(x, y, z);
 	QJsonObject tuning;
@@ -214,6 +220,8 @@ void ProbeGridTuner::tuner_coverage_max_ValueChanged()
 
 void ProbeGridTuner::tuner_ypower_ValueChanged(double value)
 {
+	if (!initialized) return;
+
 	QJsonObject tuning;
 	tuning["ypower"] = QString::number(value);
 
@@ -226,6 +234,8 @@ void ProbeGridTuner::tuner_ypower_ValueChanged(double value)
 
 void ProbeGridTuner::tuner_normal_bias_ValueChanged(double value)
 {
+	if (!initialized) return;
+
 	QJsonObject tuning;
 	tuning["normal_bias"] = QString::number(m_ui.tuner_normal_bias->value());
 
