@@ -1,9 +1,0 @@
-﻿<Application x:Class="GameDev.App"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:GameDev"
-             Startup="Application_Startup" Deactivated="Application_Deactivated" Activated="Application_Activated">
-    <Application.Resources>
-         
-    </Application.Resources>
-</Application>
