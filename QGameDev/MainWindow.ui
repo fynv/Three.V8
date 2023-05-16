@@ -323,6 +323,7 @@
     </property>
     <addaction name="action_View_Help"/>
     <addaction name="actionThree_V8_API"/>
+    <addaction name="actionTutorials"/>
    </widget>
    <widget class="QMenu" name="menu_Project">
     <property name="title">
@@ -607,6 +608,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+L</string>
+   </property>
+  </action>
+  <action name="actionTutorials">
+   <property name="text">
+    <string>Tutorials</string>
    </property>
   </action>
  </widget>

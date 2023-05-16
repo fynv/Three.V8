@@ -10,6 +10,7 @@ GameDev is an IDE for Three.V8, the JavaScript based 3D application engine.
     - [Side Bar](#side-bar)
     - [Editors](#editors)
     - [Logs](#logs)
+  - [Lightmap tools](#lightmap-tools)
 
 See [Scene Editor](scene_editor.html) for details of the XML based scene-editor.
 
@@ -81,7 +82,9 @@ Right click the Target item at ② for context menu, where you get options to ru
 
 GameDev provides editors for file formats most commonly used in a Three.V8 project, which are JavaScript, XML and JSON. 
 
-In this IDE, we use specifically structured XML files to represent 3D Scenes and a dedicated [scene editor](scene_editor.html) is provided.
+In this IDE, we use specifically structured XML files to represent 3D Scenes and a dedicated [scene editor](scene_editor.html) is provided. Besides the basic functionality of placing object into your scene, the XML editor also integrates global illumination pre-baking functions, which is powered by a compute-shader based ray-tracing system (CWBVH).
+
+Also see [tutorials](tutorials.html) for a walk-through of the usage of the editors.
 
 ### Logs 
 
@@ -92,6 +95,40 @@ Since that a running Target has its own process (QGamePlayer.exe), their outputs
 ![](gameplayer.jpg)
 
 The console of the GamePlayer is hidden by default, and can be shown by dragging.
+
+## Lightmap tools
+
+There are 2 command-line tools related to lightmaps: 
+
+* Lightmapper.exe for creation of the 2nd UV set.
+
+The command line looks like:
+
+```
+Lightmapper input.glb [output.glb] [texels_per_unit]
+```
+
+Both input and output are glb files. The 2nd UV set will be inserted as TEXCOORD_1.
+
+"texels_per_unit" is a resolution hint. See [xatlas](https://github.com/jpcy/xatlas) for detail.
+
+* LightmapCompressor.exe for compressing pre-baked lightmap images.
+
+```
+LightmapCompressor input.hdr [output_prefix] [jpeg\png\webp]
+```
+
+LightmapCompressor takes a RGBE HDR file for input. 2 compression modes are supported.
+
+* Cascaded residual encoding using [this method](https://fynv.github.io/Cascaded-Residual-Encoding-for-HDR-Lightmap-Compression/).
+
+This is the default mode. Pass in "jpeg" after output_prefix, or omit it.
+
+* RGBM compression
+
+RGBM compression requires lossless alpha. PNG and WebP can achieve that.
+
+Pass in "png" or "webp" after output_prefix.
 
 
 

@@ -1256,6 +1256,7 @@ pre[class*="language-"] {
 <li><a href="#logs">Logs</a></li>
 </ul>
 </li>
+<li><a href="#lightmap-tools">Lightmap tools</a></li>
 </ul>
 </li>
 </ul>
@@ -1299,12 +1300,36 @@ before it can be run with the engine. The bundling procedural is automated by th
 <p>Right click the Target item at ② for context menu, where you get options to run the target or create a shortcut of the App on the desktop. To run the target, you can also just double click the item. A bundling process will be triggered by calling the external "rollup" tool if a JavaScript file is modified. A separate process will be started by launching the GamePlayer passing the information of the target. Note the bundled JavaScript files are hidden in the "Files" tab, because you should never edit these files manually.</p>
 <h3 class="atx" id="editors">Editors</h3>
 <p>GameDev provides editors for file formats most commonly used in a Three.V8 project, which are JavaScript, XML and JSON. </p>
-<p>In this IDE, we use specifically structured XML files to represent 3D Scenes and a dedicated <a href="scene_editor.html">scene editor</a> is provided.</p>
+<p>In this IDE, we use specifically structured XML files to represent 3D Scenes and a dedicated <a href="scene_editor.html">scene editor</a> is provided. Besides the basic functionality of placing object into your scene, the XML editor also integrates global illumination pre-baking functions, which is powered by a compute-shader based ray-tracing system (CWBVH).</p>
+<p>Also see <a href="tutorials.html">tutorials</a> for a walk-through of the usage of the editors.</p>
 <h3 class="atx" id="logs">Logs</h3>
 <p>Currently the "Console" tab of the log areas mainly shows outputs from the bundling process and the scene editor.</p>
 <p>Since that a running Target has its own process (QGamePlayer.exe), their outputs can be seen in their own consoles.</p>
 <p><img alt="" src="gameplayer.jpg"></p>
 <p>The console of the GamePlayer is hidden by default, and can be shown by dragging.</p>
+<h2 class="atx" id="lightmap-tools">Lightmap tools</h2>
+<p>There are 2 command-line tools related to lightmaps: </p>
+<ul>
+<li>Lightmapper.exe for creation of the 2nd UV set.</li>
+</ul>
+<p>The command line looks like:</p>
+<pre><code class="fenced-code-block">Lightmapper input.glb [output.glb] [texels_per_unit]</code></pre>
+<p>Both input and output are glb files. The 2nd UV set will be inserted as TEXCOORD_1.</p>
+<p>"texels_per_unit" is a resolution hint. See <a href="https://github.com/jpcy/xatlas">xatlas</a> for detail.</p>
+<ul>
+<li>LightmapCompressor.exe for compressing pre-baked lightmap images.</li>
+</ul>
+<pre><code class="fenced-code-block">LightmapCompressor input.hdr [output_prefix] [jpeg\png\webp]</code></pre>
+<p>LightmapCompressor takes a RGBE HDR file for input. 2 compression modes are supported.</p>
+<ul>
+<li>Cascaded residual encoding using <a href="https://fynv.github.io/Cascaded-Residual-Encoding-for-HDR-Lightmap-Compression/">this method</a>.</li>
+</ul>
+<p>This is the default mode. Pass in "jpeg" after output_prefix, or omit it.</p>
+<ul>
+<li>RGBM compression</li>
+</ul>
+<p>RGBM compression requires lossless alpha. PNG and WebP can achieve that.</p>
+<p>Pass in "png" or "webp" after output_prefix.</p>
 </article>
 </body>
 </html>

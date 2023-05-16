@@ -1242,7 +1242,89 @@ pre[class*="language-"] {
   <style>.markdown-body{}pre.front-matter{display:none!important;}</style>
 </head>
 <body>
-  <article class="markdown-body"><h1 class="atx" id="tutorial">Tutorial</h1>
+  <article class="markdown-body"><h1 class="atx" id="tutorials">Tutorials</h1>
+<h2 class="atx" id="new-project">New Project</h2>
+<p><img alt="" src="new_project.jpg"></p>
+<p><img alt="" src="new_project2.jpg"></p>
+<p><img alt="" src="new_project3.jpg"></p>
+<h2 class="atx" id="new-xml-scene">New XML Scene</h2>
+<p><img alt="" src="new_file.jpg"></p>
+<p><img alt="" src="new_file_xml.jpg"></p>
+<p><img alt="" src="new_file_xml2.jpg"></p>
+<h2 class="atx" id="set-up-sky">Set-up sky</h2>
+<p><img alt="" src="new_sky.jpg"></p>
+<h3 class="atx" id="deploy-sky-box-images">Deploy sky-box images</h3>
+<p><img alt="" src="sky_box_images.jpg"></p>
+<p><img alt="" src="set_sky_box.jpg"></p>
+<p><img alt="" src="set_sky_box2.jpg"></p>
+<h2 class="atx" id="delploy-models">Delploy models</h2>
+<p>Here we just load a single GLB model that contains all the static objects.</p>
+<p><img alt="" src="deploy_models.jpg"></p>
+<p><img alt="" src="deploy_models2.jpg"></p>
+<p><img alt="" src="deploy_models3.jpg"></p>
+<p><img alt="" src="deploy_models4.jpg"></p>
+<h2 class="atx" id="setup-directional-light">Setup directional light</h2>
+<p><img alt="" src="set_directional_light.jpg"></p>
+<p><img alt="" src="set_directional_light2.jpg"></p>
+<h2 class="atx" id="global-illumination---deploy-a-probe-grid">Global illumination - Deploy a probe-grid</h2>
+<p><img alt="" src="set_probe_grid.jpg"></p>
+<p><img alt="" src="set_probe_grid2.jpg"></p>
+<h2 class="atx" id="scripting">Scripting</h2>
+<p>Copy code from "project_template" to the project directory. (Skip project.json and scene.xml).</p>
+<p><img alt="" src="scripting.jpg"></p>
+<p>Create a target:</p>
+<p><img alt="" src="scripting2.jpg"></p>
+<p>Double click the created target:</p>
+<p><img alt="" src="run_target.jpg"></p>
+<p>You can then do whatever change you want to the JavaScript code.</p>
+<p>It is programmed against the <a href="api/index.html">User Script APIs</a>.</p>
+<h2 class="atx" id="camera-and-orbit-control-settings">Camera and Orbit Control settings</h2>
+<p>These are not part of the Scene editor UI.</p>
+<p>Simply type into the XML code:</p>
+<p><img alt="" src="camera_control.jpg"></p>
+<h2 class="atx" id="placing-an-avatar">Placing an avatar</h2>
+<p>Deploy the necessary models:</p>
+<p><img alt="" src="avatar_models.jpg"></p>
+<p>Insert the following code to the scene.xml:</p>
+<pre><code class="fenced-code-block language-xml"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>avatar</span> <span class="token attr-name">src</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>assets/models/CyberbotGold.glb<span class="token punctuation">"</span></span> <span class="token attr-name">name_idle</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>idle<span class="token punctuation">"</span></span> <span class="token attr-name">name_forward</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>walk_forward<span class="token punctuation">"</span></span> <span class="token attr-name">name_backward</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>walk_backward<span class="token punctuation">"</span></span> <span class="token attr-name">camera_position</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>0.0, 1.5, -2.0<span class="token punctuation">"</span></span> <span class="token attr-name">url_anim</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>assets/models/Animations.glb<span class="token punctuation">"</span></span> <span class="token attr-name">fix_anims</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>fix_anims<span class="token punctuation">"</span></span> <span class="token attr-name">position</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>0, 1.8, 2.5<span class="token punctuation">"</span></span> <span class="token attr-name">rotation</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>0, -180, 0<span class="token punctuation">"</span></span><span class="token punctuation">/&gt;</span></span></code></pre>
+<p>and the following code to scene.js</p>
+<pre><code class="fenced-code-block language-js"><span class="token comment">// The code is necessary only when the animation track names doesn't match</span>
+<span class="token comment">// the joint names in the character model.</span>
+<span class="token keyword">export</span> <span class="token keyword">function</span> <span class="token function">fix_anims</span><span class="token punctuation">(</span><span class="token parameter">anims</span><span class="token punctuation">)</span>
+<span class="token punctuation">{</span>
+    <span class="token keyword">for</span> <span class="token punctuation">(</span><span class="token keyword">let</span> anim <span class="token keyword">of</span> anims<span class="token punctuation">)</span>
+    <span class="token punctuation">{</span>
+        <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token string">"translations"</span> <span class="token keyword">in</span> anim<span class="token punctuation">)</span>
+        <span class="token punctuation">{</span>
+            <span class="token keyword">let</span> translations <span class="token operator">=</span> anim<span class="token punctuation">.</span>translations<span class="token punctuation">;</span>
+            <span class="token keyword">for</span> <span class="token punctuation">(</span><span class="token keyword">let</span> trans <span class="token keyword">of</span> translations<span class="token punctuation">)</span>
+            <span class="token punctuation">{</span>
+                trans<span class="token punctuation">.</span>name <span class="token operator">=</span> <span class="token string">"mixamorig:"</span><span class="token operator">+</span>trans<span class="token punctuation">.</span>name<span class="token punctuation">;</span>
+            <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span>
+
+        <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token string">"rotations"</span> <span class="token keyword">in</span> anim<span class="token punctuation">)</span>
+        <span class="token punctuation">{</span>
+            <span class="token keyword">let</span> rotations <span class="token operator">=</span> anim<span class="token punctuation">.</span>rotations<span class="token punctuation">;</span>
+            <span class="token keyword">for</span> <span class="token punctuation">(</span><span class="token keyword">let</span> rot <span class="token keyword">of</span> rotations<span class="token punctuation">)</span>
+            <span class="token punctuation">{</span>
+                rot<span class="token punctuation">.</span>name <span class="token operator">=</span> <span class="token string">"mixamorig:"</span><span class="token operator">+</span>rot<span class="token punctuation">.</span>name<span class="token punctuation">;</span>
+            <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span></code></pre>
+<h2 class="atx" id="using-lightmaps">Using lightmaps</h2>
+<p>Using Lightmapper.exe, you can insert a 2nd UV set into villa.glb. In this way, we get villa_atlas.glb:</p>
+<p><img alt="" src="atlas_model.jpg"></p>
+<p>Create a new XML scene (scene2.xml) and copy &lt;sky&gt;, &lt;model&gt; and &lt;directional_light&gt; settings from scene.xml:</p>
+<p><img alt="" src="scene2.jpg"></p>
+<p>Modify villa.glb into villa_atlas.glb, the go to "Scene" tab:</p>
+<p><img alt="" src="scene2_2.jpg"></p>
+<p>Name the lightmap, then select "scene" in the Scene Graph, and click "Bake":</p>
+<p><img alt="" src="scene2_3.jpg"></p>
+<p>Modify scene.js so that scene2.xml gets load instead of scene.xml, when you double click "Target":</p>
+<p><img alt="" src="scene2_4.jpg"></p>
+<p><img alt="" src="scene2_5.jpg"></p>
 </article>
 </body>
 </html>

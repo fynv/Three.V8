@@ -218,7 +218,7 @@ set (DEFINES  ${DEFINES}
 include_directories(${INCLUDE_DIR})
 add_definitions(${DEFINES})
 add_executable (QGameDev ${SOURCES} ${HEADERS})
-set_property(TARGET QGameDev PROPERTY WIN32_EXECUTABLE false)
+set_property(TARGET QGameDev PROPERTY WIN32_EXECUTABLE true)
 
 target_link_directories(QGameDev PUBLIC ${LINK_DIR})
 target_link_libraries(QGameDev ${LINK_LIBS})

@@ -323,6 +323,7 @@ MainWindow::MainWindow(QApplication* app)
 
 	connect(m_ui.action_View_Help, SIGNAL(triggered()), this, SLOT(CommandHelp()));
 	connect(m_ui.actionThree_V8_API, SIGNAL(triggered()), this, SLOT(CommandAPIDoc()));
+	connect(m_ui.actionTutorials, SIGNAL(triggered()), this, SLOT(CommandTutorials()));
 	
 	connect(m_ui.tree_files, SIGNAL(customContextMenuRequested(const QPoint&)), this, SLOT(TreeFilesContextMenu(const QPoint&)));
 	connect(m_ui.tree_files, SIGNAL(itemDoubleClicked(QTreeWidgetItem*, int)), this, SLOT(TreeFilesItemDoubleClick(QTreeWidgetItem*, int)));
@@ -679,6 +680,25 @@ void MainWindow::CommandAPIDoc()
 	if (opened_tabs.contains(key_path))
 	{
 		HelpPage*  help_page = static_cast<HelpPage*>(opened_tabs[key_path]);
+		m_ui.tabWidgetEditor->setCurrentWidget(help_page);
+		help_page->Goto(help_path);
+	}
+	else
+	{
+		HelpPage* help_page = new HelpPage(m_ui.tabWidgetEditor, help_path);
+		AddTabItem(help_page, key_path, "Help");
+	}
+}
+
+void MainWindow::CommandTutorials()
+{
+	QString local_path = QCoreApplication::applicationDirPath();
+	QString help_path = local_path + "/help/tutorials.html";
+	QString key_path = local_path + "/help/index.html";
+
+	if (opened_tabs.contains(key_path))
+	{
+		HelpPage* help_page = static_cast<HelpPage*>(opened_tabs[key_path]);
 		m_ui.tabWidgetEditor->setCurrentWidget(help_page);
 		help_page->Goto(help_path);
 	}

@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
 {
 	if (argc < 2)
 	{
-		printf("LightmapCompressor input.hdr [output_prefix] [jpeg\png\webp]\n");
+		printf("LightmapCompressor input.hdr [output_prefix] [jpeg\\png\\webp]\n");
 		return 0;
 	}
 

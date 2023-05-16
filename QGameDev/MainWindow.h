@@ -97,6 +97,7 @@ private slots:
 	void CommandProjectSettings();
 	void CommandHelp();
 	void CommandAPIDoc();	
+	void CommandTutorials();
 	void TrashDir(QString path);
 	void TreeFilesContextMenu(const QPoint& pos);
 	void TreeFilesItemDoubleClick(QTreeWidgetItem* item, int column);
