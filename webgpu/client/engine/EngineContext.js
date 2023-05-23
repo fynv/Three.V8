@@ -8,6 +8,7 @@ export class EngineContext
 
         this.cache = {};
         this.cache.bindGroupLayouts = {};
+        this.cache.pipelines = {};
     }
 
     async initialize()

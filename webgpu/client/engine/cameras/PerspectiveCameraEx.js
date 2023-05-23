@@ -8,9 +8,9 @@ export class PerspectiveCameraEx extends PerspectiveCamera
         const const_size = 4*16 * 4 + 4 *4;
         this.constant = engine_ctx.createBuffer0(const_size, GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST);
 
-        if (!("camera" in engine_ctx.cache.bindGroupLayouts))
+        if (!("perspective_camera" in engine_ctx.cache.bindGroupLayouts))
         {
-            engine_ctx.cache.bindGroupLayouts.camera = engine_ctx.device.createBindGroupLayout({
+            engine_ctx.cache.bindGroupLayouts.perspective_camera = engine_ctx.device.createBindGroupLayout({
                 entries: [
                     {
                         binding: 0,
@@ -23,7 +23,7 @@ export class PerspectiveCameraEx extends PerspectiveCamera
             });
         }
 
-        const bindGroupLayout = engine_ctx.cache.bindGroupLayouts.camera;
+        const bindGroupLayout = engine_ctx.cache.bindGroupLayouts.perspective_camera;
         
         this.bind_group = engine_ctx.device.createBindGroup({
             layout: bindGroupLayout,

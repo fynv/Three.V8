@@ -1,5 +1,6 @@
-import { ColorBackground } from "../backgrounds/Background.js"
+import { ColorBackground, HemisphereBackground } from "../backgrounds/Background.js"
 import { Color } from "../math/Color.js"
+import { DrawHemisphere } from "./routines/DrawHemisphere.js"
 
 export class GPURenderer
 {
@@ -9,20 +10,23 @@ export class GPURenderer
         
     }
 
+    draw_hemisphere(passEncoder, target, camera, bg)
+    {
+        DrawHemisphere(passEncoder, target, camera, bg);
+    }
+
     render(scene, camera, target)
     {
+        camera.updateMatrixWorld(false);
+    	camera.updateConstant();
+
         let msaa= target.msaa;
         let clearColor = new Color(0.0, 0.0, 0.0);        
 
-        while(scene.background!=null)
+        if(scene.background!=null &&
+            scene.background instanceof ColorBackground)
         {
-            if(scene.background instanceof ColorBackground)
-            {
-                clearColor = scene.background.color;
-                break;
-            }
-
-            break;
+            clearColor = scene.background.color;
         }
 
         let colorAttachment =  {            
@@ -56,22 +60,19 @@ export class GPURenderer
         let commandEncoder = engine_ctx.device.createCommandEncoder();
 
         let passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
-        
-        /*passEncoder.setViewport(
-            0,
-            0,
-            target.width,
-            target.height,
-            0,
-            1
-        );
-        passEncoder.setScissorRect(
-            0,
-            0,
-            target.width,
-            target.height
-        );*/
 
+        while(scene.background!=null)
+        {
+            if (scene.background instanceof HemisphereBackground)
+            {
+                scene.background.updateConstant();
+                this.draw_hemisphere(passEncoder, target, camera, scene.background);
+                break;
+            }
+
+            break;
+        }
+        
         passEncoder.end();
 
 
