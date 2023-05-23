@@ -130,25 +130,22 @@ export function DrawHemisphere(passEncoder, target, camera, bg)
 
     passEncoder.setPipeline(pipeline);
     passEncoder.setBindGroup(0, camera.bind_group);
-    passEncoder.setBindGroup(1, bg.bind_group);
-
-    passEncoder.setViewport(
-        0,
-        0,
-        target.width,
-        target.height,
-        0,
-        1
-    );
-
-    passEncoder.setScissorRect(
-        0,
-        0,
-        target.width,
-        target.height,
-    );
+    passEncoder.setBindGroup(1, bg.bind_group);   
 
     passEncoder.draw(3, 1);
 
 }
 
+export function DrawHemisphereBundle(passEncoder, target, camera, bg)
+{
+    const renderBundleEncoder = engine_ctx.device.createRenderBundleEncoder({
+        colorFormats: [target.view_format],
+        depthStencilFormat: 'depth32float',
+        sampleCount: target.msaa?4:1
+    });
+
+    DrawHemisphere(renderBundleEncoder, target, camera, bg);
+
+    return renderBundleEncoder.finish();
+
+}

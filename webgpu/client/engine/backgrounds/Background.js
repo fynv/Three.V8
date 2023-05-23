@@ -1,10 +1,11 @@
 import {Color} from "../math/Color.js"
+import * as MathUtils from '../math/MathUtils.js';
 
 export class Background
 {
     constructor()
     {
-
+        this.uuid = MathUtils.generateUUID();
     }
 }
 

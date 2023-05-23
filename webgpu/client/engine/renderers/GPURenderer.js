@@ -1,18 +1,46 @@
 import { ColorBackground, HemisphereBackground } from "../backgrounds/Background.js"
 import { Color } from "../math/Color.js"
-import { DrawHemisphere } from "./routines/DrawHemisphere.js"
+import { DrawHemisphere, DrawHemisphereBundle } from "./routines/DrawHemisphere.js"
 
 export class GPURenderer
 {
     constructor()
     {
-
-        
+        this.bg_bundles = {};
     }
 
     draw_hemisphere(passEncoder, target, camera, bg)
     {
-        DrawHemisphere(passEncoder, target, camera, bg);
+        passEncoder.setViewport(
+            0,
+            0,
+            target.width,
+            target.height,
+            0,
+            1
+        );
+    
+        passEncoder.setScissorRect(
+            0,
+            0,
+            target.width,
+            target.height,
+        );
+        
+        //DrawHemisphere(passEncoder, target, camera, bg);
+
+        let signature = JSON.stringify({
+            id_target: target.uuid,
+            id_camera: camera.uuid,
+            id_bg: bg.uuid
+        });
+        
+        if (!(signature in this.bg_bundles))
+        {            
+            this.bg_bundles[signature] = DrawHemisphereBundle(passEncoder, target, camera, bg);
+        }
+        passEncoder.executeBundles([this.bg_bundles[signature]]);
+
     }
 
     render(scene, camera, target)

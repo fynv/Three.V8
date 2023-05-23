@@ -1,7 +1,10 @@
+import * as MathUtils from '../math/MathUtils.js';
+
 export class GPURenderTarget
 {
     constructor(canvas_ctx = null, msaa = true)
     {
+        this.uuid = MathUtils.generateUUID();
         this.canvas_ctx = canvas_ctx;
         this.msaa = msaa;        
         this.width = -1;
