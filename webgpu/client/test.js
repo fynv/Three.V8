@@ -3,13 +3,13 @@ import { CanvasContext } from "./engine/CanvasContext.js"
 import { GPURenderer } from "./engine/renderers/GPURenderer.js"
 import { GPURenderTarget } from "./engine/renderers/GPURenderTarget.js"
 import { Scene } from "./engine/scenes/Scene.js"
-import { ColorBackground, HemisphereBackground } from "./engine/backgrounds/Background.js"
+import { ColorBackground, HemisphereBackground, CubeBackground } from "./engine/backgrounds/Background.js"
 import { PerspectiveCameraEx } from "./engine/cameras/PerspectiveCameraEx.js"
 import { OrbitControls } from "./engine/controls/OrbitControls.js"
+import { ImageLoader } from "./engine/loaders/ImageLoader.js"
 
 export async function test()
 {
-
     const canvas = document.getElementById('gfx');
     canvas.style.cssText = "position:absolute; width: 100%; height: 100%;";      
 
@@ -35,7 +35,21 @@ export async function test()
     //let bg = new ColorBackground();
     //bg.color.setRGB(0.2, 0.6, 0.8)
 
-    let bg = new HemisphereBackground();    
+    //let bg = new HemisphereBackground();    
+
+    let bg = new CubeBackground();
+
+    let loader = new ImageLoader();
+    let cubeImg = await loader.loadCubeFromFile([
+        "./assets/textures/sky_cube_face0.jpg",
+        "./assets/textures/sky_cube_face1.jpg",
+        "./assets/textures/sky_cube_face2.jpg",
+        "./assets/textures/sky_cube_face3.jpg",
+        "./assets/textures/sky_cube_face4.jpg",
+        "./assets/textures/sky_cube_face5.jpg"
+    ]);    
+
+    bg.setCubemap(cubeImg);    
 
     scene.background = bg;
     let camera = new PerspectiveCameraEx();

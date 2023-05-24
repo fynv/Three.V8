@@ -1,6 +1,7 @@
-import { ColorBackground, HemisphereBackground } from "../backgrounds/Background.js"
+import { ColorBackground, HemisphereBackground, CubeBackground } from "../backgrounds/Background.js"
 import { Color } from "../math/Color.js"
 import { DrawHemisphere, DrawHemisphereBundle } from "./routines/DrawHemisphere.js"
+import { DrawSkyBox } from "./routines/DrawSkyBox.js"
 
 export class GPURenderer
 {
@@ -42,6 +43,28 @@ export class GPURenderer
         passEncoder.executeBundles([this.bg_bundles[signature]]);
 
     }
+
+    draw_skybox(passEncoder, target, camera, bg)
+    {
+        passEncoder.setViewport(
+            0,
+            0,
+            target.width,
+            target.height,
+            0,
+            1
+        );
+    
+        passEncoder.setScissorRect(
+            0,
+            0,
+            target.width,
+            target.height,
+        );
+        DrawSkyBox(passEncoder, target, camera, bg);
+
+    }
+    
 
     render(scene, camera, target)
     {
@@ -98,6 +121,11 @@ export class GPURenderer
                 break;
             }
 
+            if (scene.background instanceof CubeBackground)
+            {
+                this.draw_skybox(passEncoder, target, camera, scene.background);
+                break;
+            }
             break;
         }
         

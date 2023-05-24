@@ -1,5 +1,6 @@
 import {Color} from "../math/Color.js"
 import * as MathUtils from '../math/MathUtils.js';
+import { FlipCubemap } from "../renderers/routines/FlipCubemap.js"
 
 export class Background
 {
@@ -36,7 +37,7 @@ export class HemisphereBackground extends Background
                         buffer:{
                             type: "uniform"
                         }
-                    }                  
+                    }
                 ]
             });
         }
@@ -75,5 +76,88 @@ export class HemisphereBackground extends Background
     }
 }
 
+export class CubeBackground extends Background
+{
+    constructor()
+    {
+        super();
+        this.cubemap = null;
+        this.bind_group = null;
 
+        if (!("cube_background" in engine_ctx.cache.bindGroupLayouts))
+        {
+            engine_ctx.cache.bindGroupLayouts.cube_background = engine_ctx.device.createBindGroupLayout({
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        sampler:{}
+                    },
+                    {
+                        binding: 1,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        texture:{
+                            viewDimension: "cube"
+                        }
+                    }
+                ]
+            });
+        }
+
+        this.sampler = engine_ctx.device.createSampler({
+            magFilter: 'linear',
+            minFilter: 'linear',
+        });
+    }
+
+    setCubemap(imgs)
+    {
+        this.uuid = MathUtils.generateUUID();
+
+        let cubemap_in = engine_ctx.device.createTexture({
+            dimension: '2d',          
+            size: [imgs[0].width, imgs[0].height, 6],
+            format: 'rgba8unorm',
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+        });        
+
+        this.cubemap = engine_ctx.device.createTexture({
+            dimension: '2d',          
+            size: [imgs[0].width, imgs[0].height, 6],
+            format: 'rgba8unorm',
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING
+        });
+
+        for (let i=0; i<6; i++)
+        {
+            let imageBitmap = imgs[i];
+            engine_ctx.device.queue.copyExternalImageToTexture(
+                { source: imageBitmap },
+                { texture: cubemap_in, origin: [0, 0, i] },
+                [imageBitmap.width, imageBitmap.height]
+            );
+        }
+
+        FlipCubemap(cubemap_in, this.cubemap);
+
+        const bindGroupLayout = engine_ctx.cache.bindGroupLayouts.cube_background;
+        this.bind_group = engine_ctx.device.createBindGroup({
+            layout: bindGroupLayout,
+            entries: [               
+                {
+                    binding: 0,
+                    resource: this.sampler
+                },
+                {
+                    binding: 1,
+                    resource: this.cubemap.createView({
+                        dimension: 'cube'
+                    })
+                }
+            ]
+        });
+
+    }
+
+}
 
