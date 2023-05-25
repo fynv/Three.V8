@@ -21,8 +21,9 @@ export async function test()
 
     let resized = false;
     const size_changed = ()=>{
-        canvas.width = canvas.clientWidth/devicePixelRatio;
-        canvas.height = canvas.clientHeight/devicePixelRatio;
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
+        console.log(canvas.width, canvas.height);
         resized = true;
     };
     
