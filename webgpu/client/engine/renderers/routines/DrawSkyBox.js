@@ -131,3 +131,17 @@ export function DrawSkyBox(passEncoder, target, camera, bg)
     passEncoder.draw(3, 1);
 
 }
+
+export function DrawSkyBoxBundle(passEncoder, target, camera, bg)
+{
+    const renderBundleEncoder = engine_ctx.device.createRenderBundleEncoder({
+        colorFormats: [target.view_format],
+        depthStencilFormat: 'depth32float',
+        sampleCount: target.msaa?4:1
+    });
+
+    DrawSkyBox(renderBundleEncoder, target, camera, bg);
+
+    return renderBundleEncoder.finish();
+
+}

@@ -7,6 +7,7 @@ import { ColorBackground, HemisphereBackground, CubeBackground } from "./engine/
 import { PerspectiveCameraEx } from "./engine/cameras/PerspectiveCameraEx.js"
 import { OrbitControls } from "./engine/controls/OrbitControls.js"
 import { ImageLoader } from "./engine/loaders/ImageLoader.js"
+import { SimpleModel } from "./engine/models/SimpleModel.js"
 
 export async function test()
 {
@@ -61,6 +62,11 @@ export async function test()
 
     let renderer = new GPURenderer();
 
+
+    let model = new SimpleModel();
+    model.createBox(1,1,1);
+    scene.add(model);
+    
     const render = () =>
     {      
         controls.update();

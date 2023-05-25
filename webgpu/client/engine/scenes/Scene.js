@@ -6,6 +6,14 @@ export class Scene extends Object3D
     {
         super();
         this.background = null;
+        this.clear_lists();
+    }
+
+    clear_lists()
+    {
+        this.simple_models = [];
+        this.gltf_models = [];
+        this.directional_lights = [];
     }
 }
 
