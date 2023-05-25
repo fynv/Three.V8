@@ -70,6 +70,24 @@ export class SimpleModel extends Object3D
         let p_geo = geoGen.ccall("CreateBox", "number", ["number", "number", "number"], [width, height, depth]);
         this._create(geoGen, p_geo);
     }
+    
+    async createSphere(radius, widthSegments = 32, heightSegments = 16)
+    {
+        await engine_ctx.initialize();
+        let geoGen = await get_module();
+        let p_geo = geoGen.ccall("CreateSphere", "number", ["number", "number", "number"], [radius, widthSegments, heightSegments]);
+        this._create(geoGen, p_geo);
+        
+    }
+
+    async createPlane(width, height)
+    {
+        await engine_ctx.initialize();
+        let geoGen = await get_module();
+        let p_geo = geoGen.ccall("CreatePlane", "number", ["number", "number"], [width, height]);
+        this._create(geoGen, p_geo);
+
+    }
 
 }
 

@@ -8,6 +8,7 @@ import { PerspectiveCameraEx } from "./engine/cameras/PerspectiveCameraEx.js"
 import { OrbitControls } from "./engine/controls/OrbitControls.js"
 import { ImageLoader } from "./engine/loaders/ImageLoader.js"
 import { SimpleModel } from "./engine/models/SimpleModel.js"
+import { Vector3 } from "./engine/math/Vector3.js"
 
 export async function test()
 {
@@ -54,7 +55,7 @@ export async function test()
 
     scene.background = bg;
     let camera = new PerspectiveCameraEx();
-    camera.position.set(0.0, 0.0, 5.0);    
+    camera.position.set(0.0, 0.0, 7.0);    
 
     let controls = new OrbitControls(camera, canvas);    
     controls.target.set(0.0, 0.0, 0.0); 
@@ -62,10 +63,24 @@ export async function test()
 
     let renderer = new GPURenderer();
 
+    let box = new SimpleModel();
+    box.createBox(2,2,2);
+    box.translateX(-1.5);
+    let axis = new Vector3(1.0, 1.0, 0.0);
+    axis.normalize();
+    box.rotateOnAxis(axis, 1.0);
+    scene.add(box);
 
-    let model = new SimpleModel();
-    model.createBox(1,1,1);
-    scene.add(model);
+    let sphere = new SimpleModel();
+    sphere.createSphere(1.0);
+    sphere.translateX(1.5);
+    scene.add(sphere);
+
+    let ground = new SimpleModel();
+    ground.createPlane(10.0, 10.0);    
+    ground.translateY(-1.7);
+    ground.rotateX(-3.1416*0.5);
+    scene.add(ground);  
     
     const render = () =>
     {      

@@ -155,8 +155,8 @@ function GetPipelineStandard(options)
         };
 
         const primitive = {
-            frontFace: 'cw',
-            cullMode: 'none',
+            frontFace: 'ccw',
+            cullMode:  options.material_options.doubleSided ? "none" : "back",
             topology: 'triangle-list'
         };
 
@@ -192,8 +192,7 @@ export function RenderStandard(passEncoder, params)
     if (primitive.geometry.length<1) return;
 
     let material = params.material_list[primitive.material_idx];
-    let geo = primitive.geometry[primitive.geometry.length - 1];
-    
+    let geo = primitive.geometry[primitive.geometry.length - 1];    
     
     let options = {};    
     options.alpha_mode = material.alphaMode;
