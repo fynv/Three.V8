@@ -151,6 +151,7 @@ export class GPURenderer
 
         let signature = JSON.stringify({
             id_model: model.uuid,
+            id_material: material.uuid,
             id_camera: camera.uuid,
             id_target: target.uuid,
             pass            

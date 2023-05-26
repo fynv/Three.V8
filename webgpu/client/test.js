@@ -22,8 +22,7 @@ export async function test()
     let resized = false;
     const size_changed = ()=>{
         canvas.width = canvas.clientWidth;
-        canvas.height = canvas.clientHeight;
-        console.log(canvas.width, canvas.height);
+        canvas.height = canvas.clientHeight;        
         resized = true;
     };
     
@@ -42,8 +41,8 @@ export async function test()
 
     let bg = new CubeBackground();
 
-    let loader = new ImageLoader();
-    let cubeImg = await loader.loadCubeFromFile([
+    let imageLoader = new ImageLoader();
+    let cubeImg = await imageLoader.loadCubeFromFile([
         "./assets/textures/sky_cube_face0.jpg",
         "./assets/textures/sky_cube_face1.jpg",
         "./assets/textures/sky_cube_face2.jpg",
@@ -72,10 +71,20 @@ export async function test()
     box.rotateOnAxis(axis, 1.0);
     scene.add(box);
 
+    (async ()=>{
+        let img = await imageLoader.loadFile("./assets/textures/uv-test-bw.png");
+        box.setColorTexture(img);
+    })();
+
     let sphere = new SimpleModel();
     sphere.createSphere(1.0);
     sphere.translateX(1.5);
     scene.add(sphere);
+
+    (async ()=>{
+        let img = await imageLoader.loadFile("./assets/textures/uv-test-col.png");
+        sphere.setColorTexture(img);
+    })();
 
     let ground = new SimpleModel();
     ground.createPlane(10.0, 10.0);    
