@@ -117,5 +117,27 @@ export class SimpleModel extends Object3D
         this.material.create_binding_group(this.textures);
     }
 
+    get metalness()
+    {
+        return this.material.metallicFactor;
+    }
+
+    set metalness(value)
+    {
+        this.material.metallicFactor=value;
+        this.material.update_constant();
+    }
+
+    get roughness()
+    {
+        return this.material.roughnessFactor;
+    }
+
+    set roughness(value)
+    {
+        this.material.roughnessFactor = value;
+        this.material.update_constant();
+    }
+
 }
 

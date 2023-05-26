@@ -12,34 +12,31 @@ export function CreateTexture(image, generate_mipmaps = false)
         usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
     });
 
-    (async ()=>{
-        let width = image.width;
-        let height = image.height;
-        let source = image;
+    let width = image.width;
+    let height = image.height;
+    let source = image;
 
-        for (let mipLevel =0; mipLevel<mipLevelCount; mipLevel++)
+    for (let mipLevel =0; mipLevel<mipLevelCount; mipLevel++)
+    {
+        engine_ctx.device.queue.copyExternalImageToTexture(
+            { source },
+            { texture, origin: [0, 0], mipLevel},
+            [ width, height]
+        );
+
+        if (mipLevel < mipLevelCount-1)
         {
-            engine_ctx.device.queue.copyExternalImageToTexture(
-                { source },
-                { texture, origin: [0, 0], mipLevel},
-                [ width, height]
-            );
+            if (width > 1) width = Math.floor(width/2);
+            if (height > 1) height = Math.floor(height/2);
+            let canvas =  document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            let ctx2d = canvas.getContext("2d");
+            ctx2d.drawImage(source, 0,0,width,height);
+            source = canvas;
+        }        
+    }
 
-            if (mipLevel < mipLevelCount-1)
-            {
-                if (width > 1) width = Math.floor(width/2);
-                if (height > 1) height = Math.floor(height/2);
-                let canvas =  document.createElement("canvas");
-                canvas.width = width;
-                canvas.height = height;
-                let ctx2d = canvas.getContext("2d");
-                ctx2d.drawImage(source, 0,0,width,height);
-                source = await createImageBitmap(canvas);
-            }
-            console.log(mipLevel);
-        }
-
-    })();
     return texture;
 }
 
