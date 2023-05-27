@@ -1,7 +1,6 @@
 import { Vector2 } from "../math/Vector2.js"
 import { Vector3 } from "../math/Vector3.js"
 import { Color } from "../math/Color.js"
-import * as MathUtils from '../math/MathUtils.js';
 
 export class MeshStandardMaterial
 {
@@ -37,8 +36,6 @@ export class MeshStandardMaterial
             minFilter: 'linear',
             mipmapFilter: "linear"
         });
-
-        this.create_binding_group(null);
 
     }
 
@@ -80,151 +77,6 @@ export class MeshStandardMaterial
         iuniform[17] = this.doubleSided?1:0;
 
         engine_ctx.queue.writeBuffer(this.constant, 0, uniform.buffer, uniform.byteOffset, uniform.byteLength);
-    }
-
-    create_binding_group(tex_list)
-    {
-        this.uuid = MathUtils.generateUUID();
-        if (!("mesh_standard_material" in engine_ctx.cache.bindGroupLayouts))
-        {
-            engine_ctx.cache.bindGroupLayouts.mesh_standard_material = {};
-        }        
-        
-        let options = this.get_options();
-        let signature = JSON.stringify(options);
-        if (!(signature in engine_ctx.cache.bindGroupLayouts.mesh_standard_material))
-        {
-
-            let entries = [
-                {
-                    binding: 0,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    buffer:{
-                        type: "uniform"
-                    }
-                },
-                {
-                    binding: 1,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    sampler:{}
-                },
-            ];
-
-            let count_textures = 0;
-            if (options.has_color_texture) count_textures++;
-            if (options.has_metalness_map) count_textures++;
-            if (options.has_roughness_map) count_textures++;
-            if (options.has_specular_map) count_textures++;
-            if (options.has_glossiness_map) count_textures++;
-            if (options.has_normal_map) count_textures++;
-            if (options.has_emissive_map) count_textures++;
-
-            let binding = 2;
-            for (let i=0; i<count_textures; i++)
-            {
-                entries.push({
-                    binding,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    texture:{
-                        viewDimension: "2d"
-                    }
-                });
-                binding++;
-            }
-
-            engine_ctx.cache.bindGroupLayouts.mesh_standard_material[signature] = engine_ctx.device.createBindGroupLayout({ entries });
-        }
-
-        let entries = [
-            {
-                binding: 0,
-                resource:{
-                    buffer: this.constant
-                }
-            },
-            {
-                binding: 1,
-                resource: this.sampler
-            }
-        ];
-
-        let binding = 2;
-        
-        if (this.tex_idx_map>=0)
-        {
-            let tex = tex_list[this.tex_idx_map];
-            entries.push({
-                binding,
-                resource: tex.createView()
-            });
-            binding++;
-        }
-
-        if (this.tex_idx_metalnessMap>=0)
-        {
-            let tex = tex_list[this.tex_idx_metalnessMap];
-            entries.push({
-                binding,
-                resource: tex.createView()
-            });
-            binding++;
-        }
-
-        if (this.tex_idx_roughnessMap>=0)
-        {
-            let tex = tex_list[this.tex_idx_roughnessMap];
-            entries.push({
-                binding,
-                resource: tex.createView()
-            });
-            binding++;
-        }
-
-        if (this.tex_idx_specularMap>=0)
-        {
-            let tex = tex_list[this.tex_idx_specularMap];
-            entries.push({
-                binding,
-                resource: tex.createView()
-            });
-            binding++;
-        }
-
-        if (this.tex_idx_glossinessMap>=0)
-        {
-            let tex = tex_list[this.tex_idx_glossinessMap];
-            entries.push({
-                binding,
-                resource: tex.createView()
-            });
-            binding++;
-        }
-
-        if (this.tex_idx_normalMap>=0)
-        {
-            let tex = tex_list[this.tex_idx_normalMap];
-            entries.push({
-                binding,
-                resource: tex.createView()
-            });
-            binding++;
-        }
-
-        if (this.tex_idx_emissiveMap>=0)
-        {
-            let tex = tex_list[this.tex_idx_emissiveMap];
-            entries.push({
-                binding,
-                resource: tex.createView()
-            });
-            binding++;
-        }
-
-        const bindGroupLayout = engine_ctx.cache.bindGroupLayouts.mesh_standard_material[signature];
-        this.bind_group = engine_ctx.device.createBindGroup({
-            layout: bindGroupLayout,
-            entries
-        });
     }
 
 }

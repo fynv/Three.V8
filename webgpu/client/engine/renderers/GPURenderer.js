@@ -4,6 +4,7 @@ import { DrawHemisphere, DrawHemisphereBundle } from "./routines/DrawHemisphere.
 import { DrawSkyBox, DrawSkyBoxBundle } from "./routines/DrawSkyBox.js"
 import { SimpleModel } from "../models/SimpleModel.js"
 import { RenderStandard, RenderStandardBundle } from "./routines/StandardRoutine.js"
+import { DirectionalLight } from "../lights/DirectionalLight.js"
 
 export class GPURenderer
 {
@@ -96,7 +97,8 @@ export class GPURenderer
                 {
                     scene.simple_models.push(obj);
                     break;
-                }             
+                }         
+
                 break;
             }
             obj.updateWorldMatrix(false, false);
@@ -126,8 +128,7 @@ export class GPURenderer
             is_highlight_pass: pass == "Highlight",
             target,
             material_list: [material],
-            bind_group_camera: camera.bind_group,
-            bind_group_model: model.bind_group,
+            bind_group_camera: camera.bind_group,            
             primitive: model.geometry
         };
 
@@ -150,8 +151,7 @@ export class GPURenderer
         //RenderStandard(passEncoder, params);
 
         let signature = JSON.stringify({
-            id_model: model.uuid,
-            id_material: material.uuid,
+            id_primitive: model.geometry.uuid,
             id_camera: camera.uuid,
             id_target: target.uuid,
             pass            

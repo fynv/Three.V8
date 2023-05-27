@@ -30,10 +30,8 @@ function get_shader(options)
         location_varying++;
     }
 
-    let material_binding = 0;
-    let binding_material = material_binding++;
-    let binding_sampler = material_binding++;
-
+    let material_binding = 3;
+    
     let binding_tex_color = material_binding;
     if (mOpt.has_color_texture) material_binding++;
 
@@ -203,46 +201,54 @@ struct Material
     doubleSided: i32
 };
 
-@group(2) @binding(${binding_material})
+@group(1) @binding(1)
 var<uniform> uMaterial: Material;
 
-@group(2) @binding(${binding_sampler})
+@group(1) @binding(2)
 var uSampler: sampler;
 
 #if ${mOpt.has_color_texture}
-@group(2) @binding(${binding_tex_color})
+@group(1) @binding(${binding_tex_color})
 var uTexColor: texture_2d<f32>;
 #endif
 
 #if ${mOpt.has_metalness_map}
-@group(2) @binding(${binding_tex_metalness})
+@group(1) @binding(${binding_tex_metalness})
 var uTexMetalness: texture_2d<f32>;
 #endif
 
 #if ${mOpt.has_roughness_map}
-@group(2) @binding(${binding_tex_roughtness})
+@group(1) @binding(${binding_tex_roughtness})
 var uTexRoughness: texture_2d<f32>;
 #endif
 
 #if ${mOpt.has_specular_map}
-@group(2) @binding(${binding_tex_specular})
+@group(1) @binding(${binding_tex_specular})
 var uTexSpecular: texture_2d<f32>;
 #endif
 
 #if ${mOpt.has_glossiness_map}
-@group(2) @binding(${binding_tex_glossiness})
+@group(1) @binding(${binding_tex_glossiness})
 var uTexGlossiness: texture_2d<f32>;
 #endif
 
 #if ${mOpt.has_normal_map}
-@group(2) @binding(${binding_tex_normal})
+@group(1) @binding(${binding_tex_normal})
 var uTexNormal: texture_2d<f32>;
 #endif
 
 #if ${mOpt.has_emissive_map}
-@group(2) @binding(${binding_tex_emissive})
+@group(1) @binding(${binding_tex_emissive})
 var uTexEmissive: texture_2d<f32>;
 #endif
+
+struct PhysicalMaterial
+{
+    diffuseColor: vec3f,
+    roughness: f32,
+    specularColor: vec3f,
+    specularF90: f32
+};
 
 @fragment
 fn fs_main(input: FSIn) -> FSOut
@@ -262,8 +268,77 @@ fn fs_main(input: FSIn) -> FSOut
     base_color *= tex_color;
 #endif
 
+#if ${mOpt.specular_glossiness}
+
+    var specularFactor = uMaterial.specularGlossiness.xyz;
+    var glossinessFactor = uMaterial.specularGlossiness.w;
+
+#if ${mOpt.has_specular_map}
+    specularFactor *= textureSample(uTexSpecular, uSampler, input.uv).xyz;
+#endif
+    
+#if ${mOpt.has_glossiness_map}
+    glossinessFactor *= textureSample(uTexGlossiness, uSampler, input.uv).w;
+#endif
+
+#else
+
+    var metallicFactor = uMaterial.metalicFactor;
+    var roughnessFactor = uMaterial.roughnessFactor;
+
+#if ${mOpt.has_metalness_map}
+    metallicFactor *= textureSample(uTexMetalness, uSampler, input.uv).z;
+#endif
+
+#if ${mOpt.has_roughness_map}
+    roughnessFactor *= textureSample(uTexRoughness, uSampler, input.uv).y;
+#endif
+
+#endif
+
     let viewDir = normalize(input.viewDir);
     var norm = normalize(input.norm);
+
+#if ${mOpt.has_normal_map}
+    {
+        let T = normalize(input.tangent);
+        let B = normalize(input.bitangent);
+        var bump = textureSample(uTexNormal, uSampler, input.uv).xyz;
+        bump = (2.0*bump - 1.0) * vec3(uMaterial.normalScale, 1.0 );
+        norm = normalize(bump.x*T + bump.y*B + bump.z*norm);        
+    }
+#endif
+
+    if (uMaterial.doubleSided!=0)
+    {
+        if (dot(viewDir,norm)<0.0) 
+        {
+            norm = -norm;
+        }
+    }
+
+    var material : PhysicalMaterial;
+#if ${mOpt.specular_glossiness}
+    material.diffuseColor = base_color.xyz * ( 1.0 -
+        max( max( specularFactor.r, specularFactor.g ), specularFactor.b ) );
+    material.roughness = max( 1.0 - glossinessFactor, 0.0525 );	
+    material.specularColor = specularFactor.rgb;
+#else
+    material.diffuseColor = base_color.xyz * ( 1.0 - metallicFactor );	
+	material.roughness = max( roughnessFactor, 0.0525 );	
+	material.specularColor = mix( vec3( 0.04 ), base_color.xyz, metallicFactor );	
+#endif
+
+    let dxy =  max(abs(dpdx(norm)), abs(dpdy(norm)));
+    let geometryRoughness = max(max(dxy.x, dxy.y), dxy.z);	
+    material.roughness += geometryRoughness;
+	material.roughness = min( material.roughness, 1.0 );
+	material.specularF90 = 1.0;
+
+    let emissive = uMaterial.emissive.xyz;    
+#if ${mOpt.has_emissive_map}
+    emissive *= textureSample(uTexEmissive, uSampler, input.uv).xyz;
+#endif
 
     let k = norm.y*0.5 + 0.5;
     let l = mix(vec3(0.3), vec3(0.8), k);
@@ -286,8 +361,8 @@ function GetPipelineStandard(options)
     if (!(signature in engine_ctx.cache.pipelines.standard))
     {
         let material_signature = JSON.stringify(options.material_options);
-        let material_layout = engine_ctx.cache.bindGroupLayouts.mesh_standard_material[material_signature];
-        const pipelineLayoutDesc = { bindGroupLayouts: [engine_ctx.cache.bindGroupLayouts.perspective_camera, engine_ctx.cache.bindGroupLayouts.model, material_layout] };
+        let primitive_layout = engine_ctx.cache.bindGroupLayouts.primitive[material_signature];
+        const pipelineLayoutDesc = { bindGroupLayouts: [engine_ctx.cache.bindGroupLayouts.perspective_camera, primitive_layout] };
         let layout = engine_ctx.device.createPipelineLayout(pipelineLayoutDesc);
         let code = get_shader(options);
         let shaderModule = engine_ctx.device.createShaderModule({ code });
@@ -434,8 +509,7 @@ export function RenderStandard(passEncoder, params)
     let pipeline = GetPipelineStandard(options);
     passEncoder.setPipeline(pipeline);
     passEncoder.setBindGroup(0, params.bind_group_camera);
-    passEncoder.setBindGroup(1, params.bind_group_model);
-    passEncoder.setBindGroup(2, material.bind_group);   
+    passEncoder.setBindGroup(1, primitive.bind_group);   
 
     let localtion_attrib = 0;
 

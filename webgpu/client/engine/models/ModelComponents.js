@@ -1,42 +1,7 @@
 import { Vector3 } from "../math/Vector3.js"
 import { Matrix4 } from "../math/Matrix4.js"
 import { Quaternion } from "../math/Quaternion.js";
-
-
-export function CreateBindGroupLayout_Model()
-{
-    if(!("model" in engine_ctx.cache.bindGroupLayouts))
-    {
-        engine_ctx.cache.bindGroupLayouts.model = engine_ctx.device.createBindGroupLayout({
-            entries: [
-                {
-                    binding: 0,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer:{
-                        type: "uniform"
-                    }
-                }
-            ]
-        });
-    }
-    return engine_ctx.cache.bindGroupLayouts.model;
-}
-
-export function CreateBindGroup_Model(constant)
-{
-    let layout = CreateBindGroupLayout_Model();
-    return engine_ctx.device.createBindGroup({
-        layout,
-        entries: [
-            {
-                binding: 0,
-                resource:{
-                    buffer: constant
-                }
-            }
-        ]
-    });
-}
+import * as MathUtils from '../math/MathUtils.js';
 
 export function UpdateConstant_Model(constant, matrixWorld)
 {
@@ -91,7 +56,176 @@ export class Primitive
         this.min_pos = new Vector3(Infinity,Infinity,Infinity);
         this.max_pos = new Vector3(-Infinity, -Infinity, -Infinity);
 
+        this.uuid = 0;
+        this.bind_group = null;
     }
+
+    updateUUID()
+    {
+        this.uuid = MathUtils.generateUUID();
+    }
+
+    create_bind_group(model_constant, material_list, tex_list)
+    {        
+        this.updateUUID();
+
+        let material = material_list[this.material_idx];
+       
+        if (!("primitive" in engine_ctx.cache.bindGroupLayouts))
+        {
+            engine_ctx.cache.bindGroupLayouts.primitive = {};
+        }
+
+        let options = material.get_options();
+        let signature = JSON.stringify(options);
+        if (!(signature in engine_ctx.cache.bindGroupLayouts.primitive))
+        {
+
+            let entries = [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer:{
+                        type: "uniform"
+                    }
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer:{
+                        type: "uniform"
+                    }
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler:{}
+                },
+            ];
+
+            let count_textures = 0;
+            if (options.has_color_texture) count_textures++;
+            if (options.has_metalness_map) count_textures++;
+            if (options.has_roughness_map) count_textures++;
+            if (options.has_specular_map) count_textures++;
+            if (options.has_glossiness_map) count_textures++;
+            if (options.has_normal_map) count_textures++;
+            if (options.has_emissive_map) count_textures++;
+
+            let binding = 3;
+            for (let i=0; i<count_textures; i++)
+            {
+                entries.push({
+                    binding,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture:{
+                        viewDimension: "2d"
+                    }
+                });
+                binding++;
+            }
+
+            engine_ctx.cache.bindGroupLayouts.primitive[signature] = engine_ctx.device.createBindGroupLayout({ entries });
+        }
+
+        let entries = [
+            {
+                binding: 0,
+                resource:{
+                    buffer: model_constant
+                }
+            },
+            {
+                binding: 1,
+                resource:{
+                    buffer: material.constant
+                }
+            },
+            {
+                binding: 2,
+                resource: material.sampler
+            }
+        ];
+
+        let binding = 3;
+
+        if (material.tex_idx_map>=0)
+        {
+            let tex = tex_list[material.tex_idx_map];
+            entries.push({
+                binding,
+                resource: tex.createView()
+            });
+            binding++;
+        }
+
+        if (material.tex_idx_metalnessMap>=0)
+        {
+            let tex = tex_list[material.tex_idx_metalnessMap];
+            entries.push({
+                binding,
+                resource: tex.createView()
+            });
+            binding++;
+        }
+
+        if (material.tex_idx_roughnessMap>=0)
+        {
+            let tex = tex_list[material.tex_idx_roughnessMap];
+            entries.push({
+                binding,
+                resource: tex.createView()
+            });
+            binding++;
+        }
+
+        if (material.tex_idx_specularMap>=0)
+        {
+            let tex = tex_list[material.tex_idx_specularMap];
+            entries.push({
+                binding,
+                resource: tex.createView()
+            });
+            binding++;
+        }
+
+        if (material.tex_idx_glossinessMap>=0)
+        {
+            let tex = tex_list[material.tex_idx_glossinessMap];
+            entries.push({
+                binding,
+                resource: tex.createView()
+            });
+            binding++;
+        }
+
+        if (material.tex_idx_normalMap>=0)
+        {
+            let tex = tex_list[material.tex_idx_normalMap];
+            entries.push({
+                binding,
+                resource: tex.createView()
+            });
+            binding++;
+        }
+
+        if (material.tex_idx_emissiveMap>=0)
+        {
+            let tex = tex_list[material.tex_idx_emissiveMap];
+            entries.push({
+                binding,
+                resource: tex.createView()
+            });
+            binding++;
+        }
+
+        const bindGroupLayout = engine_ctx.cache.bindGroupLayouts.primitive[signature];
+        this.bind_group = engine_ctx.device.createBindGroup({
+            layout: bindGroupLayout,
+            entries
+        });
+    }
+    
 }
 
 export class Node

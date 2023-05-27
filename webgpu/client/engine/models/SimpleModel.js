@@ -1,7 +1,6 @@
 import { Object3D } from "../core/Object3D.js"
 import { MeshStandardMaterial } from "../materials/MeshStandardMaterial.js"
-import { CreateBindGroup_Model, UpdateConstant_Model, GeometrySet, Primitive } from "./ModelComponents.js"
-import * as MathUtils from '../math/MathUtils.js';
+import { UpdateConstant_Model, GeometrySet, Primitive } from "./ModelComponents.js"
 import get_module from './GeoGen.js'
 import { CreateTexture } from "../renderers/GPUUtils.js"
 
@@ -13,10 +12,10 @@ export class SimpleModel extends Object3D
         this.textures = [];
         this.material = new MeshStandardMaterial();
         this.geometry = new Primitive();
-        this.constant = engine_ctx.createBuffer0(128, GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST);
-        this.bind_group = CreateBindGroup_Model(this.constant);       
-        this.setColor(0.8, 0.8, 0.8);
         this.geometry.material_idx = 0;
+        this.constant = engine_ctx.createBuffer0(128, GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST);
+        this.setColor(0.8, 0.8, 0.8);    
+        this.geometry.create_bind_group(this.constant, [this.material], this.textures);
 
     }
 
@@ -61,7 +60,7 @@ export class SimpleModel extends Object3D
 
         geoGen.ccall("GeoDelete", null, ["number"], [p_geo]);
 
-        this.uuid = MathUtils.generateUUID();
+        this.geometry.updateUUID();
 
     }
 
@@ -114,7 +113,7 @@ export class SimpleModel extends Object3D
         let texture = CreateTexture(image, true);
         this.textures[0] = texture;
         this.material.tex_idx_map = 0;
-        this.material.create_binding_group(this.textures);
+        this.geometry.create_bind_group(this.constant, [this.material], this.textures);
     }
 
     get metalness()
