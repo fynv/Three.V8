@@ -1,4 +1,138 @@
 import { wgsl } from '../../wgsl-preprocessor.js';
+import { LightsIsEmpty } from "../../lights/Lights.js"
+
+function get_code_lights(lights_options)
+{
+    let code = `
+const RECIPROCAL_PI = 0.3183098861837907;
+const EPSILON = 1e-6;
+
+fn pow2(x: f32) -> f32
+{
+    return x*x;
+}
+
+struct DirectionalLight
+{
+    color: vec4f,
+    origin: vec4f,
+    direction: vec4f,
+    diffuse_thresh: f32,
+    diffuse_high: f32,
+    diffuse_low: f32,
+    specular_thresh: f32,
+    specular_high: f32,
+    specular_low: f32
+};
+
+struct IncidentLight 
+{
+	color : vec3f,
+	direction: vec3f
+};
+
+struct LightingInput
+{
+    material: PhysicalMaterial,
+    viewDir: vec3f,
+    norm: vec3f
+};
+
+struct LightingOutput
+{
+    specular: vec3f,
+    diffuse: vec3f
+};
+
+fn BRDF_Lambert(diffuseColor : vec3f) -> vec3f
+{
+    return RECIPROCAL_PI * diffuseColor;
+}
+
+fn F_Schlick(f0: vec3f, f90: f32, dotVH: f32) -> vec3f
+{
+    let fresnel = exp2( ( - 5.55473 * dotVH - 6.98316 ) * dotVH );
+	return f0 * ( 1.0 - fresnel ) + ( f90 * fresnel );
+}
+
+fn V_GGX_SmithCorrelated( alpha: f32, dotNL: f32, dotNV: f32) -> f32
+{
+    let a2 = pow2( alpha );
+	let gv = dotNL * sqrt( a2 + ( 1.0 - a2 ) * pow2( dotNV ) );
+	let gl = dotNV * sqrt( a2 + ( 1.0 - a2 ) * pow2( dotNL ) );
+	return 0.5 / max( gv + gl, EPSILON );
+
+}
+
+fn D_GGX(alpha: f32, dotNH: f32) -> f32
+{
+	let a2 = pow2( alpha );
+	let denom = pow2( dotNH ) * ( a2 - 1.0 ) + 1.0; 
+	return RECIPROCAL_PI * a2 / pow2( denom );
+}
+
+
+fn BRDF_GGX(lightDir: vec3f,  viewDir: vec3f, normal: vec3f, f0: vec3f, f90: f32, roughness: f32) -> vec3f
+{
+	let alpha = pow2(roughness);
+
+	let halfDir = normalize(lightDir + viewDir);
+
+	let dotNL = clamp(dot(normal, lightDir), 0.0, 1.0);
+	let dotNV = clamp(dot(normal, viewDir), 0.0, 1.0);
+	let dotNH = clamp(dot(normal, halfDir), 0.0, 1.0);
+	let dotVH = clamp(dot(viewDir, halfDir), 0.0, 1.0);
+
+	let F = F_Schlick(f0, f90, dotVH);
+	let V = V_GGX_SmithCorrelated(alpha, dotNL, dotNV);
+	let D = D_GGX( alpha, dotNH );
+	return F*(V*D);
+}
+
+`;
+    
+    let directional_lights = lights_options.directional_lights;
+    let binding = 0;
+    for (let i=0; i<directional_lights.length; i++)
+    {        
+        code += `
+@group(2) @binding(${binding})
+var<uniform> uDirectionalLight_${i}: DirectionalLight;
+`
+        binding++;
+    }
+
+    let code_shading = "";
+    for (let i=0; i<directional_lights.length; i++)
+    {
+        code_shading+=`
+    {
+        let light_source = uDirectionalLight_${i};
+        var directLight: IncidentLight;
+        directLight.color = light_source.color.xyz;
+        directLight.direction = light_source.direction.xyz;
+        let dotNL = clamp(dot(input.norm, directLight.direction), 0.0, 1.0);
+        let irradiance = dotNL * directLight.color;
+        ret.diffuse += irradiance * BRDF_Lambert(input.material.diffuseColor);
+        ret.specular += irradiance * BRDF_GGX( directLight.direction, input.viewDir, input.norm, input.material.specularColor, input.material.specularF90, input.material.roughness );
+    }
+`
+    }
+
+
+    code += `
+fn GetLighting(input: LightingInput) -> LightingOutput
+{
+    var ret: LightingOutput;
+    ret.specular = vec3(0.0);
+    ret.diffuse = vec3(0.0);
+${code_shading}
+    return ret;
+}        
+`;
+
+    return code;    
+}
 
 function get_shader(options)
 {
@@ -66,6 +200,8 @@ function get_shader(options)
     if (mOpt.has_emissive_map) material_binding++;    
 
     let location_varying_world_pos = location_varying++;
+
+    let code_lights = get_code_lights(options.lights_options);
 
     return wgsl`
 struct Camera
@@ -250,6 +386,8 @@ struct PhysicalMaterial
     specularF90: f32
 };
 
+${code_lights}
+
 @fragment
 fn fs_main(input: FSIn) -> FSOut
 {
@@ -340,10 +478,18 @@ fn fs_main(input: FSIn) -> FSOut
     emissive *= textureSample(uTexEmissive, uSampler, input.uv).xyz;
 #endif
 
-    let k = norm.y*0.5 + 0.5;
-    let l = mix(vec3(0.3), vec3(0.8), k);
+    var lightingInput : LightingInput;
+    lightingInput.material = material;
+    lightingInput.viewDir = viewDir;
+    lightingInput.norm = norm;
 
-    output.color = vec4(base_color.xyz * l, base_color.w);
+    let lighting = GetLighting(lightingInput);
+
+    var col = emissive + lighting.specular;
+    col += lighting.diffuse;
+    col = clamp(col, vec3(0.0), vec3(1.0));
+
+    output.color = vec4(col, 1.0);
     
     return output;
 }
@@ -362,7 +508,15 @@ function GetPipelineStandard(options)
     {
         let material_signature = JSON.stringify(options.material_options);
         let primitive_layout = engine_ctx.cache.bindGroupLayouts.primitive[material_signature];
-        const pipelineLayoutDesc = { bindGroupLayouts: [engine_ctx.cache.bindGroupLayouts.perspective_camera, primitive_layout] };
+        let bindGroupLayouts = [engine_ctx.cache.bindGroupLayouts.perspective_camera, primitive_layout];
+        if (!LightsIsEmpty(options.lights_options))
+        {
+            let lights_signature = JSON.stringify(options.lights_options);
+            let lights_layout = engine_ctx.cache.bindGroupLayouts.lights[lights_signature];
+            bindGroupLayouts.push(lights_layout);            
+        }
+
+        const pipelineLayoutDesc = { bindGroupLayouts };
         let layout = engine_ctx.device.createPipelineLayout(pipelineLayoutDesc);
         let code = get_shader(options);
         let shaderModule = engine_ctx.device.createShaderModule({ code });
@@ -505,11 +659,17 @@ export function RenderStandard(passEncoder, params)
     options.is_highlight_pass = params.is_highlight_pass;
     options.has_color = primitive.color_buf != null;
     options.material_options = material.get_options();
+    options.lights_options = params.lights.get_options();
 
     let pipeline = GetPipelineStandard(options);
     passEncoder.setPipeline(pipeline);
     passEncoder.setBindGroup(0, params.bind_group_camera);
     passEncoder.setBindGroup(1, primitive.bind_group);   
+
+    if (params.lights.bind_group!=null)
+    {
+        passEncoder.setBindGroup(2, params.lights.bind_group);   
+    }
 
     let localtion_attrib = 0;
 

@@ -9,6 +9,7 @@ import { OrbitControls } from "./engine/controls/OrbitControls.js"
 import { ImageLoader } from "./engine/loaders/ImageLoader.js"
 import { SimpleModel } from "./engine/models/SimpleModel.js"
 import { Vector3 } from "./engine/math/Vector3.js"
+import { DirectionalLight } from "./engine/lights/DirectionalLight.js"
 
 export async function test()
 {
@@ -79,6 +80,8 @@ export async function test()
     let sphere = new SimpleModel();
     sphere.createSphere(1.0);
     sphere.translateX(1.5);
+    sphere.metalness = 0.5;
+    sphere.roughness = 0.5;
     scene.add(sphere);
 
     (async ()=>{
@@ -91,6 +94,11 @@ export async function test()
     ground.translateY(-1.7);
     ground.rotateX(-3.1416*0.5);
     scene.add(ground);  
+
+    let directional_light = new DirectionalLight();
+    directional_light.intensity = 4.0;
+    directional_light.position.set(5.0, 10.0, 5.0);
+    scene.add(directional_light);
     
     const render = () =>
     {      

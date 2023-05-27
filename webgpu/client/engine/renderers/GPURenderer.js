@@ -4,6 +4,7 @@ import { DrawHemisphere, DrawHemisphereBundle } from "./routines/DrawHemisphere.
 import { DrawSkyBox, DrawSkyBoxBundle } from "./routines/DrawSkyBox.js"
 import { SimpleModel } from "../models/SimpleModel.js"
 import { RenderStandard, RenderStandardBundle } from "./routines/StandardRoutine.js"
+import { DirectionalLight } from "../lights/DirectionalLight.js"
 
 export class GPURenderer
 {
@@ -98,6 +99,12 @@ export class GPURenderer
                     break;
                 }         
 
+                if (obj instanceof DirectionalLight)
+                {
+                    scene.lights.directional_lights.push(obj);
+                    break;
+                }
+
                 break;
             }
             obj.updateWorldMatrix(false, false);
@@ -107,6 +114,13 @@ export class GPURenderer
         {
             this._update_simple_model(model);
         }
+
+        for (let light of scene.lights.directional_lights)
+        {
+            light.updateConstant();
+        }
+
+        scene.lights.update_bind_group();
     }
 
     _render_simple_model(passEncoder, model, camera, lights, target, pass)
@@ -128,7 +142,8 @@ export class GPURenderer
             target,
             material_list: [material],
             bind_group_camera: camera.bind_group,            
-            primitive: model.geometry
+            primitive: model.geometry,
+            lights
         };
 
         passEncoder.setViewport(
@@ -153,6 +168,7 @@ export class GPURenderer
             id_primitive: model.geometry.uuid,
             id_camera: camera.uuid,
             id_target: target.uuid,
+            signature_lights: lights.signature,
             pass            
         });
 
@@ -161,7 +177,6 @@ export class GPURenderer
             this.render_bundles[signature] = RenderStandardBundle(passEncoder, params);
         }
         passEncoder.executeBundles([this.render_bundles[signature]]);
-
 
     }
 
@@ -226,7 +241,7 @@ export class GPURenderer
             depthStencilAttachment: depthAttachment
         }; 
 
-        let lights = null;
+        let lights = scene.lights;
 
         let commandEncoder = engine_ctx.device.createCommandEncoder();
 
