@@ -4,7 +4,6 @@ import { DrawHemisphere, DrawHemisphereBundle } from "./routines/DrawHemisphere.
 import { DrawSkyBox, DrawSkyBoxBundle } from "./routines/DrawSkyBox.js"
 import { SimpleModel } from "../models/SimpleModel.js"
 import { RenderStandard, RenderStandardBundle } from "./routines/StandardRoutine.js"
-import { DirectionalLight } from "../lights/DirectionalLight.js"
 
 export class GPURenderer
 {
