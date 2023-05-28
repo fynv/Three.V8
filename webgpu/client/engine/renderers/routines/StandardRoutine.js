@@ -25,6 +25,18 @@ struct DirectionalLight
     specular_low: f32
 };
 
+struct DirectionalShadow
+{
+    VPSBMat: mat4x4f,
+    projMat: mat4x4f,
+    viewMat: mat4x4f,
+    left_right: vec2f,
+    bottom_up: vec2f,
+    near_far: vec2f,
+    light_radius: f32,
+    bias: f32
+};
+
 struct IncidentLight 
 {
 	color : vec3f,
@@ -34,6 +46,7 @@ struct IncidentLight
 struct LightingInput
 {
     material: PhysicalMaterial,
+    worldPos: vec3f,
     viewDir: vec3f,
     norm: vec3f
 };
@@ -89,27 +102,76 @@ fn BRDF_GGX(lightDir: vec3f,  viewDir: vec3f, normal: vec3f, f0: vec3f, f90: f32
 	return F*(V*D);
 }
 
+@group(2) @binding(0)
+var uShadowSampler: sampler_comparison;
+
+
+fn computeShadowCoords(VPSB: mat4x4f, world_pos: vec3f) -> vec3f
+{
+	let shadowCoords = VPSB * vec4(world_pos, 1.0);
+	return shadowCoords.xyz;
+}
+
+fn borderPCFTexture(shadowTex: texture_depth_2d, uvz : vec3f) -> f32
+{
+	return select(select(0.0, 1.0, uvz.z <= 1.0),  textureSampleCompareLevel(shadowTex, uShadowSampler, uvz.xy, uvz.z), 
+        ((uvz.x <= 1.0) && (uvz.y <= 1.0) &&  (uvz.x >= 0.0) && (uvz.y >= 0.0)));
+}
+
+fn computeShadowCoef(VPSB: mat4x4f, world_pos: vec3f, shadowTex: texture_depth_2d)-> f32
+{
+    let shadowCoords = computeShadowCoords(VPSB, world_pos);
+    return borderPCFTexture(shadowTex, shadowCoords);    
+}
 `;
     
     let directional_lights = lights_options.directional_lights;
-    let binding = 0;
+    let binding = 1;
     for (let i=0; i<directional_lights.length; i++)
     {        
+        let has_shadow = directional_lights[i];
+
         code += `
 @group(2) @binding(${binding})
-var<uniform> uDirectionalLight_${i}: DirectionalLight;
-`
+var<uniform> uDirectionalLight_${i}: DirectionalLight;`
         binding++;
+
+        if (has_shadow)
+        {
+            code += `
+@group(2) @binding(${binding})
+var<uniform> uDirectionalShadow_${i}: DirectionalShadow;`
+            binding++;
+
+            code += `
+@group(2) @binding(${binding})
+var uDirectionalShadowTex_${i}: texture_depth_2d;`
+            binding++;
+        }
     }
 
     let code_shading = "";
     for (let i=0; i<directional_lights.length; i++)
     {
+        let has_shadow = directional_lights[i];
+
+        let code_shadow = "";        
+        if (has_shadow)
+        {            
+            code_shadow += `
+        let shadow = uDirectionalShadow_${i};
+        l_shadow = computeShadowCoef(shadow.VPSBMat, input.worldPos, uDirectionalShadowTex_${i});
+`
+        }
+
+
         code_shading+=`
     {
         let light_source = uDirectionalLight_${i};
+        var l_shadow = 1.0;
+        ${code_shadow}
         var directLight: IncidentLight;
-        directLight.color = light_source.color.xyz;
+        directLight.color = light_source.color.xyz *l_shadow;
         directLight.direction = light_source.direction.xyz;
         let dotNL = clamp(dot(input.norm, directLight.direction), 0.0, 1.0);
         let irradiance = dotNL * directLight.color;
@@ -480,6 +542,7 @@ fn fs_main(input: FSIn) -> FSOut
 
     var lightingInput : LightingInput;
     lightingInput.material = material;
+    lightingInput.worldPos = input.worldPos;
     lightingInput.viewDir = viewDir;
     lightingInput.norm = norm;
 

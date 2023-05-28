@@ -91,7 +91,7 @@ export class Primitive
                 },
                 {
                     binding: 1,
-                    visibility: GPUShaderStage.FRAGMENT,
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
                     buffer:{
                         type: "uniform"
                     }

@@ -1,5 +1,7 @@
 import { Light } from "./Light.js"
 import { Vector3 } from "../math/Vector3.js";
+import { DirectionalLightShadow } from "./DirectionalLightShadow.js"
+import * as MathUtils from '../math/MathUtils.js';
 
 export class DirectionalLight extends Light
 {
@@ -9,6 +11,36 @@ export class DirectionalLight extends Light
         this.target = null;
         this.shadow = null;
         this.constant = engine_ctx.createBuffer0(80, GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST);
+    }
+
+    setShadow(enable, map_width, map_height)
+    {
+        if(enable)
+        {
+            this.shadow = new DirectionalLightShadow(this, map_width, map_height);
+        }
+        else
+        {
+            this.shadow = null;
+        }
+        this.uuid = MathUtils.generateUUID();
+    }
+
+    setShadowProjection(left, right, bottom, top, near, far)
+    {
+        if (this.shadow!=null)
+        {
+            this.shadow.setProjection(left, right, bottom, top, near, far);
+        }
+    }
+
+    setShadowRadius(radius)
+    {
+        if (this.shadow!=null)
+        {
+            this.shadow.light_radius = radius;
+        }
+
     }
 
     direction()

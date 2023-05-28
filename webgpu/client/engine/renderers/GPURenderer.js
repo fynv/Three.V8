@@ -5,6 +5,7 @@ import { DrawSkyBox, DrawSkyBoxBundle } from "./routines/DrawSkyBox.js"
 import { SimpleModel } from "../models/SimpleModel.js"
 import { RenderStandard, RenderStandardBundle } from "./routines/StandardRoutine.js"
 import { DirectionalLight } from "../lights/DirectionalLight.js"
+import { RenderDirectionalShadow } from "./routines/DirectionalShadowCast.js"
 
 export class GPURenderer
 {
@@ -86,6 +87,38 @@ export class GPURenderer
         model.updateConstant();
     }
 
+    _render_shadow_simple_model(passEncoder, model, shadow)
+    {
+        let material = model.material;
+        
+        let params = {                        
+            material_list: [material],
+            bind_group_shadow: shadow.bind_group,            
+            primitive: model.geometry,
+            force_cull: shadow.force_cull
+        };
+
+        passEncoder.setViewport(
+            0,
+            0,
+            shadow.map_width,
+            shadow.map_height,
+            0,
+            1
+        );
+    
+        passEncoder.setScissorRect(
+            0,
+            0,
+            shadow.map_width,
+            shadow.map_height,
+        );
+
+        RenderDirectionalShadow(passEncoder, params);
+
+
+    }
+
     _pre_render(scene)
     {
         scene.clear_lists();
@@ -100,7 +133,7 @@ export class GPURenderer
                 }         
 
                 if (obj instanceof DirectionalLight)
-                {
+                {                    
                     scene.lights.directional_lights.push(obj);
                     break;
                 }
@@ -115,9 +148,50 @@ export class GPURenderer
             this._update_simple_model(model);
         }
 
+        let has_shadow_map = false;
         for (let light of scene.lights.directional_lights)
         {
+            light.lookAtTarget();
             light.updateConstant();
+            if (light.shadow!=null) has_shadow_map = true;
+        }
+
+        if (has_shadow_map)
+        {
+            let commandEncoder = engine_ctx.device.createCommandEncoder();
+
+            for (let light of scene.lights.directional_lights)
+            {
+                let shadow = light.shadow;
+                if (shadow == null) continue;
+
+                shadow.updateConstant();
+
+                let depthAttachment = {
+                    view: shadow.lightTexView,
+                    depthClearValue: 1,
+                    depthLoadOp: 'clear',
+                    depthStoreOp: 'store',
+                };
+        
+                let renderPassDesc = {          
+                    colorAttachments: [],          
+                    depthStencilAttachment: depthAttachment
+                }; 
+
+                let passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
+                
+                for (let model of scene.simple_models)
+                {
+                    this._render_shadow_simple_model(passEncoder, model, shadow);                    
+                }
+
+                passEncoder.end();
+            }
+
+
+            let cmdBuf = commandEncoder.finish();
+            engine_ctx.queue.submit([cmdBuf]);            
         }
 
         scene.lights.update_bind_group();
@@ -233,7 +307,7 @@ export class GPURenderer
             view: target.view_depth,
             depthClearValue: 1,
             depthLoadOp: 'clear',
-            depthStoreOp: 'store',                  
+            depthStoreOp: 'store',
         };
 
         let renderPassDesc_opaque = {

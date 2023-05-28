@@ -9,7 +9,12 @@ export class Lights
     {        
         this.clear_lists();
         this.signature = this.get_signature();
-        this.bind_group = null;        
+        this.bind_group = null;     
+        this.sampler = engine_ctx.device.createSampler({
+            compare: 'less',
+            magFilter: 'linear',
+            minFilter: 'linear',            
+        });   
     }
 
     get_signature()
@@ -60,9 +65,17 @@ export class Lights
         let signature = JSON.stringify(options);
         if (!(signature in engine_ctx.cache.bindGroupLayouts.lights))
         {
-            let entries = [];
+            let entries = [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler:{
+                        type: 'comparison',
+                    }
+                },
+            ];
 
-            let binding = 0;
+            let binding = 1;
             for (let light of this.directional_lights)
             {
                 entries.push({
@@ -73,14 +86,42 @@ export class Lights
                     }
                 });
                 binding++;
+
+                if (light.shadow!=null)
+                {
+                    entries.push({
+                        binding,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        buffer:{
+                            type: "uniform"
+                        }
+                    });
+                    binding++;
+
+                    entries.push({
+                        binding,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        texture:{
+                            viewDimension: "2d",
+                            sampleType : "depth"
+                        }
+                    });
+                    binding++;
+
+                }
             }
 
             engine_ctx.cache.bindGroupLayouts.lights[signature] = engine_ctx.device.createBindGroupLayout({ entries });
         }               
 
-        let entries = [];
+        let entries = [
+            {
+                binding: 0,
+                resource: this.sampler
+            }
+        ];
 
-        let binding = 0;
+        let binding = 1;
         for (let light of this.directional_lights)
         {
             entries.push({
@@ -90,6 +131,23 @@ export class Lights
                 }
             });
             binding++;
+
+            if (light.shadow!=null)
+            {
+                entries.push({
+                    binding,
+                    resource:{
+                        buffer: light.shadow.constant
+                    }
+                });
+                binding++;
+
+                entries.push({
+                    binding,
+                    resource: light.shadow.lightTexView
+                });
+                binding++;
+            }
         }
 
         const bindGroupLayout = engine_ctx.cache.bindGroupLayouts.lights[signature];
