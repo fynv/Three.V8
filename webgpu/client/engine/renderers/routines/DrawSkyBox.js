@@ -132,7 +132,7 @@ export function DrawSkyBox(passEncoder, target, camera, bg)
 
 }
 
-export function DrawSkyBoxBundle(passEncoder, target, camera, bg)
+export function DrawSkyBoxBundle(target, camera, bg)
 {
     const renderBundleEncoder = engine_ctx.device.createRenderBundleEncoder({
         colorFormats: [target.view_format],

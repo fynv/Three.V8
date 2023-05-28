@@ -332,3 +332,13 @@ export function RenderDirectionalShadow(passEncoder, params)
 
 }
 
+export function RenderDirectionalShadowBundle(params)
+{
+    const renderBundleEncoder = engine_ctx.device.createRenderBundleEncoder({
+        colorFormats: [],
+        depthStencilFormat: 'depth32float',        
+    });
+    RenderDirectionalShadow(renderBundleEncoder, params);
+    return renderBundleEncoder.finish();
+}
+

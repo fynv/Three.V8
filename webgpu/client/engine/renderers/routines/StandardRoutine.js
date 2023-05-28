@@ -723,7 +723,7 @@ export function RenderStandard(passEncoder, params)
 }
 
 
-export function RenderStandardBundle(passEncoder, params)
+export function RenderStandardBundle(params)
 {
     const renderBundleEncoder = engine_ctx.device.createRenderBundleEncoder({
         colorFormats: [params.target.view_format],

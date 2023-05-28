@@ -136,7 +136,7 @@ export function DrawHemisphere(passEncoder, target, camera, bg)
 
 }
 
-export function DrawHemisphereBundle(passEncoder, target, camera, bg)
+export function DrawHemisphereBundle(target, camera, bg)
 {
     const renderBundleEncoder = engine_ctx.device.createRenderBundleEncoder({
         colorFormats: [target.view_format],

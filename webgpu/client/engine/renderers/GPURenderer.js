@@ -5,7 +5,7 @@ import { DrawSkyBox, DrawSkyBoxBundle } from "./routines/DrawSkyBox.js"
 import { SimpleModel } from "../models/SimpleModel.js"
 import { RenderStandard, RenderStandardBundle } from "./routines/StandardRoutine.js"
 import { DirectionalLight } from "../lights/DirectionalLight.js"
-import { RenderDirectionalShadow } from "./routines/DirectionalShadowCast.js"
+import { RenderDirectionalShadow, RenderDirectionalShadowBundle } from "./routines/DirectionalShadowCast.js"
 
 export class GPURenderer
 {
@@ -13,6 +13,7 @@ export class GPURenderer
     {
         this.bg_bundles = {};
         this.render_bundles = {};
+        this.shadow_bundles = {};
     }
 
     _draw_hemisphere(passEncoder, target, camera, bg)
@@ -43,7 +44,7 @@ export class GPURenderer
         
         if (!(signature in this.bg_bundles))
         {            
-            this.bg_bundles[signature] = DrawHemisphereBundle(passEncoder, target, camera, bg);
+            this.bg_bundles[signature] = DrawHemisphereBundle(target, camera, bg);
         }
         passEncoder.executeBundles([this.bg_bundles[signature]]);
 
@@ -76,7 +77,7 @@ export class GPURenderer
         });
         if (!(signature in this.bg_bundles))
         {    
-            this.bg_bundles[signature] = DrawSkyBoxBundle(passEncoder, target, camera, bg);
+            this.bg_bundles[signature] = DrawSkyBoxBundle(target, camera, bg);
         }
         passEncoder.executeBundles([this.bg_bundles[signature]]);
 
@@ -114,7 +115,18 @@ export class GPURenderer
             shadow.map_height,
         );
 
-        RenderDirectionalShadow(passEncoder, params);
+        //RenderDirectionalShadow(passEncoder, params);
+
+        let signature = JSON.stringify({
+            id_primitive: model.geometry.uuid,
+            id_shadow: shadow.uuid,                        
+        });
+
+        if (!(signature in this.shadow_bundles))
+        {    
+            this.shadow_bundles[signature] = RenderDirectionalShadowBundle(params);
+        }
+        passEncoder.executeBundles([this.shadow_bundles[signature]]);
 
 
     }
@@ -248,7 +260,7 @@ export class GPURenderer
 
         if (!(signature in this.render_bundles))
         {    
-            this.render_bundles[signature] = RenderStandardBundle(passEncoder, params);
+            this.render_bundles[signature] = RenderStandardBundle(params);
         }
         passEncoder.executeBundles([this.render_bundles[signature]]);
 

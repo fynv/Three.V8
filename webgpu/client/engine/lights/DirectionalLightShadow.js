@@ -1,9 +1,11 @@
 import { Matrix4 } from "../math/Matrix4.js"
+import * as MathUtils from '../math/MathUtils.js';
 
 export class DirectionalLightShadow
 {
     constructor(light, map_width, map_height)
     {
+        this.uuid = MathUtils.generateUUID();
         this.light = light;
         this.map_width = map_width;
         this.map_height = map_height;
