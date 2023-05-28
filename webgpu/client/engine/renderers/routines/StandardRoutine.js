@@ -1,201 +1,6 @@
 import { wgsl } from '../../wgsl-preprocessor.js';
 import { LightsIsEmpty } from "../../lights/Lights.js"
 
-function get_code_lights(lights_options)
-{
-    let code = `
-const RECIPROCAL_PI = 0.3183098861837907;
-const EPSILON = 1e-6;
-
-fn pow2(x: f32) -> f32
-{
-    return x*x;
-}
-
-struct DirectionalLight
-{
-    color: vec4f,
-    origin: vec4f,
-    direction: vec4f,
-    diffuse_thresh: f32,
-    diffuse_high: f32,
-    diffuse_low: f32,
-    specular_thresh: f32,
-    specular_high: f32,
-    specular_low: f32
-};
-
-struct DirectionalShadow
-{
-    VPSBMat: mat4x4f,
-    projMat: mat4x4f,
-    viewMat: mat4x4f,
-    left_right: vec2f,
-    bottom_up: vec2f,
-    near_far: vec2f,
-    light_radius: f32,
-    bias: f32
-};
-
-struct IncidentLight 
-{
-	color : vec3f,
-	direction: vec3f
-};
-
-struct LightingInput
-{
-    material: PhysicalMaterial,
-    worldPos: vec3f,
-    viewDir: vec3f,
-    norm: vec3f
-};
-
-struct LightingOutput
-{
-    specular: vec3f,
-    diffuse: vec3f
-};
-
-fn BRDF_Lambert(diffuseColor : vec3f) -> vec3f
-{
-    return RECIPROCAL_PI * diffuseColor;
-}
-
-fn F_Schlick(f0: vec3f, f90: f32, dotVH: f32) -> vec3f
-{
-    let fresnel = exp2( ( - 5.55473 * dotVH - 6.98316 ) * dotVH );
-	return f0 * ( 1.0 - fresnel ) + ( f90 * fresnel );
-}
-
-fn V_GGX_SmithCorrelated( alpha: f32, dotNL: f32, dotNV: f32) -> f32
-{
-    let a2 = pow2( alpha );
-	let gv = dotNL * sqrt( a2 + ( 1.0 - a2 ) * pow2( dotNV ) );
-	let gl = dotNV * sqrt( a2 + ( 1.0 - a2 ) * pow2( dotNL ) );
-	return 0.5 / max( gv + gl, EPSILON );
-
-}
-
-fn D_GGX(alpha: f32, dotNH: f32) -> f32
-{
-	let a2 = pow2( alpha );
-	let denom = pow2( dotNH ) * ( a2 - 1.0 ) + 1.0; 
-	return RECIPROCAL_PI * a2 / pow2( denom );
-}
-
-
-fn BRDF_GGX(lightDir: vec3f,  viewDir: vec3f, normal: vec3f, f0: vec3f, f90: f32, roughness: f32) -> vec3f
-{
-	let alpha = pow2(roughness);
-
-	let halfDir = normalize(lightDir + viewDir);
-
-	let dotNL = clamp(dot(normal, lightDir), 0.0, 1.0);
-	let dotNV = clamp(dot(normal, viewDir), 0.0, 1.0);
-	let dotNH = clamp(dot(normal, halfDir), 0.0, 1.0);
-	let dotVH = clamp(dot(viewDir, halfDir), 0.0, 1.0);
-
-	let F = F_Schlick(f0, f90, dotVH);
-	let V = V_GGX_SmithCorrelated(alpha, dotNL, dotNV);
-	let D = D_GGX( alpha, dotNH );
-	return F*(V*D);
-}
-
-@group(2) @binding(0)
-var uShadowSampler: sampler_comparison;
-
-
-fn computeShadowCoords(VPSB: mat4x4f, world_pos: vec3f) -> vec3f
-{
-	let shadowCoords = VPSB * vec4(world_pos, 1.0);
-	return shadowCoords.xyz;
-}
-
-fn borderPCFTexture(shadowTex: texture_depth_2d, uvz : vec3f) -> f32
-{
-	return select(select(0.0, 1.0, uvz.z <= 1.0),  textureSampleCompareLevel(shadowTex, uShadowSampler, uvz.xy, uvz.z), 
-        ((uvz.x <= 1.0) && (uvz.y <= 1.0) &&  (uvz.x >= 0.0) && (uvz.y >= 0.0)));
-}
-
-fn computeShadowCoef(VPSB: mat4x4f, world_pos: vec3f, shadowTex: texture_depth_2d)-> f32
-{
-    let shadowCoords = computeShadowCoords(VPSB, world_pos);
-    return borderPCFTexture(shadowTex, shadowCoords);    
-}
-`;
-    
-    let directional_lights = lights_options.directional_lights;
-    let binding = 1;
-    for (let i=0; i<directional_lights.length; i++)
-    {        
-        let has_shadow = directional_lights[i];
-
-        code += `
-@group(2) @binding(${binding})
-var<uniform> uDirectionalLight_${i}: DirectionalLight;`
-        binding++;
-
-        if (has_shadow)
-        {
-            code += `
-@group(2) @binding(${binding})
-var<uniform> uDirectionalShadow_${i}: DirectionalShadow;`
-            binding++;
-
-            code += `
-@group(2) @binding(${binding})
-var uDirectionalShadowTex_${i}: texture_depth_2d;`
-            binding++;
-        }
-    }
-
-    let code_shading = "";
-    for (let i=0; i<directional_lights.length; i++)
-    {
-        let has_shadow = directional_lights[i];
-
-        let code_shadow = "";        
-        if (has_shadow)
-        {            
-            code_shadow += `
-        let shadow = uDirectionalShadow_${i};
-        l_shadow = computeShadowCoef(shadow.VPSBMat, input.worldPos, uDirectionalShadowTex_${i});
-`
-        }
-
-
-        code_shading+=`
-    {
-        let light_source = uDirectionalLight_${i};
-        var l_shadow = 1.0;
-        ${code_shadow}
-        var directLight: IncidentLight;
-        directLight.color = light_source.color.xyz *l_shadow;
-        directLight.direction = light_source.direction.xyz;
-        let dotNL = clamp(dot(input.norm, directLight.direction), 0.0, 1.0);
-        let irradiance = dotNL * directLight.color;
-        ret.diffuse += irradiance * BRDF_Lambert(input.material.diffuseColor);
-        ret.specular += irradiance * BRDF_GGX( directLight.direction, input.viewDir, input.norm, input.material.specularColor, input.material.specularF90, input.material.roughness );
-    }
-`
-    }
-
-
-    code += `
-fn GetLighting(input: LightingInput) -> LightingOutput
-{
-    var ret: LightingOutput;
-    ret.specular = vec3(0.0);
-    ret.diffuse = vec3(0.0);
-${code_shading}
-    return ret;
-}        
-`;
-
-    return code;    
-}
-
 function get_shader(options)
 {
     let localtion_attrib = 0;
@@ -261,9 +66,10 @@ function get_shader(options)
     let binding_tex_emissive = material_binding;
     if (mOpt.has_emissive_map) material_binding++;    
 
-    let location_varying_world_pos = location_varying++;
-
-    let code_lights = get_code_lights(options.lights_options);
+    let location_varying_world_pos = location_varying++;   
+    
+    let lights_options = options.lights_options;
+    let directional_lights = lights_options.directional_lights;
 
     return wgsl`
 struct Camera
@@ -448,7 +254,140 @@ struct PhysicalMaterial
     specularF90: f32
 };
 
-${code_lights}
+const RECIPROCAL_PI = 0.3183098861837907;
+const EPSILON = 1e-6;
+
+fn pow2(x: f32) -> f32
+{
+    return x*x;
+}
+
+struct DirectionalLight
+{
+    color: vec4f,
+    origin: vec4f,
+    direction: vec4f,
+    diffuse_thresh: f32,
+    diffuse_high: f32,
+    diffuse_low: f32,
+    specular_thresh: f32,
+    specular_high: f32,
+    specular_low: f32
+};
+
+struct DirectionalShadow
+{
+    VPSBMat: mat4x4f,
+    projMat: mat4x4f,
+    viewMat: mat4x4f,
+    left_right: vec2f,
+    bottom_up: vec2f,
+    near_far: vec2f,
+    light_radius: f32,
+    bias: f32
+};
+
+struct IncidentLight 
+{
+	color : vec3f,
+	direction: vec3f
+};
+
+fn BRDF_Lambert(diffuseColor : vec3f) -> vec3f
+{
+    return RECIPROCAL_PI * diffuseColor;
+}
+
+fn F_Schlick(f0: vec3f, f90: f32, dotVH: f32) -> vec3f
+{
+    let fresnel = exp2( ( - 5.55473 * dotVH - 6.98316 ) * dotVH );
+	return f0 * ( 1.0 - fresnel ) + ( f90 * fresnel );
+}
+
+fn V_GGX_SmithCorrelated( alpha: f32, dotNL: f32, dotNV: f32) -> f32
+{
+    let a2 = pow2( alpha );
+	let gv = dotNL * sqrt( a2 + ( 1.0 - a2 ) * pow2( dotNV ) );
+	let gl = dotNV * sqrt( a2 + ( 1.0 - a2 ) * pow2( dotNL ) );
+	return 0.5 / max( gv + gl, EPSILON );
+
+}
+
+fn D_GGX(alpha: f32, dotNH: f32) -> f32
+{
+	let a2 = pow2( alpha );
+	let denom = pow2( dotNH ) * ( a2 - 1.0 ) + 1.0; 
+	return RECIPROCAL_PI * a2 / pow2( denom );
+}
+
+
+fn BRDF_GGX(lightDir: vec3f,  viewDir: vec3f, normal: vec3f, f0: vec3f, f90: f32, roughness: f32) -> vec3f
+{
+	let alpha = pow2(roughness);
+
+	let halfDir = normalize(lightDir + viewDir);
+
+	let dotNL = clamp(dot(normal, lightDir), 0.0, 1.0);
+	let dotNV = clamp(dot(normal, viewDir), 0.0, 1.0);
+	let dotNH = clamp(dot(normal, halfDir), 0.0, 1.0);
+	let dotVH = clamp(dot(viewDir, halfDir), 0.0, 1.0);
+
+	let F = F_Schlick(f0, f90, dotVH);
+	let V = V_GGX_SmithCorrelated(alpha, dotNL, dotNV);
+	let D = D_GGX( alpha, dotNH );
+	return F*(V*D);
+}
+
+@group(2) @binding(0)
+var uShadowSampler: sampler_comparison;
+
+
+fn computeShadowCoords(VPSB: mat4x4f, world_pos: vec3f) -> vec3f
+{
+	let shadowCoords = VPSB * vec4(world_pos, 1.0);
+	return shadowCoords.xyz;
+}
+
+fn borderPCFTexture(shadowTex: texture_depth_2d, uvz : vec3f) -> f32
+{
+	return select(select(0.0, 1.0, uvz.z <= 1.0),  textureSampleCompareLevel(shadowTex, uShadowSampler, uvz.xy, uvz.z), 
+        ((uvz.x <= 1.0) && (uvz.y <= 1.0) &&  (uvz.x >= 0.0) && (uvz.y >= 0.0)));
+}
+
+fn computeShadowCoef(VPSB: mat4x4f, world_pos: vec3f, shadowTex: texture_depth_2d)-> f32
+{
+    let shadowCoords = computeShadowCoords(VPSB, world_pos);
+    return borderPCFTexture(shadowTex, shadowCoords);    
+}
+
+${(()=>{
+    let code = "";
+    let binding = 1;
+    for (let i=0; i<directional_lights.length; i++)
+    {        
+        let has_shadow = directional_lights[i];
+
+        code += `
+@group(2) @binding(${binding})
+var<uniform> uDirectionalLight_${i}: DirectionalLight;`
+        binding++;
+
+        if (has_shadow)
+        {
+            code += `
+@group(2) @binding(${binding})
+var<uniform> uDirectionalShadow_${i}: DirectionalShadow;`
+            binding++;
+
+            code += `
+@group(2) @binding(${binding})
+var uDirectionalShadowTex_${i}: texture_depth_2d;`
+            binding++;
+        }
+    }
+    return code;
+    
+})()}
 
 @fragment
 fn fs_main(input: FSIn) -> FSOut
@@ -540,16 +479,36 @@ fn fs_main(input: FSIn) -> FSOut
     emissive *= textureSample(uTexEmissive, uSampler, input.uv).xyz;
 #endif
 
-    var lightingInput : LightingInput;
-    lightingInput.material = material;
-    lightingInput.worldPos = input.worldPos;
-    lightingInput.viewDir = viewDir;
-    lightingInput.norm = norm;
+    var specular = vec3(0.0);
+    var diffuse = vec3(0.0);
+${(()=>{
+    let code = "";
+    for (let i=0; i<directional_lights.length; i++)
+    {
+        let has_shadow = directional_lights[i];
+        code += wgsl`
+    {
+        let light_source = uDirectionalLight_${i};
+        var l_shadow = 1.0;
+#if ${has_shadow}
+        let shadow = uDirectionalShadow_${i};
+        l_shadow = computeShadowCoef(shadow.VPSBMat, input.worldPos, uDirectionalShadowTex_${i});
+#endif
+        var directLight: IncidentLight;
+        directLight.color = light_source.color.xyz *l_shadow;
+        directLight.direction = light_source.direction.xyz;
+        let dotNL = clamp(dot(norm, directLight.direction), 0.0, 1.0);
+        let irradiance = dotNL * directLight.color;
+        diffuse += irradiance * BRDF_Lambert(material.diffuseColor);
+        specular += irradiance * BRDF_GGX( directLight.direction, viewDir, norm, material.specularColor, material.specularF90, material.roughness );
+    }
+`;
+    }
+    return code;
+})()}
 
-    let lighting = GetLighting(lightingInput);
-
-    var col = emissive + lighting.specular;
-    col += lighting.diffuse;
+    var col = emissive + specular;
+    col += diffuse;
     col = clamp(col, vec3(0.0), vec3(1.0));
 
     output.color = vec4(col, 1.0);

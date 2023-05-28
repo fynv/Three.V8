@@ -98,6 +98,8 @@ export async function test()
     let directional_light = new DirectionalLight();
     directional_light.intensity = 4.0;
     directional_light.position.set(5.0, 10.0, 5.0);
+    directional_light.setShadow(true, 4096, 4096);
+    directional_light.setShadowProjection(-10.0, 10.0, -10.0, 10.0, 0.0, 50.0);
     scene.add(directional_light);
     
     const render = () =>
