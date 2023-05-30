@@ -1,13 +1,13 @@
 import { FlipCubemap } from "../renderers/routines/FlipCubemap.js"
 
-export function CreateTexture(image, generate_mipmaps = false, srgb = true, brga = false)
+export function CreateTexture(image, generate_mipmaps = false, srgb = true)
 {
     let mipLevelCount = generate_mipmaps? Math.floor(Math.log2(Math.max(image.width, image.height))) : 1;        
 
     let texture = engine_ctx.device.createTexture({
         dimension: '2d',
         size: [image.width, image.height],
-        format: srgb? (brga? 'bgra8unorm-srgb': 'rgba8unorm-srgb'): (brga? 'bgra8unorm': 'rgba8unorm'),
+        format: srgb? 'rgba8unorm-srgb': 'rgba8unorm',
         mipLevelCount,
         usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
     });

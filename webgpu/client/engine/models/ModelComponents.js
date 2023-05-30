@@ -106,10 +106,8 @@ export class Primitive
 
             let count_textures = 0;
             if (this.material_options.has_color_texture) count_textures++;
-            if (this.material_options.has_metalness_map) count_textures++;
-            if (this.material_options.has_roughness_map) count_textures++;
+            if (this.material_options.has_metalness_map) count_textures++;            
             if (this.material_options.has_specular_map) count_textures++;
-            if (this.material_options.has_glossiness_map) count_textures++;
             if (this.material_options.has_normal_map) count_textures++;
             if (this.material_options.has_emissive_map) count_textures++;
 
@@ -168,31 +166,11 @@ export class Primitive
                 resource: tex.createView()
             });
             binding++;
-        }
-
-        if (this.material_options.has_roughness_map)
-        {
-            let tex = tex_list[material.tex_idx_roughnessMap];
-            entries.push({
-                binding,
-                resource: tex.createView()
-            });
-            binding++;
-        }
+        }        
 
         if (this.material_options.has_specular_map)
         {
             let tex = tex_list[material.tex_idx_specularMap];
-            entries.push({
-                binding,
-                resource: tex.createView()
-            });
-            binding++;
-        }
-
-        if (this.material_options.has_glossiness_map) 
-        {
-            let tex = tex_list[material.tex_idx_glossinessMap];
             entries.push({
                 binding,
                 resource: tex.createView()

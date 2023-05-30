@@ -21,13 +21,11 @@ export class MeshStandardMaterial
 
         this.metallicFactor = 0.0;
         this.roughnessFactor = 1.0;
-        this.tex_idx_metalnessMap = -1;
-        this.tex_idx_roughnessMap = -1;
+        this.tex_idx_metalnessMap = -1;        
         
         this.specular = new Color(1.0, 1.0, 1.0);
         this.glossinessFactor = 0.0;
-        this.tex_idx_specularMap = -1;
-        this.tex_idx_glossinessMap = -1;       
+        this.tex_idx_specularMap = -1;        
 
         this.constant = engine_ctx.createBuffer0(80, GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST);
 
@@ -45,10 +43,8 @@ export class MeshStandardMaterial
             doubleSided: this.doubleSided,
             specular_glossiness: this.specular_glossiness,
             has_color_texture: this.tex_idx_map >=0 && (this.tex_idx_map in tex_list),
-            has_metalness_map: this.tex_idx_metalnessMap >=0 && (this.tex_idx_metalnessMap in tex_list),
-            has_roughness_map: this.tex_idx_roughnessMap >=0 && (this.tex_idx_roughnessMap in tex_list),
-            has_specular_map: this.tex_idx_specularMap >=0 && (this.tex_idx_specularMap in tex_list),
-            has_glossiness_map: this.tex_idx_glossinessMap >=0 && (this.tex_idx_glossinessMap in tex_list),
+            has_metalness_map: this.tex_idx_metalnessMap >=0 && (this.tex_idx_metalnessMap in tex_list),            
+            has_specular_map: this.tex_idx_specularMap >=0 && (this.tex_idx_specularMap in tex_list),            
             has_normal_map: this.tex_idx_normalMap >=0 && (this.tex_idx_normalMap in tex_list),
             has_emissive_map: this.tex_idx_emissiveMap >=0 && (this.tex_idx_emissiveMap in tex_list)
         };

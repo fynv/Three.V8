@@ -38,7 +38,7 @@ export class GLTFLoader
             img.src = url;       
             await img.decode();
             const imageBitmap = await createImageBitmap(img);
-            let texture = CreateTexture(imageBitmap, true, opts.is_srgb, opts.reverse);            
+            let texture = CreateTexture(imageBitmap, true, opts.is_srgb);
             model.textures[idx] = texture;
 
             let affected_materials = tex_affected_materials[idx];
@@ -598,8 +598,7 @@ export class GLTFLoader
             for (let i=0; i< num_textures; i++)
             {
                 tex_opts[i] = {
-                    is_srgb: true,
-                    reverse: false
+                    is_srgb: true,                    
                 };
 
                 tex_affected_materials[i] = new Set();                
@@ -676,8 +675,7 @@ export class GLTFLoader
                         if (id_mr>=0)
                         {
                             tex_opts[id_mr].is_srgb = false;
-                            material_out.tex_idx_metalnessMap = id_mr;
-			                material_out.tex_idx_roughnessMap = id_mr;
+                            material_out.tex_idx_metalnessMap = id_mr;			              
                             tex_affected_materials[id_mr].add(i);
                         }
                     }
@@ -764,8 +762,7 @@ export class GLTFLoader
                             let id_sg =  sg.specularGlossinessTexture.index;
                             if (id_sg >=0)
                             {
-                                material_out.tex_idx_specularMap = id_sg;
-                                material_out.tex_idx_glossinessMap = id_sg;
+                                material_out.tex_idx_specularMap = id_sg;                                
                                 tex_affected_materials[id_sg].add(i);
                             }
                         }

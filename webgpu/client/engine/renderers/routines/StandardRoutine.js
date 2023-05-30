@@ -20,7 +20,7 @@ function get_shader(options)
     }
 
     let mOpt = options.material_options;
-    let has_uv = mOpt.has_color_texture || mOpt.has_metalness_map || mOpt.has_roughness_map || mOpt.has_normal_map || mOpt.has_emissive_map;
+    let has_uv = mOpt.has_color_texture || mOpt.has_metalness_map || mOpt.has_specular_map || mOpt.has_normal_map || mOpt.has_emissive_map;
 
     let location_attrib_uv = localtion_attrib;
     let location_varying_uv =  location_varying;
@@ -38,15 +38,9 @@ function get_shader(options)
 
     let binding_tex_metalness = material_binding;
     if (mOpt.has_metalness_map) material_binding++;
-    
-    let binding_tex_roughtness = material_binding;
-    if (mOpt.has_roughness_map) material_binding++;
 
     let binding_tex_specular = material_binding;
     if (mOpt.has_specular_map) material_binding++;
-
-    let binding_tex_glossiness = material_binding;
-    if (mOpt.has_glossiness_map) material_binding++;
 
     let binding_tex_normal = material_binding;
     let location_attrib_tangent = localtion_attrib;
@@ -221,19 +215,9 @@ var uTexColor: texture_2d<f32>;
 var uTexMetalness: texture_2d<f32>;
 #endif
 
-#if ${mOpt.has_roughness_map}
-@group(1) @binding(${binding_tex_roughtness})
-var uTexRoughness: texture_2d<f32>;
-#endif
-
 #if ${mOpt.has_specular_map}
 @group(1) @binding(${binding_tex_specular})
 var uTexSpecular: texture_2d<f32>;
-#endif
-
-#if ${mOpt.has_glossiness_map}
-@group(1) @binding(${binding_tex_glossiness})
-var uTexGlossiness: texture_2d<f32>;
 #endif
 
 #if ${mOpt.has_normal_map}
@@ -414,10 +398,7 @@ fn fs_main(input: FSIn) -> FSOut
 
 #if ${mOpt.has_specular_map}
     specularFactor *= textureSample(uTexSpecular, uSampler, input.uv).xyz;
-#endif
-    
-#if ${mOpt.has_glossiness_map}
-    glossinessFactor *= textureSample(uTexGlossiness, uSampler, input.uv).w;
+    glossinessFactor *= textureSample(uTexSpecular, uSampler, input.uv).w;
 #endif
 
 #else
@@ -427,10 +408,7 @@ fn fs_main(input: FSIn) -> FSOut
 
 #if ${mOpt.has_metalness_map}
     metallicFactor *= textureSample(uTexMetalness, uSampler, input.uv).z;
-#endif
-
-#if ${mOpt.has_roughness_map}
-    roughnessFactor *= textureSample(uTexRoughness, uSampler, input.uv).y;
+    roughnessFactor *= textureSample(uTexMetalness, uSampler, input.uv).y;
 #endif
 
 #endif
@@ -599,7 +577,7 @@ function GetPipelineStandard(options)
         }
 
         let mOpt = options.material_options;
-        let has_uv = mOpt.has_color_texture || mOpt.has_metalness_map || mOpt.has_roughness_map || mOpt.has_normal_map || mOpt.has_emissive_map;
+        let has_uv = mOpt.has_color_texture || mOpt.has_metalness_map || mOpt.has_specular_map || mOpt.has_normal_map || mOpt.has_emissive_map;
         if (has_uv)
         {
             const UVAttribDesc = {
@@ -734,7 +712,7 @@ export function RenderStandard(passEncoder, params)
     }
 
     let mOpt = options.material_options;
-    let has_uv = mOpt.has_color_texture || mOpt.has_metalness_map || mOpt.has_roughness_map || mOpt.has_normal_map || mOpt.has_emissive_map;
+    let has_uv = mOpt.has_color_texture || mOpt.has_metalness_map || mOpt.has_specular_map || mOpt.has_normal_map || mOpt.has_emissive_map;
     if (has_uv)
 	{
         passEncoder.setVertexBuffer(localtion_attrib++, primitive.uv_buf);
