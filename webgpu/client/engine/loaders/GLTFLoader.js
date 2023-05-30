@@ -418,8 +418,8 @@ export class GLTFLoader
 
                     let info = {};
 
-                    let id_pos_in = primitive_in.attributes["POSITION"];
-                    let acc_pos_in = json.accessors[id_pos_in];
+                    let id_pos_in = primitive_in.attributes["POSITION"];                    
+                    let acc_pos_in = json.accessors[id_pos_in];                    
                     primitive_out.num_pos = acc_pos_in.count;                    
                     primitive_out.min_pos.x = acc_pos_in.min[0];
                     primitive_out.min_pos.y = acc_pos_in.min[1];
@@ -589,9 +589,9 @@ export class GLTFLoader
             model.updateNodes();            
             
             let num_textures = 0;
-            if ("texture" in json)
+            if ("textures" in json)
             {            
-                json.textures.length;
+                num_textures = json.textures.length;
             }
             let tex_opts = new Array(num_textures);
             tex_affected_materials = new Array(num_textures);          
@@ -686,7 +686,7 @@ export class GLTFLoader
                 if ("normalTexture" in material_in)
                 {
                     if (material_in.normalTexture.index >=0)
-                    {                            
+                    {   
                         tex_opts[material_in.normalTexture.index].is_srgb = false;
                         material_out.tex_idx_normalMap = material_in.normalTexture.index;
                         tex_affected_materials[material_out.tex_idx_normalMap].add(i);
