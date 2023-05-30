@@ -165,7 +165,7 @@ void calc_tangent(int num_face, int num_pos, int type_indices, const void* p_ind
 	{
 		t_calc_tangent<uint8_t>(num_face, num_pos, (uint8_t*)p_indices, p_pos, p_uv, p_tangent, p_bitangent);
 	}
-	if (type_indices == 2)
+	else if (type_indices == 2)
 	{
 		t_calc_tangent<uint16_t>(num_face, num_pos, (uint16_t*)p_indices, p_pos, p_uv, p_tangent, p_bitangent);
 	}

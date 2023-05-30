@@ -71,7 +71,7 @@ export class GLTFLoader
 
             let pendings = [];
 
-            if (info.indices_offset>0)
+            if (info.indices_offset>=0)
             {     
                 pendings.push(new Promise((resolve, reject) => {
                     
@@ -180,8 +180,12 @@ export class GLTFLoader
                 let p_pos3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
                 this.module.HEAPU8.set(new Uint8Array(primitive_out.cpu_pos), p_pos3);
 
-                let p_indices =  this.module.ccall("alloc", "number", ["number"], [num_face*type_indices*3]);
-                this.module.HEAPU8.set(new Uint8Array(primitive_out.cpu_indices), p_indices);
+                let p_indices = 0;
+                if (info.indices_offset>=0)
+                {
+                    p_indices = this.module.ccall("alloc", "number", ["number"], [num_face*type_indices*3]);
+                    this.module.HEAPU8.set(new Uint8Array(primitive_out.cpu_indices), p_indices);
+                }
 
                 let p_norm4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
                 this.module.ccall("zero", null, ["number", "number"], [p_norm4, num_pos*4*4]);                
@@ -189,7 +193,10 @@ export class GLTFLoader
                 geo_set.normal_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_norm4, num_pos*4*4);
 
                 this.module.ccall("dealloc", null, ["number"], [p_pos3]);
-                this.module.ccall("dealloc", null, ["number"], [p_indices]);
+                if (p_indices > 0)
+                {
+                    this.module.ccall("dealloc", null, ["number"], [p_indices]);
+                }
                 this.module.ccall("dealloc", null, ["number"], [p_norm4]);
             }
 
@@ -201,21 +208,28 @@ export class GLTFLoader
                 let p_uv2 =  this.module.ccall("alloc", "number", ["number"], [num_pos*2*4]);
                 this.module.HEAPU8.set(new Uint8Array(primitive_out.cpu_uv), p_uv2);
 
-                let p_indices =  this.module.ccall("alloc", "number", ["number"], [num_face*type_indices*3]);
-                this.module.HEAPU8.set(new Uint8Array(primitive_out.cpu_indices), p_indices);
+                let p_indices = 0;
+                if (info.indices_offset>=0)
+                {
+                    p_indices = this.module.ccall("alloc", "number", ["number"], [num_face*type_indices*3]);
+                    this.module.HEAPU8.set(new Uint8Array(primitive_out.cpu_indices), p_indices);
+                }
 
                 let p_tangent4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
                 let p_bitangent4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
                 this.module.ccall("zero", null, ["number", "number"], [p_tangent4, num_pos*4*4]);
                 this.module.ccall("zero", null, ["number", "number"], [p_bitangent4, num_pos*4*4]);
-
+                
                 this.module.ccall("calc_tangent", null, ["number", "number", "number", "number", "number", "number", "number", "number"], [num_face, num_pos, type_indices, p_indices, p_pos3, p_uv2, p_tangent4, p_bitangent4]);
                 geo_set.tangent_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_tangent4, num_pos*4*4);
                 geo_set.bitangent_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_bitangent4, num_pos*4*4);
 
                 this.module.ccall("dealloc", null, ["number"], [p_pos3]);
                 this.module.ccall("dealloc", null, ["number"], [p_uv2]);
-                this.module.ccall("dealloc", null, ["number"], [p_indices]);
+                if (p_indices > 0)
+                {
+                    this.module.ccall("dealloc", null, ["number"], [p_indices]);
+                }
                 this.module.ccall("dealloc", null, ["number"], [p_tangent4]);
                 this.module.ccall("dealloc", null, ["number"], [p_bitangent4]);
                 
@@ -306,6 +320,7 @@ export class GLTFLoader
                     let num_geo_sets = 1;
                     if (num_targets > 0) num_geo_sets++;
                     if (is_skinned) num_geo_sets++;
+                    
 
                     let info = {};
 
@@ -317,7 +332,7 @@ export class GLTFLoader
                     primitive_out.min_pos.z = acc_pos_in.min[2];
                     primitive_out.max_pos.x = acc_pos_in.max[0];
                     primitive_out.max_pos.y = acc_pos_in.max[1];
-                    primitive_out.max_pos.z = acc_pos_in.max[2];                                                            
+                    primitive_out.max_pos.z = acc_pos_in.max[2];            
                     let view_pos_in = json.bufferViews[acc_pos_in.bufferView];
                     
                     info.position_offset = (view_pos_in.byteOffset||0) + (acc_pos_in.byteOffset||0);       
@@ -328,7 +343,7 @@ export class GLTFLoader
                         let acc_indices_in =  json.accessors[id_indices_in];
                         primitive_out.num_face = acc_indices_in.count/3;
                         let view_indices_in = json.bufferViews[acc_indices_in.bufferView];
-                        info.indices_offset = (view_indices_in.byteOffset||0) + (acc_indices_in.byteOffset||0);
+                        info.indices_offset = (view_indices_in.byteOffset||0) + (acc_indices_in.byteOffset||0);                        
 
                         if(acc_indices_in.componentType == 5121)
                         {
@@ -346,9 +361,9 @@ export class GLTFLoader
                     else
                     {
                         primitive_out.num_face = primitive_out.num_pos / 3;     
-                        info.indices_offset = -1;                   
+                        info.indices_offset = -1;
                     }
-
+                    
                     if ("NORMAL" in primitive_in.attributes)
                     {
                         let id_norm_in = primitive_in.attributes["NORMAL"];
@@ -523,6 +538,7 @@ export class GLTFLoader
                     let pbr = material_in.pbrMetallicRoughness;
                     if ("baseColorFactor" in pbr)
                     {                
+                        let color_in = pbr.baseColorFactor;
                         material_out.color.r = color_in[0];
                         material_out.color.g = color_in[1];
                         material_out.color.b = color_in[2];
@@ -531,8 +547,11 @@ export class GLTFLoader
 
                     if ("baseColorTexture" in pbr)
                     {
-                        material_out.tex_idx_map = pbr.baseColorTexture.index;
-                        tex_affected_materials[material_out.tex_idx_map].add(i);
+                        if (pbr.baseColorTexture.index >= 0)
+                        {
+                            material_out.tex_idx_map = pbr.baseColorTexture.index;
+                            tex_affected_materials[material_out.tex_idx_map].add(i);
+                        }
                     }
                    
                     if ("metallicFactor" in pbr)
@@ -591,8 +610,68 @@ export class GLTFLoader
 
                 if ("emissiveTexture" in material_in)
                 {
-                    material_out.tex_idx_emissiveMap = material_in.emissiveTexture.index;
-                    tex_affected_materials[material_out.tex_idx_emissiveMap].add(i);
+                    if (material_in.emissiveTexture.index>=0)
+                    {
+                        material_out.tex_idx_emissiveMap = material_in.emissiveTexture.index;
+                        tex_affected_materials[material_out.tex_idx_emissiveMap].add(i);
+                    }
+                }
+
+                if ("extensions" in material_in)
+                {
+                    let extensions = material_in.extensions;
+                    if ("KHR_materials_emissive_strength" in extensions)
+                    {
+                        let emissive_stength = extensions.KHR_materials_emissive_strength;
+                        let strength = emissive_stength.emissiveStrength;
+                        material_out.multiplyScalar(strength);
+                    }
+                    if ("KHR_materials_pbrSpecularGlossiness" in extensions)
+                    {
+                        material_out.specular_glossiness = true;
+                        let sg = extensions.KHR_materials_pbrSpecularGlossiness;
+                        if ("diffuseFactor" in sg)
+                        {                         
+                            let color_in = sg.diffuseFactor;
+                            material_out.color.r = color_in[0];
+                            material_out.color.g = color_in[1];
+                            material_out.color.b = color_in[2];
+                            material_out.alpha = color_in[3];
+                        }
+
+                        if ("diffuseTexture" in sg)
+                        {
+                            if (sg.diffuseTexture.index>=0)
+                            {
+                                material_out.tex_idx_map = sg.diffuseTexture.index;
+                                tex_affected_materials[material_out.tex_idx_map].add(i);
+                            }
+                        }
+
+                        if ("glossinessFactor" in sg)
+                        {
+                            material_out.glossinessFactor = sg.glossinessFactor;
+                        }
+
+                        if ("specularFactor" in sg)
+                        {
+                            let color_in = sg.specularFactor;
+                            material_out.specular.r = color_in[0];
+                            material_out.specular.g = color_in[1];
+                            material_out.specular.b = color_in[2];
+                        }
+
+                        if ("specularGlossinessTexture" in sg)
+                        {
+                            let id_sg =  sg.specularGlossinessTexture.index;
+                            if (id_sg >=0)
+                            {
+                                material_out.tex_idx_specularMap = id_sg;
+                                material_out.tex_idx_glossinessMap = id_sg;
+                                tex_affected_materials[id_sg].add(i);
+                            }
+                        }
+                    }
                 }
 
                 material_out.update_constant();
