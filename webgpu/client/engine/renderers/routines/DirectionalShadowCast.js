@@ -290,8 +290,6 @@ export function RenderDirectionalShadow(passEncoder, params)
     let index_type_map = { 1: 'uint8', 2: 'uint16', 4: 'uint32'};
 
     let primitive = params.primitive;   
-    if (primitive.geometry.length<1) return;
-
     let material = params.material_list[primitive.material_idx];
     let geo = primitive.geometry[primitive.geometry.length - 1];    
 
@@ -299,7 +297,7 @@ export function RenderDirectionalShadow(passEncoder, params)
     options.alpha_mode = material.alphaMode;
     options.has_color = primitive.color_buf != null;
     options.force_cull = params.force_cull;
-	options.material_options = material.get_options();
+	options.material_options = primitive.material_options;
 
     let pipeline = GetPipelineDirectionalShadow(options);
     passEncoder.setPipeline(pipeline);

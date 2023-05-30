@@ -10,6 +10,7 @@ import { ImageLoader } from "./engine/loaders/ImageLoader.js"
 import { SimpleModel } from "./engine/models/SimpleModel.js"
 import { Vector3 } from "./engine/math/Vector3.js"
 import { DirectionalLight } from "./engine/lights/DirectionalLight.js"
+import { GLTFLoader } from "./engine/loaders/GLTFLoader.js"
 
 export async function test()
 {
@@ -101,7 +102,7 @@ export async function test()
     directional_light.setShadow(true, 4096, 4096);
     directional_light.setShadowProjection(-10.0, 10.0, -10.0, 10.0, 0.0, 50.0);
     scene.add(directional_light);
-    
+   
     const render = () =>
     {      
         controls.update();

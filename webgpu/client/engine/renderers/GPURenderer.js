@@ -3,6 +3,7 @@ import { Color } from "../math/Color.js"
 import { DrawHemisphere, DrawHemisphereBundle } from "./routines/DrawHemisphere.js"
 import { DrawSkyBox, DrawSkyBoxBundle } from "./routines/DrawSkyBox.js"
 import { SimpleModel } from "../models/SimpleModel.js"
+import { GLTFModel } from "../models/GLTFModel.js"
 import { RenderStandard, RenderStandardBundle } from "./routines/StandardRoutine.js"
 import { DirectionalLight } from "../lights/DirectionalLight.js"
 import { RenderDirectionalShadow, RenderDirectionalShadowBundle } from "./routines/DirectionalShadowCast.js"
@@ -17,22 +18,7 @@ export class GPURenderer
     }
 
     _draw_hemisphere(passEncoder, target, camera, bg)
-    {
-        passEncoder.setViewport(
-            0,
-            0,
-            target.width,
-            target.height,
-            0,
-            1
-        );
-    
-        passEncoder.setScissorRect(
-            0,
-            0,
-            target.width,
-            target.height,
-        );
+    {       
         
         //DrawHemisphere(passEncoder, target, camera, bg);
 
@@ -52,22 +38,6 @@ export class GPURenderer
 
     _draw_skybox(passEncoder, target, camera, bg)
     {
-        passEncoder.setViewport(
-            0,
-            0,
-            target.width,
-            target.height,
-            0,
-            1
-        );
-    
-        passEncoder.setScissorRect(
-            0,
-            0,
-            target.width,
-            target.height,
-        );
-
         // DrawSkyBox(passEncoder, target, camera, bg);
 
         let signature = JSON.stringify({
@@ -88,8 +58,15 @@ export class GPURenderer
         model.updateConstant();
     }
 
+    _update_gltf_model(model)
+    {
+        model.updateMeshConstants();
+    }
+
     _render_shadow_simple_model(passEncoder, model, shadow)
     {
+        if (model.geometry.uuid == 0) return;
+        
         let material = model.material;
         
         let params = {                        
@@ -98,22 +75,6 @@ export class GPURenderer
             primitive: model.geometry,
             force_cull: shadow.force_cull
         };
-
-        passEncoder.setViewport(
-            0,
-            0,
-            shadow.map_width,
-            shadow.map_height,
-            0,
-            1
-        );
-    
-        passEncoder.setScissorRect(
-            0,
-            0,
-            shadow.map_width,
-            shadow.map_height,
-        );
 
         //RenderDirectionalShadow(passEncoder, params);
 
@@ -127,7 +88,35 @@ export class GPURenderer
             this.shadow_bundles[signature] = RenderDirectionalShadowBundle(params);
         }
         passEncoder.executeBundles([this.shadow_bundles[signature]]);
+    }
 
+    _render_shadow_gltf_model(passEncoder, model, shadow)
+    {
+        for (let mesh of model.meshes)
+        {
+            for (let primitive of mesh.primitives)
+            {
+                if (primitive.uuid == 0) continue;
+
+                let params = {                        
+                    material_list: model.materials,
+                    bind_group_shadow: shadow.bind_group,            
+                    primitive: primitive,
+                    force_cull: shadow.force_cull
+                };
+
+                let signature = JSON.stringify({
+                    id_primitive: primitive.uuid,
+                    id_shadow: shadow.uuid,                        
+                });
+
+                if (!(signature in this.shadow_bundles))
+                {    
+                    this.shadow_bundles[signature] = RenderDirectionalShadowBundle(params);
+                }
+                passEncoder.executeBundles([this.shadow_bundles[signature]]);
+            }
+        }
 
     }
 
@@ -144,6 +133,12 @@ export class GPURenderer
                     break;
                 }         
 
+                if (obj instanceof GLTFModel)
+                {
+                    scene.gltf_models.push(obj);
+                    break;
+                }
+
                 if (obj instanceof DirectionalLight)
                 {                    
                     scene.lights.directional_lights.push(obj);
@@ -158,6 +153,11 @@ export class GPURenderer
         for (let model of scene.simple_models)
         {
             this._update_simple_model(model);
+        }
+
+        for (let model of scene.gltf_models)
+        {
+            this._update_gltf_model(model);
         }
 
         let has_shadow_map = false;
@@ -198,6 +198,11 @@ export class GPURenderer
                     this._render_shadow_simple_model(passEncoder, model, shadow);                    
                 }
 
+                for (let model of scene.gltf_models)
+                {
+                    this._render_shadow_gltf_model(passEncoder, model, shadow); 
+                }
+
                 passEncoder.end();
             }
 
@@ -211,6 +216,8 @@ export class GPURenderer
 
     _render_simple_model(passEncoder, model, camera, lights, target, pass)
     {
+        if (model.geometry.uuid == 0) return;
+
         let material = model.material;
 
         if (pass == "Opaque")
@@ -232,22 +239,6 @@ export class GPURenderer
             lights
         };
 
-        passEncoder.setViewport(
-            0,
-            0,
-            target.width,
-            target.height,
-            0,
-            1
-        );
-    
-        passEncoder.setScissorRect(
-            0,
-            0,
-            target.width,
-            target.height,
-        );
-
         //RenderStandard(passEncoder, params);
 
         let signature = JSON.stringify({
@@ -266,12 +257,48 @@ export class GPURenderer
 
     }
 
+    _render_gltf_model(passEncoder, model, camera, lights, target, pass)
+    {        
+        for (let mesh of model.meshes)
+        {
+            for (let primitive of mesh.primitives)
+            {
+                if (primitive.uuid == 0) continue;
+
+                let params = {
+                    is_highlight_pass: pass == "Highlight",
+                    target,
+                    material_list: model.materials,
+                    bind_group_camera: camera.bind_group,            
+                    primitive: primitive,
+                    lights
+                };
+
+                let signature = JSON.stringify({
+                    id_primitive:  primitive.uuid,
+                    id_camera: camera.uuid,
+                    id_target: target.uuid,
+                    signature_lights: lights.signature,
+                    pass            
+                });
+
+                if (!(signature in this.render_bundles))
+                {    
+                    this.render_bundles[signature] = RenderStandardBundle(params);
+                }
+                passEncoder.executeBundles([this.render_bundles[signature]]);
+            }
+        }
+
+    }
+
     _render(scene, camera, target)
     {
         camera.updateMatrixWorld(false);
     	camera.updateConstant();
 
         let simple_models = [...scene.simple_models];
+        let gltf_models =  [...scene.gltf_models];
 
         let has_alpha = false;
         let has_opaque = false;
@@ -289,6 +316,22 @@ export class GPURenderer
                 has_opaque= true;
             }
         }
+
+        for (let i=0; i<gltf_models.length; i++)
+        {
+            let model = gltf_models[i];
+            for (let material in model.materials)
+            {
+                if (material.alphaMode == "Blend")
+                {
+                    has_alpha = true;
+                }
+                else
+                {
+                    has_opaque= true;
+                }
+            }
+        }        
 
         let msaa= target.msaa;
         let clearColor = new Color(0.0, 0.0, 0.0);        
@@ -334,6 +377,22 @@ export class GPURenderer
         {
             let passEncoder = commandEncoder.beginRenderPass(renderPassDesc_opaque);
 
+            passEncoder.setViewport(
+                0,
+                0,
+                target.width,
+                target.height,
+                0,
+                1
+            );
+        
+            passEncoder.setScissorRect(
+                0,
+                0,
+                target.width,
+                target.height,
+            );
+
             while(scene.background!=null)
             {
                 if (scene.background instanceof HemisphereBackground)
@@ -356,6 +415,11 @@ export class GPURenderer
                 for (let model of simple_models)
                 {
                     this._render_simple_model(passEncoder, model, camera, lights, target, "Opaque");
+                }
+
+                for (let model of gltf_models)
+                {
+                    this._render_gltf_model(passEncoder, model, camera, lights, target, "Opaque");
                 }
             }
             

@@ -39,18 +39,18 @@ export class MeshStandardMaterial
 
     }
 
-    get_options()
+    get_options(tex_list)
     {
         return {
             doubleSided: this.doubleSided,
             specular_glossiness: this.specular_glossiness,
-            has_color_texture: this.tex_idx_map >=0,
-            has_metalness_map: this.tex_idx_metalnessMap >=0,
-            has_roughness_map: this.tex_idx_roughnessMap >=0,
-            has_specular_map: this.tex_idx_specularMap >=0,
-            has_glossiness_map: this.tex_idx_glossinessMap >=0,
-            has_normal_map: this.tex_idx_normalMap >=0,
-            has_emissive_map: this.tex_idx_emissiveMap >=0
+            has_color_texture: this.tex_idx_map >=0 && (this.tex_idx_map in tex_list),
+            has_metalness_map: this.tex_idx_metalnessMap >=0 && (this.tex_idx_metalnessMap in tex_list),
+            has_roughness_map: this.tex_idx_roughnessMap >=0 && (this.tex_idx_roughnessMap in tex_list),
+            has_specular_map: this.tex_idx_specularMap >=0 && (this.tex_idx_specularMap in tex_list),
+            has_glossiness_map: this.tex_idx_glossinessMap >=0 && (this.tex_idx_glossinessMap in tex_list),
+            has_normal_map: this.tex_idx_normalMap >=0 && (this.tex_idx_normalMap in tex_list),
+            has_emissive_map: this.tex_idx_emissiveMap >=0 && (this.tex_idx_emissiveMap in tex_list)
         };
     }
 

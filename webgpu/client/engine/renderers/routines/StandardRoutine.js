@@ -98,11 +98,11 @@ struct VSIn
     @location(${location_attrib_norm}) norm: vec3f,
 
 #if ${options.has_color}
-    @location(${location_attrib_color}) color: vec4f
+    @location(${location_attrib_color}) color: vec4f,
 #endif 
 
 #if ${has_uv}
-    @location(${location_attrib_uv}) uv: vec2f
+    @location(${location_attrib_uv}) uv: vec2f,
 #endif
 
 #if ${mOpt.has_normal_map}
@@ -157,10 +157,10 @@ fn vs_main(input: VSIn) -> VSOut
 #endif
 
 #if ${mOpt.has_normal_map}
-    let world_tangent = uModelMat * vec4(input.tangent, 0.0);
+    let world_tangent = uModel.modelMat * vec4(input.tangent, 0.0);
     output.tangent = world_tangent.xyz;
 
-    let world_bitangent = uModelMat * vec4(input.bitangent, 0.0);
+    let world_bitangent = uModel.modelMat * vec4(input.bitangent, 0.0);
     output.bitangent = world_bitangent.xyz;
 #endif
 
@@ -571,7 +571,7 @@ function GetPipelineStandard(options)
             shaderLocation: localtion_attrib++, 
             offset: 0,
             format: 'float32x4'
-        };        
+        };
 
         const normalBufferDesc = {
             attributes: [normalAttribDesc],
@@ -615,6 +615,38 @@ function GetPipelineStandard(options)
             };
 
             vertex_bufs.push(UVBufferDesc);
+        }
+
+        if (mOpt.has_normal_map)
+        {
+            const tangentAttribDesc = {
+                shaderLocation: localtion_attrib++, 
+                offset: 0,
+                format: 'float32x4'
+            };
+
+            const tangentBufferDesc = {
+                attributes: [tangentAttribDesc],
+                arrayStride: 4 * 4,
+                stepMode: 'vertex'
+            };
+
+            vertex_bufs.push(tangentBufferDesc);
+
+            const bitangentAttribDesc = {
+                shaderLocation: localtion_attrib++, 
+                offset: 0,
+                format: 'float32x4'
+            };
+
+            const bitangentBufferDesc = {
+                attributes: [bitangentAttribDesc],
+                arrayStride: 4 * 4,
+                stepMode: 'vertex'
+            };
+
+            vertex_bufs.push(bitangentBufferDesc);
+
         }
 
         const vertex = {
@@ -669,8 +701,6 @@ export function RenderStandard(passEncoder, params)
     let index_type_map = { 1: 'uint8', 2: 'uint16', 4: 'uint32'};
 
     let primitive = params.primitive;   
-    if (primitive.geometry.length<1) return;
-
     let material = params.material_list[primitive.material_idx];
     let geo = primitive.geometry[primitive.geometry.length - 1];    
     
@@ -680,7 +710,7 @@ export function RenderStandard(passEncoder, params)
     options.is_msaa  = params.target.msaa;
     options.is_highlight_pass = params.is_highlight_pass;
     options.has_color = primitive.color_buf != null;
-    options.material_options = material.get_options();
+    options.material_options = primitive.material_options;
     options.lights_options = params.lights.get_options();
 
     let pipeline = GetPipelineStandard(options);
@@ -709,6 +739,13 @@ export function RenderStandard(passEncoder, params)
 	{
         passEncoder.setVertexBuffer(localtion_attrib++, primitive.uv_buf);
     }
+
+    if (mOpt.has_normal_map)
+    {
+        passEncoder.setVertexBuffer(localtion_attrib++, geo.tangent_buf);
+        passEncoder.setVertexBuffer(localtion_attrib++, geo.bitangent_buf);
+    }
+
 
     if (primitive.index_buf!=null)
     {

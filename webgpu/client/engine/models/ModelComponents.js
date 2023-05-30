@@ -58,6 +58,9 @@ export class Primitive
 
         this.uuid = 0;
         this.bind_group = null;
+
+        this.cpu_pos = null;
+        this.cpu_indices = null;
     }
 
     updateUUID()
@@ -67,8 +70,6 @@ export class Primitive
 
     create_bind_group(model_constant, material_list, tex_list)
     {        
-        this.updateUUID();
-
         let material = material_list[this.material_idx];
        
         if (!("primitive" in engine_ctx.cache.bindGroupLayouts))
@@ -76,8 +77,8 @@ export class Primitive
             engine_ctx.cache.bindGroupLayouts.primitive = {};
         }
 
-        let options = material.get_options();
-        let signature = JSON.stringify(options);
+        this.material_options = material.get_options(tex_list);
+        let signature = JSON.stringify(this.material_options);
         if (!(signature in engine_ctx.cache.bindGroupLayouts.primitive))
         {
 
@@ -104,13 +105,13 @@ export class Primitive
             ];
 
             let count_textures = 0;
-            if (options.has_color_texture) count_textures++;
-            if (options.has_metalness_map) count_textures++;
-            if (options.has_roughness_map) count_textures++;
-            if (options.has_specular_map) count_textures++;
-            if (options.has_glossiness_map) count_textures++;
-            if (options.has_normal_map) count_textures++;
-            if (options.has_emissive_map) count_textures++;
+            if (this.material_options.has_color_texture) count_textures++;
+            if (this.material_options.has_metalness_map) count_textures++;
+            if (this.material_options.has_roughness_map) count_textures++;
+            if (this.material_options.has_specular_map) count_textures++;
+            if (this.material_options.has_glossiness_map) count_textures++;
+            if (this.material_options.has_normal_map) count_textures++;
+            if (this.material_options.has_emissive_map) count_textures++;
 
             let binding = 3;
             for (let i=0; i<count_textures; i++)
@@ -149,7 +150,7 @@ export class Primitive
 
         let binding = 3;
 
-        if (material.tex_idx_map>=0)
+        if (this.material_options.has_color_texture) 
         {
             let tex = tex_list[material.tex_idx_map];
             entries.push({
@@ -159,7 +160,7 @@ export class Primitive
             binding++;
         }
 
-        if (material.tex_idx_metalnessMap>=0)
+        if (this.material_options.has_metalness_map)
         {
             let tex = tex_list[material.tex_idx_metalnessMap];
             entries.push({
@@ -169,7 +170,7 @@ export class Primitive
             binding++;
         }
 
-        if (material.tex_idx_roughnessMap>=0)
+        if (this.material_options.has_roughness_map)
         {
             let tex = tex_list[material.tex_idx_roughnessMap];
             entries.push({
@@ -179,7 +180,7 @@ export class Primitive
             binding++;
         }
 
-        if (material.tex_idx_specularMap>=0)
+        if (this.material_options.has_specular_map)
         {
             let tex = tex_list[material.tex_idx_specularMap];
             entries.push({
@@ -189,7 +190,7 @@ export class Primitive
             binding++;
         }
 
-        if (material.tex_idx_glossinessMap>=0)
+        if (this.material_options.has_glossiness_map) 
         {
             let tex = tex_list[material.tex_idx_glossinessMap];
             entries.push({
@@ -199,7 +200,7 @@ export class Primitive
             binding++;
         }
 
-        if (material.tex_idx_normalMap>=0)
+        if (this.material_options.has_normal_map)
         {
             let tex = tex_list[material.tex_idx_normalMap];
             entries.push({
@@ -209,7 +210,7 @@ export class Primitive
             binding++;
         }
 
-        if (material.tex_idx_emissiveMap>=0)
+        if (this.material_options.has_emissive_map)
         {
             let tex = tex_list[material.tex_idx_emissiveMap];
             entries.push({
@@ -224,6 +225,8 @@ export class Primitive
             layout: bindGroupLayout,
             entries
         });
+
+        if (this.uuid!=0) this.updateUUID();
     }
     
 }
@@ -259,5 +262,6 @@ export class Mesh
         this.primitives = [];
         this.weights = [];
         this.needUpdateMorphTargets = false;
+        this.constant = engine_ctx.createBuffer0(128, GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST);
     }
 }
