@@ -139,7 +139,7 @@ export class GLTFLoader
                         this.module.ccall("dealloc", null, ["number"], [p_vec4]);
 
                         resolve(true);
-                    }
+                    };
 
                     xhr_norm = new XMLHttpRequest(); 
                     xhr_norm.open("GET", bin_uri);
@@ -148,6 +148,100 @@ export class GLTFLoader
                     xhr_norm.onload = load_normal;
                     xhr_norm.send();
                 }));
+            }
+
+            if (info.color_offset>=0)
+            {
+                pendings.push(new Promise((resolve, reject) => {
+
+                    let xhr_color;
+                    let chn = info.color_type == "VEC4"? 4:3;
+                    let byte_per_ch = 4;
+                    if (info.color_componentType == 5123)
+                    {
+                        byte_per_ch = 2;
+                    }
+                    else if (info.color_componentType == 5121)
+                    {
+                        byte_per_ch = 1;
+                    }
+                    const load_color = ()=>
+                    {
+                        const arrBuf = xhr_color.response;  
+
+                        if (chn==4 && byte_per_ch == 4)
+                        {
+                            primitive_out.color_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.VERTEX, 0, num_pos*4*4);
+                            
+                        }
+                        else
+                        {
+                            let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
+                            if (chn==4)
+                            {                            
+                                if (byte_per_ch == 2)
+                                {
+                                    let p_u16vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*2*4]);
+                                    this.module.HEAPU8.set(new Uint8Array(arrBuf), p_u16vec4);
+                                    this.module.ccall("u16vec4_to_vec4", null, ["number", "number", "number"], [p_u16vec4, p_vec4, num_pos]);
+                                    this.module.ccall("dealloc", null, ["number"], [p_u16vec4]);
+
+                                }
+                                else
+                                {
+                                    let p_u8vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4]);
+                                    this.module.HEAPU8.set(new Uint8Array(arrBuf), p_u8vec4);
+                                    this.module.ccall("u8vec4_to_vec4", null, ["number", "number", "number"], [p_u8vec4, p_vec4, num_pos]);
+                                    this.module.ccall("dealloc", null, ["number"], [p_u8vec4]);
+
+                                }
+                            }
+                            else
+                            {
+                                if (byte_per_ch == 4)
+                                {
+                                    let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
+                                    this.module.HEAPU8.set(new Uint8Array(arrBuf), p_vec3);
+                                    this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 1.0]);
+                                    this.module.ccall("dealloc", null, ["number"], [p_vec3]);
+
+                                }
+                                else if (byte_per_ch == 2)
+                                {
+                                    let p_u16vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*2*3]);
+                                    this.module.HEAPU8.set(new Uint8Array(arrBuf), p_u16vec3);
+                                    this.module.ccall("u16vec3_to_vec4", null, ["number", "number", "number", "number"], [p_u16vec3, p_vec4, num_pos, 1.0]);
+                                    this.module.ccall("dealloc", null, ["number"], [p_u16vec3]);
+
+                                }
+                                else
+                                {
+                                    let p_u8vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3]);
+                                    this.module.HEAPU8.set(new Uint8Array(arrBuf), p_u8vec3);
+                                    this.module.ccall("u8vec3_to_vec4", null, ["number", "number", "number", "number"], [p_u8vec3, p_vec4, num_pos, 1.0]);
+                                    this.module.ccall("dealloc", null, ["number"], [p_u8vec3]);
+                                    
+                                }
+
+                            }
+                            primitive_out.color_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_vec4, num_pos*4*4);
+                            this.module.ccall("dealloc", null, ["number"], [p_vec4]);
+
+                        }                      
+
+                        resolve(true);
+
+                    };                    
+
+                    xhr_color = new XMLHttpRequest(); 
+                    xhr_color.open("GET", bin_uri);
+                    xhr_color.responseType = "arraybuffer";            
+                    xhr_color.setRequestHeader('Range', `bytes=${bin_offset + info.color_offset}-${bin_offset + info.color_offset + num_pos*chn*byte_per_ch - 1}`);
+                    xhr_color.onload = load_color;
+                    xhr_color.send();
+
+                }));
+
             }
 
             if (info.uv_offset >=0)
@@ -314,7 +408,7 @@ export class GLTFLoader
                     let num_targets = 0;
                     if ("targets" in primitive_in)
                     {
-                        num_targets = primitive_in.targets.length();
+                        num_targets = primitive_in.targets.length;
                     }
                     
                     let num_geo_sets = 1;
@@ -494,7 +588,11 @@ export class GLTFLoader
 
             model.updateNodes();            
             
-            let num_textures = json.textures.length;
+            let num_textures = 0;
+            if ("texture" in json)
+            {            
+                json.textures.length;
+            }
             let tex_opts = new Array(num_textures);
             tex_affected_materials = new Array(num_textures);          
             for (let i=0; i< num_textures; i++)

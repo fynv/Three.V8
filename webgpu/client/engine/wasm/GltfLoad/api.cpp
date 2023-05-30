@@ -9,7 +9,11 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void* alloc(unsigned size);
 	EMSCRIPTEN_KEEPALIVE void dealloc(void* ptr);
 	EMSCRIPTEN_KEEPALIVE void zero(void* ptr, unsigned size);
-    EMSCRIPTEN_KEEPALIVE void vec3_to_vec4(const void* ptr_vec3, void* ptr_vec4, int count, float w);
+    EMSCRIPTEN_KEEPALIVE void vec3_to_vec4(const void* ptr_vec3, void* ptr_vec4, int count, float w);	
+	EMSCRIPTEN_KEEPALIVE void u16vec4_to_vec4(const void* ptr_u16vec4, void* ptr_vec4, int count);
+	EMSCRIPTEN_KEEPALIVE void u8vec4_to_vec4(const void* ptr_u8vec4, void* ptr_vec4, int count);
+	EMSCRIPTEN_KEEPALIVE void u16vec3_to_vec4(const void* ptr_u16vec3, void* ptr_vec4, int count, float w);
+	EMSCRIPTEN_KEEPALIVE void u8vec3_to_vec4(const void* ptr_u8vec3, void* ptr_vec4, int count, float w);
     EMSCRIPTEN_KEEPALIVE void calc_normal(int num_face, int num_pos, int type_indices, const void* p_indices, const void* ptr_pos, void* ptr_norm);
 	EMSCRIPTEN_KEEPALIVE void calc_tangent(int num_face, int num_pos, int type_indices, const void* p_indices, const void* ptr_pos, const void* ptr_uv, void* ptr_tangent, void* ptr_bitangent);
 }
@@ -37,6 +41,46 @@ void vec3_to_vec4(const void* ptr_vec3, void* ptr_vec4, int count, float w)
     for (int i=0; i<count; i++)
     {
         p_out[i] = glm::vec4(p_in[i], w);
+    }
+}
+
+void u16vec4_to_vec4(const void* ptr_u16vec4, void* ptr_vec4, int count)
+{
+	const glm::u16vec4* p_in = (const glm::u16vec4*)ptr_u16vec4;
+    glm::vec4* p_out = (glm::vec4*)ptr_vec4;
+    for (int i=0; i<count; i++)
+    {
+        p_out[i] = glm::vec4(p_in[i])/ 65535.0f;
+    }
+}
+
+void u8vec4_to_vec4(const void* ptr_u8vec4, void* ptr_vec4, int count)
+{
+	const glm::u8vec4* p_in = (const glm::u8vec4*)ptr_u8vec4;
+    glm::vec4* p_out = (glm::vec4*)ptr_vec4;
+    for (int i=0; i<count; i++)
+    {
+        p_out[i] = glm::vec4(p_in[i])/ 255.0f;
+    }
+}
+
+void u16vec3_to_vec4(const void* ptr_u16vec3, void* ptr_vec4, int count, float w)
+{
+	const glm::u16vec3* p_in = (const glm::u16vec3*)ptr_u16vec3;
+    glm::vec4* p_out = (glm::vec4*)ptr_vec4;
+    for (int i=0; i<count; i++)
+    {
+        p_out[i] = glm::vec4(glm::vec3(p_in[i])/ 65535.0f, w);
+    }
+}
+
+void u8vec3_to_vec4(const void* ptr_u8vec3, void* ptr_vec4, int count, float w)
+{
+	const glm::u8vec3* p_in = (const glm::u8vec3*)ptr_u8vec3;
+    glm::vec4* p_out = (glm::vec4*)ptr_vec4;
+    for (int i=0; i<count; i++)
+    {
+        p_out[i] = glm::vec4(glm::vec3(p_in[i])/ 255.0f, w);
     }
 }
 
