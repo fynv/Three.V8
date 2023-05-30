@@ -39,17 +39,14 @@ export class EngineContext
 
     createBuffer(buffer_in, usage, offset = 0, size = buffer_in.byteLength)
     {
+        usage|=GPUBufferUsage.COPY_DST;
         const desc = {
             size: (size + 3) & ~3,
-            usage,
-            mappedAtCreation: true
+            usage,           
         };
-        let buffer_out = this.device.createBuffer(desc);
-        let buffer_mapped = buffer_out.getMappedRange();
-        let view_in = new Uint8Array(buffer_in, offset, size);
-        let view_out = new Uint8Array(buffer_mapped);
-        view_out.set(view_in);                                        
-        buffer_out.unmap();
+        let buffer_out = this.device.createBuffer(desc);      
+        engine_ctx.queue.writeBuffer(buffer_out, 0, buffer_in, offset, size);
+
         return buffer_out;
     }
 
