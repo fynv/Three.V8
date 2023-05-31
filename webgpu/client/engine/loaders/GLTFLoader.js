@@ -71,6 +71,233 @@ export class GLTFLoader
 
             let pendings = [];
 
+            if (info.draco_offset>=0)
+            {           
+                pendings.push(new Promise((resolve, reject) => {
+                    let xhr_draco;
+                    const load_draco = ()=>
+                    {
+                        const arrBuf = xhr_draco.response;
+                        let decoderConfig = {};                                
+                        decoderConfig.onModuleLoaded = (draco)=>
+                        {
+                            let decoderBuffer = new draco.DecoderBuffer();
+                            decoderBuffer.Init( new Int8Array( arrBuf ), arrBuf.byteLength );
+
+                            const decoder = new draco.Decoder();
+                            let dracoGeometry = new draco.Mesh();
+                            decoder.DecodeBufferToMesh(decoderBuffer, dracoGeometry);
+
+                            {
+                                let dataSize = num_face * 3 * type_indices;
+
+                                let arrBuf = new ArrayBuffer(dataSize);
+                                let view = new Uint8Array(arrBuf);
+
+                                let ptr = draco._malloc( dataSize );  
+                                if (type_indices==4)
+                                {
+                                    decoder.GetTrianglesUInt32Array( dracoGeometry, dataSize, ptr );
+                                }
+                                else
+                                {
+                                    decoder.GetTrianglesUInt16Array( dracoGeometry, dataSize, ptr );
+                                }
+                                let buf_in = new Uint8Array(draco.HEAPU8.buffer, ptr, dataSize);
+                                view.set(buf_in);
+                                draco._free( ptr );
+
+                                primitive_out.cpu_indices = arrBuf;
+                                primitive_out.index_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.INDEX, 0,  dataSize);
+
+                            }
+
+                            {
+                                let dataSize =  num_pos * 3 *4;
+
+                                let arrBuf = new ArrayBuffer(dataSize);
+                                let view = new Uint8Array(arrBuf);
+                                
+                                let attribute = decoder.GetAttributeByUniqueId( dracoGeometry, info.draco_attributes.POSITION );                 
+                                let ptr = draco._malloc( dataSize );                                
+                                decoder.GetAttributeDataArrayForAllPoints( dracoGeometry, attribute, draco.DT_FLOAT32, dataSize, ptr );
+                                let buf_in = new Uint8Array(draco.HEAPU8.buffer, ptr, dataSize);
+                                view.set(buf_in);
+                                draco._free( ptr );
+
+                                primitive_out.cpu_pos = arrBuf;
+                                let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
+                                let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
+                
+                                this.module.HEAPU8.set(view, p_vec3);
+                                this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 1.0]);
+                                geo_set.pos_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_vec4, num_pos*4*4);
+                
+                                this.module.ccall("dealloc", null, ["number"], [p_vec3]);
+                                this.module.ccall("dealloc", null, ["number"], [p_vec4]);
+                                
+                            }
+
+                            if ("NORMAL" in info.draco_attributes)
+                            {                                
+                                let dataSize =  num_pos * 3 *4;
+
+                                let arrBuf = new ArrayBuffer(dataSize);
+                                let view = new Uint8Array(arrBuf);
+                                
+                                let attribute = decoder.GetAttributeByUniqueId( dracoGeometry, info.draco_attributes.NORMAL );
+                                let ptr = draco._malloc( dataSize );
+                                decoder.GetAttributeDataArrayForAllPoints( dracoGeometry, attribute, draco.DT_FLOAT32, dataSize, ptr );
+                                let buf_in = new Uint8Array(draco.HEAPU8.buffer, ptr, dataSize);
+                                view.set(buf_in);
+                                draco._free( ptr );
+
+                                let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
+                                let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
+        
+                                this.module.HEAPU8.set(new Uint8Array(arrBuf), p_vec3);
+                                this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 0.0]);
+                                geo_set.normal_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_vec4, num_pos*4*4);
+        
+                                this.module.ccall("dealloc", null, ["number"], [p_vec3]);
+                                this.module.ccall("dealloc", null, ["number"], [p_vec4]);
+
+                            }
+
+                            if ("COLOR_0" in info.draco_attributes)
+                            {
+                                let chn = info.color_type == "VEC4"? 4:3;
+                                let byte_per_ch = 4;
+                                if (info.color_componentType == 5123)
+                                {
+                                    byte_per_ch = 2;
+                                }
+                                else if (info.color_componentType == 5121)
+                                {
+                                    byte_per_ch = 1;
+                                }
+
+                                let dataSize =  num_pos * chn * byte_per_ch;
+
+                                let arrBuf = new ArrayBuffer(dataSize);
+                                let view = new Uint8Array(arrBuf);
+
+                                let attribute = decoder.GetAttributeByUniqueId( dracoGeometry, info.draco_attributes.NORMAL );
+                                let ptr = draco._malloc( dataSize );
+                                if (byte_per_ch == 4)
+                                {
+                                    decoder.GetAttributeDataArrayForAllPoints( dracoGeometry, attribute, draco.DT_FLOAT32, dataSize, ptr );
+                                }
+                                else if (byte_per_ch == 2)
+                                {
+                                    decoder.GetAttributeDataArrayForAllPoints( dracoGeometry, attribute, draco.DT_UINT16, dataSize, ptr );
+                                }
+                                else if (byte_per_ch == 1)
+                                {
+                                    decoder.GetAttributeDataArrayForAllPoints( dracoGeometry, attribute, draco.DT_UINT8, dataSize, ptr );
+                                }
+                                let buf_in = new Uint8Array(draco.HEAPU8.buffer, ptr, dataSize);
+                                view.set(buf_in);
+                                draco._free( ptr );
+
+                                if (chn==4 && byte_per_ch == 4)
+                                {
+                                    primitive_out.color_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.VERTEX, 0, num_pos*4*4);                                    
+                                }
+                                else
+                                {
+                                    let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
+                                    if (chn==4)
+                                    {                            
+                                        if (byte_per_ch == 2)
+                                        {
+                                            let p_u16vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*2*4]);
+                                            this.module.HEAPU8.set(view, p_u16vec4);
+                                            this.module.ccall("u16vec4_to_vec4", null, ["number", "number", "number"], [p_u16vec4, p_vec4, num_pos]);
+                                            this.module.ccall("dealloc", null, ["number"], [p_u16vec4]);
+
+                                        }
+                                        else
+                                        {
+                                            let p_u8vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4]);
+                                            this.module.HEAPU8.set(view, p_u8vec4);
+                                            this.module.ccall("u8vec4_to_vec4", null, ["number", "number", "number"], [p_u8vec4, p_vec4, num_pos]);
+                                            this.module.ccall("dealloc", null, ["number"], [p_u8vec4]);
+
+                                        }
+                                    }
+                                    else
+                                    {
+                                        if (byte_per_ch == 4)
+                                        {
+                                            let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
+                                            this.module.HEAPU8.set(view, p_vec3);
+                                            this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 1.0]);
+                                            this.module.ccall("dealloc", null, ["number"], [p_vec3]);
+
+                                        }
+                                        else if (byte_per_ch == 2)
+                                        {
+                                            let p_u16vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*2*3]);
+                                            this.module.HEAPU8.set(view, p_u16vec3);
+                                            this.module.ccall("u16vec3_to_vec4", null, ["number", "number", "number", "number"], [p_u16vec3, p_vec4, num_pos, 1.0]);
+                                            this.module.ccall("dealloc", null, ["number"], [p_u16vec3]);
+
+                                        }
+                                        else
+                                        {
+                                            let p_u8vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3]);
+                                            this.module.HEAPU8.set(view, p_u8vec3);
+                                            this.module.ccall("u8vec3_to_vec4", null, ["number", "number", "number", "number"], [p_u8vec3, p_vec4, num_pos, 1.0]);
+                                            this.module.ccall("dealloc", null, ["number"], [p_u8vec3]);
+                                        }
+                                    }
+
+                                    primitive_out.color_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_vec4, num_pos*4*4);
+                                    this.module.ccall("dealloc", null, ["number"], [p_vec4]);
+                                }                                
+                            }
+                            
+                            if ("TEXCOORD_0" in info.draco_attributes)
+                            {
+                                let dataSize =  num_pos * 2 *4;
+
+                                let arrBuf = new ArrayBuffer(dataSize);
+                                let view = new Uint8Array(arrBuf);
+                                
+                                let attribute = decoder.GetAttributeByUniqueId( dracoGeometry, info.draco_attributes.TEXCOORD_0 );
+                                let ptr = draco._malloc( dataSize );
+                                decoder.GetAttributeDataArrayForAllPoints( dracoGeometry, attribute, draco.DT_FLOAT32, dataSize, ptr );
+                                let buf_in = new Uint8Array(draco.HEAPU8.buffer, ptr, dataSize);
+                                view.set(buf_in);
+                                draco._free( ptr );
+
+                                primitive_out.cpu_uv = arrBuf;
+                                primitive_out.uv_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.VERTEX, 0, num_pos*2*4);
+
+                            }                            
+
+                            draco.destroy(dracoGeometry);
+                            draco.destroy(decoder);
+                            draco.destroy(decoderBuffer);
+
+                            resolve(true);
+
+
+                        };
+                        DracoDecoderModule(decoderConfig);
+
+                    };                    
+                    
+                    xhr_draco = new XMLHttpRequest(); 
+                    xhr_draco.open("GET", bin_uri);
+                    xhr_draco.responseType = "arraybuffer";            
+                    xhr_draco.setRequestHeader('Range', `bytes=${bin_offset + info.draco_offset}-${bin_offset + info.draco_offset + info.draco_length - 1}`);
+                    xhr_draco.onload = load_draco;
+                    xhr_draco.send();
+                }));
+            }
+
             if (info.indices_offset>=0)
             {     
                 pendings.push(new Promise((resolve, reject) => {
@@ -93,32 +320,35 @@ export class GLTFLoader
                 }));
             }
 
-            pendings.push(new Promise((resolve, reject) => {
-                let xhr_pos;
-                const load_position = ()=>
-                {
-                    const arrBuf = xhr_pos.response;  
-                    primitive_out.cpu_pos = arrBuf;
-                    let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
-                    let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
-    
-                    this.module.HEAPU8.set(new Uint8Array(arrBuf), p_vec3);
-                    this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 1.0]);
-                    geo_set.pos_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_vec4, num_pos*4*4);
-    
-                    this.module.ccall("dealloc", null, ["number"], [p_vec3]);
-                    this.module.ccall("dealloc", null, ["number"], [p_vec4]);
+            if (info.position_offset>=0)
+            {
+                pendings.push(new Promise((resolve, reject) => {
+                    let xhr_pos;
+                    const load_position = ()=>
+                    {
+                        const arrBuf = xhr_pos.response;  
+                        primitive_out.cpu_pos = arrBuf;
+                        let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
+                        let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
+        
+                        this.module.HEAPU8.set(new Uint8Array(arrBuf), p_vec3);
+                        this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 1.0]);
+                        geo_set.pos_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_vec4, num_pos*4*4);
+        
+                        this.module.ccall("dealloc", null, ["number"], [p_vec3]);
+                        this.module.ccall("dealloc", null, ["number"], [p_vec4]);
 
-                    resolve(true);
-                };
+                        resolve(true);
+                    };
 
-                xhr_pos = new XMLHttpRequest(); 
-                xhr_pos.open("GET", bin_uri);
-                xhr_pos.responseType = "arraybuffer";            
-                xhr_pos.setRequestHeader('Range', `bytes=${bin_offset + info.position_offset}-${bin_offset + info.position_offset + num_pos*3*4 - 1}`);
-                xhr_pos.onload = load_position;
-                xhr_pos.send();
-            }));
+                    xhr_pos = new XMLHttpRequest(); 
+                    xhr_pos.open("GET", bin_uri);
+                    xhr_pos.responseType = "arraybuffer";            
+                    xhr_pos.setRequestHeader('Range', `bytes=${bin_offset + info.position_offset}-${bin_offset + info.position_offset + num_pos*3*4 - 1}`);
+                    xhr_pos.onload = load_position;
+                    xhr_pos.send();
+                }));
+            }
 
             if (info.normal_offset>=0)
             {
@@ -269,13 +499,13 @@ export class GLTFLoader
 
             await Promise.all(pendings);
             
-            if (info.normal_offset<0)
+            if (geo_set.normal_buf == null)
             {
                 let p_pos3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
                 this.module.HEAPU8.set(new Uint8Array(primitive_out.cpu_pos), p_pos3);
 
                 let p_indices = 0;
-                if (info.indices_offset>=0)
+                if (primitive_out.cpu_indices!=null)
                 {
                     p_indices = this.module.ccall("alloc", "number", ["number"], [num_face*type_indices*3]);
                     this.module.HEAPU8.set(new Uint8Array(primitive_out.cpu_indices), p_indices);
@@ -303,7 +533,7 @@ export class GLTFLoader
                 this.module.HEAPU8.set(new Uint8Array(primitive_out.cpu_uv), p_uv2);
 
                 let p_indices = 0;
-                if (info.indices_offset>=0)
+                if (primitive_out.cpu_indices!=null)
                 {
                     p_indices = this.module.ccall("alloc", "number", ["number"], [num_face*type_indices*3]);
                     this.module.HEAPU8.set(new Uint8Array(primitive_out.cpu_indices), p_indices);
@@ -418,6 +648,20 @@ export class GLTFLoader
 
                     let info = {};
 
+                    if ("extensions" in primitive_in)
+                    {
+                        let extensions = primitive_in.extensions;
+                        if ("KHR_draco_mesh_compression" in extensions)
+                        {
+                            let draco = extensions.KHR_draco_mesh_compression;                            
+                            let draco_view = json.bufferViews[draco.bufferView];
+                            info.draco_offset = draco_view.byteOffset||0;
+                            info.draco_length = draco_view.byteLength;
+                            info.draco_attributes = draco.attributes;
+                        }
+                    }
+                    
+
                     let id_pos_in = primitive_in.attributes["POSITION"];                    
                     let acc_pos_in = json.accessors[id_pos_in];                    
                     primitive_out.num_pos = acc_pos_in.count;                    
@@ -426,18 +670,31 @@ export class GLTFLoader
                     primitive_out.min_pos.z = acc_pos_in.min[2];
                     primitive_out.max_pos.x = acc_pos_in.max[0];
                     primitive_out.max_pos.y = acc_pos_in.max[1];
-                    primitive_out.max_pos.z = acc_pos_in.max[2];            
-                    let view_pos_in = json.bufferViews[acc_pos_in.bufferView];
-                    
-                    info.position_offset = (view_pos_in.byteOffset||0) + (acc_pos_in.byteOffset||0);       
+                    primitive_out.max_pos.z = acc_pos_in.max[2];   
+                    if ("bufferView" in acc_pos_in)
+                    {                   
+                        let view_pos_in = json.bufferViews[acc_pos_in.bufferView];                    
+                        info.position_offset = (view_pos_in.byteOffset||0) + (acc_pos_in.byteOffset||0);       
+                    }
+                    else
+                    {
+                        info.position_offset = -1;
+                    }
 
                     let id_indices_in = primitive_in.indices;
                     if (id_indices_in>=0)
                     {
                         let acc_indices_in =  json.accessors[id_indices_in];
-                        primitive_out.num_face = acc_indices_in.count/3;
-                        let view_indices_in = json.bufferViews[acc_indices_in.bufferView];
-                        info.indices_offset = (view_indices_in.byteOffset||0) + (acc_indices_in.byteOffset||0);                        
+                        primitive_out.num_face = acc_indices_in.count/3;                        
+                        if ("bufferView" in acc_indices_in)
+                        {
+                            let view_indices_in = json.bufferViews[acc_indices_in.bufferView];
+                            info.indices_offset = (view_indices_in.byteOffset||0) + (acc_indices_in.byteOffset||0);
+                        }
+                        else
+                        {
+                            info.indices_offset = -1;
+                        }
 
                         if(acc_indices_in.componentType == 5121)
                         {
@@ -462,8 +719,15 @@ export class GLTFLoader
                     {
                         let id_norm_in = primitive_in.attributes["NORMAL"];
                         let acc_norm_in = json.accessors[id_norm_in];
-                        let view_norm_in = json.bufferViews[acc_norm_in.bufferView];
-                        info.normal_offset =  (view_norm_in.byteOffset||0) + (acc_norm_in.byteOffset||0);
+                        if ("bufferView" in acc_norm_in)
+                        {
+                            let view_norm_in = json.bufferViews[acc_norm_in.bufferView];
+                            info.normal_offset =  (view_norm_in.byteOffset||0) + (acc_norm_in.byteOffset||0);
+                        }
+                        else
+                        {
+                            info.normal_offset = -1;
+                        }
                     }
                     else
                     {
@@ -473,9 +737,16 @@ export class GLTFLoader
                     if ("COLOR_0" in primitive_in.attributes)
                     {
                         let id_color_in = primitive_in.attributes["COLOR_0"];
-                        let acc_color_in = json.accessors[id_color_in];
-                        let view_color_in = json.bufferViews[acc_color_in.bufferView];
-                        info.color_offset =  (view_color_in.byteOffset||0) + (acc_color_in.byteOffset||0);
+                        let acc_color_in = json.accessors[id_color_in];                        
+                        if ("bufferView" in acc_color_in)
+                        {
+                            let view_color_in = json.bufferViews[acc_color_in.bufferView];
+                            info.color_offset = (view_color_in.byteOffset||0) + (acc_color_in.byteOffset||0);
+                        }
+                        else
+                        {
+                            info.color_offset = -1;
+                        }
                         info.color_type = acc_color_in.type;
                         info.color_componentType = acc_color_in.componentType;
                     }
@@ -488,8 +759,15 @@ export class GLTFLoader
                     {
                         let id_uv_in = primitive_in.attributes["TEXCOORD_0"];
                         let acc_uv_in = json.accessors[id_uv_in];
-                        let view_uv_in = json.bufferViews[acc_uv_in.bufferView];
-                        info.uv_offset =  (view_uv_in.byteOffset||0) + (acc_uv_in.byteOffset||0);
+                        if ("bufferView" in acc_uv_in)
+                        {
+                            let view_uv_in = json.bufferViews[acc_uv_in.bufferView];
+                            info.uv_offset =  (view_uv_in.byteOffset||0) + (acc_uv_in.byteOffset||0);
+                        }
+                        else
+                        {
+                            info.uv_offset = -1;                            
+                        }
                     }
                     else
                     {
