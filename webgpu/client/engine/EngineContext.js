@@ -45,7 +45,7 @@ export class EngineContext
             usage,           
         };
         let buffer_out = this.device.createBuffer(desc);      
-        engine_ctx.queue.writeBuffer(buffer_out, 0, buffer_in, offset, size);
+        this.queue.writeBuffer(buffer_out, 0, buffer_in, offset, size);
 
         return buffer_out;
     }

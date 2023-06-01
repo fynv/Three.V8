@@ -66,6 +66,7 @@ export class GLTFLoader
             let num_pos = primitive_out.num_pos;
             let type_indices = primitive_out.type_indices;
             let num_face = primitive_out.num_face;
+            let num_targets = primitive_out.num_targets;
             let geo_set = new GeometrySet();
             primitive_out.geometry.push(geo_set);
 
@@ -90,6 +91,7 @@ export class GLTFLoader
 
                             {
                                 let dataSize = num_face * 3 * type_indices;
+                                dataSize = (dataSize + 3) & ~3;
 
                                 let arrBuf = new ArrayBuffer(dataSize);
                                 let view = new Uint8Array(arrBuf);
@@ -275,7 +277,41 @@ export class GLTFLoader
                                 primitive_out.cpu_uv = arrBuf;
                                 primitive_out.uv_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.VERTEX, 0, num_pos*2*4);
 
-                            }                            
+                            }        
+                            
+                            if ("JOINTS_0" in info.draco_attributes)
+                            {
+                                let dataSize = num_pos * 4 * 4;
+
+                                let arrBuf = new ArrayBuffer(dataSize);
+                                let view = new Uint8Array(arrBuf);
+
+                                let attribute = decoder.GetAttributeByUniqueId( dracoGeometry, info.draco_attributes.JOINTS_0 );
+                                let ptr = draco._malloc( dataSize );
+                                decoder.GetAttributeDataArrayForAllPoints( dracoGeometry, attribute, draco.DT_UINT32, dataSize, ptr );
+                                let buf_in = new Uint8Array(draco.HEAPU8.buffer, ptr, dataSize);
+                                view.set(buf_in);
+                                draco._free( ptr );
+
+                                primitive_out.joints_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.STORAGE, 0, num_pos*4*4);
+                            }
+
+                            if ("WEIGHTS_0" in info.draco_attributes)
+                            {
+                                let dataSize = num_pos * 4 * 4;
+
+                                let arrBuf = new ArrayBuffer(dataSize);
+                                let view = new Uint8Array(arrBuf);
+
+                                let attribute = decoder.GetAttributeByUniqueId( dracoGeometry, info.draco_attributes.WEIGHTS_0 );
+                                let ptr = draco._malloc( dataSize );
+                                decoder.GetAttributeDataArrayForAllPoints( dracoGeometry, attribute, draco.DT_FLOAT32, dataSize, ptr );
+                                let buf_in = new Uint8Array(draco.HEAPU8.buffer, ptr, dataSize);
+                                view.set(buf_in);
+                                draco._free( ptr );
+
+                                primitive_out.weights_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.STORAGE, 0, num_pos*4*4);
+                            }
 
                             draco.destroy(dracoGeometry);
                             draco.destroy(decoder);
@@ -301,20 +337,23 @@ export class GLTFLoader
             if (info.indices_offset>=0)
             {     
                 pendings.push(new Promise((resolve, reject) => {
+
+                    let dataSize =  num_face*type_indices*3;
+                    dataSize = (dataSize + 3) & ~3;
                     
                     let xhr_indices;
                     const load_indices = ()=>
                     {
                         const arrBuf = xhr_indices.response;  
                         primitive_out.cpu_indices = arrBuf;
-                        primitive_out.index_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.INDEX, 0,  num_face*type_indices*3);
+                        primitive_out.index_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.INDEX, 0,  dataSize);
                         resolve(true);
                     };    
                         
                     xhr_indices = new XMLHttpRequest(); 
                     xhr_indices.open("GET", bin_uri);
                     xhr_indices.responseType = "arraybuffer";            
-                    xhr_indices.setRequestHeader('Range', `bytes=${bin_offset + info.indices_offset}-${bin_offset + info.indices_offset + num_face*type_indices*3 - 1}`);
+                    xhr_indices.setRequestHeader('Range', `bytes=${bin_offset + info.indices_offset}-${bin_offset + info.indices_offset + dataSize - 1}`);
                     xhr_indices.onload = load_indices;
                     xhr_indices.send();
                 }));
@@ -485,7 +524,7 @@ export class GLTFLoader
                         primitive_out.cpu_uv = arrBuf;
                         primitive_out.uv_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.VERTEX, 0, num_pos*2*4);
                         resolve(true);
-                    }
+                    };
 
                     xhr_uv = new XMLHttpRequest(); 
                     xhr_uv.open("GET", bin_uri);
@@ -497,7 +536,170 @@ export class GLTFLoader
                 }));
             }
 
+            if (info.joints_offset >= 0)
+            {
+                pendings.push(new Promise((resolve, reject) => {
+                    let xhr_joints;
+                    let byte_per_ch = 4;
+                    if (info.joints_componentType == 5123)
+                    {
+                        byte_per_ch = 2;
+                    }
+                    else if (info.joints_componentType == 5121)
+                    {
+                        byte_per_ch = 1;
+                    }
+
+                    const load_joints = ()=>
+                    {
+                        const arrBuf = xhr_joints.response;  
+                        if (byte_per_ch == 4)
+                        {
+                            primitive_out.joints_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.STORAGE, 0, num_pos*4*4);
+                        }
+                        else
+                        {
+                            let p_u32vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
+
+                            if (byte_per_ch == 2)
+                            {
+                                let p_u16vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*2*4]);
+                                this.module.HEAPU8.set(new Uint8Array(arrBuf), p_u16vec4);
+                                this.module.ccall("u16vec4_to_u32vec4", null, ["number", "number", "number"], [p_u16vec4, p_u32vec4, num_pos]);
+                                this.module.ccall("dealloc", null, ["number"], [p_u16vec4]);
+
+                            }
+                            else
+                            {
+                                let p_u8vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4]);
+                                this.module.HEAPU8.set(new Uint8Array(arrBuf), p_u8vec4);
+                                this.module.ccall("u8vec4_to_u32vec4", null, ["number", "number", "number"], [p_u8vec4, p_u32vec4, num_pos]);
+                                this.module.ccall("dealloc", null, ["number"], [p_u8vec4]);
+                            }
+
+                            primitive_out.joints_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, GPUBufferUsage.STORAGE, p_u32vec4, num_pos*4*4);
+                            this.module.ccall("dealloc", null, ["number"], [p_u32vec4]);
+                        }
+                        resolve(true);
+                    };
+
+                    xhr_joints = new XMLHttpRequest(); 
+                    xhr_joints.open("GET", bin_uri);
+                    xhr_joints.responseType = "arraybuffer";            
+                    xhr_joints.setRequestHeader('Range', `bytes=${bin_offset + info.joints_offset}-${bin_offset + info.joints_offset + num_pos*byte_per_ch*4 - 1}`);
+                    xhr_joints.onload = load_joints;
+                    xhr_joints.send();
+
+                }));
+            }
+
+            if (info.weights_offset >= 0)
+            {
+                pendings.push(new Promise((resolve, reject) => {
+                    let xhr_weights;
+
+                    const load_weights = ()=>
+                    {
+                        const arrBuf = xhr_weights.response;  
+                        primitive_out.weights_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.STORAGE, 0, num_pos*4*4);
+                        resolve(true);
+                    }
+
+                    xhr_weights = new XMLHttpRequest(); 
+                    xhr_weights.open("GET", bin_uri);
+                    xhr_weights.responseType = "arraybuffer";            
+                    xhr_weights.setRequestHeader('Range', `bytes=${bin_offset + info.weights_offset}-${bin_offset + info.weights_offset + num_pos*4*4 - 1}`);
+                    xhr_weights.onload = load_weights;
+                    xhr_weights.send();
+
+
+                }));
+            }
+
+            if (num_targets>0)
+            {
+                primitive_out.targets = new GeometrySet();
+                primitive_out.targets.pos_buf = engine_ctx.createBuffer0(num_pos*4*4 * num_targets, GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_DST);
+
+                for (let i=0; i< num_targets; i++)
+                {
+                    let target_info = info.targets[i];
+                    if (!target_info.is_sparse)
+                    {                        
+                        pendings.push(new Promise((resolve, reject) => {
+                            let xhr_pos;
+                            const load_position = ()=>
+                            {
+                                const arrBuf = xhr_pos.response;
+
+                                let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
+                                let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
+                
+                                this.module.HEAPU8.set(new Uint8Array(arrBuf), p_vec3);
+                                this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 0.0]);                                
+                                engine_ctx.queue.writeBuffer(primitive_out.targets.pos_buf, num_pos*4*4*i, this.module.HEAPU8.buffer, p_vec4, num_pos*4*4);
+                
+                                this.module.ccall("dealloc", null, ["number"], [p_vec3]);
+                                this.module.ccall("dealloc", null, ["number"], [p_vec4]);
+        
+                                resolve(true);
+                            };
+        
+                            xhr_pos = new XMLHttpRequest(); 
+                            xhr_pos.open("GET", bin_uri);
+                            xhr_pos.responseType = "arraybuffer";            
+                            xhr_pos.setRequestHeader('Range', `bytes=${bin_offset + target_info.position_offset}-${bin_offset + target_info.position_offset + num_pos*3*4 - 1}`);
+                            xhr_pos.onload = load_position;
+                            xhr_pos.send();
+                        }));
+                    }
+                    else
+                    { 
+                        pendings.push((async()=>{
+                            let count = target_info.position_count;
+                            let idx_bytes = 4;
+                            if (target_info.position_idx_type == 5123)
+                            {
+                                idx_bytes = 2;
+                            }
+                            else if (target_info.position_idx_type == 5121)
+                            {
+                                idx_bytes = 1;
+                            }   
+                            const arrBuf_idx = await new Promise((resolve, reject) => {
+
+                                let dataSize =  count*idx_bytes;
+                                dataSize = (dataSize + 3) & ~3;
+
+                                let xhr_pos_idx = new XMLHttpRequest(); 
+                                xhr_pos_idx.open("GET", bin_uri);
+                                xhr_pos_idx.responseType = "arraybuffer";            
+                                xhr_pos_idx.setRequestHeader('Range', `bytes=${bin_offset + target_info.position_idx_offset}-${bin_offset + target_info.position_idx_offset + dataSize - 1}`);
+                                xhr_pos_idx.onload = ()=> resolve( xhr_pos_idx.response);
+                                xhr_pos_idx.send();
+                            });
+
+                            const arrBuf_value = await new Promise((resolve, reject) => {
+                                let xhr_pos_value = new XMLHttpRequest(); 
+                                xhr_pos_value.open("GET", bin_uri);
+                                xhr_pos_value.responseType = "arraybuffer";            
+                                xhr_pos_value.setRequestHeader('Range', `bytes=${bin_offset + target_info.position_value_offset}-${bin_offset + target_info.position_value_offset + count*3*4 - 1}`);
+                                xhr_pos_value.onload = ()=> resolve( xhr_pos_value.response);
+                                xhr_pos_value.send();
+                            });
+                            
+
+                        })());
+
+
+
+                    }
+                }                
+            }
+            
+
             await Promise.all(pendings);
+          
             
             if (geo_set.normal_buf == null)
             {
@@ -640,6 +842,7 @@ export class GLTFLoader
                     {
                         num_targets = primitive_in.targets.length;
                     }
+                    primitive_out.num_targets = num_targets;
                     
                     let num_geo_sets = 1;
                     if (num_targets > 0) num_geo_sets++;
@@ -674,7 +877,7 @@ export class GLTFLoader
                     if ("bufferView" in acc_pos_in)
                     {                   
                         let view_pos_in = json.bufferViews[acc_pos_in.bufferView];                    
-                        info.position_offset = (view_pos_in.byteOffset||0) + (acc_pos_in.byteOffset||0);       
+                        info.position_offset = (view_pos_in.byteOffset||0) + (acc_pos_in.byteOffset||0);
                     }
                     else
                     {
@@ -762,7 +965,7 @@ export class GLTFLoader
                         if ("bufferView" in acc_uv_in)
                         {
                             let view_uv_in = json.bufferViews[acc_uv_in.bufferView];
-                            info.uv_offset =  (view_uv_in.byteOffset||0) + (acc_uv_in.byteOffset||0);
+                            info.uv_offset = (view_uv_in.byteOffset||0) + (acc_uv_in.byteOffset||0);
                         }
                         else
                         {
@@ -772,9 +975,93 @@ export class GLTFLoader
                     else
                     {
                         info.uv_offset = -1;
-                    }            
+                    }       
                     
+                    if ("JOINTS_0" in primitive_in.attributes)
+                    {
+                        let id_joints_in = primitive_in.attributes["JOINTS_0"];
+                        let acc_joints_in = json.accessors[id_joints_in];
+                        if ("bufferView" in acc_joints_in)
+                        {
+                            let view_joints_in = json.bufferViews[acc_joints_in.bufferView];
+                            info.joints_offset = (view_joints_in.byteOffset||0) + (acc_joints_in.byteOffset||0);
+                        }
+                        else
+                        {
+                            info.joints_offset = -1;
+                        }
+                        info.joints_componentType = acc_joints_in.componentType;
+                    }
+                    else
+                    {
+                        info.joints_offset = -1;
+                    }
+
+                    if ("WEIGHTS_0" in primitive_in.attributes)
+                    {
+                        let id_weights_in = primitive_in.attributes["WEIGHTS_0"];
+                        let acc_weights_in = json.accessors[id_weights_in];
+                        if ("bufferView" in acc_weights_in)
+                        {
+                            let view_weights_in = json.bufferViews[acc_weights_in.bufferView];
+                            info.weights_offset = (view_weights_in.byteOffset||0) + (acc_weights_in.byteOffset||0);
+                        }
+                        else
+                        {
+                            info.weights_offset = -1;
+                        }
+                    }
+                    else
+                    {
+                        info.weights_offset = -1;
+                    }
+
                     info.has_tangent = has_tangent;
+
+                    if (num_targets > 0)
+			        {
+                        info.targets = new Array(num_targets);
+
+                        let prim_is_sparse  = true;
+
+                        for (let k=0; k<num_targets; k++)
+                        {
+                            let target_in = primitive_in.targets[k];
+                            info.targets[k] = {};
+                            let target_info =  info.targets[k];
+                            let id_t_pos_in =  target_in["POSITION"];
+                            let acc_t_pos_in = json.accessors[id_t_pos_in];                            
+                            let is_sparse = false;
+                            if ("sparse" in acc_t_pos_in)
+                            {
+                                is_sparse = true;
+                            }
+                            target_info.is_sparse = is_sparse;
+
+                            if (!is_sparse)
+                            {
+                                prim_is_sparse = false;
+                                let view_t_pos_in =  json.bufferViews[acc_t_pos_in.bufferView];
+                                target_info.position_offset = (view_t_pos_in.byteOffset||0) + (acc_t_pos_in.byteOffset||0);
+                            }
+                            else
+                            {
+                                let count_idx = acc_t_pos_in.sparse.count;
+                                target_info.position_count = count_idx;
+
+                                let view_idx = json.bufferViews[acc_t_pos_in.sparse.indices.bufferView];
+                                target_info.position_idx_offset = (view_idx.byteOffset||0) + (acc_t_pos_in.sparse.indices.byteOffset||0);
+                                target_info.position_idx_type =  acc_t_pos_in.sparse.indices.componentType;
+                                
+                                let view_value = json.bufferViews[acc_t_pos_in.sparse.values.bufferView];
+                                target_info.position_value_offset = (view_value.byteOffset||0) + (acc_t_pos_in.sparse.values.byteOffset||0);                                
+                            }
+                        }
+
+                        info.is_sparse = prim_is_sparse;
+
+                    }                   
+                    
 
                     load_primitive(primitive_out, info);                   
                 }
@@ -1084,10 +1371,11 @@ export class GLTFLoader
                 if ("bufferView" in img_in)
                 {
                     let view = json.bufferViews[img_in.bufferView];
+                    let offset = view.byteOffset || 0;                    
                     let xhr_img = new XMLHttpRequest(); 
                     xhr_img.open("GET", bin_uri);
                     xhr_img.responseType = "blob";
-                    xhr_img.setRequestHeader('Range', `bytes=${bin_offset + view.byteOffset}-${bin_offset + view.byteOffset + view.byteLength-1}`);
+                    xhr_img.setRequestHeader('Range', `bytes=${bin_offset + offset}-${bin_offset + offset + view.byteLength-1}`);
                     xhr_img.onload = ()=> load_image(xhr_img.response, i, opts);
                     xhr_img.send();
                 }

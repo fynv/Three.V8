@@ -265,6 +265,18 @@ export class GPURenderer
             {
                 if (primitive.uuid == 0) continue;
 
+                let idx_material = primitive.material_idx;
+                let material = model.materials[idx_material];
+
+                if (pass == "Opaque")
+                {
+                    if (material.alphaMode == "Blend") continue;
+                }
+                else if (pass == "Alpha" || pass == "Highlight")
+                {
+                    if (material.alphaMode != "Blend") continue;
+                }
+
                 let params = {
                     is_highlight_pass: pass == "Highlight",
                     target,
