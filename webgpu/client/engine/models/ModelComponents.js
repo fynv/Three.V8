@@ -227,7 +227,7 @@ export class Skin
     constructor()
     {
         this.joints = [];
-        this.inverseBindMatrices = new Matrix4();
+        this.inverseBindMatrices = [];
     }
 }
 

@@ -20,12 +20,12 @@ export class GLTFModel extends Object3D
     }
 
     updateMeshConstants()
-    {
+    {        
         for (let mesh of this.meshes)
         {
-            let matrix = this.matrixWorld;
+            let matrix = this.matrixWorld.clone();
             if (mesh.node_id>=0 && mesh.skin_id<0)
-            {
+            {                
                 let node = this.nodes[mesh.node_id];
                 matrix.multiply(node.g_trans);
             }

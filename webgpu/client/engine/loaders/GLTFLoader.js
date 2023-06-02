@@ -61,6 +61,397 @@ export class GLTFLoader
             await load_image_url(imageUrl, idx, opts);
         };
 
+        const load_targets = async (primitive_out, info) =>
+        {
+            let num_pos = primitive_out.num_pos;
+            let type_indices = primitive_out.type_indices;
+            let num_face = primitive_out.num_face;
+            let num_targets = primitive_out.num_targets;
+
+            let pendings = [];
+
+            let pos_targets = new ArrayBuffer(num_pos*4*4 * num_targets);
+            let norm_targets = new ArrayBuffer(num_pos*4*4 * num_targets);
+            let non_zero = new Int32Array(num_pos);    
+            
+            for (let i=0; i< num_targets; i++)
+            {
+                let target_info = info.targets[i];
+                if (!target_info.pos_is_sparse)
+                {                        
+                    pendings.push(new Promise((resolve, reject) => {
+                        let xhr_pos;
+                        const load_position = ()=>
+                        {
+                            const arrBuf = xhr_pos.response;
+
+                            let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
+                            let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
+            
+                            this.module.HEAPU8.set(new Uint8Array(arrBuf), p_vec3);
+                            this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 0.0]);                                
+                            let src_view = new Uint8Array(this.module.HEAPU8.buffer, p_vec4, num_pos*4*4)
+                            let dst_view = new Uint8Array(pos_targets, num_pos*4*4*i, num_pos*4*4);
+                            dst_view.set(src_view)
+            
+                            this.module.ccall("dealloc", null, ["number"], [p_vec3]);
+                            this.module.ccall("dealloc", null, ["number"], [p_vec4]);
+    
+                            resolve(true);
+                        };
+    
+                        xhr_pos = new XMLHttpRequest(); 
+                        xhr_pos.open("GET", bin_uri);
+                        xhr_pos.responseType = "arraybuffer";            
+                        xhr_pos.setRequestHeader('Range', `bytes=${bin_offset + target_info.position_offset}-${bin_offset + target_info.position_offset + num_pos*3*4 - 1}`);
+                        xhr_pos.onload = load_position;
+                        xhr_pos.send();
+                    }));
+                }
+                else
+                { 
+                    pendings.push((async()=>{
+                        let count = target_info.position_count;
+                        let idx_bytes = 4;
+                        if (target_info.position_idx_type == 5123)
+                        {
+                            idx_bytes = 2;
+                        }
+                        else if (target_info.position_idx_type == 5121)
+                        {
+                            idx_bytes = 1;
+                        }  
+                        
+                        let pending_bufs = [
+                            new Promise((resolve, reject) => {
+                                let dataSize =  count*idx_bytes;
+                                dataSize = (dataSize + 3) & ~3;
+
+                                let xhr_pos_idx = new XMLHttpRequest(); 
+                                xhr_pos_idx.open("GET", bin_uri);
+                                xhr_pos_idx.responseType = "arraybuffer";            
+                                xhr_pos_idx.setRequestHeader('Range', `bytes=${bin_offset + target_info.position_idx_offset}-${bin_offset + target_info.position_idx_offset + dataSize - 1}`);
+                                xhr_pos_idx.onload = ()=> resolve( xhr_pos_idx.response);
+                                xhr_pos_idx.send();
+                            }),
+                            new Promise((resolve, reject) => {
+                                let xhr_pos_value = new XMLHttpRequest(); 
+                                xhr_pos_value.open("GET", bin_uri);
+                                xhr_pos_value.responseType = "arraybuffer";            
+                                xhr_pos_value.setRequestHeader('Range', `bytes=${bin_offset + target_info.position_value_offset}-${bin_offset + target_info.position_value_offset + count*3*4 - 1}`);
+                                xhr_pos_value.onload = ()=> resolve( xhr_pos_value.response);
+                                xhr_pos_value.send();
+                            })
+                        ];
+
+                        let [arr_idx, arr_value] = await Promise.all(pending_bufs);
+                        let view_idx, view_value;
+                        if (idx_bytes == 4)
+                        {
+                            view_idx = new Uint32Array(arr_idx);
+                        }
+                        else if (idx_bytes == 2)
+                        {
+                            view_idx = new Uint16Array(arr_idx);
+                        }
+                        else if (idx_bytes == 1)
+                        {
+                            view_idx = new Uint8Array(arr_idx);
+                        }
+                        view_value = new Float32Array(arr_value);
+
+                        let dst_view = new Float32Array(pos_targets, num_pos*4*4*i, num_pos*4);
+                        for (let j=0; j< view_idx.length; j++)
+                        {
+                            let idx = view_idx[j];
+                            let value = [view_value[j*3], view_value[j*3+1], view_value[j*3+2]];
+                            if (value[0]!=0 || value[1]!=0 || value[2]!=0)
+                            {
+                                non_zero[idx] = 1;
+                                dst_view[idx*4] = value[0];
+                                dst_view[idx*4+1] = value[1];
+                                dst_view[idx*4+2] = value[2];
+                            }
+                        }
+
+                    })());
+                }
+
+                if (target_info.has_normal)
+                {
+                    if (!target_info.norm_is_sparse)
+                    {
+                        pendings.push(new Promise((resolve, reject) => {
+                            let xhr_norm;
+                            
+                            const load_normal = ()=>
+                            {
+                                const arrBuf = xhr_norm.response;
+
+                                let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
+                                let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
+
+                                this.module.HEAPU8.set(new Uint8Array(arrBuf), p_vec3);
+                                this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 0.0]);
+                                let src_view = new Uint8Array(this.module.HEAPU8.buffer, p_vec4, num_pos*4*4)
+                                let dst_view = new Uint8Array(norm_targets, num_pos*4*4*i, num_pos*4*4);
+                                dst_view.set(src_view);
+                                
+                                this.module.ccall("dealloc", null, ["number"], [p_vec3]);
+                                this.module.ccall("dealloc", null, ["number"], [p_vec4]);
+        
+                                resolve(true);
+
+                            };
+
+                            xhr_norm = new XMLHttpRequest(); 
+                            xhr_norm.open("GET", bin_uri);
+                            xhr_norm.responseType = "arraybuffer";            
+                            xhr_norm.setRequestHeader('Range', `bytes=${bin_offset + target_info.normal_offset}-${bin_offset + target_info.normal_offset + num_pos*3*4 - 1}`);
+                            xhr_norm.onload = load_normal;
+                            xhr_norm.send();
+
+                        }));
+                    }
+                    else
+                    {
+                        pendings.push((async()=>{
+                            let count = target_info.normal_count;
+                            let idx_bytes = 4;
+                            if (target_info.normal_idx_type == 5123)
+                            {
+                                idx_bytes = 2;
+                            }
+                            else if (target_info.normal_idx_type == 5121)
+                            {
+                                idx_bytes = 1;
+                            }
+
+                            let pending_bufs = [
+                                new Promise((resolve, reject) => {
+                                    let dataSize =  count*idx_bytes;
+                                    dataSize = (dataSize + 3) & ~3;
+
+                                    let xhr_norm_idx = new XMLHttpRequest(); 
+                                    xhr_norm_idx.open("GET", bin_uri);
+                                    xhr_norm_idx.responseType = "arraybuffer";            
+                                    xhr_norm_idx.setRequestHeader('Range', `bytes=${bin_offset + target_info.normal_idx_offset}-${bin_offset + target_info.normal_idx_offset + dataSize - 1}`);
+                                    xhr_norm_idx.onload = ()=> resolve( xhr_norm_idx.response);
+                                    xhr_norm_idx.send();
+
+                                }),
+                                new Promise((resolve, reject) => {
+                                    let xhr_norm_value = new XMLHttpRequest(); 
+                                    xhr_norm_value.open("GET", bin_uri);
+                                    xhr_norm_value.responseType = "arraybuffer";            
+                                    xhr_norm_value.setRequestHeader('Range', `bytes=${bin_offset + target_info.normal_value_offset}-${bin_offset + target_info.normal_value_offset + count*3*4 - 1}`);
+                                    xhr_norm_value.onload = ()=> resolve( xhr_norm_value.response);
+                                    xhr_norm_value.send();
+                                })
+                            ];
+
+                            let [arr_idx, arr_value] = await Promise.all(pending_bufs);
+                            let view_idx, view_value;
+                            if (idx_bytes == 4)
+                            {
+                                view_idx = new Uint32Array(arr_idx);
+                            }
+                            else if (idx_bytes == 2)
+                            {
+                                view_idx = new Uint16Array(arr_idx);
+                            }
+                            else if (idx_bytes == 1)
+                            {
+                                view_idx = new Uint8Array(arr_idx);
+                            }
+                            view_value = new Float32Array(arr_value);
+                            
+                            let dst_view = new Float32Array(norm_targets, num_pos*4*4*i, num_pos*4);
+                            for (let j=0; j< view_idx.length; j++)
+                            {
+                                let idx = view_idx[j];
+                                let value = [view_value[j*3], view_value[j*3+1], view_value[j*3+2]];
+                                if (value[0]!=0 || value[1]!=0 || value[2]!=0)
+                                {
+                                    non_zero[idx] = 1;
+                                    dst_view[idx*4] = value[0];
+                                    dst_view[idx*4+1] = value[1];
+                                    dst_view[idx*4+2] = value[2];
+                                }
+                            }
+
+                        })());
+                    }
+                }
+
+
+            }
+
+            await Promise.all(pendings);               
+
+            let view_pos = new Float32Array(primitive_out.cpu_pos);
+            let view_norm = new Float32Array(primitive_out.cpu_norm);
+
+            let view_tangent; 
+            let view_bitangent;
+            let tangent_targets;
+            let bitangent_targets;            
+            if (info.has_tangent)
+            {
+                view_tangent = new Float32Array(primitive_out.cpu_tangent);
+                view_bitangent = new Float32Array(primitive_out.cpu_bitangent);
+                tangent_targets = new ArrayBuffer(num_pos*4*4 * num_targets); 
+                bitangent_targets = new ArrayBuffer(num_pos*4*4 * num_targets); 
+            }
+
+            for (let i=0; i< num_targets; i++)
+            {
+                let target_info = info.targets[i];
+                let view_pos_target;
+                if (!target_info.has_normal || info.has_tangent)
+                {
+                    let view_pos_delta = new Float32Array(pos_targets, num_pos*4*4*i,  num_pos*4);
+                    view_pos_target = new Float32Array(num_pos*3);
+                    for (let j=0; j<num_pos; j++)
+                    {
+                        view_pos_target[j*3] = view_pos[j*3] + view_pos_delta[j*4];
+                        view_pos_target[j*3+1] = view_pos[j*3+1] + view_pos_delta[j*4+1];
+                        view_pos_target[j*3+2] = view_pos[j*3+2] + view_pos_delta[j*4+2];
+                    }
+                }
+
+                if (!target_info.has_normal)
+                {   
+                    let p_pos3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
+                    this.module.HEAPU8.set(new Uint8Array(view_pos_target.buffer), p_pos3);
+
+                    let p_indices = 0;
+                    if (primitive_out.cpu_indices!=null)
+                    {
+                        p_indices = this.module.ccall("alloc", "number", ["number"], [num_face*type_indices*3]);
+                        this.module.HEAPU8.set(new Uint8Array(primitive_out.cpu_indices), p_indices);
+                    }
+
+                    {
+                        let p_norm4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
+                        this.module.ccall("zero", null, ["number", "number"], [p_norm4, num_pos*4*4]);                
+                        this.module.ccall("calc_normal", null, ["number", "number", "number", "number", "number", "number"], [num_face, num_pos, type_indices, p_indices, p_pos3, p_norm4]);
+                        
+                        let src_view = new Uint8Array(this.module.HEAPU8.buffer, p_norm4, num_pos*4*4)
+                        let dst_view = new Uint8Array(norm_targets, num_pos*4*4*i, num_pos*4*4);                   
+                        dst_view.set(src_view);
+                        this.module.ccall("dealloc", null, ["number"], [p_norm4]);
+                    }
+                    
+                    this.module.ccall("dealloc", null, ["number"], [p_pos3]);
+                    if (p_indices > 0)
+                    {
+                        this.module.ccall("dealloc", null, ["number"], [p_indices]);
+                    }
+                    
+
+                    let view_norm_delta = new Float32Array(norm_targets, num_pos*4*4*i,  num_pos*4);
+
+                    for (let j=0; j<num_pos; j++)
+                    {
+                        view_norm_delta[j*4]-=view_norm[j*3];
+                        view_norm_delta[j*4+1]-=view_norm[j*3+1];
+                        view_norm_delta[j*4+2]-=view_norm[j*3+2];
+                        if (info.is_sparse && 
+                            (view_norm_delta[j*4]!=0 || view_norm_delta[j*4 + 1]!=0 || view_norm_delta[j*4 + 2]!=0))
+                        {
+                            non_zero[j] = 1;
+                        }
+                    }
+                    
+                }
+
+                if (info.has_tangent)
+                {
+                    let p_pos3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
+                    this.module.HEAPU8.set(new Uint8Array(view_pos_target.buffer), p_pos3);
+
+                    let p_uv2 =  this.module.ccall("alloc", "number", ["number"], [num_pos*2*4]);
+                    this.module.HEAPU8.set(new Uint8Array(primitive_out.cpu_uv), p_uv2);
+
+                    let p_indices = 0;
+                    if (primitive_out.cpu_indices!=null)
+                    {
+                        p_indices = this.module.ccall("alloc", "number", ["number"], [num_face*type_indices*3]);
+                        this.module.HEAPU8.set(new Uint8Array(primitive_out.cpu_indices), p_indices);
+                    }
+
+                    {
+                        let p_tangent4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
+                        let p_bitangent4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
+                        this.module.ccall("zero", null, ["number", "number"], [p_tangent4, num_pos*4*4]);
+                        this.module.ccall("zero", null, ["number", "number"], [p_bitangent4, num_pos*4*4]);
+
+                        this.module.ccall("calc_tangent", null, ["number", "number", "number", "number", "number", "number", "number", "number"], [num_face, num_pos, type_indices, p_indices, p_pos3, p_uv2, p_tangent4, p_bitangent4]);                
+
+                        {
+                            let src_view = new Uint8Array(this.module.HEAPU8.buffer, p_tangent4, num_pos*4*4)
+                            let dst_view = new Uint8Array(tangent_targets, num_pos*4*4*i, num_pos*4*4);                   
+                            dst_view.set(src_view);
+                        }
+
+                        {
+                            let src_view = new Uint8Array(this.module.HEAPU8.buffer, p_bitangent4, num_pos*4*4)
+                            let dst_view = new Uint8Array(bitangent_targets, num_pos*4*4*i, num_pos*4*4);                   
+                            dst_view.set(src_view);
+                        }
+
+                        this.module.ccall("dealloc", null, ["number"], [p_tangent4]);
+                        this.module.ccall("dealloc", null, ["number"], [p_bitangent4]);
+                    }
+
+
+                    this.module.ccall("dealloc", null, ["number"], [p_pos3]);
+                    this.module.ccall("dealloc", null, ["number"], [p_uv2]);
+                    if (p_indices > 0)
+                    {
+                        this.module.ccall("dealloc", null, ["number"], [p_indices]);
+                    }
+
+                    let view_tangent_delta = new Float32Array(tangent_targets, num_pos*4*4*i,  num_pos*4);
+                    let view_bitangent_delta = new Float32Array(bitangent_targets, num_pos*4*4*i,  num_pos*4);
+
+                    for (let j=0; j<num_pos; j++)
+                    {
+                        view_tangent_delta[j*4]-=view_tangent[j*3];
+                        view_tangent_delta[j*4+1]-=view_tangent[j*3+1];
+                        view_tangent_delta[j*4+2]-=view_tangent[j*3+2];
+                        view_bitangent_delta[j*4]-=view_bitangent[j*3];
+                        view_bitangent_delta[j*4+1]-=view_bitangent[j*3+1];
+                        view_bitangent_delta[j*4+2]-=view_bitangent[j*3+2];
+                        if (info.is_sparse && (
+                            view_tangent_delta[j*4]!=0 || view_tangent_delta[j*4 + 1]!=0 || view_tangent_delta[j*4 + 2]!=0 ||
+                            view_bitangent_delta[j*4]!=0 || view_bitangent_delta[j*4 + 1]!=0 || view_bitangent_delta[j*4 + 2]!=0))
+                        {
+                            non_zero[j] = 1;
+                        }
+                    }
+
+                }
+            }                     
+            
+            primitive_out.targets = new GeometrySet();
+            primitive_out.targets.pos_buf = engine_ctx.createBuffer(pos_targets, GPUBufferUsage.STORAGE, 0, num_pos*4*4 * num_targets);
+            primitive_out.targets.normal_buf = engine_ctx.createBuffer(norm_targets, GPUBufferUsage.STORAGE, 0, num_pos*4*4 * num_targets);
+
+            
+            if (info.has_tangent)
+            {
+                primitive_out.targets.tangent_buf = engine_ctx.createBuffer(tangent_targets, GPUBufferUsage.STORAGE, 0, num_pos*4*4 * num_targets);
+                primitive_out.targets.bitangent_buf = engine_ctx.createBuffer(bitangent_targets, GPUBufferUsage.STORAGE, 0, num_pos*4*4 * num_targets);
+            }
+
+            if (info.is_sparse)
+            {
+                primitive_out.none_zero_buf = engine_ctx.createBuffer(non_zero.buffer, GPUBufferUsage.STORAGE, 0, num_pos*4);
+            }          
+        }
+
         const load_primitive = async (primitive_out, info)=>
         {
             let num_pos = primitive_out.num_pos;
@@ -154,6 +545,7 @@ export class GLTFLoader
                                 view.set(buf_in);
                                 draco._free( ptr );
 
+                                primitive_out.cpu_norm = arrBuf;
                                 let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
                                 let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
         
@@ -396,7 +788,7 @@ export class GLTFLoader
                     const load_normal = ()=>
                     {
                         const arrBuf = xhr_norm.response;  
-
+                        primitive_out.cpu_norm = arrBuf;
                         let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
                         let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
 
@@ -616,90 +1008,7 @@ export class GLTFLoader
                 }));
             }
 
-            if (num_targets>0)
-            {
-                primitive_out.targets = new GeometrySet();
-                primitive_out.targets.pos_buf = engine_ctx.createBuffer0(num_pos*4*4 * num_targets, GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_DST);
-
-                for (let i=0; i< num_targets; i++)
-                {
-                    let target_info = info.targets[i];
-                    if (!target_info.is_sparse)
-                    {                        
-                        pendings.push(new Promise((resolve, reject) => {
-                            let xhr_pos;
-                            const load_position = ()=>
-                            {
-                                const arrBuf = xhr_pos.response;
-
-                                let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
-                                let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
-                
-                                this.module.HEAPU8.set(new Uint8Array(arrBuf), p_vec3);
-                                this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 0.0]);                                
-                                engine_ctx.queue.writeBuffer(primitive_out.targets.pos_buf, num_pos*4*4*i, this.module.HEAPU8.buffer, p_vec4, num_pos*4*4);
-                
-                                this.module.ccall("dealloc", null, ["number"], [p_vec3]);
-                                this.module.ccall("dealloc", null, ["number"], [p_vec4]);
-        
-                                resolve(true);
-                            };
-        
-                            xhr_pos = new XMLHttpRequest(); 
-                            xhr_pos.open("GET", bin_uri);
-                            xhr_pos.responseType = "arraybuffer";            
-                            xhr_pos.setRequestHeader('Range', `bytes=${bin_offset + target_info.position_offset}-${bin_offset + target_info.position_offset + num_pos*3*4 - 1}`);
-                            xhr_pos.onload = load_position;
-                            xhr_pos.send();
-                        }));
-                    }
-                    else
-                    { 
-                        pendings.push((async()=>{
-                            let count = target_info.position_count;
-                            let idx_bytes = 4;
-                            if (target_info.position_idx_type == 5123)
-                            {
-                                idx_bytes = 2;
-                            }
-                            else if (target_info.position_idx_type == 5121)
-                            {
-                                idx_bytes = 1;
-                            }   
-                            const arrBuf_idx = await new Promise((resolve, reject) => {
-
-                                let dataSize =  count*idx_bytes;
-                                dataSize = (dataSize + 3) & ~3;
-
-                                let xhr_pos_idx = new XMLHttpRequest(); 
-                                xhr_pos_idx.open("GET", bin_uri);
-                                xhr_pos_idx.responseType = "arraybuffer";            
-                                xhr_pos_idx.setRequestHeader('Range', `bytes=${bin_offset + target_info.position_idx_offset}-${bin_offset + target_info.position_idx_offset + dataSize - 1}`);
-                                xhr_pos_idx.onload = ()=> resolve( xhr_pos_idx.response);
-                                xhr_pos_idx.send();
-                            });
-
-                            const arrBuf_value = await new Promise((resolve, reject) => {
-                                let xhr_pos_value = new XMLHttpRequest(); 
-                                xhr_pos_value.open("GET", bin_uri);
-                                xhr_pos_value.responseType = "arraybuffer";            
-                                xhr_pos_value.setRequestHeader('Range', `bytes=${bin_offset + target_info.position_value_offset}-${bin_offset + target_info.position_value_offset + count*3*4 - 1}`);
-                                xhr_pos_value.onload = ()=> resolve( xhr_pos_value.response);
-                                xhr_pos_value.send();
-                            });
-                            
-
-                        })());
-
-
-
-                    }
-                }                
-            }
-            
-
-            await Promise.all(pendings);
-          
+            await Promise.all(pendings);                      
             
             if (geo_set.normal_buf == null)
             {
@@ -718,12 +1027,22 @@ export class GLTFLoader
                 this.module.ccall("calc_normal", null, ["number", "number", "number", "number", "number", "number"], [num_face, num_pos, type_indices, p_indices, p_pos3, p_norm4]);
                 geo_set.normal_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_norm4, num_pos*4*4);
 
+                let p_norm3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
+                this.module.ccall("vec4_to_vec3", null, ["number", "number", "number"], [p_norm4, p_norm3, num_pos]);
+                primitive_out.cpu_norm = new ArrayBuffer(num_pos*3*4);
+                {
+                    let view_src = new Uint8Array(this.module.HEAPU8.buffer, p_norm3, num_pos*3*4);
+                    let view_dst = new Uint8Array(primitive_out.cpu_norm)
+                    view_dst.set(view_src);
+                }
+                this.module.ccall("dealloc", null, ["number"], [p_norm3]);
+
                 this.module.ccall("dealloc", null, ["number"], [p_pos3]);
                 if (p_indices > 0)
                 {
                     this.module.ccall("dealloc", null, ["number"], [p_indices]);
                 }
-                this.module.ccall("dealloc", null, ["number"], [p_norm4]);
+                this.module.ccall("dealloc", null, ["number"], [p_norm4]);                
             }
 
             if (info.has_tangent)
@@ -746,9 +1065,30 @@ export class GLTFLoader
                 this.module.ccall("zero", null, ["number", "number"], [p_tangent4, num_pos*4*4]);
                 this.module.ccall("zero", null, ["number", "number"], [p_bitangent4, num_pos*4*4]);
                 
-                this.module.ccall("calc_tangent", null, ["number", "number", "number", "number", "number", "number", "number", "number"], [num_face, num_pos, type_indices, p_indices, p_pos3, p_uv2, p_tangent4, p_bitangent4]);
+                this.module.ccall("calc_tangent", null, ["number", "number", "number", "number", "number", "number", "number", "number"], [num_face, num_pos, type_indices, p_indices, p_pos3, p_uv2, p_tangent4, p_bitangent4]);                
+                
                 geo_set.tangent_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_tangent4, num_pos*4*4);
                 geo_set.bitangent_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_bitangent4, num_pos*4*4);
+
+                let p_tangent3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
+                this.module.ccall("vec4_to_vec3", null, ["number", "number", "number"], [p_tangent4, p_tangent3, num_pos]);
+                primitive_out.cpu_tangent = new ArrayBuffer(num_pos*3*4);
+                {
+                    let view_src = new Uint8Array(this.module.HEAPU8.buffer, p_tangent3, num_pos*3*4);
+                    let view_dst = new Uint8Array(primitive_out.cpu_tangent)
+                    view_dst.set(view_src);
+                }
+                this.module.ccall("dealloc", null, ["number"], [p_tangent3]);
+
+                let p_bitangent3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
+                this.module.ccall("vec4_to_vec3", null, ["number", "number", "number"], [p_bitangent4, p_bitangent3, num_pos]);
+                primitive_out.cpu_bitangent = new ArrayBuffer(num_pos*3*4);
+                {
+                    let view_src = new Uint8Array(this.module.HEAPU8.buffer, p_bitangent3, num_pos*3*4);
+                    let view_dst = new Uint8Array(primitive_out.cpu_bitangent)
+                    view_dst.set(view_src);
+                }
+                this.module.ccall("dealloc", null, ["number"], [p_bitangent3]);
 
                 this.module.ccall("dealloc", null, ["number"], [p_pos3]);
                 this.module.ccall("dealloc", null, ["number"], [p_uv2]);
@@ -759,6 +1099,11 @@ export class GLTFLoader
                 this.module.ccall("dealloc", null, ["number"], [p_tangent4]);
                 this.module.ccall("dealloc", null, ["number"], [p_bitangent4]);
                 
+            }
+
+            if (num_targets>0)
+            {
+                load_targets(primitive_out, info);
             }
 
             primitive_out.updateUUID();
@@ -1029,16 +1374,17 @@ export class GLTFLoader
                             let target_in = primitive_in.targets[k];
                             info.targets[k] = {};
                             let target_info =  info.targets[k];
+                            
                             let id_t_pos_in =  target_in["POSITION"];
-                            let acc_t_pos_in = json.accessors[id_t_pos_in];                            
-                            let is_sparse = false;
+                            let acc_t_pos_in = json.accessors[id_t_pos_in];
+                            let pos_is_sparse = false;
                             if ("sparse" in acc_t_pos_in)
                             {
-                                is_sparse = true;
+                                pos_is_sparse = true;
                             }
-                            target_info.is_sparse = is_sparse;
+                            target_info.pos_is_sparse = pos_is_sparse;
 
-                            if (!is_sparse)
+                            if (!pos_is_sparse)
                             {
                                 prim_is_sparse = false;
                                 let view_t_pos_in =  json.bufferViews[acc_t_pos_in.bufferView];
@@ -1056,6 +1402,41 @@ export class GLTFLoader
                                 let view_value = json.bufferViews[acc_t_pos_in.sparse.values.bufferView];
                                 target_info.position_value_offset = (view_value.byteOffset||0) + (acc_t_pos_in.sparse.values.byteOffset||0);                                
                             }
+
+                            if ("NORMAL" in target_in)
+                            {
+                                target_info.has_normal = true;
+                                let id_t_norm_in = target_in["NORMAL"];
+                                let acc_t_norm_in = json.accessors[id_t_norm_in];
+                                let norm_is_sparse = false;
+                                if ("sparse" in acc_t_norm_in)
+                                {
+                                    norm_is_sparse = true;
+                                }
+                                target_info.norm_is_sparse = norm_is_sparse;
+                                if (!norm_is_sparse)
+                                {
+                                    prim_is_sparse = false;
+                                    let view_t_norm_in =  json.bufferViews[acc_t_norm_in.bufferView];
+                                    target_info.normal_offset = (view_t_norm_in.byteOffset||0) + (acc_t_norm_in.byteOffset||0);
+                                }
+                                else
+                                {
+                                    let count_idx = acc_t_norm_in.sparse.count;
+                                    target_info.normal_count = count_idx;
+
+                                    let view_idx = json.bufferViews[acc_t_norm_in.sparse.indices.bufferView];
+                                    target_info.normal_idx_offset = (view_idx.byteOffset||0) + (acc_t_norm_in.sparse.indices.byteOffset||0);
+                                    target_info.normal_idx_type =  acc_t_norm_in.sparse.indices.componentType;
+
+                                    let view_value = json.bufferViews[acc_t_norm_in.sparse.values.bufferView];
+                                    target_info.normal_value_offset = (view_value.byteOffset||0) + (acc_t_norm_in.sparse.values.byteOffset||0);
+                                }
+                            }
+                            else
+                            {
+                                target_info.has_normal = false;
+                            }                            
                         }
 
                         info.is_sparse = prim_is_sparse;
@@ -1115,14 +1496,50 @@ export class GLTFLoader
                     name =`node_${i}`;
                 }
                 model.node_dict[name] = i;
-            }             
+            }                         
             
             model.roots = json.scenes[0].nodes;
 
+            let num_skins = json.skins.length;            
+            for (let i=0; i<num_skins; i++)
+            {
+                let skin_in = json.skins[i];
+                let skin_out = new Skin();
+                model.skins.push(skin_out);
+                let num_joints = skin_in.joints.length;                
+                skin_out.joints = skin_in.joints;
+                let acc_mats = json.accessors[skin_in.inverseBindMatrices];
+                let view_mats = json.bufferViews[acc_mats.bufferView];
+                
+                let xhr_skin;
+
+                const load_skin = ()=>{
+
+                    let view_in = new Float32Array(xhr_skin.response);
+                    for (let j=0; j<num_joints; j++)
+                    {
+                        let matrix = new Matrix4();
+                        for (let k=0; k<16; k++)
+                        {
+                            matrix.elements[k] = view_in[j*16+k];
+                        }
+                        skin_out.inverseBindMatrices.push(matrix);
+                    }                   
+                };
+               
+                let offset = (view_mats.byteOffset||0) + (acc_mats.byteOffset||0);
+                xhr_skin = new XMLHttpRequest(); 
+                xhr_skin.open("GET", bin_uri);
+                xhr_skin.responseType = "arraybuffer";
+                xhr_skin.setRequestHeader('Range', `bytes=${bin_offset + offset}-${bin_offset + offset + view_mats.byteLength-1}`);
+                xhr_skin.onload = load_skin;
+                xhr_skin.send();
+
+            }
+
             for (let i=0; i< num_nodes; i++)
             {
-                let node_in = json.nodes[i];
-                let node_out = model.nodes[i];
+                let node_in = json.nodes[i];                
                 let j = -1;
                 if ("mesh" in node_in)
                 {

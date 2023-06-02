@@ -10,6 +10,7 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE void dealloc(void* ptr);
 	EMSCRIPTEN_KEEPALIVE void zero(void* ptr, unsigned size);
     EMSCRIPTEN_KEEPALIVE void vec3_to_vec4(const void* ptr_vec3, void* ptr_vec4, int count, float w);	
+	EMSCRIPTEN_KEEPALIVE void vec4_to_vec3(const void* ptr_vec4, void* ptr_vec3, int count);
 	EMSCRIPTEN_KEEPALIVE void u16vec4_to_vec4(const void* ptr_u16vec4, void* ptr_vec4, int count);
 	EMSCRIPTEN_KEEPALIVE void u8vec4_to_vec4(const void* ptr_u8vec4, void* ptr_vec4, int count);
 	EMSCRIPTEN_KEEPALIVE void u16vec3_to_vec4(const void* ptr_u16vec3, void* ptr_vec4, int count, float w);
@@ -44,6 +45,16 @@ void vec3_to_vec4(const void* ptr_vec3, void* ptr_vec4, int count, float w)
     {
         p_out[i] = glm::vec4(p_in[i], w);
     }
+}
+
+void vec4_to_vec3(const void* ptr_vec4, void* ptr_vec3, int count)
+{
+ 	const glm::vec4* p_in = (const glm::vec4*)ptr_vec4;
+    glm::vec3* p_out = (glm::vec3*)ptr_vec3;
+	for (int i=0; i<count; i++)
+    {
+		p_out[i] = glm::vec3(p_in[i]);
+	}
 }
 
 void u16vec4_to_vec4(const void* ptr_u16vec4, void* ptr_vec4, int count)
