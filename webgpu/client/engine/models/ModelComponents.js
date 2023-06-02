@@ -52,7 +52,7 @@ export class Primitive
         this.none_zero_buf = null;
 
         this.material_idx = -1;
-
+        
         this.min_pos = new Vector3(Infinity,Infinity,Infinity);
         this.max_pos = new Vector3(-Infinity, -Infinity, -Infinity);
 
@@ -61,6 +61,9 @@ export class Primitive
 
         this.cpu_pos = null;
         this.cpu_indices = null;
+                
+        this.constant_morph = null;
+        this.bind_group_morph = null;
     }
 
     updateUUID()
@@ -206,6 +209,328 @@ export class Primitive
 
         if (this.uuid!=0) this.updateUUID();
     }
+
+    create_bind_group_morph(buf_weights)
+    {       
+        let options = {
+            has_tangent: this.geometry[0].tangent_buf != null,
+            sparse: this.none_zero_buf != null
+        };
+        let signature = JSON.stringify(options);
+
+        if (!("morph" in engine_ctx.cache.bindGroupLayouts))
+        {
+            engine_ctx.cache.bindGroupLayouts.morph = {};
+        }
+
+        if (!(signature in engine_ctx.cache.bindGroupLayouts.morph))
+        {
+
+            let binding = 0;
+            let entries = [];
+
+            // Coefficients
+            entries.push({
+                binding,
+                visibility: GPUShaderStage.COMPUTE,
+                buffer:{
+                    type: "read-only-storage"
+                }
+            });
+            binding++;
+
+            // PosBase
+            entries.push({
+                binding,
+                visibility: GPUShaderStage.COMPUTE,
+                buffer:{
+                    type: "read-only-storage"
+                }
+            });
+            binding++;
+
+            // PosDelta
+            entries.push({
+                binding,
+                visibility: GPUShaderStage.COMPUTE,
+                buffer:{
+                    type: "read-only-storage"
+                }
+            });
+            binding++;
+
+            // PosOut
+            entries.push({
+                binding,
+                visibility: GPUShaderStage.COMPUTE,
+                buffer:{
+                    type: "storage"
+                }
+            });
+            binding++;
+
+            // NormBase
+            entries.push({
+                binding,
+                visibility: GPUShaderStage.COMPUTE,
+                buffer:{
+                    type: "read-only-storage"
+                }
+            });
+            binding++;
+
+            // NormDelta
+            entries.push({
+                binding,
+                visibility: GPUShaderStage.COMPUTE,
+                buffer:{
+                    type: "read-only-storage"
+                }
+            });
+            binding++;
+
+            // NormOut
+            entries.push({
+                binding,
+                visibility: GPUShaderStage.COMPUTE,
+                buffer:{
+                    type: "storage"
+                }
+            });
+            binding++;
+
+            if (options.has_tangent)
+            {
+                // TangentBase
+                entries.push({
+                    binding,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer:{
+                        type: "read-only-storage"
+                    }
+                });
+                binding++;
+
+                // TangentDelta
+                entries.push({
+                    binding,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer:{
+                        type: "read-only-storage"
+                    }
+                });
+                binding++;
+
+                // TangentOut
+                entries.push({
+                    binding,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer:{
+                        type: "storage"
+                    }
+                });
+                binding++;
+
+                // BitangentBase
+                entries.push({
+                    binding,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer:{
+                        type: "read-only-storage"
+                    }
+                });
+                binding++;
+
+                // BitangentDelta
+                entries.push({
+                    binding,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer:{
+                        type: "read-only-storage"
+                    }
+                });
+                binding++;
+
+                // BitangentOut
+                entries.push({
+                    binding,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer:{
+                        type: "storage"
+                    }
+                });
+                binding++;
+            }
+
+            if (options.sparse)
+            {
+                // Nonzero
+                entries.push({
+                    binding,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer:{
+                        type: "read-only-storage"
+                    }
+                });
+                binding++;
+            }
+
+            // Uniforms
+            entries.push({
+                binding,
+                visibility: GPUShaderStage.COMPUTE,
+                buffer:{
+                    type: "uniform"
+                }
+            });
+            binding++;
+
+            engine_ctx.cache.bindGroupLayouts.morph[signature] = engine_ctx.device.createBindGroupLayout({ entries });
+        }
+       
+        let uniform = new Int32Array(4);
+        uniform[0] = this.num_pos;
+        uniform[1] = this.num_targets;
+        this.constant_morph = engine_ctx.createBuffer(uniform.buffer, GPUBufferUsage.UNIFORM, 0, 16);
+
+        let geo_in = this.geometry[0];
+        let geo_out = this.geometry[1];
+
+        let binding = 0;
+        let entries = [];          
+        
+        entries.push({
+            binding,
+            resource:{
+                buffer: buf_weights
+            }
+        });
+        binding++;
+
+        entries.push({
+            binding,
+            resource:{
+                buffer: geo_in.pos_buf
+            }
+        });
+        binding++;
+
+        entries.push({
+            binding,
+            resource:{
+                buffer: this.targets.pos_buf
+            }
+        });
+        binding++;
+
+        entries.push({
+            binding,
+            resource:{
+                buffer: geo_out.pos_buf
+            }
+        });
+        binding++;
+
+        entries.push({
+            binding,
+            resource:{
+                buffer: geo_in.normal_buf
+            }
+        });
+        binding++;
+
+        entries.push({
+            binding,
+            resource:{
+                buffer: this.targets.normal_buf
+            }
+        });
+        binding++;
+
+        entries.push({
+            binding,
+            resource:{
+                buffer: geo_out.normal_buf
+            }
+        });
+        binding++;
+
+        if (options.has_tangent)
+        {
+            entries.push({
+                binding,
+                resource:{
+                    buffer: geo_in.tangent_buf
+                }
+            });
+            binding++;
+    
+            entries.push({
+                binding,
+                resource:{
+                    buffer: this.targets.tangent_buf
+                }
+            });
+            binding++;
+    
+            entries.push({
+                binding,
+                resource:{
+                    buffer: geo_out.tangent_buf
+                }
+            });
+            binding++;
+
+            entries.push({
+                binding,
+                resource:{
+                    buffer: geo_in.bitangent_buf
+                }
+            });
+            binding++;
+    
+            entries.push({
+                binding,
+                resource:{
+                    buffer: this.targets.bitangent_buf
+                }
+            });
+            binding++;
+    
+            entries.push({
+                binding,
+                resource:{
+                    buffer: geo_out.bitangent_buf
+                }
+            });
+            binding++;
+        }
+
+        if (options.sparse)
+        {
+            entries.push({
+                binding,
+                resource:{
+                    buffer: this.none_zero_buf
+                }
+            });
+            binding++;
+        }     
+
+        entries.push({
+            binding,
+            resource:{
+                buffer: this.constant_morph
+            }
+        });
+        binding++;        
+
+        const bindGroupLayout = engine_ctx.cache.bindGroupLayouts.morph[signature];
+        this.bind_group_morph = engine_ctx.device.createBindGroup({
+            layout: bindGroupLayout,
+            entries
+        });      
+    }
     
 }
 
@@ -228,6 +553,7 @@ export class Skin
     {
         this.joints = [];
         this.inverseBindMatrices = [];
+        this.buf_rela_mat = null;
     }
 }
 
@@ -239,7 +565,14 @@ export class Mesh
         this.skin_id = -1;
         this.primitives = [];
         this.weights = [];
+        this.buf_weights = null;
         this.needUpdateMorphTargets = false;
         this.constant = engine_ctx.createBuffer0(128, GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST);
+    }
+
+    update_weights()
+    {
+        let arr = new Float32Array(this.weights);        
+        engine_ctx.queue.writeBuffer(this.buf_weights, 0, arr.buffer, 0, arr.length*4);        
     }
 }

@@ -7,6 +7,7 @@ import { GLTFModel } from "../models/GLTFModel.js"
 import { RenderStandard, RenderStandardBundle } from "./routines/StandardRoutine.js"
 import { DirectionalLight } from "../lights/DirectionalLight.js"
 import { RenderDirectionalShadow, RenderDirectionalShadowBundle } from "./routines/DirectionalShadowCast.js"
+import { MorphUpdate } from "./routines/MorphUpdate.js"
 
 export class GPURenderer
 {
@@ -59,7 +60,32 @@ export class GPURenderer
     }
 
     _update_gltf_model(model)
-    {
+    {        
+        for (let mesh of model.meshes)
+        {
+            if (mesh.needUpdateMorphTargets)
+            {
+                let ready = true;
+                for (let primitive of mesh.primitives)
+                {                    
+                    if (primitive.bind_group_morph==null)
+                    {
+                        ready = false;
+                        break;
+                    }
+                }
+                if (ready)
+                {
+                    mesh.update_weights();
+                    for (let primitive of mesh.primitives)
+                    {
+                        MorphUpdate(primitive);
+                    }
+                    mesh.needUpdateMorphTargets = false;
+                }
+                
+            }
+        }
         model.updateMeshConstants();
     }
 

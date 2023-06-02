@@ -70,7 +70,7 @@ export function FlipCubemap(texIn, texOut)
     const passEncoder = commandEncoder.beginComputePass();
     passEncoder.setPipeline(pipeline);
     passEncoder.setBindGroup(0, bind_group);
-    passEncoder.dispatchWorkgroups((texIn.width+7)/8, (texIn.height+7)/8, 6);
+    passEncoder.dispatchWorkgroups(Math.floor((texIn.width+7)/8), Math.floor((texIn.height+7)/8), 6);
 
     passEncoder.end();
 

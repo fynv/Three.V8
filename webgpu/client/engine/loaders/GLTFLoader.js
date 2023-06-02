@@ -438,7 +438,6 @@ export class GLTFLoader
             primitive_out.targets = new GeometrySet();
             primitive_out.targets.pos_buf = engine_ctx.createBuffer(pos_targets, GPUBufferUsage.STORAGE, 0, num_pos*4*4 * num_targets);
             primitive_out.targets.normal_buf = engine_ctx.createBuffer(norm_targets, GPUBufferUsage.STORAGE, 0, num_pos*4*4 * num_targets);
-
             
             if (info.has_tangent)
             {
@@ -449,7 +448,7 @@ export class GLTFLoader
             if (info.is_sparse)
             {
                 primitive_out.none_zero_buf = engine_ctx.createBuffer(non_zero.buffer, GPUBufferUsage.STORAGE, 0, num_pos*4);
-            }          
+            }
         }
 
         const load_primitive = async (primitive_out, info)=>
@@ -460,6 +459,19 @@ export class GLTFLoader
             let num_targets = primitive_out.num_targets;
             let geo_set = new GeometrySet();
             primitive_out.geometry.push(geo_set);
+
+            let num_geo_sets = 1;
+            if (num_targets>0)
+            {
+                num_geo_sets++;
+            }
+
+            if (info.is_skinned)
+            {
+                num_geo_sets++;
+            }
+
+            let usage0 = num_geo_sets>1? GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC : GPUBufferUsage.VERTEX;
 
             let pendings = [];
 
@@ -524,7 +536,7 @@ export class GLTFLoader
                 
                                 this.module.HEAPU8.set(view, p_vec3);
                                 this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 1.0]);
-                                geo_set.pos_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_vec4, num_pos*4*4);
+                                geo_set.pos_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, usage0, p_vec4, num_pos*4*4);
                 
                                 this.module.ccall("dealloc", null, ["number"], [p_vec3]);
                                 this.module.ccall("dealloc", null, ["number"], [p_vec4]);
@@ -551,7 +563,7 @@ export class GLTFLoader
         
                                 this.module.HEAPU8.set(new Uint8Array(arrBuf), p_vec3);
                                 this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 0.0]);
-                                geo_set.normal_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_vec4, num_pos*4*4);
+                                geo_set.normal_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, usage0, p_vec4, num_pos*4*4);
         
                                 this.module.ccall("dealloc", null, ["number"], [p_vec3]);
                                 this.module.ccall("dealloc", null, ["number"], [p_vec4]);
@@ -764,7 +776,7 @@ export class GLTFLoader
         
                         this.module.HEAPU8.set(new Uint8Array(arrBuf), p_vec3);
                         this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 1.0]);
-                        geo_set.pos_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_vec4, num_pos*4*4);
+                        geo_set.pos_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, usage0, p_vec4, num_pos*4*4);
         
                         this.module.ccall("dealloc", null, ["number"], [p_vec3]);
                         this.module.ccall("dealloc", null, ["number"], [p_vec4]);
@@ -794,7 +806,7 @@ export class GLTFLoader
 
                         this.module.HEAPU8.set(new Uint8Array(arrBuf), p_vec3);
                         this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 0.0]);
-                        geo_set.normal_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_vec4, num_pos*4*4);
+                        geo_set.normal_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, usage0, p_vec4, num_pos*4*4);
 
                         this.module.ccall("dealloc", null, ["number"], [p_vec3]);
                         this.module.ccall("dealloc", null, ["number"], [p_vec4]);
@@ -1025,7 +1037,7 @@ export class GLTFLoader
                 let p_norm4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
                 this.module.ccall("zero", null, ["number", "number"], [p_norm4, num_pos*4*4]);                
                 this.module.ccall("calc_normal", null, ["number", "number", "number", "number", "number", "number"], [num_face, num_pos, type_indices, p_indices, p_pos3, p_norm4]);
-                geo_set.normal_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_norm4, num_pos*4*4);
+                geo_set.normal_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, usage0, p_norm4, num_pos*4*4);
 
                 let p_norm3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
                 this.module.ccall("vec4_to_vec3", null, ["number", "number", "number"], [p_norm4, p_norm3, num_pos]);
@@ -1067,8 +1079,8 @@ export class GLTFLoader
                 
                 this.module.ccall("calc_tangent", null, ["number", "number", "number", "number", "number", "number", "number", "number"], [num_face, num_pos, type_indices, p_indices, p_pos3, p_uv2, p_tangent4, p_bitangent4]);                
                 
-                geo_set.tangent_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_tangent4, num_pos*4*4);
-                geo_set.bitangent_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_bitangent4, num_pos*4*4);
+                geo_set.tangent_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, usage0, p_tangent4, num_pos*4*4);
+                geo_set.bitangent_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, usage0, p_bitangent4, num_pos*4*4);
 
                 let p_tangent3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
                 this.module.ccall("vec4_to_vec3", null, ["number", "number", "number"], [p_tangent4, p_tangent3, num_pos]);
@@ -1099,14 +1111,45 @@ export class GLTFLoader
                 this.module.ccall("dealloc", null, ["number"], [p_tangent4]);
                 this.module.ccall("dealloc", null, ["number"], [p_bitangent4]);
                 
-            }
+            }           
 
-            if (num_targets>0)
+            for (let k=1; k<num_geo_sets; k++)
             {
-                load_targets(primitive_out, info);
+                let usage = GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE;
+                if (k==num_geo_sets-1)
+                {
+                    usage|=GPUBufferUsage.VERTEX;
+                }
+                let commandEncoder = engine_ctx.device.createCommandEncoder();
+                
+                let geo_set2 = new GeometrySet();     
+                primitive_out.geometry.push(geo_set2);
+                
+                geo_set2.pos_buf = engine_ctx.createBuffer0(geo_set.pos_buf.size, usage);                
+                commandEncoder.copyBufferToBuffer(geo_set.pos_buf, 0, geo_set2.pos_buf, 0, geo_set.pos_buf.size);
+
+                geo_set2.normal_buf = engine_ctx.createBuffer0(geo_set.normal_buf.size, usage);
+                commandEncoder.copyBufferToBuffer(geo_set.normal_buf, 0, geo_set2.normal_buf, 0, geo_set.normal_buf.size);
+
+                if (info.has_tangent)
+                {
+                    geo_set2.tangent_buf = engine_ctx.createBuffer0(geo_set.tangent_buf.size, usage);
+                    commandEncoder.copyBufferToBuffer(geo_set.tangent_buf, 0, geo_set2.tangent_buf, 0, geo_set.tangent_buf.size);
+
+                    geo_set2.bitangent_buf = engine_ctx.createBuffer0(geo_set.bitangent_buf.size, usage);
+                    commandEncoder.copyBufferToBuffer(geo_set.bitangent_buf, 0, geo_set2.bitangent_buf, 0, geo_set.bitangent_buf.size);
+                }                
+
+                let cmdBuf = commandEncoder.finish();
+                engine_ctx.queue.submit([cmdBuf]);
             }
 
             primitive_out.updateUUID();
+
+            if (num_targets>0)
+            {
+                await load_targets(primitive_out, info);
+            }            
 
         }
 
@@ -1143,6 +1186,46 @@ export class GLTFLoader
                 } 
             }
 
+            if ("skins" in json)
+            {
+                let num_skins = json.skins.length;            
+                for (let i=0; i<num_skins; i++)
+                {
+                    let skin_in = json.skins[i];
+                    let skin_out = new Skin();
+                    model.skins.push(skin_out);
+                    let num_joints = skin_in.joints.length;                
+                    skin_out.joints = skin_in.joints;
+                    skin_out.buf_rela_mat = engine_ctx.createBuffer0(4*16*num_joints, GPUBufferUsage.STORAGE)
+                    let acc_mats = json.accessors[skin_in.inverseBindMatrices];
+                    let view_mats = json.bufferViews[acc_mats.bufferView];
+                    
+                    let xhr_skin;
+
+                    const load_skin = ()=>{
+
+                        let view_in = new Float32Array(xhr_skin.response);
+                        for (let j=0; j<num_joints; j++)
+                        {
+                            let matrix = new Matrix4();
+                            for (let k=0; k<16; k++)
+                            {
+                                matrix.elements[k] = view_in[j*16+k];
+                            }
+                            skin_out.inverseBindMatrices.push(matrix);
+                        }                   
+                    };
+                
+                    let offset = (view_mats.byteOffset||0) + (acc_mats.byteOffset||0);
+                    xhr_skin = new XMLHttpRequest(); 
+                    xhr_skin.open("GET", bin_uri);
+                    xhr_skin.responseType = "arraybuffer";
+                    xhr_skin.setRequestHeader('Range', `bytes=${bin_offset + offset}-${bin_offset + offset + view_mats.byteLength-1}`);
+                    xhr_skin.onload = load_skin;
+                    xhr_skin.send();
+                }
+            }
+
             material_affected_primitives = new Array(num_materials+1);
             for (let i=0; i<num_materials+1; i++)
             {
@@ -1155,9 +1238,25 @@ export class GLTFLoader
                 let mesh_out = new Mesh();
                 model.meshes.push(mesh_out);
                 let is_skinned = skinned[i];
-
                 let num_primitives = mesh_in.primitives.length;
-                for (let j=0; j<num_primitives; j++)                
+
+                let num_targets = 0;
+                if (num_primitives>0 && ("targets" in mesh_in.primitives[0]))
+                {
+                    num_targets = mesh_in.primitives[0].targets.length;                    
+                }         
+                
+                if (num_targets>0)
+                {           
+                    for (let i=0; i<num_targets; i++)
+                    {
+                        mesh_out.weights[i] = 0;
+                    }
+                    let init_weights = new Float32Array(num_targets);
+                    mesh_out.buf_weights = engine_ctx.createBuffer(init_weights.buffer, GPUBufferUsage.STORAGE, 0, num_targets * 4);
+                }
+
+                for (let j=0; j<num_primitives; j++)
                 {
                     let primitive_in = mesh_in.primitives[j];
                     let primitive_out = new Primitive();
@@ -1180,21 +1279,12 @@ export class GLTFLoader
                                 has_tangent = true;
                             }
                         }
-                    }
-
-                    let num_targets = 0;
-                    if ("targets" in primitive_in)
-                    {
-                        num_targets = primitive_in.targets.length;
-                    }
+                    }                    
+                    
                     primitive_out.num_targets = num_targets;
-                    
-                    let num_geo_sets = 1;
-                    if (num_targets > 0) num_geo_sets++;
-                    if (is_skinned) num_geo_sets++;
-                    
 
                     let info = {};
+                    info.is_skinned = is_skinned;
 
                     if ("extensions" in primitive_in)
                     {
@@ -1438,15 +1528,16 @@ export class GLTFLoader
                                 target_info.has_normal = false;
                             }                            
                         }
-
                         info.is_sparse = prim_is_sparse;
-
-                    }                   
-                    
-
-                    load_primitive(primitive_out, info);                   
+                    }                  
+                    (async()=>{
+                        await load_primitive(primitive_out, info);
+                        if (num_targets>0)
+                        {
+                            primitive_out.create_bind_group_morph(mesh_out.buf_weights);
+                        }
+                    })();                     
                 }
-
             }
 
             for (let i=0; i< num_nodes; i++)
@@ -1498,46 +1589,7 @@ export class GLTFLoader
                 model.node_dict[name] = i;
             }                         
             
-            model.roots = json.scenes[0].nodes;
-
-            if ("skins" in json)
-            {
-                let num_skins = json.skins.length;            
-                for (let i=0; i<num_skins; i++)
-                {
-                    let skin_in = json.skins[i];
-                    let skin_out = new Skin();
-                    model.skins.push(skin_out);
-                    let num_joints = skin_in.joints.length;                
-                    skin_out.joints = skin_in.joints;
-                    let acc_mats = json.accessors[skin_in.inverseBindMatrices];
-                    let view_mats = json.bufferViews[acc_mats.bufferView];
-                    
-                    let xhr_skin;
-
-                    const load_skin = ()=>{
-
-                        let view_in = new Float32Array(xhr_skin.response);
-                        for (let j=0; j<num_joints; j++)
-                        {
-                            let matrix = new Matrix4();
-                            for (let k=0; k<16; k++)
-                            {
-                                matrix.elements[k] = view_in[j*16+k];
-                            }
-                            skin_out.inverseBindMatrices.push(matrix);
-                        }                   
-                    };
-                
-                    let offset = (view_mats.byteOffset||0) + (acc_mats.byteOffset||0);
-                    xhr_skin = new XMLHttpRequest(); 
-                    xhr_skin.open("GET", bin_uri);
-                    xhr_skin.responseType = "arraybuffer";
-                    xhr_skin.setRequestHeader('Range', `bytes=${bin_offset + offset}-${bin_offset + offset + view_mats.byteLength-1}`);
-                    xhr_skin.onload = load_skin;
-                    xhr_skin.send();
-                }
-            }
+            model.roots = json.scenes[0].nodes;            
 
             for (let i=0; i< num_nodes; i++)
             {
@@ -1798,7 +1850,9 @@ export class GLTFLoader
                     xhr_img.onload = ()=> load_image(xhr_img.response, i, opts);
                     xhr_img.send();
                 }
-            }          
+            }
+
+            
             
         };
 
