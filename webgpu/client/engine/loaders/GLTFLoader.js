@@ -1500,41 +1500,43 @@ export class GLTFLoader
             
             model.roots = json.scenes[0].nodes;
 
-            let num_skins = json.skins.length;            
-            for (let i=0; i<num_skins; i++)
+            if ("skins" in json)
             {
-                let skin_in = json.skins[i];
-                let skin_out = new Skin();
-                model.skins.push(skin_out);
-                let num_joints = skin_in.joints.length;                
-                skin_out.joints = skin_in.joints;
-                let acc_mats = json.accessors[skin_in.inverseBindMatrices];
-                let view_mats = json.bufferViews[acc_mats.bufferView];
-                
-                let xhr_skin;
+                let num_skins = json.skins.length;            
+                for (let i=0; i<num_skins; i++)
+                {
+                    let skin_in = json.skins[i];
+                    let skin_out = new Skin();
+                    model.skins.push(skin_out);
+                    let num_joints = skin_in.joints.length;                
+                    skin_out.joints = skin_in.joints;
+                    let acc_mats = json.accessors[skin_in.inverseBindMatrices];
+                    let view_mats = json.bufferViews[acc_mats.bufferView];
+                    
+                    let xhr_skin;
 
-                const load_skin = ()=>{
+                    const load_skin = ()=>{
 
-                    let view_in = new Float32Array(xhr_skin.response);
-                    for (let j=0; j<num_joints; j++)
-                    {
-                        let matrix = new Matrix4();
-                        for (let k=0; k<16; k++)
+                        let view_in = new Float32Array(xhr_skin.response);
+                        for (let j=0; j<num_joints; j++)
                         {
-                            matrix.elements[k] = view_in[j*16+k];
-                        }
-                        skin_out.inverseBindMatrices.push(matrix);
-                    }                   
-                };
-               
-                let offset = (view_mats.byteOffset||0) + (acc_mats.byteOffset||0);
-                xhr_skin = new XMLHttpRequest(); 
-                xhr_skin.open("GET", bin_uri);
-                xhr_skin.responseType = "arraybuffer";
-                xhr_skin.setRequestHeader('Range', `bytes=${bin_offset + offset}-${bin_offset + offset + view_mats.byteLength-1}`);
-                xhr_skin.onload = load_skin;
-                xhr_skin.send();
-
+                            let matrix = new Matrix4();
+                            for (let k=0; k<16; k++)
+                            {
+                                matrix.elements[k] = view_in[j*16+k];
+                            }
+                            skin_out.inverseBindMatrices.push(matrix);
+                        }                   
+                    };
+                
+                    let offset = (view_mats.byteOffset||0) + (acc_mats.byteOffset||0);
+                    xhr_skin = new XMLHttpRequest(); 
+                    xhr_skin.open("GET", bin_uri);
+                    xhr_skin.responseType = "arraybuffer";
+                    xhr_skin.setRequestHeader('Range', `bytes=${bin_offset + offset}-${bin_offset + offset + view_mats.byteLength-1}`);
+                    xhr_skin.onload = load_skin;
+                    xhr_skin.send();
+                }
             }
 
             for (let i=0; i< num_nodes; i++)
