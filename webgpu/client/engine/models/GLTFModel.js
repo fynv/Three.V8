@@ -97,15 +97,6 @@ export class GLTFModel extends Object3D
         }
     }
 
-    buildAnimDict()
-    {
-        this.animation_dict = {};
-        for (let i=0; i<this.animations.length; i++)
-        {
-            this.animation_dict[this.animations[i].name] = i;
-        }
-    }
-
     addAnimation(anim)
     {
         this.animations.push(anim);
@@ -122,55 +113,38 @@ export class GLTFModel extends Object3D
 
     playAnimation(name, no_pending = false)
     {
-        if (name in this.animation_dict)
-        {            
-            let id_anim = this.animation_dict[name];            
-            for (let playback of this.current_playing)
-            {
-                if (playback.id_anim == id_anim)
-                {
-                    playback.time_start = Date.now();
-                    return;
-                }
-            }
-            this.current_playing.push({ id_anim, time_start: Date.now()})
-        }
-        else if (!no_pending)
+        for (let playback of this.current_playing)
         {
-            this.pending_play = name;            
+            if (playback.name == name)
+            {
+                playback.time_start = Date.now();
+                return;
+            }
         }
+        this.current_playing.push({ name, time_start: Date.now()})
     }
 
     stopAnimation(name)
     {
-        if (name in this.animation_dict)
+        for (let i =0; i<this.current_playing.length; i++)
         {
-            let id_anim = animation_dict[name];
-            for (let i =0; i<this.current_playing.length; i++)
+            let playback = this.current_playing[i];        
+            if (playback.name == name)
             {
-                let playback = this.current_playing[i];
-                if (playback.id_anim == id_anim)
-                {
-                    this.current_playing.splice(i,1);
-                    return;
-                }
+                this.current_playing.splice(i,1);
+                return;
             }
-        }
+        }        
     }
 
     updateAnimation()
-    {
-        if ("pending_play" in this)
-        {
-            let name = this.pending_play;
-            delete this.pending_play;
-            this.playAnimation(name);
-        }
-
+    {      
         let t = Date.now();
         for (let playback of this.current_playing)
         {
-            let anim = this.animations[playback.id_anim];
+            if (!(playback.name in this.animation_dict)) continue;
+            let id_anim = this.animation_dict[playback.name];
+            let anim = this.animations[id_anim];
             let duration = anim.duration * 1000.0;
             let x = 0;
             if (duration >0)

@@ -1856,9 +1856,7 @@ export class GLTFLoader
                 delete model.pending_frame;
             }
 
-            this.load_animations(json, model.animations, bin_uri, bin_offset);
-            model.buildAnimDict();
-            
+            this.load_animations(json, model.animations, model.animation_dict, bin_uri, bin_offset);            
         };
 
         const load_header = ()=>
@@ -1911,7 +1909,7 @@ export class GLTFLoader
         
     }
 
-    load_animations(json, animations, bin_uri, bin_offset)
+    load_animations(json, animations, animation_dict, bin_uri, bin_offset)
     {        
         if (!("animations" in json)) return;
 
@@ -1924,6 +1922,7 @@ export class GLTFLoader
             {
                 anim_out.name = anim_in.name;
             }
+            animation_dict[anim_out.name] = animations.length - 1;
 
             for (let track_in of anim_in.channels)
             {
@@ -1999,6 +1998,7 @@ export class GLTFLoader
     loadAnimationsFromFile(url)
     {
         let animations = [];
+        let animation_dict = {};
 
         let gltf_version;
         let file_length;
@@ -2028,7 +2028,7 @@ export class GLTFLoader
                 bin_offset = 20 + json_length + 8;
             }
 
-            this.load_animations(json, animations, bin_uri, bin_offset);
+            this.load_animations(json, animations, animation_dict, bin_uri, bin_offset);
 
         };
 
@@ -2075,7 +2075,7 @@ export class GLTFLoader
             xhr.send();
         }
 
-        return animations;
+        return { animations, animation_dict};
 
     }
 
