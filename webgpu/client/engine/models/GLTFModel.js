@@ -16,6 +16,9 @@ export class GLTFModel extends Object3D
         this.node_dict = {};
         this.roots = [];
         this.skins = [];
+        this.animations = [];
+        this.animation_dict = {};
+        this.current_playing = [];
     }
 
     updateMeshConstants()
@@ -92,9 +95,98 @@ export class GLTFModel extends Object3D
                 mesh.needUpdateMorphTargets = true;
             }
         }
-
-
     }
+
+    buildAnimDict()
+    {
+        this.animation_dict = {};
+        for (let i=0; i<this.animations.length; i++)
+        {
+            this.animation_dict[this.animations[i].name] = i;
+        }
+    }
+
+    addAnimation(anim)
+    {
+        this.animations.push(anim);
+        this.animation_dict[anim.name] = this.animations.length - 1;
+    }
+
+    addAnimations(anims)
+    {
+        for (let anim of anims)
+        {
+            this.addAnimation(anims);
+        }
+    }
+
+    playAnimation(name, no_pending = false)
+    {
+        if (name in this.animation_dict)
+        {            
+            let id_anim = this.animation_dict[name];            
+            for (let playback of this.current_playing)
+            {
+                if (playback.id_anim == id_anim)
+                {
+                    playback.time_start = Date.now();
+                    return;
+                }
+            }
+            this.current_playing.push({ id_anim, time_start: Date.now()})
+        }
+        else if (!no_pending)
+        {
+            this.pending_play = name;            
+        }
+    }
+
+    stopAnimation(name)
+    {
+        if (name in this.animation_dict)
+        {
+            let id_anim = animation_dict[name];
+            for (let i =0; i<this.current_playing.length; i++)
+            {
+                let playback = this.current_playing[i];
+                if (playback.id_anim == id_anim)
+                {
+                    this.current_playing.splice(i,1);
+                    return;
+                }
+            }
+        }
+    }
+
+    updateAnimation()
+    {
+        if ("pending_play" in this)
+        {
+            let name = this.pending_play;
+            delete this.pending_play;
+            this.playAnimation(name);
+        }
+
+        let t = Date.now();
+        for (let playback of this.current_playing)
+        {
+            let anim = this.animations[playback.id_anim];
+            let duration = anim.duration * 1000.0;
+            let x = 0;
+            if (duration >0)
+            {
+                while(t-playback.time_start>=duration)
+                {
+                    playback.time_start += duration;
+                }
+                x= t - playback.time_start;
+            }
+            let frame = anim.get_frame(x*0.001);
+            
+            this.setAnimationFrame(frame);
+        }
+    }
+
 }
 
 

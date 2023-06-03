@@ -3,6 +3,7 @@ import { GLTFModel } from "../models/GLTFModel.js"
 import { MeshStandardMaterial } from "../materials/MeshStandardMaterial.js"
 import { GeometrySet, Primitive, Node, Skin, Mesh } from "../models/ModelComponents.js"
 import { CreateTexture } from "../renderers/GPUUtils.js"
+import { MorphTrack, AnimationClip} from "../models/Animation.js"
 import get_module from './GltfLoad.js'
 
 function get_url_extension( url ) {
@@ -1854,6 +1855,9 @@ export class GLTFLoader
                 model.setAnimationFrame(model.pending_frame, true);
                 delete model.pending_frame;
             }
+
+            this.load_animations(json, model.animations, bin_uri, bin_offset);
+            model.buildAnimDict();
             
         };
 
@@ -1905,6 +1909,174 @@ export class GLTFLoader
 
         return model;
         
+    }
+
+    load_animations(json, animations, bin_uri, bin_offset)
+    {        
+        if (!("animations" in json)) return;
+
+        for (let anim_in of json.animations)
+        {
+            let anim_out = new AnimationClip();
+            animations.push(anim_out);
+
+            if ("name" in anim_in)
+            {
+                anim_out.name = anim_in.name;
+            }
+
+            for (let track_in of anim_in.channels)
+            {
+                let sampler = anim_in.samplers[track_in.sampler];
+                let interpolation = "LINEAR";
+                if ("interpolation" in sampler)
+                {
+                    interpolation = sampler.interpolation;
+                }
+
+                let acc_input = json.accessors[sampler.input];
+                let acc_output = json.accessors[sampler.output];
+                let view_input = json.bufferViews[acc_input.bufferView];
+                let view_output = json.bufferViews[acc_output.bufferView];
+                
+                let num_inputs = acc_input.count;
+                let offset_input = (view_input.byteOffset||0) + (acc_input.byteOffset||0);
+                let offset_output = (view_output.byteOffset||0) + (acc_output.byteOffset||0);
+
+                let end = acc_input.max[0];
+                if (end > anim_out.duration) anim_out.duration = end;
+                
+                if (track_in.target.path == "weights")
+                {
+                    let node_in = json.nodes[track_in.target.node];
+                    let mesh_in = json.meshes[node_in.mesh];
+                    let track_out = new MorphTrack();
+                    if ("name" in node_in)
+                    {
+                        track_out.name = node_in.name;                        
+                    }
+                    track_out.targets = mesh_in.primitives[0].targets.length;
+                    track_out.interpolation = interpolation;
+
+                    let xhr_input;
+                    const load_input = ()=>
+                    {
+                        let arrBuf = xhr_input.response;
+                        track_out.times = new Float32Array(arrBuf);                        
+                    };
+
+                    xhr_input = new XMLHttpRequest(); 
+                    xhr_input.open("GET", bin_uri);
+                    xhr_input.responseType = "arraybuffer";
+                    xhr_input.setRequestHeader('Range', `bytes=${bin_offset + offset_input}-${bin_offset + offset_input + num_inputs*4-1}`);
+                    xhr_input.onload = load_input;
+                    xhr_input.send();
+
+                    let num_outputs = interpolation!="CUBICSPLINE"? num_inputs * track_out.targets : num_inputs * track_out.targets *3;
+
+                    let xhr_output;
+                    const load_output = ()=>
+                    {
+                        let arrBuf = xhr_output.response;
+                        track_out.values = new Float32Array(arrBuf);
+                    };
+                    
+                    xhr_output = new XMLHttpRequest(); 
+                    xhr_output.open("GET", bin_uri);
+                    xhr_output.responseType = "arraybuffer";
+                    xhr_output.setRequestHeader('Range', `bytes=${bin_offset + offset_output}-${bin_offset + offset_output + num_outputs*4-1}`);
+                    xhr_output.onload = load_output;
+                    xhr_output.send();
+
+                    anim_out.morphs.push(track_out);
+
+                }
+            }
+        }
+
+    }
+
+    loadAnimationsFromFile(url)
+    {
+        let animations = [];
+
+        let gltf_version;
+        let file_length;
+        let json_length;
+
+        let bin_uri = url;
+        let bin_offset;
+        
+        let xhr;
+
+        const load_json = async ()=>
+        {
+            if (this.module == null) 
+            {
+                this.module = await get_module();
+            }
+
+            const json = xhr.response;  
+            const buffer = json.buffers[0];
+            if ('uri' in buffer)
+            {
+                bin_uri = buffer.uri;
+                bin_offset = 0;
+            }
+            else
+            {
+                bin_offset = 20 + json_length + 8;
+            }
+
+            this.load_animations(json, animations, bin_uri, bin_offset);
+
+        };
+
+        const load_header = ()=>
+        {
+            const arrBuf = xhr.response;  
+            let offset = 0;
+            let magic = new TextDecoder().decode(new Uint8Array(arrBuf,offset,4));
+            offset+=4;
+            if (magic!="glTF")
+            {
+                console.log(`${url} is not a GLTF file.`);
+                return;
+            }            
+
+            let data_view = new DataView(arrBuf);            
+            gltf_version = data_view.getInt32(offset, true);
+            offset+=4;
+            file_length = data_view.getInt32(offset, true);
+            offset+=4;
+
+            json_length = data_view.getInt32(offset, true);
+            offset+=4;
+            let chunk_type = new TextDecoder().decode(new Uint8Array(arrBuf,offset,4));
+            offset+=4;
+
+            xhr = new XMLHttpRequest(); 
+            xhr.open("GET", url);
+            xhr.responseType = "json";
+            xhr.setRequestHeader('Range', `bytes=20-${20+json_length-1}`);
+            xhr.onload = load_json;
+            xhr.send();
+
+        };
+
+        let ext =  get_url_extension(url);
+        if (ext=="glb")
+        {
+            xhr = new XMLHttpRequest(); 
+            xhr.open("GET", url);
+            xhr.responseType = "arraybuffer";
+            xhr.setRequestHeader('Range', `bytes=0-19`);
+            xhr.onload = load_header;
+            xhr.send();
+        }
+
+        return animations;
+
     }
 
 }
