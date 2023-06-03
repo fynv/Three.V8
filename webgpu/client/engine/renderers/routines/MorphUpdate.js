@@ -156,7 +156,7 @@ function GetPipelineMorph(options)
 }
 
 
-export function MorphUpdate(primitive)
+export function MorphUpdate(passEncoder, primitive)
 {
     let options = {
         has_tangent: primitive.geometry[0].tangent_buf != null,
@@ -165,13 +165,8 @@ export function MorphUpdate(primitive)
 
     let pipeline = GetPipelineMorph(options);
 
-    const commandEncoder = engine_ctx.device.createCommandEncoder();
-    const passEncoder = commandEncoder.beginComputePass();
     passEncoder.setPipeline(pipeline);
     passEncoder.setBindGroup(0, primitive.bind_group_morph);
-    passEncoder.dispatchWorkgroups(Math.floor((primitive.num_pos + 127) / 128), 1,1);    
-    passEncoder.end();
-    engine_ctx.device.queue.submit([commandEncoder.finish()]);
-
+    passEncoder.dispatchWorkgroups(Math.floor((primitive.num_pos + 127) / 128), 1,1);        
 
 }

@@ -74,14 +74,20 @@ export class GPURenderer
                         break;
                     }
                 }
+
                 if (ready)
                 {
                     mesh.update_weights();
+
+                    const commandEncoder = engine_ctx.device.createCommandEncoder();
+                    const passEncoder = commandEncoder.beginComputePass();
                     for (let primitive of mesh.primitives)
                     {
-                        MorphUpdate(primitive);
+                        MorphUpdate(passEncoder, primitive);
                     }
                     mesh.needUpdateMorphTargets = false;
+                    passEncoder.end();
+                    engine_ctx.device.queue.submit([commandEncoder.finish()]);
                 }
                 
             }

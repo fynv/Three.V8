@@ -1247,11 +1247,8 @@ export class GLTFLoader
                 }         
                 
                 if (num_targets>0)
-                {           
-                    for (let i=0; i<num_targets; i++)
-                    {
-                        mesh_out.weights[i] = 0;
-                    }
+                {   
+                    mesh_out.weights = new Array(num_targets).fill(0);
                     let init_weights = new Float32Array(num_targets);
                     mesh_out.buf_weights = engine_ctx.createBuffer(init_weights.buffer, GPUBufferUsage.STORAGE, 0, num_targets * 4);
                 }
@@ -1852,7 +1849,11 @@ export class GLTFLoader
                 }
             }
 
-            
+            if ("pending_frame" in model)
+            {
+                model.setAnimationFrame(model.pending_frame, true);
+                delete model.pending_frame;
+            }
             
         };
 

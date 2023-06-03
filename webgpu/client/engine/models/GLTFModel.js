@@ -16,7 +16,6 @@ export class GLTFModel extends Object3D
         this.node_dict = {};
         this.roots = [];
         this.skins = [];
-
     }
 
     updateMeshConstants()
@@ -59,6 +58,42 @@ export class GLTFModel extends Object3D
                 node_queue.push(id_child);
             }
         }
+    }
+
+    setAnimationFrame(frame, no_pending = false)
+    {
+        let resolved = true;
+
+        if (!no_pending)
+        {
+            for (let morph of frame.morphs)
+            {
+                if (!(morph.name in this.mesh_dict))
+                {
+                    resolved = false;
+                    break;
+                }
+            }
+
+            if (!resolved)        
+            {
+                this.pending_frame = frame;
+                return;
+            }
+        }
+
+        for (let morph of frame.morphs)
+        {
+            if (morph.name in this.mesh_dict)
+            {
+                let mesh_idx = this.mesh_dict[morph.name];
+                let mesh = this.meshes[mesh_idx];
+                mesh.weights = morph.weights;
+                mesh.needUpdateMorphTargets = true;
+            }
+        }
+
+
     }
 }
 
