@@ -64,6 +64,9 @@ export class Primitive
                 
         this.constant_morph = null;
         this.bind_group_morph = null;
+
+        this.constant_skin = null;
+        this.bind_group_skin = null;
     }
 
     updateUUID()
@@ -530,6 +533,267 @@ export class Primitive
             layout: bindGroupLayout,
             entries
         });      
+    }
+
+    create_bind_group_skin(buf_rela_mat)
+    {
+        let options = {
+            has_tangent: this.geometry[0].tangent_buf != null,        
+        };
+        let signature = JSON.stringify(options);
+
+        if (!("skin" in engine_ctx.cache.bindGroupLayouts))
+        {
+            engine_ctx.cache.bindGroupLayouts.skin = {};
+        }
+
+        if (!(signature in engine_ctx.cache.bindGroupLayouts.skin))
+        {
+            let binding = 0;
+            let entries = [];
+
+            // Rela-Mat
+            entries.push({
+                binding,
+                visibility: GPUShaderStage.COMPUTE,
+                buffer:{
+                    type: "read-only-storage"
+                }
+            });
+            binding++;
+
+            // Joints
+            entries.push({
+                binding,
+                visibility: GPUShaderStage.COMPUTE,
+                buffer:{
+                    type: "read-only-storage"
+                }
+            });
+            binding++;
+
+            // Weights
+            entries.push({
+                binding,
+                visibility: GPUShaderStage.COMPUTE,
+                buffer:{
+                    type: "read-only-storage"
+                }
+            });
+            binding++;
+
+            // PosRest
+            entries.push({
+                binding,
+                visibility: GPUShaderStage.COMPUTE,
+                buffer:{
+                    type: "read-only-storage"
+                }
+            });
+            binding++;
+
+            // PosOut
+            entries.push({
+                binding,
+                visibility: GPUShaderStage.COMPUTE,
+                buffer:{
+                    type: "storage"
+                }
+            });
+            binding++;
+
+
+            // NormRest
+            entries.push({
+                binding,
+                visibility: GPUShaderStage.COMPUTE,
+                buffer:{
+                    type: "read-only-storage"
+                }
+            });
+            binding++;
+
+            // NormOut
+            entries.push({
+                binding,
+                visibility: GPUShaderStage.COMPUTE,
+                buffer:{
+                    type: "storage"
+                }
+            });
+            binding++;
+
+            if (options.has_tangent)
+            {
+                // TangentRest
+                entries.push({
+                    binding,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer:{
+                        type: "read-only-storage"
+                    }
+                });
+                binding++;
+
+                // TangentOut
+                entries.push({
+                    binding,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer:{
+                        type: "storage"
+                    }
+                });
+                binding++;
+
+                // BitangentRest
+                entries.push({
+                    binding,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer:{
+                        type: "read-only-storage"
+                    }
+                });
+                binding++;
+
+                // BitangentOut
+                entries.push({
+                    binding,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer:{
+                        type: "storage"
+                    }
+                });
+                binding++;
+            }
+
+            // Uniforms
+            entries.push({
+                binding,
+                visibility: GPUShaderStage.COMPUTE,
+                buffer:{
+                    type: "uniform"
+                }
+            });
+            binding++;            
+
+            engine_ctx.cache.bindGroupLayouts.skin[signature] = engine_ctx.device.createBindGroupLayout({ entries });
+        }
+
+        let uniform = new Int32Array(4);
+        uniform[0] = this.num_pos;        
+        this.constant_skin = engine_ctx.createBuffer(uniform.buffer, GPUBufferUsage.UNIFORM, 0, 16);
+
+        let geo_id = this.num_targets > 0 ? 1: 0;
+        let geo_in = this.geometry[geo_id];
+        let geo_out = this.geometry[geo_id + 1];
+
+        let binding = 0;
+        let entries = [];
+
+        entries.push({
+            binding,
+            resource:{
+                buffer: buf_rela_mat
+            }
+        });
+        binding++;
+
+        entries.push({
+            binding,
+            resource:{
+                buffer: this.joints_buf
+            }
+        });
+        binding++;
+
+        entries.push({
+            binding,
+            resource:{
+                buffer: this.weights_buf
+            }
+        });
+        binding++;
+        
+        entries.push({
+            binding,
+            resource:{
+                buffer: geo_in.pos_buf
+            }
+        });
+        binding++;
+
+        entries.push({
+            binding,
+            resource:{
+                buffer: geo_out.pos_buf
+            }
+        });
+        binding++;
+
+        entries.push({
+            binding,
+            resource:{
+                buffer: geo_in.normal_buf
+            }
+        });
+        binding++;
+
+        entries.push({
+            binding,
+            resource:{
+                buffer: geo_out.normal_buf
+            }
+        });
+        binding++;
+
+        if (options.has_tangent)
+        {
+            entries.push({
+                binding,
+                resource:{
+                    buffer: geo_in.tangent_buf
+                }
+            });
+            binding++;
+
+            entries.push({
+                binding,
+                resource:{
+                    buffer: geo_out.tangent_buf
+                }
+            });
+            binding++;
+
+            entries.push({
+                binding,
+                resource:{
+                    buffer: geo_in.bitangent_buf
+                }
+            });
+            binding++;
+
+            entries.push({
+                binding,
+                resource:{
+                    buffer: geo_out.bitangent_buf
+                }
+            });
+            binding++;            
+        }
+
+        entries.push({
+            binding,
+            resource:{
+                buffer: this.constant_skin
+            }
+        });
+        binding++;  
+
+        const bindGroupLayout = engine_ctx.cache.bindGroupLayouts.skin[signature];
+        this.bind_group_skin = engine_ctx.device.createBindGroup({
+            layout: bindGroupLayout,
+            entries
+        });     
     }
     
 }

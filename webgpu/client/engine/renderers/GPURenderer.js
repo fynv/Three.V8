@@ -8,6 +8,7 @@ import { RenderStandard, RenderStandardBundle } from "./routines/StandardRoutine
 import { DirectionalLight } from "../lights/DirectionalLight.js"
 import { RenderDirectionalShadow, RenderDirectionalShadowBundle } from "./routines/DirectionalShadowCast.js"
 import { MorphUpdate } from "./routines/MorphUpdate.js"
+import { SkinUpdate } from "./routines/SkinUpdate.js"
 
 export class GPURenderer
 {
@@ -92,6 +93,39 @@ export class GPURenderer
                 
             }
         }
+
+        if (model.needUpdateSkinnedMeshes)
+        {            
+            for (let mesh of model.meshes)
+            {
+                if (mesh.skin_id >=0)
+                {
+                    let ready = true;
+                    for (let primitive of mesh.primitives)
+                    {                    
+                        if (primitive.bind_group_skin==null)
+                        {
+                            ready = false;
+                            break;
+                        }
+                    }
+
+                    if (ready)
+                    {
+                        const commandEncoder = engine_ctx.device.createCommandEncoder();
+                        const passEncoder = commandEncoder.beginComputePass();
+                        for (let primitive of mesh.primitives)
+                        {
+                            SkinUpdate(passEncoder, primitive);
+                        }
+                        mesh.needUpdateMorphTargets = false;
+                        passEncoder.end();
+                        engine_ctx.device.queue.submit([commandEncoder.finish()]);
+                    }
+                }
+            }
+        }
+
         model.updateMeshConstants();
     }
 

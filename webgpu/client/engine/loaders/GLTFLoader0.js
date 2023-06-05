@@ -10,106 +10,11 @@ function get_url_extension( url ) {
     return url.split(/[#?]/)[0].split('.').pop().trim();
 }
 
-class StreamedLoader
-{
-    constructor(url, buffer_size = 65536)
-    {
-        this.url = url;        
-        this.buffer_size = buffer_size;
-        this.byteLength = 0;
-        this.availableLength = 0;
-        this.arrBuf = null;    
-        this.resolvers = []
-
-        let xhr = new XMLHttpRequest();
-        xhr.open("HEAD", url); 
-        xhr.onreadystatechange = ()=>{            
-            if (xhr.readyState == xhr.DONE) 
-            {
-                this.byteLength = parseInt(xhr.getResponseHeader("Content-Length"));                             
-                this.arrBuf = new ArrayBuffer(this.byteLength);
-                this._start();
-            }
-        };
-        xhr.send();
-    }
-
-    _start()
-    {
-        let xhr;
-        let start_pos;
-        let end_pos;
-
-        const load = ()=>
-        {
-            const arrBuf = xhr.response;
-            let view_in = new Uint8Array(arrBuf);
-            let view_out = new Uint8Array(this.arrBuf, start_pos, end_pos-start_pos);
-            view_out.set(view_in);
-            this.availableLength = end_pos;            
-
-            for (let i=0; i<this.resolvers.length; i++)
-            {
-                let resolver = this.resolvers[i];
-                if (resolver.byteOffset <= end_pos)
-                {
-                    resolver.resolve(true);
-                    this.resolvers.splice(i,1);
-                    i--;
-                }
-            }
-
-            if (end_pos< this.byteLength)
-            {
-                grab_buffer();
-            }
-        };
-
-        const grab_buffer = ()=>{
-            start_pos = this.availableLength;
-            end_pos = start_pos + this.buffer_size;
-            if (end_pos>this.byteLength)
-            {
-                end_pos = this.byteLength;                
-            }
-
-            xhr = new XMLHttpRequest(); 
-            xhr.open("GET", this.url);
-            xhr.responseType = "arraybuffer";            
-            xhr.setRequestHeader('Range', `bytes=${start_pos}-${end_pos-1}`);
-            xhr.onload = load;
-            xhr.send();
-
-        };        
-        grab_buffer();
-
-    }
-
-    async reached(byteOffset)
-    {
-        return new Promise((resolve, reject) => {
-            if (byteOffset<=this.availableLength)
-            {
-                resolve(true);
-            }
-            else
-            {
-                this.resolvers.push({
-                    byteOffset,
-                    resolve
-                });
-            }
-        });
-    }
-
-
-}
-
 export class GLTFLoader
 {
     constructor()
     {
-        this.module = null;
+        
 
     }
 
@@ -118,13 +23,18 @@ export class GLTFLoader
         let model = new GLTFModel;
         let gltf_version;
         let file_length;
+        let json_length;
 
-        let bin_loader;
+        let bin_uri = url;
         let bin_offset;
+        
+        let xhr;
 
-        let material_affected_primitives;   
+        let material_affected_primitives;
         let tex_affected_materials;
-        const load_image_url = async (url, idx, opts) => {
+
+        const load_image_url = async (url, idx, opts) =>
+        {
             let img = document.createElement("img"); 
             img.src = url;       
             await img.decode();
@@ -143,18 +53,17 @@ export class GLTFLoader
                     prim.create_bind_group(mesh.constant, model.materials, model.textures);
                 }
             }
-        };
+        }
 
-        const load_image = async(loader, offset, length, idx, opts) => {
-            await loader.reached(offset+length);
-            let blob = new Blob([new Uint8Array(loader.arrBuf, offset, length)]);
+        const load_image = async (blob, idx, opts) =>
+        {            
             let urlCreator = window.URL || window.webkitURL;
             var imageUrl = urlCreator.createObjectURL(blob);
             await load_image_url(imageUrl, idx, opts);
         };
 
-        const load_targets = async (primitive_out, info) => {
-
+        const load_targets = async (primitive_out, info) =>
+        {
             let num_pos = primitive_out.num_pos;
             let type_indices = primitive_out.type_indices;
             let num_face = primitive_out.num_face;
@@ -164,31 +73,44 @@ export class GLTFLoader
 
             let pos_targets = new ArrayBuffer(num_pos*4*4 * num_targets);
             let norm_targets = new ArrayBuffer(num_pos*4*4 * num_targets);
-            let non_zero = new Int32Array(num_pos); 
-
+            let non_zero = new Int32Array(num_pos);    
+            
             for (let i=0; i< num_targets; i++)
             {
                 let target_info = info.targets[i];
                 if (!target_info.pos_is_sparse)
-                {
-                    pendings.push((async()=>{
-                        await bin_loader.reached(bin_offset + target_info.position_offset +  num_pos*3*4);
+                {                        
+                    pendings.push(new Promise((resolve, reject) => {
+                        let xhr_pos;
+                        const load_position = ()=>
+                        {
+                            const arrBuf = xhr_pos.response;
 
-                        let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
-                        let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
-
-                        this.module.HEAPU8.set(new Uint8Array(bin_loader.arrBuf, bin_offset + target_info.position_offset, num_pos*3*4), p_vec3);
-                        this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 0.0]);                                
-                        let src_view = new Uint8Array(this.module.HEAPU8.buffer, p_vec4, num_pos*4*4)
-                        let dst_view = new Uint8Array(pos_targets, num_pos*4*4*i, num_pos*4*4);
-                        dst_view.set(src_view)
-        
-                        this.module.ccall("dealloc", null, ["number"], [p_vec3]);
-                        this.module.ccall("dealloc", null, ["number"], [p_vec4]);                        
-                    })());
+                            let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
+                            let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
+            
+                            this.module.HEAPU8.set(new Uint8Array(arrBuf), p_vec3);
+                            this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 0.0]);                                
+                            let src_view = new Uint8Array(this.module.HEAPU8.buffer, p_vec4, num_pos*4*4)
+                            let dst_view = new Uint8Array(pos_targets, num_pos*4*4*i, num_pos*4*4);
+                            dst_view.set(src_view)
+            
+                            this.module.ccall("dealloc", null, ["number"], [p_vec3]);
+                            this.module.ccall("dealloc", null, ["number"], [p_vec4]);
+    
+                            resolve(true);
+                        };
+    
+                        xhr_pos = new XMLHttpRequest(); 
+                        xhr_pos.open("GET", bin_uri);
+                        xhr_pos.responseType = "arraybuffer";            
+                        xhr_pos.setRequestHeader('Range', `bytes=${bin_offset + target_info.position_offset}-${bin_offset + target_info.position_offset + num_pos*3*4 - 1}`);
+                        xhr_pos.onload = load_position;
+                        xhr_pos.send();
+                    }));
                 }
                 else
-                {
+                { 
                     pendings.push((async()=>{
                         let count = target_info.position_count;
                         let idx_bytes = 4;
@@ -199,30 +121,48 @@ export class GLTFLoader
                         else if (target_info.position_idx_type == 5121)
                         {
                             idx_bytes = 1;
-                        }                          
-                        let dataSize =  count*idx_bytes;
-                        dataSize = (dataSize + 3) & ~3;
-                                
-                        await bin_loader.reached(bin_offset + target_info.position_idx_offset +  dataSize);
-                        await bin_loader.reached(bin_offset + target_info.position_value_offset +  count*3*4);
+                        }  
+                        
+                        let pending_bufs = [
+                            new Promise((resolve, reject) => {
+                                let dataSize =  count*idx_bytes;
+                                dataSize = (dataSize + 3) & ~3;
 
+                                let xhr_pos_idx = new XMLHttpRequest(); 
+                                xhr_pos_idx.open("GET", bin_uri);
+                                xhr_pos_idx.responseType = "arraybuffer";            
+                                xhr_pos_idx.setRequestHeader('Range', `bytes=${bin_offset + target_info.position_idx_offset}-${bin_offset + target_info.position_idx_offset + dataSize - 1}`);
+                                xhr_pos_idx.onload = ()=> resolve( xhr_pos_idx.response);
+                                xhr_pos_idx.send();
+                            }),
+                            new Promise((resolve, reject) => {
+                                let xhr_pos_value = new XMLHttpRequest(); 
+                                xhr_pos_value.open("GET", bin_uri);
+                                xhr_pos_value.responseType = "arraybuffer";            
+                                xhr_pos_value.setRequestHeader('Range', `bytes=${bin_offset + target_info.position_value_offset}-${bin_offset + target_info.position_value_offset + count*3*4 - 1}`);
+                                xhr_pos_value.onload = ()=> resolve( xhr_pos_value.response);
+                                xhr_pos_value.send();
+                            })
+                        ];
+
+                        let [arr_idx, arr_value] = await Promise.all(pending_bufs);
                         let view_idx, view_value;
                         if (idx_bytes == 4)
                         {
-                            view_idx = new Uint32Array(bin_loader.arrBuf, bin_offset + target_info.position_idx_offset, count);
+                            view_idx = new Uint32Array(arr_idx);
                         }
                         else if (idx_bytes == 2)
                         {
-                            view_idx = new Uint16Array(bin_loader.arrBuf, bin_offset + target_info.position_idx_offset, count);
+                            view_idx = new Uint16Array(arr_idx);
                         }
                         else if (idx_bytes == 1)
                         {
-                            view_idx = new Uint8Array(bin_loader.arrBuf, bin_offset + target_info.position_idx_offset, count);
+                            view_idx = new Uint8Array(arr_idx);
                         }
-                        view_value = new Float32Array(bin_loader.arrBuf, bin_offset + target_info.position_value_offset, count*3);
+                        view_value = new Float32Array(arr_value);
 
                         let dst_view = new Float32Array(pos_targets, num_pos*4*4*i, num_pos*4);
-                        for (let j=0; j< count; j++)
+                        for (let j=0; j< view_idx.length; j++)
                         {
                             let idx = view_idx[j];
                             let value = [view_value[j*3], view_value[j*3+1], view_value[j*3+2]];
@@ -242,23 +182,37 @@ export class GLTFLoader
                 {
                     if (!target_info.norm_is_sparse)
                     {
-                        pendings.push((async()=>{
-                            await bin_loader.reached(bin_offset + target_info.normal_offset +  num_pos*3*4);
-
-                            let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
-                            let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
-
-                            this.module.HEAPU8.set(new Uint8Array(bin_loader.arrBuf, bin_offset + target_info.normal_offset, num_pos*3*4), p_vec3);
-                            this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 0.0]);
-                            let src_view = new Uint8Array(this.module.HEAPU8.buffer, p_vec4, num_pos*4*4)
-                            let dst_view = new Uint8Array(norm_targets, num_pos*4*4*i, num_pos*4*4);
-                            dst_view.set(src_view);
+                        pendings.push(new Promise((resolve, reject) => {
+                            let xhr_norm;
                             
-                            this.module.ccall("dealloc", null, ["number"], [p_vec3]);
-                            this.module.ccall("dealloc", null, ["number"], [p_vec4]);
+                            const load_normal = ()=>
+                            {
+                                const arrBuf = xhr_norm.response;
 
-                        })());
+                                let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
+                                let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
 
+                                this.module.HEAPU8.set(new Uint8Array(arrBuf), p_vec3);
+                                this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 0.0]);
+                                let src_view = new Uint8Array(this.module.HEAPU8.buffer, p_vec4, num_pos*4*4)
+                                let dst_view = new Uint8Array(norm_targets, num_pos*4*4*i, num_pos*4*4);
+                                dst_view.set(src_view);
+                                
+                                this.module.ccall("dealloc", null, ["number"], [p_vec3]);
+                                this.module.ccall("dealloc", null, ["number"], [p_vec4]);
+        
+                                resolve(true);
+
+                            };
+
+                            xhr_norm = new XMLHttpRequest(); 
+                            xhr_norm.open("GET", bin_uri);
+                            xhr_norm.responseType = "arraybuffer";            
+                            xhr_norm.setRequestHeader('Range', `bytes=${bin_offset + target_info.normal_offset}-${bin_offset + target_info.normal_offset + num_pos*3*4 - 1}`);
+                            xhr_norm.onload = load_normal;
+                            xhr_norm.send();
+
+                        }));
                     }
                     else
                     {
@@ -273,26 +227,45 @@ export class GLTFLoader
                             {
                                 idx_bytes = 1;
                             }
-                            let dataSize =  count*idx_bytes;
-                            dataSize = (dataSize + 3) & ~3;
 
-                            await bin_loader.reached(bin_offset + target_info.normal_idx_offset +  dataSize);
-                            await bin_loader.reached(bin_offset + target_info.normal_value_offset +  count*3*4);
-                            
+                            let pending_bufs = [
+                                new Promise((resolve, reject) => {
+                                    let dataSize =  count*idx_bytes;
+                                    dataSize = (dataSize + 3) & ~3;
+
+                                    let xhr_norm_idx = new XMLHttpRequest(); 
+                                    xhr_norm_idx.open("GET", bin_uri);
+                                    xhr_norm_idx.responseType = "arraybuffer";            
+                                    xhr_norm_idx.setRequestHeader('Range', `bytes=${bin_offset + target_info.normal_idx_offset}-${bin_offset + target_info.normal_idx_offset + dataSize - 1}`);
+                                    xhr_norm_idx.onload = ()=> resolve( xhr_norm_idx.response);
+                                    xhr_norm_idx.send();
+
+                                }),
+                                new Promise((resolve, reject) => {
+                                    let xhr_norm_value = new XMLHttpRequest(); 
+                                    xhr_norm_value.open("GET", bin_uri);
+                                    xhr_norm_value.responseType = "arraybuffer";            
+                                    xhr_norm_value.setRequestHeader('Range', `bytes=${bin_offset + target_info.normal_value_offset}-${bin_offset + target_info.normal_value_offset + count*3*4 - 1}`);
+                                    xhr_norm_value.onload = ()=> resolve( xhr_norm_value.response);
+                                    xhr_norm_value.send();
+                                })
+                            ];
+
+                            let [arr_idx, arr_value] = await Promise.all(pending_bufs);
                             let view_idx, view_value;
                             if (idx_bytes == 4)
                             {
-                                view_idx = new Uint32Array(bin_loader.arrBuf, bin_offset + target_info.normal_idx_offset, count);
+                                view_idx = new Uint32Array(arr_idx);
                             }
                             else if (idx_bytes == 2)
                             {
-                                view_idx = new Uint16Array(bin_loader.arrBuf, bin_offset + target_info.normal_idx_offset, count);
+                                view_idx = new Uint16Array(arr_idx);
                             }
                             else if (idx_bytes == 1)
                             {
-                                view_idx = new Uint8Array(bin_loader.arrBuf, bin_offset + target_info.normal_idx_offset, count);
+                                view_idx = new Uint8Array(arr_idx);
                             }
-                            view_value = new Float32Array(bin_loader.arrBuf, bin_offset + target_info.normal_value_offset, count*3);
+                            view_value = new Float32Array(arr_value);
                             
                             let dst_view = new Float32Array(norm_targets, num_pos*4*4*i, num_pos*4);
                             for (let j=0; j< view_idx.length; j++)
@@ -311,6 +284,8 @@ export class GLTFLoader
                         })());
                     }
                 }
+
+
             }
 
             await Promise.all(pendings);
@@ -475,8 +450,7 @@ export class GLTFLoader
             {
                 primitive_out.none_zero_buf = engine_ctx.createBuffer(non_zero.buffer, GPUBufferUsage.STORAGE, 0, num_pos*4);
             }
-
-        };
+        }
 
         const load_primitive = async (primitive_out, info)=>
         {
@@ -503,328 +477,358 @@ export class GLTFLoader
             let pendings = [];
 
             if (info.draco_offset>=0)
-            {                   
+            {           
                 pendings.push(new Promise((resolve, reject) => {
-                    let decoderConfig = {};                                
-                    decoderConfig.onModuleLoaded = async (draco)=>{                        
-                        await bin_loader.reached(bin_offset + info.draco_offset + info.draco_length);
-                        
-                        let decoderBuffer = new draco.DecoderBuffer();
-                        decoderBuffer.Init( new Int8Array( bin_loader.arrBuf, bin_offset + info.draco_offset, info.draco_length), info.draco_length );
-
-                        const decoder = new draco.Decoder();
-                        let dracoGeometry = new draco.Mesh();
-                        decoder.DecodeBufferToMesh(decoderBuffer, dracoGeometry);
-
+                    let xhr_draco;
+                    const load_draco = ()=>
+                    {
+                        const arrBuf = xhr_draco.response;
+                        let decoderConfig = {};                                
+                        decoderConfig.onModuleLoaded = (draco)=>
                         {
-                            let dataSize = num_face * 3 * type_indices;
-                            dataSize = (dataSize + 3) & ~3;
+                            let decoderBuffer = new draco.DecoderBuffer();
+                            decoderBuffer.Init( new Int8Array( arrBuf ), arrBuf.byteLength );
 
-                            let arrBuf = new ArrayBuffer(dataSize);
-                            let view = new Uint8Array(arrBuf);
+                            const decoder = new draco.Decoder();
+                            let dracoGeometry = new draco.Mesh();
+                            decoder.DecodeBufferToMesh(decoderBuffer, dracoGeometry);
 
-                            let ptr = draco._malloc( dataSize );  
-                            if (type_indices==4)
                             {
-                                decoder.GetTrianglesUInt32Array( dracoGeometry, dataSize, ptr );
-                            }
-                            else
-                            {
-                                decoder.GetTrianglesUInt16Array( dracoGeometry, dataSize, ptr );
-                            }
-                            let buf_in = new Uint8Array(draco.HEAPU8.buffer, ptr, dataSize);
-                            view.set(buf_in);
-                            draco._free( ptr );
+                                let dataSize = num_face * 3 * type_indices;
+                                dataSize = (dataSize + 3) & ~3;
 
-                            primitive_out.cpu_indices = arrBuf;
-                            primitive_out.index_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.INDEX, 0,  dataSize);
+                                let arrBuf = new ArrayBuffer(dataSize);
+                                let view = new Uint8Array(arrBuf);
 
-                        }
-
-                        {
-                            let dataSize =  num_pos * 3 *4;
-
-                            let arrBuf = new ArrayBuffer(dataSize);
-                            let view = new Uint8Array(arrBuf);
-                            
-                            let attribute = decoder.GetAttributeByUniqueId( dracoGeometry, info.draco_attributes.POSITION );                 
-                            let ptr = draco._malloc( dataSize );                                
-                            decoder.GetAttributeDataArrayForAllPoints( dracoGeometry, attribute, draco.DT_FLOAT32, dataSize, ptr );
-                            let buf_in = new Uint8Array(draco.HEAPU8.buffer, ptr, dataSize);
-                            view.set(buf_in);
-                            draco._free( ptr );
-
-                            primitive_out.cpu_pos = arrBuf;
-                            let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
-                            let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
-            
-                            this.module.HEAPU8.set(view, p_vec3);
-                            this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 1.0]);
-                            geo_set.pos_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, usage0, p_vec4, num_pos*4*4);
-            
-                            this.module.ccall("dealloc", null, ["number"], [p_vec3]);
-                            this.module.ccall("dealloc", null, ["number"], [p_vec4]);
-                            
-                        }
-
-                        if ("NORMAL" in info.draco_attributes)
-                        {                                
-                            let dataSize =  num_pos * 3 *4;
-
-                            let arrBuf = new ArrayBuffer(dataSize);
-                            let view = new Uint8Array(arrBuf);
-                            
-                            let attribute = decoder.GetAttributeByUniqueId( dracoGeometry, info.draco_attributes.NORMAL );
-                            let ptr = draco._malloc( dataSize );
-                            decoder.GetAttributeDataArrayForAllPoints( dracoGeometry, attribute, draco.DT_FLOAT32, dataSize, ptr );
-                            let buf_in = new Uint8Array(draco.HEAPU8.buffer, ptr, dataSize);
-                            view.set(buf_in);
-                            draco._free( ptr );
-
-                            primitive_out.cpu_norm = arrBuf;
-                            let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
-                            let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
-    
-                            this.module.HEAPU8.set(new Uint8Array(arrBuf), p_vec3);
-                            this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 0.0]);
-                            geo_set.normal_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, usage0, p_vec4, num_pos*4*4);
-    
-                            this.module.ccall("dealloc", null, ["number"], [p_vec3]);
-                            this.module.ccall("dealloc", null, ["number"], [p_vec4]);
-
-                        }
-
-                        if ("COLOR_0" in info.draco_attributes)
-                        {
-                            let chn = info.color_type == "VEC4"? 4:3;
-                            let byte_per_ch = 4;
-                            if (info.color_componentType == 5123)
-                            {
-                                byte_per_ch = 2;
-                            }
-                            else if (info.color_componentType == 5121)
-                            {
-                                byte_per_ch = 1;
-                            }
-
-                            let dataSize =  num_pos * chn * byte_per_ch;
-
-                            let arrBuf = new ArrayBuffer(dataSize);
-                            let view = new Uint8Array(arrBuf);
-
-                            let attribute = decoder.GetAttributeByUniqueId( dracoGeometry, info.draco_attributes.NORMAL );
-                            let ptr = draco._malloc( dataSize );
-                            if (byte_per_ch == 4)
-                            {
-                                decoder.GetAttributeDataArrayForAllPoints( dracoGeometry, attribute, draco.DT_FLOAT32, dataSize, ptr );
-                            }
-                            else if (byte_per_ch == 2)
-                            {
-                                decoder.GetAttributeDataArrayForAllPoints( dracoGeometry, attribute, draco.DT_UINT16, dataSize, ptr );
-                            }
-                            else if (byte_per_ch == 1)
-                            {
-                                decoder.GetAttributeDataArrayForAllPoints( dracoGeometry, attribute, draco.DT_UINT8, dataSize, ptr );
-                            }
-                            let buf_in = new Uint8Array(draco.HEAPU8.buffer, ptr, dataSize);
-                            view.set(buf_in);
-                            draco._free( ptr );
-
-                            if (chn==4 && byte_per_ch == 4)
-                            {
-                                primitive_out.color_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.VERTEX, 0, num_pos*4*4);                                    
-                            }
-                            else
-                            {
-                                let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
-                                if (chn==4)
-                                {                            
-                                    if (byte_per_ch == 2)
-                                    {
-                                        let p_u16vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*2*4]);
-                                        this.module.HEAPU8.set(view, p_u16vec4);
-                                        this.module.ccall("u16vec4_to_vec4", null, ["number", "number", "number"], [p_u16vec4, p_vec4, num_pos]);
-                                        this.module.ccall("dealloc", null, ["number"], [p_u16vec4]);
-
-                                    }
-                                    else
-                                    {
-                                        let p_u8vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4]);
-                                        this.module.HEAPU8.set(view, p_u8vec4);
-                                        this.module.ccall("u8vec4_to_vec4", null, ["number", "number", "number"], [p_u8vec4, p_vec4, num_pos]);
-                                        this.module.ccall("dealloc", null, ["number"], [p_u8vec4]);
-
-                                    }
+                                let ptr = draco._malloc( dataSize );  
+                                if (type_indices==4)
+                                {
+                                    decoder.GetTrianglesUInt32Array( dracoGeometry, dataSize, ptr );
                                 }
                                 else
                                 {
-                                    if (byte_per_ch == 4)
-                                    {
-                                        let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
-                                        this.module.HEAPU8.set(view, p_vec3);
-                                        this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 1.0]);
-                                        this.module.ccall("dealloc", null, ["number"], [p_vec3]);
+                                    decoder.GetTrianglesUInt16Array( dracoGeometry, dataSize, ptr );
+                                }
+                                let buf_in = new Uint8Array(draco.HEAPU8.buffer, ptr, dataSize);
+                                view.set(buf_in);
+                                draco._free( ptr );
 
-                                    }
-                                    else if (byte_per_ch == 2)
-                                    {
-                                        let p_u16vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*2*3]);
-                                        this.module.HEAPU8.set(view, p_u16vec3);
-                                        this.module.ccall("u16vec3_to_vec4", null, ["number", "number", "number", "number"], [p_u16vec3, p_vec4, num_pos, 1.0]);
-                                        this.module.ccall("dealloc", null, ["number"], [p_u16vec3]);
+                                primitive_out.cpu_indices = arrBuf;
+                                primitive_out.index_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.INDEX, 0,  dataSize);
 
+                            }
+
+                            {
+                                let dataSize =  num_pos * 3 *4;
+
+                                let arrBuf = new ArrayBuffer(dataSize);
+                                let view = new Uint8Array(arrBuf);
+                                
+                                let attribute = decoder.GetAttributeByUniqueId( dracoGeometry, info.draco_attributes.POSITION );                 
+                                let ptr = draco._malloc( dataSize );                                
+                                decoder.GetAttributeDataArrayForAllPoints( dracoGeometry, attribute, draco.DT_FLOAT32, dataSize, ptr );
+                                let buf_in = new Uint8Array(draco.HEAPU8.buffer, ptr, dataSize);
+                                view.set(buf_in);
+                                draco._free( ptr );
+
+                                primitive_out.cpu_pos = arrBuf;
+                                let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
+                                let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
+                
+                                this.module.HEAPU8.set(view, p_vec3);
+                                this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 1.0]);
+                                geo_set.pos_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, usage0, p_vec4, num_pos*4*4);
+                
+                                this.module.ccall("dealloc", null, ["number"], [p_vec3]);
+                                this.module.ccall("dealloc", null, ["number"], [p_vec4]);
+                                
+                            }
+
+                            if ("NORMAL" in info.draco_attributes)
+                            {                                
+                                let dataSize =  num_pos * 3 *4;
+
+                                let arrBuf = new ArrayBuffer(dataSize);
+                                let view = new Uint8Array(arrBuf);
+                                
+                                let attribute = decoder.GetAttributeByUniqueId( dracoGeometry, info.draco_attributes.NORMAL );
+                                let ptr = draco._malloc( dataSize );
+                                decoder.GetAttributeDataArrayForAllPoints( dracoGeometry, attribute, draco.DT_FLOAT32, dataSize, ptr );
+                                let buf_in = new Uint8Array(draco.HEAPU8.buffer, ptr, dataSize);
+                                view.set(buf_in);
+                                draco._free( ptr );
+
+                                primitive_out.cpu_norm = arrBuf;
+                                let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
+                                let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
+        
+                                this.module.HEAPU8.set(new Uint8Array(arrBuf), p_vec3);
+                                this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 0.0]);
+                                geo_set.normal_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, usage0, p_vec4, num_pos*4*4);
+        
+                                this.module.ccall("dealloc", null, ["number"], [p_vec3]);
+                                this.module.ccall("dealloc", null, ["number"], [p_vec4]);
+
+                            }
+
+                            if ("COLOR_0" in info.draco_attributes)
+                            {
+                                let chn = info.color_type == "VEC4"? 4:3;
+                                let byte_per_ch = 4;
+                                if (info.color_componentType == 5123)
+                                {
+                                    byte_per_ch = 2;
+                                }
+                                else if (info.color_componentType == 5121)
+                                {
+                                    byte_per_ch = 1;
+                                }
+
+                                let dataSize =  num_pos * chn * byte_per_ch;
+
+                                let arrBuf = new ArrayBuffer(dataSize);
+                                let view = new Uint8Array(arrBuf);
+
+                                let attribute = decoder.GetAttributeByUniqueId( dracoGeometry, info.draco_attributes.NORMAL );
+                                let ptr = draco._malloc( dataSize );
+                                if (byte_per_ch == 4)
+                                {
+                                    decoder.GetAttributeDataArrayForAllPoints( dracoGeometry, attribute, draco.DT_FLOAT32, dataSize, ptr );
+                                }
+                                else if (byte_per_ch == 2)
+                                {
+                                    decoder.GetAttributeDataArrayForAllPoints( dracoGeometry, attribute, draco.DT_UINT16, dataSize, ptr );
+                                }
+                                else if (byte_per_ch == 1)
+                                {
+                                    decoder.GetAttributeDataArrayForAllPoints( dracoGeometry, attribute, draco.DT_UINT8, dataSize, ptr );
+                                }
+                                let buf_in = new Uint8Array(draco.HEAPU8.buffer, ptr, dataSize);
+                                view.set(buf_in);
+                                draco._free( ptr );
+
+                                if (chn==4 && byte_per_ch == 4)
+                                {
+                                    primitive_out.color_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.VERTEX, 0, num_pos*4*4);                                    
+                                }
+                                else
+                                {
+                                    let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
+                                    if (chn==4)
+                                    {                            
+                                        if (byte_per_ch == 2)
+                                        {
+                                            let p_u16vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*2*4]);
+                                            this.module.HEAPU8.set(view, p_u16vec4);
+                                            this.module.ccall("u16vec4_to_vec4", null, ["number", "number", "number"], [p_u16vec4, p_vec4, num_pos]);
+                                            this.module.ccall("dealloc", null, ["number"], [p_u16vec4]);
+
+                                        }
+                                        else
+                                        {
+                                            let p_u8vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4]);
+                                            this.module.HEAPU8.set(view, p_u8vec4);
+                                            this.module.ccall("u8vec4_to_vec4", null, ["number", "number", "number"], [p_u8vec4, p_vec4, num_pos]);
+                                            this.module.ccall("dealloc", null, ["number"], [p_u8vec4]);
+
+                                        }
                                     }
                                     else
                                     {
-                                        let p_u8vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3]);
-                                        this.module.HEAPU8.set(view, p_u8vec3);
-                                        this.module.ccall("u8vec3_to_vec4", null, ["number", "number", "number", "number"], [p_u8vec3, p_vec4, num_pos, 1.0]);
-                                        this.module.ccall("dealloc", null, ["number"], [p_u8vec3]);
+                                        if (byte_per_ch == 4)
+                                        {
+                                            let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
+                                            this.module.HEAPU8.set(view, p_vec3);
+                                            this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 1.0]);
+                                            this.module.ccall("dealloc", null, ["number"], [p_vec3]);
+
+                                        }
+                                        else if (byte_per_ch == 2)
+                                        {
+                                            let p_u16vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*2*3]);
+                                            this.module.HEAPU8.set(view, p_u16vec3);
+                                            this.module.ccall("u16vec3_to_vec4", null, ["number", "number", "number", "number"], [p_u16vec3, p_vec4, num_pos, 1.0]);
+                                            this.module.ccall("dealloc", null, ["number"], [p_u16vec3]);
+
+                                        }
+                                        else
+                                        {
+                                            let p_u8vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3]);
+                                            this.module.HEAPU8.set(view, p_u8vec3);
+                                            this.module.ccall("u8vec3_to_vec4", null, ["number", "number", "number", "number"], [p_u8vec3, p_vec4, num_pos, 1.0]);
+                                            this.module.ccall("dealloc", null, ["number"], [p_u8vec3]);
+                                        }
                                     }
-                                }
 
-                                primitive_out.color_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_vec4, num_pos*4*4);
-                                this.module.ccall("dealloc", null, ["number"], [p_vec4]);
-                            }                                
-                        }
-                        
-                        if ("TEXCOORD_0" in info.draco_attributes)
-                        {
-                            let dataSize =  num_pos * 2 *4;
-
-                            let arrBuf = new ArrayBuffer(dataSize);
-                            let view = new Uint8Array(arrBuf);
+                                    primitive_out.color_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_vec4, num_pos*4*4);
+                                    this.module.ccall("dealloc", null, ["number"], [p_vec4]);
+                                }                                
+                            }
                             
-                            let attribute = decoder.GetAttributeByUniqueId( dracoGeometry, info.draco_attributes.TEXCOORD_0 );
-                            let ptr = draco._malloc( dataSize );
-                            decoder.GetAttributeDataArrayForAllPoints( dracoGeometry, attribute, draco.DT_FLOAT32, dataSize, ptr );
-                            let buf_in = new Uint8Array(draco.HEAPU8.buffer, ptr, dataSize);
-                            view.set(buf_in);
-                            draco._free( ptr );
+                            if ("TEXCOORD_0" in info.draco_attributes)
+                            {
+                                let dataSize =  num_pos * 2 *4;
 
-                            primitive_out.cpu_uv = arrBuf;
-                            primitive_out.uv_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.VERTEX, 0, num_pos*2*4);
+                                let arrBuf = new ArrayBuffer(dataSize);
+                                let view = new Uint8Array(arrBuf);
+                                
+                                let attribute = decoder.GetAttributeByUniqueId( dracoGeometry, info.draco_attributes.TEXCOORD_0 );
+                                let ptr = draco._malloc( dataSize );
+                                decoder.GetAttributeDataArrayForAllPoints( dracoGeometry, attribute, draco.DT_FLOAT32, dataSize, ptr );
+                                let buf_in = new Uint8Array(draco.HEAPU8.buffer, ptr, dataSize);
+                                view.set(buf_in);
+                                draco._free( ptr );
 
-                        }        
-                        
-                        if ("JOINTS_0" in info.draco_attributes)
-                        {
-                            let dataSize = num_pos * 4 * 4;
+                                primitive_out.cpu_uv = arrBuf;
+                                primitive_out.uv_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.VERTEX, 0, num_pos*2*4);
 
-                            let arrBuf = new ArrayBuffer(dataSize);
-                            let view = new Uint8Array(arrBuf);
+                            }        
+                            
+                            if ("JOINTS_0" in info.draco_attributes)
+                            {
+                                let dataSize = num_pos * 4 * 4;
 
-                            let attribute = decoder.GetAttributeByUniqueId( dracoGeometry, info.draco_attributes.JOINTS_0 );
-                            let ptr = draco._malloc( dataSize );
-                            decoder.GetAttributeDataArrayForAllPoints( dracoGeometry, attribute, draco.DT_UINT32, dataSize, ptr );
-                            let buf_in = new Uint8Array(draco.HEAPU8.buffer, ptr, dataSize);
-                            view.set(buf_in);
-                            draco._free( ptr );
+                                let arrBuf = new ArrayBuffer(dataSize);
+                                let view = new Uint8Array(arrBuf);
 
-                            primitive_out.joints_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.STORAGE, 0, num_pos*4*4);
-                        }
+                                let attribute = decoder.GetAttributeByUniqueId( dracoGeometry, info.draco_attributes.JOINTS_0 );
+                                let ptr = draco._malloc( dataSize );
+                                decoder.GetAttributeDataArrayForAllPoints( dracoGeometry, attribute, draco.DT_UINT32, dataSize, ptr );
+                                let buf_in = new Uint8Array(draco.HEAPU8.buffer, ptr, dataSize);
+                                view.set(buf_in);
+                                draco._free( ptr );
 
-                        if ("WEIGHTS_0" in info.draco_attributes)
-                        {
-                            let dataSize = num_pos * 4 * 4;
+                                primitive_out.joints_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.STORAGE, 0, num_pos*4*4);
+                            }
 
-                            let arrBuf = new ArrayBuffer(dataSize);
-                            let view = new Uint8Array(arrBuf);
+                            if ("WEIGHTS_0" in info.draco_attributes)
+                            {
+                                let dataSize = num_pos * 4 * 4;
 
-                            let attribute = decoder.GetAttributeByUniqueId( dracoGeometry, info.draco_attributes.WEIGHTS_0 );
-                            let ptr = draco._malloc( dataSize );
-                            decoder.GetAttributeDataArrayForAllPoints( dracoGeometry, attribute, draco.DT_FLOAT32, dataSize, ptr );
-                            let buf_in = new Uint8Array(draco.HEAPU8.buffer, ptr, dataSize);
-                            view.set(buf_in);
-                            draco._free( ptr );
+                                let arrBuf = new ArrayBuffer(dataSize);
+                                let view = new Uint8Array(arrBuf);
 
-                            primitive_out.weights_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.STORAGE, 0, num_pos*4*4);
-                        }
+                                let attribute = decoder.GetAttributeByUniqueId( dracoGeometry, info.draco_attributes.WEIGHTS_0 );
+                                let ptr = draco._malloc( dataSize );
+                                decoder.GetAttributeDataArrayForAllPoints( dracoGeometry, attribute, draco.DT_FLOAT32, dataSize, ptr );
+                                let buf_in = new Uint8Array(draco.HEAPU8.buffer, ptr, dataSize);
+                                view.set(buf_in);
+                                draco._free( ptr );
 
-                        draco.destroy(dracoGeometry);
-                        draco.destroy(decoder);
-                        draco.destroy(decoderBuffer);
+                                primitive_out.weights_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.STORAGE, 0, num_pos*4*4);
+                            }
 
-                        resolve(true);
-                    };
-                    DracoDecoderModule(decoderConfig);
+                            draco.destroy(dracoGeometry);
+                            draco.destroy(decoder);
+                            draco.destroy(decoderBuffer);
 
+                            resolve(true);
+
+
+                        };
+                        DracoDecoderModule(decoderConfig);
+
+                    };                    
+                    
+                    xhr_draco = new XMLHttpRequest(); 
+                    xhr_draco.open("GET", bin_uri);
+                    xhr_draco.responseType = "arraybuffer";            
+                    xhr_draco.setRequestHeader('Range', `bytes=${bin_offset + info.draco_offset}-${bin_offset + info.draco_offset + info.draco_length - 1}`);
+                    xhr_draco.onload = load_draco;
+                    xhr_draco.send();
                 }));
             }
 
             if (info.indices_offset>=0)
             {     
-                pendings.push((async()=>{
+                pendings.push(new Promise((resolve, reject) => {
+
                     let dataSize =  num_face*type_indices*3;
-                    dataSize = (dataSize + 3) & ~3;                    
-                    await bin_loader.reached(bin_offset + info.indices_offset + dataSize);
-
-                    let cpu_indices = new ArrayBuffer(dataSize);
+                    dataSize = (dataSize + 3) & ~3;
+                    
+                    let xhr_indices;
+                    const load_indices = ()=>
                     {
-                        let view_src = new Uint8Array(bin_loader.arrBuf, bin_offset + info.indices_offset, dataSize);
-                        let view_dst = new Uint8Array(cpu_indices);
-                        view_dst.set(view_src);
-                    }
-                    primitive_out.cpu_indices = cpu_indices;
-                    primitive_out.index_buf = engine_ctx.createBuffer(cpu_indices, GPUBufferUsage.INDEX, 0,  dataSize);
-
-                })());
+                        const arrBuf = xhr_indices.response;  
+                        primitive_out.cpu_indices = arrBuf;
+                        primitive_out.index_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.INDEX, 0,  dataSize);
+                        resolve(true);
+                    };    
+                        
+                    xhr_indices = new XMLHttpRequest(); 
+                    xhr_indices.open("GET", bin_uri);
+                    xhr_indices.responseType = "arraybuffer";            
+                    xhr_indices.setRequestHeader('Range', `bytes=${bin_offset + info.indices_offset}-${bin_offset + info.indices_offset + dataSize - 1}`);
+                    xhr_indices.onload = load_indices;
+                    xhr_indices.send();
+                }));
             }
 
             if (info.position_offset>=0)
             {
-                pendings.push((async()=>{
-                    await bin_loader.reached(bin_offset + info.position_offset + num_pos*3*4);
-
-                    let cpu_pos = new ArrayBuffer(num_pos*3*4);
+                pendings.push(new Promise((resolve, reject) => {
+                    let xhr_pos;
+                    const load_position = ()=>
                     {
-                        let view_src = new Uint8Array(bin_loader.arrBuf, bin_offset + info.position_offset, num_pos*3*4);
-                        let view_dst = new Uint8Array(cpu_pos);
-                        view_dst.set(view_src);
-                    }
+                        const arrBuf = xhr_pos.response;  
+                        primitive_out.cpu_pos = arrBuf;
+                        let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
+                        let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
+        
+                        this.module.HEAPU8.set(new Uint8Array(arrBuf), p_vec3);
+                        this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 1.0]);
+                        geo_set.pos_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, usage0, p_vec4, num_pos*4*4);
+        
+                        this.module.ccall("dealloc", null, ["number"], [p_vec3]);
+                        this.module.ccall("dealloc", null, ["number"], [p_vec4]);
 
-                    primitive_out.cpu_pos = cpu_pos;
-                    let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
-                    let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
+                        resolve(true);
+                    };
 
-                    this.module.HEAPU8.set(new Uint8Array(cpu_pos), p_vec3);
-                    this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 1.0]);
-                    geo_set.pos_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, usage0, p_vec4, num_pos*4*4);
-
-                    this.module.ccall("dealloc", null, ["number"], [p_vec3]);
-                    this.module.ccall("dealloc", null, ["number"], [p_vec4]);
-
-                })());
+                    xhr_pos = new XMLHttpRequest(); 
+                    xhr_pos.open("GET", bin_uri);
+                    xhr_pos.responseType = "arraybuffer";            
+                    xhr_pos.setRequestHeader('Range', `bytes=${bin_offset + info.position_offset}-${bin_offset + info.position_offset + num_pos*3*4 - 1}`);
+                    xhr_pos.onload = load_position;
+                    xhr_pos.send();
+                }));
             }
 
             if (info.normal_offset>=0)
             {
-                pendings.push((async()=>{
-                    await bin_loader.reached(bin_offset + info.normal_offset + num_pos*3*4);
-
-                    let cpu_norm = new ArrayBuffer(num_pos*3*4);
+                pendings.push(new Promise((resolve, reject) => {
+                    let xhr_norm;
+                    const load_normal = ()=>
                     {
-                        let view_src = new Uint8Array(bin_loader.arrBuf, bin_offset + info.normal_offset, num_pos*3*4);
-                        let view_dst = new Uint8Array(cpu_norm);
-                        view_dst.set(view_src);
-                    }
+                        const arrBuf = xhr_norm.response;  
+                        primitive_out.cpu_norm = arrBuf;
+                        let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
+                        let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
 
-                    primitive_out.cpu_norm = cpu_norm;
-                    let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
-                    let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
+                        this.module.HEAPU8.set(new Uint8Array(arrBuf), p_vec3);
+                        this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 0.0]);
+                        geo_set.normal_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, usage0, p_vec4, num_pos*4*4);
 
-                    this.module.HEAPU8.set(new Uint8Array(cpu_norm), p_vec3);
-                    this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 0.0]);
-                    geo_set.normal_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, usage0, p_vec4, num_pos*4*4);
+                        this.module.ccall("dealloc", null, ["number"], [p_vec3]);
+                        this.module.ccall("dealloc", null, ["number"], [p_vec4]);
 
-                    this.module.ccall("dealloc", null, ["number"], [p_vec3]);
-                    this.module.ccall("dealloc", null, ["number"], [p_vec4]);
-                })());
+                        resolve(true);
+                    };
+
+                    xhr_norm = new XMLHttpRequest(); 
+                    xhr_norm.open("GET", bin_uri);
+                    xhr_norm.responseType = "arraybuffer";            
+                    xhr_norm.setRequestHeader('Range', `bytes=${bin_offset + info.normal_offset}-${bin_offset + info.normal_offset + num_pos*3*4 - 1}`);
+                    xhr_norm.onload = load_normal;
+                    xhr_norm.send();
+                }));
             }
 
             if (info.color_offset>=0)
             {
-                pendings.push((async()=>{
+                pendings.push(new Promise((resolve, reject) => {
+
+                    let xhr_color;
                     let chn = info.color_type == "VEC4"? 4:3;
                     let byte_per_ch = 4;
                     if (info.color_componentType == 5123)
@@ -835,86 +839,112 @@ export class GLTFLoader
                     {
                         byte_per_ch = 1;
                     }
-                    await bin_loader.reached(bin_offset + info.color_offset + num_pos*chn*byte_per_ch);
-                    
-                    if (chn==4 && byte_per_ch == 4)
+                    const load_color = ()=>
                     {
-                        primitive_out.color_buf = engine_ctx.createBuffer(bin_loader.arrBuf, GPUBufferUsage.VERTEX, bin_offset + info.color_offset , num_pos*chn*byte_per_ch);                        
-                    }
-                    else
-                    {
-                        let u8view = new Uint8Array(bin_loader.arrBuf, bin_offset + info.color_offset, num_pos*chn*byte_per_ch);
-                        let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
-                        if (chn==4)
-                        {                            
-                            if (byte_per_ch == 2)
-                            {
-                                let p_u16vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*2*4]);
-                                this.module.HEAPU8.set(u8view, p_u16vec4);
-                                this.module.ccall("u16vec4_to_vec4", null, ["number", "number", "number"], [p_u16vec4, p_vec4, num_pos]);
-                                this.module.ccall("dealloc", null, ["number"], [p_u16vec4]);
-                            }
-                            else
-                            {
-                                let p_u8vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4]);
-                                this.module.HEAPU8.set(u8view, p_u8vec4);
-                                this.module.ccall("u8vec4_to_vec4", null, ["number", "number", "number"], [p_u8vec4, p_vec4, num_pos]);
-                                this.module.ccall("dealloc", null, ["number"], [p_u8vec4]);
-                            }
+                        const arrBuf = xhr_color.response;  
+
+                        if (chn==4 && byte_per_ch == 4)
+                        {
+                            primitive_out.color_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.VERTEX, 0, num_pos*4*4);
+                            
                         }
                         else
                         {
-                            if (byte_per_ch == 4)
-                            {
-                                let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
-                                this.module.HEAPU8.set(u8view, p_vec3);
-                                this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 1.0]);
-                                this.module.ccall("dealloc", null, ["number"], [p_vec3]);
+                            let p_vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
+                            if (chn==4)
+                            {                            
+                                if (byte_per_ch == 2)
+                                {
+                                    let p_u16vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*2*4]);
+                                    this.module.HEAPU8.set(new Uint8Array(arrBuf), p_u16vec4);
+                                    this.module.ccall("u16vec4_to_vec4", null, ["number", "number", "number"], [p_u16vec4, p_vec4, num_pos]);
+                                    this.module.ccall("dealloc", null, ["number"], [p_u16vec4]);
 
-                            }
-                            else if (byte_per_ch == 2)
-                            {
-                                let p_u16vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*2*3]);
-                                this.module.HEAPU8.set(u8view, p_u16vec3);
-                                this.module.ccall("u16vec3_to_vec4", null, ["number", "number", "number", "number"], [p_u16vec3, p_vec4, num_pos, 1.0]);
-                                this.module.ccall("dealloc", null, ["number"], [p_u16vec3]);
+                                }
+                                else
+                                {
+                                    let p_u8vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4]);
+                                    this.module.HEAPU8.set(new Uint8Array(arrBuf), p_u8vec4);
+                                    this.module.ccall("u8vec4_to_vec4", null, ["number", "number", "number"], [p_u8vec4, p_vec4, num_pos]);
+                                    this.module.ccall("dealloc", null, ["number"], [p_u8vec4]);
 
+                                }
                             }
                             else
                             {
-                                let p_u8vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3]);
-                                this.module.HEAPU8.set(u8view, p_u8vec3);
-                                this.module.ccall("u8vec3_to_vec4", null, ["number", "number", "number", "number"], [p_u8vec3, p_vec4, num_pos, 1.0]);
-                                this.module.ccall("dealloc", null, ["number"], [p_u8vec3]);                                
-                            }
-                        }
-                        primitive_out.color_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_vec4, num_pos*4*4);
-                        this.module.ccall("dealloc", null, ["number"], [p_vec4]);
+                                if (byte_per_ch == 4)
+                                {
+                                    let p_vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
+                                    this.module.HEAPU8.set(new Uint8Array(arrBuf), p_vec3);
+                                    this.module.ccall("vec3_to_vec4", null, ["number", "number", "number", "number"], [p_vec3, p_vec4, num_pos, 1.0]);
+                                    this.module.ccall("dealloc", null, ["number"], [p_vec3]);
 
-                    }
-                })());
+                                }
+                                else if (byte_per_ch == 2)
+                                {
+                                    let p_u16vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*2*3]);
+                                    this.module.HEAPU8.set(new Uint8Array(arrBuf), p_u16vec3);
+                                    this.module.ccall("u16vec3_to_vec4", null, ["number", "number", "number", "number"], [p_u16vec3, p_vec4, num_pos, 1.0]);
+                                    this.module.ccall("dealloc", null, ["number"], [p_u16vec3]);
+
+                                }
+                                else
+                                {
+                                    let p_u8vec3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3]);
+                                    this.module.HEAPU8.set(new Uint8Array(arrBuf), p_u8vec3);
+                                    this.module.ccall("u8vec3_to_vec4", null, ["number", "number", "number", "number"], [p_u8vec3, p_vec4, num_pos, 1.0]);
+                                    this.module.ccall("dealloc", null, ["number"], [p_u8vec3]);
+                                    
+                                }
+
+                            }
+                            primitive_out.color_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_vec4, num_pos*4*4);
+                            this.module.ccall("dealloc", null, ["number"], [p_vec4]);
+
+                        }                      
+
+                        resolve(true);
+
+                    };                    
+
+                    xhr_color = new XMLHttpRequest(); 
+                    xhr_color.open("GET", bin_uri);
+                    xhr_color.responseType = "arraybuffer";            
+                    xhr_color.setRequestHeader('Range', `bytes=${bin_offset + info.color_offset}-${bin_offset + info.color_offset + num_pos*chn*byte_per_ch - 1}`);
+                    xhr_color.onload = load_color;
+                    xhr_color.send();
+
+                }));
+
             }
 
             if (info.uv_offset >=0)
             {
-                pendings.push((async()=>{
+                pendings.push(new Promise((resolve, reject) => {
 
-                    await bin_loader.reached(bin_offset + info.uv_offset + num_pos*2*4);
-                    let cpu_uv = new ArrayBuffer(num_pos*2*4);
+                    let xhr_uv;
+                    const load_uv = ()=>
                     {
-                        let view_src = new Uint8Array(bin_loader.arrBuf, bin_offset + info.uv_offset, num_pos*2*4);
-                        let view_dst = new Uint8Array(cpu_uv);
-                        view_dst.set(view_src);
-                    }
-                    primitive_out.cpu_uv = cpu_uv;
-                    primitive_out.uv_buf = engine_ctx.createBuffer(cpu_uv, GPUBufferUsage.VERTEX, 0, num_pos*2*4);
+                        const arrBuf = xhr_uv.response;
+                        primitive_out.cpu_uv = arrBuf;
+                        primitive_out.uv_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.VERTEX, 0, num_pos*2*4);
+                        resolve(true);
+                    };
 
-                })());
+                    xhr_uv = new XMLHttpRequest(); 
+                    xhr_uv.open("GET", bin_uri);
+                    xhr_uv.responseType = "arraybuffer";            
+                    xhr_uv.setRequestHeader('Range', `bytes=${bin_offset + info.uv_offset}-${bin_offset + info.uv_offset + num_pos*2*4 - 1}`);
+                    xhr_uv.onload = load_uv;
+                    xhr_uv.send();
+
+                }));
             }
 
             if (info.joints_offset >= 0)
             {
-                pendings.push((async()=>{
+                pendings.push(new Promise((resolve, reject) => {
+                    let xhr_joints;
                     let byte_per_ch = 4;
                     if (info.joints_componentType == 5123)
                     {
@@ -925,50 +955,74 @@ export class GLTFLoader
                         byte_per_ch = 1;
                     }
 
-                    await bin_loader.reached(bin_offset + info.joints_offset + num_pos*byte_per_ch*4);
-
-                    if (byte_per_ch == 4)
+                    const load_joints = ()=>
                     {
-                        primitive_out.joints_buf = engine_ctx.createBuffer(bin_loader.arrBuf, GPUBufferUsage.STORAGE, bin_offset + info.joints_offset, num_pos*4*4);
-                    }
-                    else
-                    {
-                        let u8view = new Uint8Array(bin_loader.arrBuf, bin_offset + info.joints_offset, num_pos*byte_per_ch*4);
-                        let p_u32vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
-
-                        if (byte_per_ch == 2)
+                        const arrBuf = xhr_joints.response;  
+                        if (byte_per_ch == 4)
                         {
-                            let p_u16vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*2*4]);
-                            this.module.HEAPU8.set(u8view, p_u16vec4);
-                            this.module.ccall("u16vec4_to_u32vec4", null, ["number", "number", "number"], [p_u16vec4, p_u32vec4, num_pos]);
-                            this.module.ccall("dealloc", null, ["number"], [p_u16vec4]);
-
+                            primitive_out.joints_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.STORAGE, 0, num_pos*4*4);
                         }
                         else
                         {
-                            let p_u8vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4]);
-                            this.module.HEAPU8.set(u8view, p_u8vec4);
-                            this.module.ccall("u8vec4_to_u32vec4", null, ["number", "number", "number"], [p_u8vec4, p_u32vec4, num_pos]);
-                            this.module.ccall("dealloc", null, ["number"], [p_u8vec4]);
-                        }
+                            let p_u32vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4*4]);
 
-                        primitive_out.joints_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, GPUBufferUsage.STORAGE, p_u32vec4, num_pos*4*4);
-                        this.module.ccall("dealloc", null, ["number"], [p_u32vec4]);
-                    }
-                })());
+                            if (byte_per_ch == 2)
+                            {
+                                let p_u16vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*2*4]);
+                                this.module.HEAPU8.set(new Uint8Array(arrBuf), p_u16vec4);
+                                this.module.ccall("u16vec4_to_u32vec4", null, ["number", "number", "number"], [p_u16vec4, p_u32vec4, num_pos]);
+                                this.module.ccall("dealloc", null, ["number"], [p_u16vec4]);
+
+                            }
+                            else
+                            {
+                                let p_u8vec4 = this.module.ccall("alloc", "number", ["number"], [num_pos*4]);
+                                this.module.HEAPU8.set(new Uint8Array(arrBuf), p_u8vec4);
+                                this.module.ccall("u8vec4_to_u32vec4", null, ["number", "number", "number"], [p_u8vec4, p_u32vec4, num_pos]);
+                                this.module.ccall("dealloc", null, ["number"], [p_u8vec4]);
+                            }
+
+                            primitive_out.joints_buf = engine_ctx.createBuffer(this.module.HEAPU8.buffer, GPUBufferUsage.STORAGE, p_u32vec4, num_pos*4*4);
+                            this.module.ccall("dealloc", null, ["number"], [p_u32vec4]);
+                        }
+                        resolve(true);
+                    };
+
+                    xhr_joints = new XMLHttpRequest(); 
+                    xhr_joints.open("GET", bin_uri);
+                    xhr_joints.responseType = "arraybuffer";            
+                    xhr_joints.setRequestHeader('Range', `bytes=${bin_offset + info.joints_offset}-${bin_offset + info.joints_offset + num_pos*byte_per_ch*4 - 1}`);
+                    xhr_joints.onload = load_joints;
+                    xhr_joints.send();
+
+                }));
             }
 
             if (info.weights_offset >= 0)
             {
-                pendings.push((async()=>{
-                    await bin_loader.reached(bin_offset + info.weights_offset + num_pos*4*4);
-                    primitive_out.weights_buf = engine_ctx.createBuffer(bin_loader.arrBuf, GPUBufferUsage.STORAGE, bin_offset + info.weights_offset, num_pos*4*4);
-                })());
+                pendings.push(new Promise((resolve, reject) => {
+                    let xhr_weights;
+
+                    const load_weights = ()=>
+                    {
+                        const arrBuf = xhr_weights.response;  
+                        primitive_out.weights_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.STORAGE, 0, num_pos*4*4);
+                        resolve(true);
+                    }
+
+                    xhr_weights = new XMLHttpRequest(); 
+                    xhr_weights.open("GET", bin_uri);
+                    xhr_weights.responseType = "arraybuffer";            
+                    xhr_weights.setRequestHeader('Range', `bytes=${bin_offset + info.weights_offset}-${bin_offset + info.weights_offset + num_pos*4*4 - 1}`);
+                    xhr_weights.onload = load_weights;
+                    xhr_weights.send();
+
+
+                }));
             }
 
+            await Promise.all(pendings);                      
             
-            await Promise.all(pendings);            
-
             if (geo_set.normal_buf == null)
             {
                 let p_pos3 = this.module.ccall("alloc", "number", ["number"], [num_pos*3*4]);
@@ -1096,32 +1150,27 @@ export class GLTFLoader
             if (num_targets>0)
             {
                 await load_targets(primitive_out, info);
-            }
+            }            
 
-        };
+        }
 
-        const load_json = async (loader, offset, length)=>
+        const load_json = async ()=>
         {
             if (this.module == null) 
             {
                 this.module = await get_module();
             }
-            await loader.reached(offset + length);
-            
-            const dec = new TextDecoder("utf-8");
-            const text = dec.decode(new Uint8Array(loader.arrBuf, offset, length));
-            const json = JSON.parse(text);
-            const buffer = json.buffers[0];
 
+            const json = xhr.response;  
+            const buffer = json.buffers[0];
             if ('uri' in buffer)
             {
-                bin_loader = new StreamedLoader(buffer.uri);
+                bin_uri = buffer.uri;
                 bin_offset = 0;
             }
             else
             {
-                bin_loader = loader;
-                bin_offset = 20 + length + 8;
+                bin_offset = 20 + json_length + 8;
             }
 
             let num_meshes = json.meshes.length;
@@ -1131,7 +1180,7 @@ export class GLTFLoader
                 model.meshes.push(mesh_out);
             }
 
-            let num_nodes = json.nodes.length; 
+            let num_nodes = json.nodes.length;                        
 
             for (let i=0; i< num_nodes; i++)
             {
@@ -1211,6 +1260,7 @@ export class GLTFLoader
             
             model.roots = json.scenes[0].nodes;   
             model.updateNodes();  
+            
 
             if ("skins" in json)
             {
@@ -1224,31 +1274,41 @@ export class GLTFLoader
                     let num_joints = skin_in.joints.length;                
                     skin_out.joints = skin_in.joints;
                     skin_out.buf_rela_mat = engine_ctx.createBuffer0(4*16*num_joints, GPUBufferUsage.COPY_DST|GPUBufferUsage.STORAGE)
-                    let acc_mats = json.accessors[skin_in.inverseBindMatrices];                    
+                    let acc_mats = json.accessors[skin_in.inverseBindMatrices];
                     let view_mats = json.bufferViews[acc_mats.bufferView];
 
-                    pendings_skin.push((async()=>{
-                        let offset = (view_mats.byteOffset||0) + (acc_mats.byteOffset||0);
-                        await bin_loader.reached(bin_offset + offset + view_mats.byteLength);
-                        let view_in = new Float32Array(bin_loader.arrBuf, bin_offset + offset, view_mats.byteLength/4);
-                        for (let j=0; j<num_joints; j++)
-                        {
-                            let matrix = new Matrix4();
-                            for (let k=0; k<16; k++)
+                    pendings_skin.push(new Promise((resolve, reject) => {
+                        let xhr_skin;
+                        const load_skin = ()=>{
+                            let view_in = new Float32Array(xhr_skin.response);
+                            for (let j=0; j<num_joints; j++)
                             {
-                                matrix.elements[k] = view_in[j*16+k];
+                                let matrix = new Matrix4();
+                                for (let k=0; k<16; k++)
+                                {
+                                    matrix.elements[k] = view_in[j*16+k];
+                                }
+                                skin_out.inverseBindMatrices.push(matrix);
                             }
-                            skin_out.inverseBindMatrices.push(matrix);
-                        }
-                    })());
-                }
+                            resolve(true);
+                        };
+                                            
+                        let offset = (view_mats.byteOffset||0) + (acc_mats.byteOffset||0);
+                        xhr_skin = new XMLHttpRequest(); 
+                        xhr_skin.open("GET", bin_uri);
+                        xhr_skin.responseType = "arraybuffer";
+                        xhr_skin.setRequestHeader('Range', `bytes=${bin_offset + offset}-${bin_offset + offset + view_mats.byteLength-1}`);
+                        xhr_skin.onload = load_skin;
+                        xhr_skin.send();
+                    }));  
+                }                
 
                 (async()=> {
                     await Promise.all(pendings_skin);
                     model.skins_loaded = true;
                     model.updateSkinMatrices();                    
-                })();
-            }
+                })();                
+            }            
 
             let num_materials = json.materials.length;   
             material_affected_primitives = new Array(num_materials+1);
@@ -1258,7 +1318,6 @@ export class GLTFLoader
             }
 
             let default_material_used = false;
-
             for (let i=0; i<num_meshes; i++)
             {
                 let mesh_in = json.meshes[i];
@@ -1303,8 +1362,8 @@ export class GLTFLoader
                                 has_tangent = true;
                             }
                         }
-                    }
-
+                    }                    
+                    
                     primitive_out.num_targets = num_targets;
 
                     let info = {};
@@ -1322,6 +1381,7 @@ export class GLTFLoader
                             info.draco_attributes = draco.attributes;
                         }
                     }
+                    
 
                     let id_pos_in = primitive_in.attributes["POSITION"];                    
                     let acc_pos_in = json.accessors[id_pos_in];                    
@@ -1552,7 +1612,7 @@ export class GLTFLoader
                             }                            
                         }
                         info.is_sparse = prim_is_sparse;
-                    } 
+                    }                  
                     (async()=>{
                         await load_primitive(primitive_out, info);
                         if (num_targets>0)
@@ -1563,16 +1623,15 @@ export class GLTFLoader
                         {                            
                             primitive_out.create_bind_group_skin(model.skins[mesh_out.skin_id].buf_rela_mat);
                         }
-                    })(); 
+                    })();                     
                 }
-            }
-
+            }                        
+            
             let num_textures = 0;
             if ("textures" in json)
             {            
                 num_textures = json.textures.length;
             }
-
             let tex_opts = new Array(num_textures);
             tex_affected_materials = new Array(num_textures);          
             for (let i=0; i< num_textures; i++)
@@ -1582,10 +1641,10 @@ export class GLTFLoader
                 };
 
                 tex_affected_materials[i] = new Set();                
-            }         
-
+            }            
+            
             for (let i=0; i< num_materials; i++)
-            { 
+            {                
                 let material_in = json.materials[i];
                 let material_out = new MeshStandardMaterial();
                 model.materials.push(material_out);
@@ -1760,7 +1819,7 @@ export class GLTFLoader
                 }
                 
             }
-
+            
             if (default_material_used)
             {
                 let material_out = new MeshStandardMaterial();
@@ -1775,7 +1834,7 @@ export class GLTFLoader
                     prim.create_bind_group(mesh.constant, model.materials, model.textures);
                 }
             }
-            
+
             for (let i=0; i< num_textures; i++)
             {
                 let tex_in = json.textures[i];
@@ -1786,8 +1845,13 @@ export class GLTFLoader
                 if ("bufferView" in img_in)
                 {
                     let view = json.bufferViews[img_in.bufferView];
-                    let offset = view.byteOffset || 0;
-                    load_image(bin_loader, bin_offset + offset,  view.byteLength, i, opts);
+                    let offset = view.byteOffset || 0;                    
+                    let xhr_img = new XMLHttpRequest(); 
+                    xhr_img.open("GET", bin_uri);
+                    xhr_img.responseType = "blob";
+                    xhr_img.setRequestHeader('Range', `bytes=${bin_offset + offset}-${bin_offset + offset + view.byteLength-1}`);
+                    xhr_img.onload = ()=> load_image(xhr_img.response, i, opts);
+                    xhr_img.send();
                 }
             }
 
@@ -1797,50 +1861,61 @@ export class GLTFLoader
                 delete model.pending_frame;
             }
 
-            this.load_animations(json, model.animations, model.animation_dict, bin_loader, bin_offset);
+            this.load_animations(json, model.animations, model.animation_dict, bin_uri, bin_offset);            
+        };
+
+        const load_header = ()=>
+        {
+            const arrBuf = xhr.response;  
+            let offset = 0;
+            let magic = new TextDecoder().decode(new Uint8Array(arrBuf,offset,4));
+            offset+=4;
+            if (magic!="glTF")
+            {
+                console.log(`${url} is not a GLTF file.`);
+                return;
+            }            
+
+            let data_view = new DataView(arrBuf);            
+            gltf_version = data_view.getInt32(offset, true);
+            offset+=4;
+            file_length = data_view.getInt32(offset, true);
+            offset+=4;
+
+            json_length = data_view.getInt32(offset, true);
+            offset+=4;
+            let chunk_type = new TextDecoder().decode(new Uint8Array(arrBuf,offset,4));
+            offset+=4;
+
+            xhr = new XMLHttpRequest(); 
+            xhr.open("GET", url);
+            xhr.responseType = "json";
+            xhr.setRequestHeader('Range', `bytes=20-${20+json_length-1}`);
+            xhr.onload = load_json;
+            xhr.send();
+
+           
         };
 
 
         let ext =  get_url_extension(url);
         if (ext=="glb")
         {
-            let loader = new StreamedLoader(url);
-
-            (async()=>{                
-                await loader.reached(20);               
-
-                let offset = 0;
-                let magic = new TextDecoder().decode(new Uint8Array(loader.arrBuf,offset,4));
-                offset+=4;
-
-                if (magic!="glTF")
-                {
-                    console.log(`${url} is not a GLTF file.`);
-                    return;
-                }
-
-                let data_view = new DataView(loader.arrBuf);            
-                gltf_version = data_view.getInt32(offset, true);
-                offset+=4;
-                file_length = data_view.getInt32(offset, true);
-                offset+=4;
-
-                let json_length = data_view.getInt32(offset, true);
-                offset+=4;
-                let chunk_type = new TextDecoder().decode(new Uint8Array(loader.arrBuf,offset,4));
-                offset+=4;
-
-                load_json(loader, 20, json_length);
-
-            })();
+            xhr = new XMLHttpRequest(); 
+            xhr.open("GET", url);
+            xhr.responseType = "arraybuffer";
+            xhr.setRequestHeader('Range', `bytes=0-19`);
+            xhr.onload = load_header;
+            xhr.send();
         }
 
 
         return model;
+        
     }
 
-    load_animations(json, animations, animation_dict, bin_loader, bin_offset)
-    {
+    load_animations(json, animations, animation_dict, bin_uri, bin_offset)
+    {        
         if (!("animations" in json)) return;
 
         for (let anim_in of json.animations)
@@ -1874,7 +1949,7 @@ export class GLTFLoader
 
                 let end = acc_input.max[0];
                 if (end > anim_out.duration) anim_out.duration = end;
-
+                
                 if (track_in.target.path == "weights")
                 {
                     let node_in = json.nodes[track_in.target.node];
@@ -1886,16 +1961,38 @@ export class GLTFLoader
                     }
                     track_out.targets = mesh_in.primitives[0].targets.length;
                     track_out.interpolation = interpolation;
-                    anim_out.morphs.push(track_out);                    
+
+                    let xhr_input;
+                    const load_input = ()=>
+                    {
+                        let arrBuf = xhr_input.response;
+                        track_out.times = new Float32Array(arrBuf);                        
+                    };
+
+                    xhr_input = new XMLHttpRequest(); 
+                    xhr_input.open("GET", bin_uri);
+                    xhr_input.responseType = "arraybuffer";
+                    xhr_input.setRequestHeader('Range', `bytes=${bin_offset + offset_input}-${bin_offset + offset_input + num_inputs*4-1}`);
+                    xhr_input.onload = load_input;
+                    xhr_input.send();
 
                     let num_outputs = interpolation!="CUBICSPLINE"? num_inputs * track_out.targets : num_inputs * track_out.targets *3;
 
-                    (async()=>{
-                        await bin_loader.reached(bin_offset + offset_input + num_inputs*4);
-                        track_out.times = new Float32Array(bin_loader.arrBuf, bin_offset + offset_input, num_inputs);
-                        await bin_loader.reached(bin_offset + offset_output + num_outputs*4);
-                        track_out.values = new Float32Array(bin_loader.arrBuf, bin_offset + offset_output, num_outputs);
-                    })();
+                    let xhr_output;
+                    const load_output = ()=>
+                    {
+                        let arrBuf = xhr_output.response;
+                        track_out.values = new Float32Array(arrBuf);
+                    };
+                    
+                    xhr_output = new XMLHttpRequest(); 
+                    xhr_output.open("GET", bin_uri);
+                    xhr_output.responseType = "arraybuffer";
+                    xhr_output.setRequestHeader('Range', `bytes=${bin_offset + offset_output}-${bin_offset + offset_output + num_outputs*4-1}`);
+                    xhr_output.onload = load_output;
+                    xhr_output.send();
+
+                    anim_out.morphs.push(track_out);
                 }
                 else if (track_in.target.path == "translation")
                 {
@@ -1906,16 +2003,38 @@ export class GLTFLoader
                         track_out.name = node_in.name;                        
                     }                    
                     track_out.interpolation = interpolation;
-                    anim_out.translations.push(track_out);
+
+                    let xhr_input;
+                    const load_input = ()=>
+                    {
+                        let arrBuf = xhr_input.response;
+                        track_out.times = new Float32Array(arrBuf);                        
+                    };
+
+                    xhr_input = new XMLHttpRequest(); 
+                    xhr_input.open("GET", bin_uri);
+                    xhr_input.responseType = "arraybuffer";
+                    xhr_input.setRequestHeader('Range', `bytes=${bin_offset + offset_input}-${bin_offset + offset_input + num_inputs*4-1}`);
+                    xhr_input.onload = load_input;
+                    xhr_input.send();
 
                     let num_outputs = interpolation!="CUBICSPLINE"? num_inputs * 3: num_inputs * 3 *3;
 
-                    (async()=>{
-                        await bin_loader.reached(bin_offset + offset_input + num_inputs*4);
-                        track_out.times = new Float32Array(bin_loader.arrBuf, bin_offset + offset_input, num_inputs);
-                        await bin_loader.reached(bin_offset + offset_output + num_outputs*4);
-                        track_out.values = new Float32Array(bin_loader.arrBuf, bin_offset + offset_output, num_outputs);
-                    })();
+                    let xhr_output;
+                    const load_output = ()=>
+                    {
+                        let arrBuf = xhr_output.response;
+                        track_out.values = new Float32Array(arrBuf);
+                    };
+
+                    xhr_output = new XMLHttpRequest(); 
+                    xhr_output.open("GET", bin_uri);
+                    xhr_output.responseType = "arraybuffer";
+                    xhr_output.setRequestHeader('Range', `bytes=${bin_offset + offset_output}-${bin_offset + offset_output + num_outputs*4-1}`);
+                    xhr_output.onload = load_output;
+                    xhr_output.send();
+
+                    anim_out.translations.push(track_out);
                 }
                 else if (track_in.target.path == "rotation")
                 {
@@ -1926,19 +2045,42 @@ export class GLTFLoader
                         track_out.name = node_in.name;                        
                     }                    
                     track_out.interpolation = interpolation;
-                    anim_out.rotations.push(track_out);
 
+                    let xhr_input;
+                    const load_input = ()=>
+                    {
+                        let arrBuf = xhr_input.response;
+                        track_out.times = new Float32Array(arrBuf);                        
+                    };                    
+
+                    xhr_input = new XMLHttpRequest(); 
+                    xhr_input.open("GET", bin_uri);
+                    xhr_input.responseType = "arraybuffer";
+                    xhr_input.setRequestHeader('Range', `bytes=${bin_offset + offset_input}-${bin_offset + offset_input + num_inputs*4-1}`);
+                    xhr_input.onload = load_input;
+                    xhr_input.send();
+                    
                     let num_outputs = interpolation!="CUBICSPLINE"? num_inputs * 4: num_inputs * 4 *3;
 
-                    (async()=>{
-                        await bin_loader.reached(bin_offset + offset_input + num_inputs*4);
-                        track_out.times = new Float32Array(bin_loader.arrBuf, bin_offset + offset_input, num_inputs);
-                        await bin_loader.reached(bin_offset + offset_output + num_outputs*4);
-                        track_out.values = new Float32Array(bin_loader.arrBuf, bin_offset + offset_output, num_outputs);
-                    })();
+                    let xhr_output;
+                    const load_output = ()=>
+                    {
+                        let arrBuf = xhr_output.response;
+                        track_out.values = new Float32Array(arrBuf);
+                    };
+
+                    xhr_output = new XMLHttpRequest(); 
+                    xhr_output.open("GET", bin_uri);
+                    xhr_output.responseType = "arraybuffer";
+                    xhr_output.setRequestHeader('Range', `bytes=${bin_offset + offset_output}-${bin_offset + offset_output + num_outputs*4-1}`);
+                    xhr_output.onload = load_output;
+                    xhr_output.send();
+
+                    anim_out.rotations.push(track_out);
                 }
                 else if (track_in.target.path == "scale")
                 {
+
                     let node_in = json.nodes[track_in.target.node];
                     let track_out = new ScaleTrack();
                     if ("name" in node_in)
@@ -1946,21 +2088,44 @@ export class GLTFLoader
                         track_out.name = node_in.name;                        
                     }                    
                     track_out.interpolation = interpolation;
-                    anim_out.scales.push(track_out);
+
+                    let xhr_input;
+                    const load_input = ()=>
+                    {
+                        let arrBuf = xhr_input.response;
+                        track_out.times = new Float32Array(arrBuf);                        
+                    };
+
+                    xhr_input = new XMLHttpRequest(); 
+                    xhr_input.open("GET", bin_uri);
+                    xhr_input.responseType = "arraybuffer";
+                    xhr_input.setRequestHeader('Range', `bytes=${bin_offset + offset_input}-${bin_offset + offset_input + num_inputs*4-1}`);
+                    xhr_input.onload = load_input;
+                    xhr_input.send();
 
                     let num_outputs = interpolation!="CUBICSPLINE"? num_inputs * 3: num_inputs * 3 *3;
 
-                    (async()=>{
-                        await bin_loader.reached(bin_offset + offset_input + num_inputs*4);
-                        track_out.times = new Float32Array(bin_loader.arrBuf, bin_offset + offset_input, num_inputs);
-                        await bin_loader.reached(bin_offset + offset_output + num_outputs*4);
-                        track_out.values = new Float32Array(bin_loader.arrBuf, bin_offset + offset_output, num_outputs);
-                    })();
+                    let xhr_output;
+                    const load_output = ()=>
+                    {
+                        let arrBuf = xhr_output.response;
+                        track_out.values = new Float32Array(arrBuf);
+                    };
 
+                    xhr_output = new XMLHttpRequest(); 
+                    xhr_output.open("GET", bin_uri);
+                    xhr_output.responseType = "arraybuffer";
+                    xhr_output.setRequestHeader('Range', `bytes=${bin_offset + offset_output}-${bin_offset + offset_output + num_outputs*4-1}`);
+                    xhr_output.onload = load_output;
+                    xhr_output.send();
+
+                    anim_out.scales.push(track_out);
                 }
-            }
 
+
+            }
         }
+
     }
 
     loadAnimationsFromFile(url)
@@ -1972,74 +2137,80 @@ export class GLTFLoader
         let file_length;
         let json_length;
 
-        let bin_loader;
+        let bin_uri = url;
         let bin_offset;
+        
+        let xhr;
 
-        const load_json = async (loader, offset, length)=>
+        const load_json = async ()=>
         {
             if (this.module == null) 
             {
                 this.module = await get_module();
             }
-            await loader.reached(offset + length);
-            
-            const dec = new TextDecoder("utf-8");
-            const text = dec.decode(new Uint8Array(loader.arrBuf, offset, length));
-            const json = JSON.parse(text);
-            const buffer = json.buffers[0];
 
+            const json = xhr.response;  
+            const buffer = json.buffers[0];
             if ('uri' in buffer)
             {
-                bin_loader = new StreamedLoader(buffer.uri);
+                bin_uri = buffer.uri;
                 bin_offset = 0;
             }
             else
             {
-                bin_loader = loader;
-                bin_offset = 20 + length + 8;
+                bin_offset = 20 + json_length + 8;
             }
 
-            this.load_animations(json, animations, animation_dict, bin_loader, bin_offset);
-        }
+            this.load_animations(json, animations, animation_dict, bin_uri, bin_offset);
+
+        };
+
+        const load_header = ()=>
+        {
+            const arrBuf = xhr.response;  
+            let offset = 0;
+            let magic = new TextDecoder().decode(new Uint8Array(arrBuf,offset,4));
+            offset+=4;
+            if (magic!="glTF")
+            {
+                console.log(`${url} is not a GLTF file.`);
+                return;
+            }            
+
+            let data_view = new DataView(arrBuf);            
+            gltf_version = data_view.getInt32(offset, true);
+            offset+=4;
+            file_length = data_view.getInt32(offset, true);
+            offset+=4;
+
+            json_length = data_view.getInt32(offset, true);
+            offset+=4;
+            let chunk_type = new TextDecoder().decode(new Uint8Array(arrBuf,offset,4));
+            offset+=4;
+
+            xhr = new XMLHttpRequest(); 
+            xhr.open("GET", url);
+            xhr.responseType = "json";
+            xhr.setRequestHeader('Range', `bytes=20-${20+json_length-1}`);
+            xhr.onload = load_json;
+            xhr.send();
+
+        };
 
         let ext =  get_url_extension(url);
         if (ext=="glb")
         {
-            let loader = new StreamedLoader(url);
-
-            (async()=>{                
-                await loader.reached(20);               
-
-                let offset = 0;
-                let magic = new TextDecoder().decode(new Uint8Array(loader.arrBuf,offset,4));
-                offset+=4;
-
-                if (magic!="glTF")
-                {
-                    console.log(`${url} is not a GLTF file.`);
-                    return;
-                }
-
-                let data_view = new DataView(loader.arrBuf);            
-                gltf_version = data_view.getInt32(offset, true);
-                offset+=4;
-                file_length = data_view.getInt32(offset, true);
-                offset+=4;
-
-                let json_length = data_view.getInt32(offset, true);
-                offset+=4;
-                let chunk_type = new TextDecoder().decode(new Uint8Array(loader.arrBuf,offset,4));
-                offset+=4;
-
-                load_json(loader, 20, json_length);
-
-            })();
+            xhr = new XMLHttpRequest(); 
+            xhr.open("GET", url);
+            xhr.responseType = "arraybuffer";
+            xhr.setRequestHeader('Range', `bytes=0-19`);
+            xhr.onload = load_header;
+            xhr.send();
         }
-
-
 
         return { animations, animation_dict};
 
     }
 
 }
+

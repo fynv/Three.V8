@@ -16,6 +16,8 @@ export class GLTFModel extends Object3D
         this.node_dict = {};
         this.roots = [];
         this.skins = [];
+        this.skins_loaded = false;
+        this.needUpdateSkinnedMeshes = false;
         this.animations = [];
         this.animation_dict = {};
         this.current_playing = [];
@@ -60,7 +62,34 @@ export class GLTFModel extends Object3D
                 child.g_trans.copy(node.g_trans);
                 node_queue.push(id_child);
             }
-        }
+        }        
+    }
+
+    updateSkinMatrices()
+    {
+        let num_skins = this.skins.length;
+        for (let i=0; i < num_skins; i++)
+        {
+            let skin = this.skins[i];
+            let num_joints = skin.joints.length;
+            let rela_mats = new Float32Array(16*num_joints);
+            for (let j=0; j< num_joints; j++)
+            {
+                let node = this.nodes[skin.joints[j]];
+                let g_trans = node.g_trans;
+                let inverse_bind = skin.inverseBindMatrices[j];
+                let rela = new Matrix4();
+                rela.multiplyMatrices(g_trans, inverse_bind);
+                for (let k=0; k<16; k++)
+                {
+                    rela_mats[j * 16 + k] = rela.elements[k];
+                }                
+            }
+            engine_ctx.queue.writeBuffer(skin.buf_rela_mat, 0, rela_mats.buffer, rela_mats.byteOffset, rela_mats.byteLength);
+        }        
+
+        this.needUpdateSkinnedMeshes = num_skins > 0;
+
     }
 
     setAnimationFrame(frame, no_pending = false)
@@ -69,14 +98,48 @@ export class GLTFModel extends Object3D
 
         if (!no_pending)
         {
-            for (let morph of frame.morphs)
+            do
             {
-                if (!(morph.name in this.mesh_dict))
+                for (let morph of frame.morphs)
                 {
-                    resolved = false;
-                    break;
+                    if (!(morph.name in this.mesh_dict))
+                    {
+                        resolved = false;
+                        break;
+                    }
+                }
+                if (!resolved) break;
+
+                for (let trans of frame.translations)
+                {
+                    if (!(trans.name in this.node_dict))
+                    {
+                        resolved = false;
+                        break;
+                    }
+                }
+                if (!resolved) break;
+
+                for (let rot of frame.rotations)
+                {
+                    if (!(rot.name in this.node_dict))
+                    {
+                        resolved = false;
+                        break;
+                    }
+                }
+                if (!resolved) break;
+
+                for (let scale of frame.scales)
+                {
+                    if (!(scale.name in this.node_dict))
+                    {
+                        resolved = false;
+                        break;
+                    }
                 }
             }
+            while(false);
 
             if (!resolved)        
             {
@@ -91,8 +154,52 @@ export class GLTFModel extends Object3D
             {
                 let mesh_idx = this.mesh_dict[morph.name];
                 let mesh = this.meshes[mesh_idx];
-                mesh.weights = morph.weights;
+                mesh.weights = [...morph.weights];
                 mesh.needUpdateMorphTargets = true;
+            }
+        }
+
+        let need_update_nodes = false;
+
+        for (let trans of frame.translations)
+        {
+            if (trans.name in this.node_dict)
+            {
+                let node_idx = this.node_dict[trans.name];
+                let node = this.nodes[node_idx];
+                node.translation.copy(trans.translation);
+                need_update_nodes = true;
+            }
+        }
+
+        for (let rot of frame.rotations)
+        {
+            if (rot.name in this.node_dict)
+            {
+                let node_idx = this.node_dict[rot.name];
+                let node = this.nodes[node_idx];
+                node.rotation.copy(rot.rotation);
+                need_update_nodes = true;
+            }
+        }
+
+        for (let scale of frame.scales)
+        {
+            if (scale.name in this.node_dict)
+            {
+                let node_idx = this.node_dict[scale.name];
+                let node = this.nodes[node_idx];
+                node.scale.copy(scale.scale);
+                need_update_nodes = true;
+            }
+        }
+
+        if (need_update_nodes)
+        {
+            this.updateNodes();
+            if (this.skins_loaded)
+            {
+                this.updateSkinMatrices();
             }
         }
     }

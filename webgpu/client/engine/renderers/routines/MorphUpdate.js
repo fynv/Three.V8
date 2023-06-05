@@ -137,7 +137,7 @@ function GetPipelineMorph(options)
 
     if (!(signature in engine_ctx.cache.pipelines.morph))
     {
-        let shader_code = get_shader(options);      
+        let shader_code = get_shader(options);
         let shaderModule = engine_ctx.device.createShaderModule({ code: shader_code });
 
         let bindGroupLayouts = [engine_ctx.cache.bindGroupLayouts.morph[signature]];
