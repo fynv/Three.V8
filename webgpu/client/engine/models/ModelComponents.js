@@ -64,9 +64,11 @@ export class Primitive
                 
         this.constant_morph = null;
         this.bind_group_morph = null;
+        this.bind_group_morph2 = null;
 
         this.constant_skin = null;
         this.bind_group_skin = null;
+        this.bind_group_skin2 = null;
     }
 
     updateUUID()
@@ -211,12 +213,11 @@ export class Primitive
         });
 
         if (this.uuid!=0) this.updateUUID();
-    }
+    }    
 
     create_bind_group_morph(buf_weights)
     {       
-        let options = {
-            has_tangent: this.geometry[0].tangent_buf != null,
+        let options = {            
             sparse: this.none_zero_buf != null
         };
         let signature = JSON.stringify(options);
@@ -300,70 +301,7 @@ export class Primitive
                     type: "storage"
                 }
             });
-            binding++;
-
-            if (options.has_tangent)
-            {
-                // TangentBase
-                entries.push({
-                    binding,
-                    visibility: GPUShaderStage.COMPUTE,
-                    buffer:{
-                        type: "read-only-storage"
-                    }
-                });
-                binding++;
-
-                // TangentDelta
-                entries.push({
-                    binding,
-                    visibility: GPUShaderStage.COMPUTE,
-                    buffer:{
-                        type: "read-only-storage"
-                    }
-                });
-                binding++;
-
-                // TangentOut
-                entries.push({
-                    binding,
-                    visibility: GPUShaderStage.COMPUTE,
-                    buffer:{
-                        type: "storage"
-                    }
-                });
-                binding++;
-
-                // BitangentBase
-                entries.push({
-                    binding,
-                    visibility: GPUShaderStage.COMPUTE,
-                    buffer:{
-                        type: "read-only-storage"
-                    }
-                });
-                binding++;
-
-                // BitangentDelta
-                entries.push({
-                    binding,
-                    visibility: GPUShaderStage.COMPUTE,
-                    buffer:{
-                        type: "read-only-storage"
-                    }
-                });
-                binding++;
-
-                // BitangentOut
-                entries.push({
-                    binding,
-                    visibility: GPUShaderStage.COMPUTE,
-                    buffer:{
-                        type: "storage"
-                    }
-                });
-                binding++;
-            }
+            binding++;            
 
             if (options.sparse)
             {
@@ -390,6 +328,8 @@ export class Primitive
 
             engine_ctx.cache.bindGroupLayouts.morph[signature] = engine_ctx.device.createBindGroupLayout({ entries });
         }
+
+        const bindGroupLayout = engine_ctx.cache.bindGroupLayouts.morph[signature];
        
         let uniform = new Int32Array(4);
         uniform[0] = this.num_pos;
@@ -458,8 +398,43 @@ export class Primitive
         });
         binding++;
 
-        if (options.has_tangent)
+        if (options.sparse)
         {
+            entries.push({
+                binding,
+                resource:{
+                    buffer: this.none_zero_buf
+                }
+            });
+            binding++;
+        }     
+
+        entries.push({
+            binding,
+            resource:{
+                buffer: this.constant_morph
+            }
+        });
+        binding++;        
+        
+        this.bind_group_morph = engine_ctx.device.createBindGroup({
+            layout: bindGroupLayout,
+            entries
+        });      
+
+        if (this.geometry[0].tangent_buf != null)
+        {
+            let binding = 0;
+            let entries = [];          
+            
+            entries.push({
+                binding,
+                resource:{
+                    buffer: buf_weights
+                }
+            });
+            binding++;
+            
             entries.push({
                 binding,
                 resource:{
@@ -507,47 +482,36 @@ export class Primitive
                 }
             });
             binding++;
-        }
 
-        if (options.sparse)
-        {
+            if (options.sparse)
+            {
+                entries.push({
+                    binding,
+                    resource:{
+                        buffer: this.none_zero_buf
+                    }
+                });
+                binding++;
+            }     
+
             entries.push({
                 binding,
                 resource:{
-                    buffer: this.none_zero_buf
+                    buffer: this.constant_morph
                 }
             });
-            binding++;
-        }     
-
-        entries.push({
-            binding,
-            resource:{
-                buffer: this.constant_morph
-            }
-        });
-        binding++;        
-
-        const bindGroupLayout = engine_ctx.cache.bindGroupLayouts.morph[signature];
-        this.bind_group_morph = engine_ctx.device.createBindGroup({
-            layout: bindGroupLayout,
-            entries
-        });      
+            binding++;        
+            
+            this.bind_group_morph2 = engine_ctx.device.createBindGroup({
+                layout: bindGroupLayout,
+                entries
+            });      
+        }
     }
 
     create_bind_group_skin(buf_rela_mat)
     {
-        let options = {
-            has_tangent: this.geometry[0].tangent_buf != null,        
-        };
-        let signature = JSON.stringify(options);
-
-        if (!("skin" in engine_ctx.cache.bindGroupLayouts))
-        {
-            engine_ctx.cache.bindGroupLayouts.skin = {};
-        }
-
-        if (!(signature in engine_ctx.cache.bindGroupLayouts.skin))
+        if (!("skin" in engine_ctx.cache.bindGroupLayouts))        
         {
             let binding = 0;
             let entries = [];
@@ -621,50 +585,7 @@ export class Primitive
                     type: "storage"
                 }
             });
-            binding++;
-
-            if (options.has_tangent)
-            {
-                // TangentRest
-                entries.push({
-                    binding,
-                    visibility: GPUShaderStage.COMPUTE,
-                    buffer:{
-                        type: "read-only-storage"
-                    }
-                });
-                binding++;
-
-                // TangentOut
-                entries.push({
-                    binding,
-                    visibility: GPUShaderStage.COMPUTE,
-                    buffer:{
-                        type: "storage"
-                    }
-                });
-                binding++;
-
-                // BitangentRest
-                entries.push({
-                    binding,
-                    visibility: GPUShaderStage.COMPUTE,
-                    buffer:{
-                        type: "read-only-storage"
-                    }
-                });
-                binding++;
-
-                // BitangentOut
-                entries.push({
-                    binding,
-                    visibility: GPUShaderStage.COMPUTE,
-                    buffer:{
-                        type: "storage"
-                    }
-                });
-                binding++;
-            }
+            binding++;            
 
             // Uniforms
             entries.push({
@@ -676,8 +597,9 @@ export class Primitive
             });
             binding++;            
 
-            engine_ctx.cache.bindGroupLayouts.skin[signature] = engine_ctx.device.createBindGroupLayout({ entries });
+            engine_ctx.cache.bindGroupLayouts.skin = engine_ctx.device.createBindGroupLayout({ entries });
         }
+        const bindGroupLayout = engine_ctx.cache.bindGroupLayouts.skin;
 
         let uniform = new Int32Array(4);
         uniform[0] = this.num_pos;        
@@ -746,8 +668,48 @@ export class Primitive
         });
         binding++;
 
-        if (options.has_tangent)
+        entries.push({
+            binding,
+            resource:{
+                buffer: this.constant_skin
+            }
+        });
+        binding++;  
+        
+        this.bind_group_skin = engine_ctx.device.createBindGroup({
+            layout: bindGroupLayout,
+            entries
+        });     
+
+        if (this.geometry[0].tangent_buf != null)
         {
+            let binding = 0;
+            let entries = [];
+
+            entries.push({
+                binding,
+                resource:{
+                    buffer: buf_rela_mat
+                }
+            });
+            binding++;
+
+            entries.push({
+                binding,
+                resource:{
+                    buffer: this.joints_buf
+                }
+            });
+            binding++;
+
+            entries.push({
+                binding,
+                resource:{
+                    buffer: this.weights_buf
+                }
+            });
+            binding++;
+
             entries.push({
                 binding,
                 resource:{
@@ -778,24 +740,22 @@ export class Primitive
                     buffer: geo_out.bitangent_buf
                 }
             });
-            binding++;            
-        }
-
-        entries.push({
-            binding,
-            resource:{
-                buffer: this.constant_skin
-            }
-        });
-        binding++;  
-
-        const bindGroupLayout = engine_ctx.cache.bindGroupLayouts.skin[signature];
-        this.bind_group_skin = engine_ctx.device.createBindGroup({
-            layout: bindGroupLayout,
-            entries
-        });     
-    }
-    
+            binding++;      
+            
+            entries.push({
+                binding,
+                resource:{
+                    buffer: this.constant_skin
+                }
+            });
+            binding++;      
+            
+            this.bind_group_skin2 = engine_ctx.device.createBindGroup({
+                layout: bindGroupLayout,
+                entries
+            });     
+        }        
+    }    
 }
 
 export class Node
