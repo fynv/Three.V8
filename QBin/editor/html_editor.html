@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="ace/ace.js" type="text/javascript" charset="utf-8"></script>       
+        <style type="text/css" media="screen">
+            body {
+                margin: 0;
+                text-align: center;
+                overflow: hidden; 
+            }
+            #editor {
+                margin: 0;
+                position:absolute;
+                width: 100%;
+                height: 100%;
+            }            
+          
+        </style>    
+        <title>GameDev</title>
+    </head>
+    <body>
+        <pre id="editor"></pre>   
+    
+      <script type="text/javascript">
+        var editor = ace.edit("editor");
+        editor.setTheme("ace/theme/dawn");
+        editor.session.setMode("ace/mode/html");
+        editor.setFontSize(14);
+        
+        saved_text = editor.getValue();
+        
+        function doc_modified()
+        {
+            return editor.getValue() != saved_text;
+        }
+
+        function doc_get_text()
+        {
+            saved_text = editor.getValue();    
+            return saved_text;    
+        }
+
+        function doc_set_text(text)
+        {    
+            saved_text = text;
+            editor.setValue(text);
+            editor.session.getUndoManager().reset();
+        }
+          
+      </script>
+    </body>
+</html>
+    
+
+
