@@ -19,22 +19,17 @@ class StreamedLoader
         this.byteLength = 0;
         this.availableLength = 0;
         this.arrBuf = null;    
-        this.resolvers = []
-
-        let xhr = new XMLHttpRequest();
-        xhr.open("HEAD", url); 
-        xhr.onreadystatechange = ()=>{            
-            if (xhr.readyState == xhr.DONE) 
-            {
-                this.byteLength = parseInt(xhr.getResponseHeader("Content-Length"));                             
-                this.arrBuf = new ArrayBuffer(this.byteLength);
-                this._start();
-            }
-        };
-        xhr.send();
+        this.resolvers = [];
     }
 
-    _start()
+    setByteLength(byteLength, availableLength = 0)
+    {
+        this.byteLength = byteLength;
+        this.availableLength = availableLength;
+        this.arrBuf = new ArrayBuffer(this.byteLength);
+    }
+
+    start()
     {
         let xhr;
         let start_pos;
@@ -80,8 +75,26 @@ class StreamedLoader
             xhr.onload = load;
             xhr.send();
 
-        };        
-        grab_buffer();
+        };   
+        
+        if (this.arrBuf==null)
+        {            
+            xhr = new XMLHttpRequest();
+            xhr.open("HEAD", this.url); 
+            xhr.onreadystatechange = ()=>{            
+                if (xhr.readyState == xhr.DONE) 
+                {
+                    this.byteLength = parseInt(xhr.getResponseHeader("Content-Length"));
+                    this.arrBuf = new ArrayBuffer(this.byteLength);
+                    grab_buffer();
+                }
+            };
+            xhr.send();
+        }
+        else
+        {
+            grab_buffer();
+        }
 
     }
 
@@ -1100,28 +1113,30 @@ export class GLTFLoader
 
         };
 
-        const load_json = async (loader, offset, length)=>
+        const load_json = async (xhr, length)=>
         {
             if (this.module == null) 
             {
                 this.module = await get_module();
-            }
-            await loader.reached(offset + length);
+            }           
             
-            const dec = new TextDecoder("utf-8");
-            const text = dec.decode(new Uint8Array(loader.arrBuf, offset, length));
-            const json = JSON.parse(text);
+            const json = xhr.response; 
             const buffer = json.buffers[0];
-
+            
             if ('uri' in buffer)
             {
-                bin_loader = new StreamedLoader(buffer.uri);
                 bin_offset = 0;
+                bin_loader = new StreamedLoader(buffer.uri);
+                bin_loader.setByteLength(buffer.byteLength);
+                bin_loader.start();
+                
             }
             else
             {
-                bin_loader = loader;
-                bin_offset = 20 + length + 8;
+                bin_offset = 20 + length + 8;                
+                bin_loader = new StreamedLoader(url);
+                bin_loader.setByteLength(bin_offset + buffer.byteLength, bin_offset);
+                bin_loader.start();
             }
 
             let num_meshes = json.meshes.length;
@@ -1804,35 +1819,45 @@ export class GLTFLoader
         let ext =  get_url_extension(url);
         if (ext=="glb")
         {
-            let loader = new StreamedLoader(url);
+            let xhr;
 
-            (async()=>{                
-                await loader.reached(20);               
-
+            const load_header = ()=>{
+                const arrBuf = xhr.response;
                 let offset = 0;
-                let magic = new TextDecoder().decode(new Uint8Array(loader.arrBuf,offset,4));
+                let magic = new TextDecoder().decode(new Uint8Array(arrBuf,offset,4));
                 offset+=4;
-
                 if (magic!="glTF")
                 {
                     console.log(`${url} is not a GLTF file.`);
                     return;
-                }
-
-                let data_view = new DataView(loader.arrBuf);            
+                }            
+    
+                let data_view = new DataView(arrBuf);            
                 gltf_version = data_view.getInt32(offset, true);
                 offset+=4;
                 file_length = data_view.getInt32(offset, true);
                 offset+=4;
-
+    
                 let json_length = data_view.getInt32(offset, true);
                 offset+=4;
-                let chunk_type = new TextDecoder().decode(new Uint8Array(loader.arrBuf,offset,4));
+                let chunk_type = new TextDecoder().decode(new Uint8Array(arrBuf,offset,4));
                 offset+=4;
 
-                load_json(loader, 20, json_length);
+                xhr = new XMLHttpRequest(); 
+                xhr.open("GET", url);
+                xhr.responseType = "json";
+                xhr.setRequestHeader('Range', `bytes=20-${20+json_length-1}`);
+                xhr.onload = ()=>load_json(xhr, json_length);
+                xhr.send();
+            };
 
-            })();
+            xhr = new XMLHttpRequest(); 
+            xhr.open("GET", url);
+            xhr.responseType = "arraybuffer";
+            xhr.setRequestHeader('Range', `bytes=0-19`);
+            xhr.onload = load_header;
+            xhr.send();
+
         }
 
 
@@ -1970,33 +1995,33 @@ export class GLTFLoader
 
         let gltf_version;
         let file_length;
-        let json_length;
 
         let bin_loader;
         let bin_offset;
 
-        const load_json = async (loader, offset, length)=>
+        const load_json = async (xhr, length)=>
         {
             if (this.module == null) 
             {
                 this.module = await get_module();
-            }
-            await loader.reached(offset + length);
+            }            
             
-            const dec = new TextDecoder("utf-8");
-            const text = dec.decode(new Uint8Array(loader.arrBuf, offset, length));
-            const json = JSON.parse(text);
+            const json = xhr.response; 
             const buffer = json.buffers[0];
 
             if ('uri' in buffer)
             {
-                bin_loader = new StreamedLoader(buffer.uri);
                 bin_offset = 0;
+                bin_loader = new StreamedLoader(buffer.uri);
+                bin_loader.setByteLength(buffer.byteLength);
+                bin_loader.start();                
             }
             else
             {
-                bin_loader = loader;
-                bin_offset = 20 + length + 8;
+                bin_offset = 20 + length + 8;                
+                bin_loader = new StreamedLoader(url);
+                bin_loader.setByteLength(bin_offset + buffer.byteLength, bin_offset);
+                bin_loader.start();
             }
 
             this.load_animations(json, animations, animation_dict, bin_loader, bin_offset);
@@ -2005,35 +2030,44 @@ export class GLTFLoader
         let ext =  get_url_extension(url);
         if (ext=="glb")
         {
-            let loader = new StreamedLoader(url);
+            let xhr;
 
-            (async()=>{                
-                await loader.reached(20);               
-
+            const load_header = ()=>{
+                const arrBuf = xhr.response;
                 let offset = 0;
-                let magic = new TextDecoder().decode(new Uint8Array(loader.arrBuf,offset,4));
+                let magic = new TextDecoder().decode(new Uint8Array(arrBuf,offset,4));
                 offset+=4;
-
                 if (magic!="glTF")
                 {
                     console.log(`${url} is not a GLTF file.`);
                     return;
-                }
-
-                let data_view = new DataView(loader.arrBuf);            
+                }            
+    
+                let data_view = new DataView(arrBuf);            
                 gltf_version = data_view.getInt32(offset, true);
                 offset+=4;
                 file_length = data_view.getInt32(offset, true);
                 offset+=4;
-
+    
                 let json_length = data_view.getInt32(offset, true);
                 offset+=4;
-                let chunk_type = new TextDecoder().decode(new Uint8Array(loader.arrBuf,offset,4));
+                let chunk_type = new TextDecoder().decode(new Uint8Array(arrBuf,offset,4));
                 offset+=4;
 
-                load_json(loader, 20, json_length);
+                xhr = new XMLHttpRequest(); 
+                xhr.open("GET", url);
+                xhr.responseType = "json";
+                xhr.setRequestHeader('Range', `bytes=20-${20+json_length-1}`);
+                xhr.onload = ()=>load_json(xhr, json_length);
+                xhr.send();
+            };
 
-            })();
+            xhr = new XMLHttpRequest(); 
+            xhr.open("GET", url);
+            xhr.responseType = "arraybuffer";
+            xhr.setRequestHeader('Range', `bytes=0-19`);
+            xhr.onload = load_header;
+            xhr.send();
         }
 
 
