@@ -218,7 +218,7 @@ export class GLTFModel extends Object3D
         }
     }
 
-    playAnimation(name, no_pending = false)
+    playAnimation(name)
     {
         for (let playback of this.current_playing)
         {
