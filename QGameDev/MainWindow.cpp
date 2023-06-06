@@ -19,6 +19,7 @@
 #include "DlgNewFile.h"
 #include "DlgNewDir.h"
 #include "DlgEditTarget.h"
+#include "DlgEditWebTarget.h"
 #include "DlgProjectSettings.h"
 #include "HelpPage.h"
 #include "JSEditor.h"
@@ -330,7 +331,26 @@ MainWindow::MainWindow(QApplication* app)
 	connect(m_ui.tree_files, SIGNAL(customContextMenuRequested(const QPoint&)), this, SLOT(TreeFilesContextMenu(const QPoint&)));
 	connect(m_ui.tree_files, SIGNAL(itemDoubleClicked(QTreeWidgetItem*, int)), this, SLOT(TreeFilesItemDoubleClick(QTreeWidgetItem*, int)));
 
-	connect(m_ui.btn_add_target, SIGNAL(clicked()), this, SLOT(btn_add_target_Click()));
+	{
+		QMenu* menu = new QMenu();
+
+		QAction* action_add_target= new QAction(tr("Add Target"));
+		menu->addAction(action_add_target);
+		connect(action_add_target, &QAction::triggered, [this]() {
+			if (!project.data.isObject()) return;
+			AddTarget();
+		});
+
+		QAction* action_add_web_target = new QAction(tr("Add Web Target"));
+		menu->addAction(action_add_web_target);
+		connect(action_add_web_target, &QAction::triggered, [this]() {
+			if (!project.data.isObject()) return;
+			AddWebTarget();
+		});
+
+		m_ui.btn_add->setMenu(menu);
+	}
+	
 	connect(m_ui.btn_remove_target, SIGNAL(clicked()), this, SLOT(btn_remove_target_Click()));
 	connect(m_ui.btn_edit_target, SIGNAL(clicked()), this, SLOT(btn_edit_target_Click()));
 	connect(m_ui.lst_targets, SIGNAL(customContextMenuRequested(const QPoint&)), this, SLOT(ListTargetsContextMenu(const QPoint&)));
@@ -857,6 +877,40 @@ void MainWindow::AddTarget()
 	}
 }
 
+void MainWindow::AddWebTarget()
+{
+	DlgEditWebTarget dlg(this, cur_path);
+	if (dlg.exec() != 0)
+	{
+		QJsonObject obj_proj = project.data.object();
+		QJsonArray jTargets;
+		if (obj_proj.contains("targets"))
+		{
+			jTargets = obj_proj["targets"].toArray();
+		}
+		jTargets.append(dlg.jTarget);
+		obj_proj["targets"] = jTargets;
+		project.data.setObject(obj_proj);
+		project.Save();
+
+		QString path_in = cur_path + "\\" + dlg.jTarget["input"].toString();
+
+		if (!QFile::exists(path_in))
+		{
+			QFile file;
+			file.setFileName(path_in);
+			file.open(QFile::WriteOnly);
+			file.close();
+		}
+
+		update_cur_path();
+		m_ui.lst_targets->setCurrentRow(m_ui.lst_targets->count() - 1);
+
+		OpenHTML(path_in);
+	}
+}
+
+
 void MainWindow::RemoveTarget(int idx)
 {
 	QJsonObject obj_proj = project.data.object();
@@ -877,8 +931,23 @@ void MainWindow::EditTarget(int idx)
 	QJsonObject obj_proj = project.data.object();
 	QJsonArray jTargets = obj_proj["targets"].toArray();
 	QJsonObject jTarget = jTargets[idx].toObject();
-	DlgEditTarget dlg(this, jTarget, cur_path);
-	if (dlg.exec() != 0)
+	
+	QString fn_in = jTarget["input"].toString();
+	QString ext = QFileInfo(fn_in).suffix().toLower();
+
+	bool edited = false;
+	if (ext == "js")
+	{
+		DlgEditTarget dlg(this, jTarget, cur_path);
+		edited = (dlg.exec() != 0);
+	}
+	else if (ext == "html")
+	{
+		DlgEditWebTarget dlg(this, jTarget, cur_path);
+		edited = (dlg.exec() != 0);
+	}
+
+	if (edited)
 	{
 		jTargets[idx] = jTarget;
 		obj_proj["targets"] = jTargets;
@@ -1119,11 +1188,19 @@ void MainWindow::ListTargetsContextMenu(const QPoint& pos)
 		if (!project.data.isObject()) return;
 
 		QMenu menu(tr("Target List Operations"), this);
-		QAction action_add_target(tr("&Add Target"));
+
+		QAction action_add_target(tr("Add Target"));
 		connect(&action_add_target, &QAction::triggered, [this]() {
 			AddTarget();
 		});
 		menu.addAction(&action_add_target);
+
+		QAction action_add_web_target(tr("Add Web Target"));
+		connect(&action_add_web_target, &QAction::triggered, [this]() {
+			AddWebTarget();
+		});
+		menu.addAction(&action_add_web_target);
+
 		menu.exec(m_ui.lst_targets->viewport()->mapToGlobal(pos));
 
 		return;
@@ -1163,12 +1240,6 @@ void MainWindow::ListTargetsItemDoubleClick(QListWidgetItem* item)
 {
 	int idx = m_ui.lst_targets->row(item);
 	RunTarget(idx);
-}
-
-void MainWindow::btn_add_target_Click()
-{
-	if (!project.data.isObject()) return;
-	AddTarget();
 }
 
 void MainWindow::btn_remove_target_Click()

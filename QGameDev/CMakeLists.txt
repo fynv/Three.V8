@@ -32,6 +32,8 @@ DlgNewDir.ui
 DlgNewDir.cpp
 DlgEditTarget.ui
 DlgEditTarget.cpp
+DlgEditWebTarget.ui
+DlgEditWebTarget.cpp
 DlgProjectSettings.ui
 DlgProjectSettings.cpp
 Editor.cpp
@@ -113,6 +115,7 @@ JsonData.h
 DlgNewFile.h
 DlgNewDir.h
 DlgEditTarget.h
+DlgEditWebTarget.h
 DlgProjectSettings.h
 Editor.h
 HelpPage.h

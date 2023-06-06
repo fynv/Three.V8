@@ -53,6 +53,7 @@ private:
 	void NewDirectory(QString path_dir);
 
 	void AddTarget();
+	void AddWebTarget();
 	void RemoveTarget(int idx);
 	void EditTarget(int idx);
 	void RunTarget(int idx);
@@ -104,7 +105,6 @@ private slots:
 	void TreeFilesItemDoubleClick(QTreeWidgetItem* item, int column);
 	void ListTargetsContextMenu(const QPoint& pos);
 	void ListTargetsItemDoubleClick(QListWidgetItem* item);
-	void btn_add_target_Click();
 	void btn_remove_target_Click();
 	void btn_edit_target_Click();
 	void OnClearConsole();

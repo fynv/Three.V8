@@ -25,13 +25,18 @@ QGamePlayer.cpp
 GLControl.cpp
 PlayerWindow.ui
 PlayerWindow.cpp
+WebView2Widget.cpp
+WebPlayerWindow.ui
+WebPlayerWindow.cpp
 resources/resources.qrc
 )
 
 set(HEADERS 
 QGamePlayer.h
-PlayerWindow.h
 GLControl.h
+PlayerWindow.h
+WebView2Widget.h
+WebPlayerWindow.h
 )
 
 set (INCLUDE_DIR
@@ -41,6 +46,7 @@ set (INCLUDE_DIR
 ../Three.V8
 ../thirdparty/glew/include
 ../thirdparty/glm/glm
+../thirdparty/webview2/include
 ../packages/v8-v143-x64.10.0.139.9/include
 )
 
@@ -50,6 +56,7 @@ set (LINK_DIR
 ../thirdparty/glew/lib
 ../thirdparty/portaudio/lib
 ../thirdparty/webp/lib
+../thirdparty/webview2/lib
 ../packages/zeroc.openssl.v143.1.1.1.2/build/native/lib/x64/Release
 ../packages/FFmpeg.Nightly.20200831.1.0/build/native/lib/x64
 ../packages/v8-v143-x64.10.0.139.9/lib/Release
@@ -70,6 +77,8 @@ libwebp.lib
 libwebpdecoder.lib
 libwebpdemux.lib
 libwebpmux.lib
+WebView2LoaderStatic.lib
+version.lib
 libcrypto.lib
 libssl.lib
 avcodec.lib
