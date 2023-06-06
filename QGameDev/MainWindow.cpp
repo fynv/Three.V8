@@ -964,13 +964,15 @@ void MainWindow::RunTarget(int idx)
 	QJsonArray jTargets = obj_proj["targets"].toArray();
 	QJsonObject jTarget = jTargets[idx].toObject();
 
+	QString input = jTarget["input"].toString();
+	QString ext = QFileInfo(input).suffix().toLower();
+
 	QString Location = QCoreApplication::applicationDirPath();
 	bool dirty = jTarget["dirty"].toBool();
-	if (dirty)
+	if (dirty && ext=="js")
 	{
 		QDir::setCurrent(cur_path);
-
-		QString input = jTarget["input"].toString();
+		
 		QString output = jTarget["output"].toString();
 
 		QFile::remove(output);
