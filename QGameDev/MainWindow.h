@@ -46,6 +46,7 @@ private:
 	void NewFile(QString path_dir);
 	void OpenJavaScript(QString file_path);
 	void OpenJSON(QString file_path);
+	void OpenHTML(QString file_path);
 	void OpenXML(QString file_path);
 	void OpenFile(QString filename);
 

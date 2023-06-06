@@ -41,6 +41,8 @@ JSEditor.ui
 JSEditor.cpp
 JsonEditor.ui
 JsonEditor.cpp
+HtmlEditor.ui
+HtmlEditor.cpp
 XMLEditor.ui
 XMLEditor.cpp
 ColorTuner.ui
@@ -116,6 +118,7 @@ Editor.h
 HelpPage.h
 JSEditor.h
 JsonEditor.h
+HtmlEditor.h
 XMLEditor.h
 ColorTuner.h
 Vec3Tuner.h

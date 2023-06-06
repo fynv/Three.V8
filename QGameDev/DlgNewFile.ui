@@ -92,6 +92,16 @@
            </iconset>
           </property>
          </item>
+         <item>
+          <property name="text">
+           <string>Html</string>
+          </property>
+          <property name="icon">
+           <iconset>
+            <normalon>:/images/html.png</normalon>
+           </iconset>
+          </property>
+         </item>
         </widget>
        </item>
        <item>

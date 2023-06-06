@@ -23,6 +23,7 @@
 #include "HelpPage.h"
 #include "JSEditor.h"
 #include "JsonEditor.h"
+#include "HtmlEditor.h"
 #include "XMLEditor.h"
 
 void MainWindow::UpdateRecentFiles()
@@ -217,6 +218,7 @@ void MainWindow::update_dir(QTreeWidgetItem* item, QString path)
 		if (ext == "js") icon_name = "js.png";
 		if (ext == "xml") icon_name = "xml.png";
 		if (ext == "json") icon_name = "json.png";
+		if (ext == "html") icon_name = "html.png";
 
 		QTreeWidgetItem* subitem = new QTreeWidgetItem(item);
 		subitem->setText(0, file_name);
@@ -433,6 +435,10 @@ void MainWindow::NewFile(QString path_dir)
 		{
 			file.write("{}");
 		}
+		else if (dialog.filetype == "html")
+		{
+			file.write("<!DOCTYPE html>\n<html>\n\t<head>\n\t\t<meta charset=\"UTF-8\">\n\t\t<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n\t</head>\n\t<body>\n\t</body>\n</html>\n");
+		}
 		file.close();
 		update_cur_path();
 	}
@@ -448,7 +454,7 @@ void MainWindow::CommandNewFile()
 
 void MainWindow::CommandOpenFile()
 {
-	QString filename = QFileDialog::getOpenFileName(this, tr("Open File"), cur_path, tr("All Supported(*.js *.json *.xml);;JavaScript(*.js);;JSON(*.json);;XML(*.xml)"));
+	QString filename = QFileDialog::getOpenFileName(this, tr("Open File"), cur_path, tr("All Supported(*.js *.json *.html *.xml);;JavaScript(*.js);;JSON(*.json);;HTML(*.html);;XML(*.xml)"));
 	if (filename.isNull()) return;
 	OpenFile(filename);
 }
@@ -742,6 +748,23 @@ void MainWindow::OpenJSON(QString file_path)
 	}
 }
 
+void MainWindow::OpenHTML(QString file_path)
+{
+	if (opened_tabs.contains(file_path))
+	{
+		HtmlEditor* editor = static_cast<HtmlEditor*>(opened_tabs[file_path]);
+		m_ui.tabWidgetEditor->setCurrentWidget(editor);
+		editor->doc_refresh();
+	}
+	else
+	{
+		HtmlEditor* editor = new HtmlEditor(m_ui.tabWidgetEditor, file_path);
+		QString filename = QFileInfo(file_path).fileName();
+		AddTabItem(editor, file_path, filename);
+	}
+
+}
+
 void MainWindow::OpenXML(QString file_path)
 {
 	if (opened_tabs.contains(file_path))
@@ -772,6 +795,10 @@ void MainWindow::OpenFile(QString file_path)
 	else if (ext == "json")
 	{
 		OpenJSON(file_path);
+	}
+	else if (ext == "html")
+	{
+		OpenHTML(file_path);
 	}
 	else if (ext == "xml")
 	{

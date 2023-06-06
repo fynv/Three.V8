@@ -20,5 +20,6 @@
     <file>images/sphere.png</file>
     <file>images/target.png</file>
     <file>images/xml.png</file>
+    <file>images/html.png</file>
   </qresource>
 </RCC>
