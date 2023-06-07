@@ -1,0 +1,11 @@
+{
+    "project_name": "client",
+    "targets": [
+        {
+            "dirty": true,
+            "input": "index.html",
+            "name": "Target",
+            "output": null
+        }
+    ]
+}
