@@ -633,35 +633,8 @@ export class GPURenderer
                 }
             }
         }        
-
-        let msaa= target.msaa;
-        let clearColor = new Color(0.0, 0.0, 0.0);        
-
-        if(scene.background!=null &&
-            scene.background instanceof ColorBackground)
-        {
-            clearColor = scene.background.color;
-        }
-
-        let colorAttachment =  {            
-            clearValue: { r: clearColor.r, g: clearColor.g, b: clearColor.b, a: 1 },
-            loadOp: 'clear',
-            storeOp: 'store'
-        };
-
-        if (msaa)
-        {
-            colorAttachment.view = target.view_msaa;
-            if (!has_alpha)
-            {
-                colorAttachment.resolveTarget = target.view_video;
-            }
-        }
-        else
-        {
-            colorAttachment.view = target.view_video;
-        }
-
+        
+        // depth-prepass
         let depthAttachment = {
             view: target.view_depth,
             depthClearValue: 1,
@@ -674,8 +647,7 @@ export class GPURenderer
         let commandEncoder = engine_ctx.device.createCommandEncoder();
 
         if (has_opaque)
-        {
-            // depth-prepass
+        {            
             let renderPassDesc_depth = {
                 colorAttachments: [],
                 depthStencilAttachment: depthAttachment
@@ -711,6 +683,35 @@ export class GPURenderer
             passEncoder.end();
 
             depthAttachment.depthLoadOp = 'load';
+        }
+
+        // opaque pass
+        let msaa= target.msaa;
+        let clearColor = new Color(0.0, 0.0, 0.0);        
+
+        if(scene.background!=null &&
+            scene.background instanceof ColorBackground)
+        {
+            clearColor = scene.background.color;
+        }
+
+        let colorAttachment =  {            
+            clearValue: { r: clearColor.r, g: clearColor.g, b: clearColor.b, a: 1 },
+            loadOp: 'clear',
+            storeOp: 'store'
+        };
+
+        if (msaa)
+        {
+            colorAttachment.view = target.view_msaa;
+            if (!has_alpha)
+            {
+                colorAttachment.resolveTarget = target.view_video;
+            }
+        }
+        else
+        {
+            colorAttachment.view = target.view_video;
         }
 
         {
@@ -769,6 +770,7 @@ export class GPURenderer
             passEncoder.end();
         }
 
+        // alpha pass
         if (has_alpha)
         {
             target.update_oit_buffers();
