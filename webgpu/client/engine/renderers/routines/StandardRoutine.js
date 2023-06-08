@@ -631,7 +631,7 @@ function GetPipelineStandard(options)
         let shaderModule = engine_ctx.device.createShaderModule({ code });
 
         const depthStencil = {
-            depthWriteEnabled: true,
+            depthWriteEnabled: options.alpha_mode == "Mask",
             depthCompare: 'less-equal',
             format: 'depth32float'
         };
@@ -777,8 +777,7 @@ function GetPipelineStandard(options)
         }
 
         if (options.alpha_mode == "Blend")
-        {
-            depthStencil.depthWriteEnabled = false;            
+        {                        
             const colorState0 = {
                 format: options.view_format,
                 blend: {

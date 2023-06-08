@@ -640,9 +640,7 @@ export class GPURenderer
             depthClearValue: 1,
             depthLoadOp: 'clear',
             depthStoreOp: 'store',
-        };
-
-        let lights = scene.lights;
+        };        
 
         let commandEncoder = engine_ctx.device.createCommandEncoder();
 
@@ -713,6 +711,8 @@ export class GPURenderer
         {
             colorAttachment.view = target.view_video;
         }
+
+        let lights = scene.lights;
 
         {
             let renderPassDesc_opaque = {
