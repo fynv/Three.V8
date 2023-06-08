@@ -32,7 +32,9 @@ export class MeshStandardMaterial
         this.sampler = engine_ctx.device.createSampler({
             magFilter: 'linear',
             minFilter: 'linear',
-            mipmapFilter: "linear"
+            mipmapFilter: "linear",
+            addressModeU: "repeat",
+            addressModeV: "repeat",            
         });
 
     }

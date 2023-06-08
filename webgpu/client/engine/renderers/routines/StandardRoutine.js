@@ -525,13 +525,6 @@ fn fs_main(input: FSIn) -> FSOut
     }
     let dxy =  max(abs(dpdx(norm)), abs(dpdy(norm)));
 
-#if ${alpha_mask || alpha_blend}
-    if (base_color.w == 0.0) 
-    {
-        discard;
-    }
-#endif
-
     var material : PhysicalMaterial;
 #if ${mOpt.specular_glossiness}
     material.diffuseColor = base_color.xyz * ( 1.0 -
@@ -785,7 +778,7 @@ function GetPipelineStandard(options)
 
         if (options.alpha_mode == "Blend")
         {
-            depthStencil.depthWriteEnabled = false;
+            depthStencil.depthWriteEnabled = false;            
             const colorState0 = {
                 format: options.view_format,
                 blend: {
@@ -889,7 +882,6 @@ export function RenderStandard(passEncoder, params)
         passEncoder.setVertexBuffer(localtion_attrib++, geo.tangent_buf);
         passEncoder.setVertexBuffer(localtion_attrib++, geo.bitangent_buf);
     }
-
 
     if (primitive.index_buf!=null)
     {

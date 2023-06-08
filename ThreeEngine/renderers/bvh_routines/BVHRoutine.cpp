@@ -995,9 +995,6 @@ bool calc_shading()
 	base_color.w = base_color.w > uAlphaCutoff ? 1.0 : 0.0;
 #endif
 
-#if ALPHA_MASK || ALPHA_BLEND
-	if (base_color.w == 0.0) return false;
-#endif
 
 #if SPECULAR_GLOSSINESS
 	vec3 specularFactor = uSpecularGlossiness.xyz;
