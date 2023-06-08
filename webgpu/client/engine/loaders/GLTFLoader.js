@@ -1225,7 +1225,7 @@ export class GLTFLoader
             }                         
             
             model.roots = json.scenes[0].nodes;   
-            model.updateNodes();  
+            model.updateNodes();
 
             if ("skins" in json)
             {
@@ -1273,6 +1273,7 @@ export class GLTFLoader
             }
 
             let default_material_used = false;
+            let pending_loads = [];
 
             for (let i=0; i<num_meshes; i++)
             {
@@ -1568,8 +1569,12 @@ export class GLTFLoader
                         }
                         info.is_sparse = prim_is_sparse;
                     } 
+
+                    let pending_load = load_primitive(primitive_out, info);
+                    pending_loads.push(pending_load);
+
                     (async()=>{
-                        await load_primitive(primitive_out, info);
+                        await pending_load;
                         if (num_targets>0)
                         {
                             primitive_out.create_bind_group_morph(mesh_out.buf_weights);
@@ -1581,6 +1586,11 @@ export class GLTFLoader
                     })(); 
                 }
             }
+
+            (async()=>{
+                await Promise.all(pending_loads);
+                model.calculate_bounding_box();
+            })();
 
             let num_textures = 0;
             if ("textures" in json)
@@ -1877,7 +1887,9 @@ export class GLTFLoader
             {
                 anim_out.name = anim_in.name;
             }
-            animation_dict[anim_out.name] = animations.length - 1;
+
+            let idx = animations.length - 1;        
+            let pending_loads = [];    
 
             for (let track_in of anim_in.channels)
             {
@@ -1915,12 +1927,12 @@ export class GLTFLoader
 
                     let num_outputs = interpolation!="CUBICSPLINE"? num_inputs * track_out.targets : num_inputs * track_out.targets *3;
 
-                    (async()=>{
+                    pending_loads.push((async()=>{
                         await bin_loader.reached(bin_offset + offset_input + num_inputs*4);
                         track_out.times = new Float32Array(bin_loader.arrBuf, bin_offset + offset_input, num_inputs);
                         await bin_loader.reached(bin_offset + offset_output + num_outputs*4);
                         track_out.values = new Float32Array(bin_loader.arrBuf, bin_offset + offset_output, num_outputs);
-                    })();
+                    })());
                 }
                 else if (track_in.target.path == "translation")
                 {
@@ -1935,12 +1947,12 @@ export class GLTFLoader
 
                     let num_outputs = interpolation!="CUBICSPLINE"? num_inputs * 3: num_inputs * 3 *3;
 
-                    (async()=>{
+                    pending_loads.push((async()=>{
                         await bin_loader.reached(bin_offset + offset_input + num_inputs*4);
                         track_out.times = new Float32Array(bin_loader.arrBuf, bin_offset + offset_input, num_inputs);
                         await bin_loader.reached(bin_offset + offset_output + num_outputs*4);
                         track_out.values = new Float32Array(bin_loader.arrBuf, bin_offset + offset_output, num_outputs);
-                    })();
+                    })());
                 }
                 else if (track_in.target.path == "rotation")
                 {
@@ -1955,12 +1967,12 @@ export class GLTFLoader
 
                     let num_outputs = interpolation!="CUBICSPLINE"? num_inputs * 4: num_inputs * 4 *3;
 
-                    (async()=>{
+                    pending_loads.push((async()=>{
                         await bin_loader.reached(bin_offset + offset_input + num_inputs*4);
                         track_out.times = new Float32Array(bin_loader.arrBuf, bin_offset + offset_input, num_inputs);
                         await bin_loader.reached(bin_offset + offset_output + num_outputs*4);
                         track_out.values = new Float32Array(bin_loader.arrBuf, bin_offset + offset_output, num_outputs);
-                    })();
+                    })());
                 }
                 else if (track_in.target.path == "scale")
                 {
@@ -1975,15 +1987,19 @@ export class GLTFLoader
 
                     let num_outputs = interpolation!="CUBICSPLINE"? num_inputs * 3: num_inputs * 3 *3;
 
-                    (async()=>{
+                    pending_loads.push((async()=>{
                         await bin_loader.reached(bin_offset + offset_input + num_inputs*4);
                         track_out.times = new Float32Array(bin_loader.arrBuf, bin_offset + offset_input, num_inputs);
                         await bin_loader.reached(bin_offset + offset_output + num_outputs*4);
                         track_out.values = new Float32Array(bin_loader.arrBuf, bin_offset + offset_output, num_outputs);
-                    })();
-
+                    })());
                 }
             }
+
+            (async()=>{
+                await Promise.all(pending_loads);
+                animation_dict[anim_out.name] = idx;
+            })();           
 
         }
     }

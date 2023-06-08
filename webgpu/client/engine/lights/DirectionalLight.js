@@ -40,7 +40,42 @@ export class DirectionalLight extends Light
         {
             this.shadow.light_radius = radius;
         }
+    }
 
+    get bias()
+    {
+        let bias = 0.001;
+        if (this.shadow!=null)
+        {
+            bias = this.shadow.bias;
+        }
+        return bias;
+    }
+
+    set bias(value)
+    {
+        if (this.shadow!=null)
+        {
+            this.shadow.bias = value;
+        }
+    }
+
+    get forceCull()
+    {
+        let force_cull = true;
+        if (this.shadow!=null)
+        {
+            force_cull = this.shadow.force_cull;
+        }
+        return force_cull;
+    }
+
+    set forceCull(value)
+    {
+        if (this.shadow!=null)
+        {
+            this.shadow.force_cull = value;
+        }
     }
 
     direction()

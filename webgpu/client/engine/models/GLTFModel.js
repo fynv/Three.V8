@@ -1,5 +1,7 @@
 import { Object3D } from "../core/Object3D.js"
 import { UpdateConstant_Model } from "./ModelComponents.js"
+import { Vector3 } from "../math/Vector3.js"
+import { Vector4 } from "../math/Vector4.js"
 import { Matrix4 } from "../math/Matrix4.js"
 
 export class GLTFModel extends Object3D
@@ -7,6 +9,9 @@ export class GLTFModel extends Object3D
     constructor()
     {
         super();
+        this.min_pos = new Vector3(Infinity,Infinity,Infinity);
+        this.max_pos = new Vector3(-Infinity, -Infinity, -Infinity);
+
         this.textures = [];
         this.tex_dict = {};
         this.materials = [];
@@ -21,6 +26,85 @@ export class GLTFModel extends Object3D
         this.animations = [];
         this.animation_dict = {};
         this.current_playing = [];
+    }
+
+    calculate_bounding_box()
+    {
+        this.min_pos = new Vector3(Infinity,Infinity,Infinity);
+        this.max_pos = new Vector3(-Infinity, -Infinity, -Infinity);
+
+        for (let mesh of this.meshes)
+        {
+            let mesh_min_pos = new Vector3(Infinity,Infinity,Infinity);
+            let mesh_max_pos = new Vector3(-Infinity, -Infinity, -Infinity);
+
+            for (let prim of mesh.primitives)
+            {
+                mesh_min_pos.min(prim.min_pos);
+                mesh_max_pos.max(prim.max_pos);
+            }            
+
+            if (mesh.node_id>=0 && mesh.skin_id<0)
+            {
+                let node = this.nodes[mesh.node_id];
+                let mesh_mat = node.g_trans;                
+
+                let model_pos = [];
+                {
+                    let pos = new Vector4(mesh_min_pos.x, mesh_min_pos.y, mesh_min_pos.z, 1.0);                        
+                    pos.applyMatrix4(mesh_mat);                    
+                    model_pos.push(pos);
+                }
+                {
+                    let pos = new Vector4(mesh_max_pos.x, mesh_min_pos.y, mesh_min_pos.z, 1.0);
+                    pos.applyMatrix4(mesh_mat);
+                    model_pos.push(pos);
+                }
+                {
+                    let pos = new Vector4(mesh_min_pos.x, mesh_max_pos.y, mesh_min_pos.z, 1.0);
+                    pos.applyMatrix4(mesh_mat);
+                    model_pos.push(pos);
+                }
+                {
+                    let pos = new Vector4(mesh_max_pos.x, mesh_max_pos.y, mesh_min_pos.z, 1.0);
+                    pos.applyMatrix4(mesh_mat);
+                    model_pos.push(pos);
+                }
+                {
+                    let pos = new Vector4(mesh_min_pos.x, mesh_min_pos.y, mesh_max_pos.z, 1.0);
+                    pos.applyMatrix4(mesh_mat);
+                    model_pos.push(pos);
+                }
+                {
+                    let pos = new Vector4(mesh_max_pos.x, mesh_min_pos.y, mesh_max_pos.z, 1.0);
+                    pos.applyMatrix4(mesh_mat);
+                    model_pos.push(pos);
+                }
+                {
+                    let pos = new Vector4(mesh_min_pos.x, mesh_max_pos.y, mesh_max_pos.z, 1.0);
+                    pos.applyMatrix4(mesh_mat);
+                    model_pos.push(pos);
+                }
+                {
+                    let pos = new Vector4(mesh_max_pos.x, mesh_max_pos.y, mesh_max_pos.z, 1.0);
+                    pos.applyMatrix4(mesh_mat);
+                    model_pos.push(pos);
+                }
+
+                for (let k=0; k<8; k++)
+                {
+                    let pos = new Vector3(model_pos[k].x, model_pos[k].y, model_pos[k].z);
+                    this.min_pos.min(pos);
+                    this.max_pos.max(pos);
+                }
+
+            }
+            else
+            {
+                this.min_pos.min(mesh_min_pos);
+                this.max_pos.max(mesh_max_pos);
+            }           
+        }        
     }
 
     updateMeshConstants()
@@ -38,7 +122,7 @@ export class GLTFModel extends Object3D
     }
 
     updateNodes()
-    {
+    {       
         let node_queue  = [];
         for (let idx_root of this.roots)
         {
@@ -50,7 +134,7 @@ export class GLTFModel extends Object3D
         while(node_queue.length>0)
         {
             let id_node = node_queue.shift();
-            let node = this.nodes[id_node];
+            let node = this.nodes[id_node];            
 
             let local = new Matrix4();
             local.compose(node.translation, node.rotation, node.scale);

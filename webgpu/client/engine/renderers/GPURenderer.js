@@ -1,5 +1,8 @@
 import { ColorBackground, HemisphereBackground, CubeBackground } from "../backgrounds/Background.js"
 import { Color } from "../math/Color.js"
+import { Vector3 } from "../math/Vector3.js"
+import { Vector4 } from "../math/Vector4.js"
+import { Matrix4 } from "../math/Matrix4.js"
 import { DrawHemisphere, DrawHemisphereBundle } from "./routines/DrawHemisphere.js"
 import { DrawSkyBox, DrawSkyBoxBundle } from "./routines/DrawSkyBox.js"
 import { SimpleModel } from "../models/SimpleModel.js"
@@ -10,6 +13,103 @@ import { RenderDirectionalShadow, RenderDirectionalShadowBundle } from "./routin
 import { MorphUpdate } from "./routines/MorphUpdate.js"
 import { SkinUpdate } from "./routines/SkinUpdate.js"
 import { ResolveWeightedOIT } from "./routines/WeightedOIT.js"
+
+function toViewAABB(MV, min_pos, max_pos)
+{
+    let view_pos = [];
+    {
+        let pos = new Vector4(min_pos.x, min_pos.y, min_pos.z, 1.0);
+        pos.applyMatrix4(MV);
+        view_pos.push(pos);
+    }
+
+    {
+        let pos = new Vector4(max_pos.x, min_pos.y, min_pos.z, 1.0);
+        pos.applyMatrix4(MV);
+        view_pos.push(pos);
+    }
+
+    {
+        let pos = new Vector4(min_pos.x, max_pos.y, min_pos.z, 1.0);
+        pos.applyMatrix4(MV);
+        view_pos.push(pos);
+    }
+    
+    {
+        let pos = new Vector4(max_pos.x, max_pos.y, min_pos.z, 1.0);
+        pos.applyMatrix4(MV);
+        view_pos.push(pos);
+    }
+
+    {
+        let pos = new Vector4(min_pos.x, min_pos.y, max_pos.z, 1.0);
+        pos.applyMatrix4(MV);
+        view_pos.push(pos);
+    }
+
+    {
+        let pos = new Vector4(max_pos.x, min_pos.y, max_pos.z, 1.0);
+        pos.applyMatrix4(MV);
+        view_pos.push(pos);
+    }
+
+    {
+        let pos = new Vector4(min_pos.x, max_pos.y, max_pos.z, 1.0);
+        pos.applyMatrix4(MV);
+        view_pos.push(pos);
+    }
+    
+    {
+        let pos = new Vector4(max_pos.x, max_pos.y, max_pos.z, 1.0);
+        pos.applyMatrix4(MV);
+        view_pos.push(pos);
+    }
+
+    let min_pos_view = new Vector3(Infinity,Infinity,Infinity);
+    let max_pos_view = new Vector3(-Infinity, -Infinity, -Infinity);
+
+    for (let k=0; k<8; k++)
+    {
+        let pos = new Vector3(view_pos[k].x, view_pos[k].y, view_pos[k].z);
+        min_pos_view.min(pos);
+        max_pos_view.max(pos);
+    }
+
+    return { min_pos_view, max_pos_view };
+}
+
+function visible(MV, P, min_pos, max_pos)
+{
+    let { min_pos_view, max_pos_view} = toViewAABB(MV, min_pos, max_pos);
+
+    let invP = P.clone();        
+    invP.invert();
+    let view_far = new Vector4(0.0, 0.0, 1.0, 1.0);
+    view_far.applyMatrix4(invP);
+    view_far.multiplyScalar(1.0/view_far.w);
+    let view_near = new Vector4(0.0, 0.0, -1.0, 1.0);
+    view_near.applyMatrix4(invP);
+    view_near.multiplyScalar(1.0/view_near.w);
+
+    if (min_pos_view.z > view_near.z) return false;
+    if (max_pos_view.z < view_far.z) return false;
+    if (min_pos_view.z < view_far.z)
+    {
+        min_pos_view.z = view_far.z;
+    }
+
+    let min_pos_proj = new Vector4(min_pos_view.x, min_pos_view.y, min_pos_view.z, 1.0);
+    min_pos_proj.applyMatrix4(P);
+    min_pos_proj.multiplyScalar(1.0/min_pos_proj.w);
+
+    let max_pos_proj = new Vector4(max_pos_view.x, max_pos_view.y, min_pos_view.z, 1.0);
+    max_pos_proj.applyMatrix4(P);
+    max_pos_proj.multiplyScalar(1.0/max_pos_proj.w);
+
+    return max_pos_proj.x >= -1.0 && min_pos_proj.x <= 1.0 && max_pos_proj.y >= -1.0 && min_pos_proj.y <= 1.0;
+
+}
+
 
 export class GPURenderer
 {
@@ -133,6 +233,12 @@ export class GPURenderer
     _render_shadow_simple_model(passEncoder, model, shadow)
     {
         if (model.geometry.uuid == 0) return;
+
+        let view_matrix = shadow.light.matrixWorld.clone();
+        view_matrix.invert();
+        let MV = new Matrix4();
+        MV.multiplyMatrices(view_matrix, model.matrixWorld);
+        if (!visible(MV, shadow.light_proj_matrix, model.geometry.min_pos, model.geometry.max_pos)) return;        
         
         let material = model.material;
         
@@ -159,11 +265,23 @@ export class GPURenderer
 
     _render_shadow_gltf_model(passEncoder, model, shadow)
     {
+        let view_matrix = shadow.light.matrixWorld.clone();
+        view_matrix.invert();
         for (let mesh of model.meshes)
         {
+            let matrix = model.matrixWorld.clone();
+            if (mesh.node_id >=0 && mesh.skin_id <0)
+            {
+                let node = model.nodes[mesh.node_id];
+                matrix.multiply(node.g_trans);
+            }
+            let MV = new Matrix4();
+            MV.multiplyMatrices(view_matrix, matrix);
+
             for (let primitive of mesh.primitives)
             {
                 if (primitive.uuid == 0) continue;
+                if (!visible(MV, shadow.light_proj_matrix, primitive.min_pos, primitive.max_pos)) continue;
 
                 let params = {                        
                     material_list: model.materials,
@@ -326,9 +444,19 @@ export class GPURenderer
     {        
         for (let mesh of model.meshes)
         {
+            let matrix = model.matrixWorld.clone();
+            if (mesh.node_id >=0 && mesh.skin_id <0)
+            {
+                let node = model.nodes[mesh.node_id];
+                matrix.multiply(node.g_trans);
+            }
+            let MV = new Matrix4();
+            MV.multiplyMatrices(camera.matrixWorldInverse, matrix);
+
             for (let primitive of mesh.primitives)
             {
                 if (primitive.uuid == 0) continue;
+                if (!visible(MV, camera.projectionMatrix, primitive.min_pos, primitive.max_pos)) continue;
 
                 let idx_material = primitive.material_idx;
                 let material = model.materials[idx_material];
@@ -379,32 +507,54 @@ export class GPURenderer
         let has_alpha = false;
         let has_opaque = false;
 
+        // model culling
+
         for (let i=0; i<simple_models.length; i++)
         {
             let model = simple_models[i];
-            let material = model.material;
-            if (material.alphaMode == "Blend")
+            let MV = new Matrix4();
+            MV.multiplyMatrices(camera.matrixWorldInverse, model.matrixWorld);
+            if (!visible(MV, camera.projectionMatrix, model.geometry.min_pos, model.geometry.max_pos))
             {
-                has_alpha = true;
+                simple_models.splice(i,1);
+                i--;
             }
             else
             {
-                has_opaque= true;
+                let material = model.material;
+                if (material.alphaMode == "Blend")
+                {
+                    has_alpha = true;
+                }
+                else
+                {
+                    has_opaque= true;
+                }
             }
         }
 
         for (let i=0; i<gltf_models.length; i++)
         {
             let model = gltf_models[i];
-            for (let material of model.materials)
+            let MV = new Matrix4();
+            MV.multiplyMatrices(camera.matrixWorldInverse, model.matrixWorld);
+            if (!visible(MV, camera.projectionMatrix, model.min_pos, model.max_pos))
             {
-                if (material.alphaMode == "Blend")
+                gltf_models.splice(i,1);
+                i--;
+            }
+            else
+            {
+                for (let material of model.materials)
                 {
-                    has_alpha = true;
-                }
-                else
-                {                    
-                    has_opaque= true;
+                    if (material.alphaMode == "Blend")
+                    {
+                        has_alpha = true;
+                    }
+                    else
+                    {                    
+                        has_opaque= true;
+                    }
                 }
             }
         }        
