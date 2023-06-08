@@ -9,6 +9,7 @@ import { DirectionalLight } from "../lights/DirectionalLight.js"
 import { RenderDirectionalShadow, RenderDirectionalShadowBundle } from "./routines/DirectionalShadowCast.js"
 import { MorphUpdate } from "./routines/MorphUpdate.js"
 import { SkinUpdate } from "./routines/SkinUpdate.js"
+import { ResolveWeightedOIT } from "./routines/WeightedOIT.js"
 
 export class GPURenderer
 {
@@ -290,14 +291,12 @@ export class GPURenderer
         {
             if (material.alphaMode == "Blend") return;
         }
-        else if (pass == "Alpha" || pass == "Highlight")
+        else if (pass == "Alpha")
         {
             if (material.alphaMode != "Blend") return;
         }
 
-
-        let params = {
-            is_highlight_pass: pass == "Highlight",
+        let params = {            
             target,
             material_list: [material],
             bind_group_camera: camera.bind_group,            
@@ -338,13 +337,12 @@ export class GPURenderer
                 {
                     if (material.alphaMode == "Blend") continue;
                 }
-                else if (pass == "Alpha" || pass == "Highlight")
+                else if (pass == "Alpha")
                 {
                     if (material.alphaMode != "Blend") continue;
                 }
 
-                let params = {
-                    is_highlight_pass: pass == "Highlight",
+                let params = {                    
                     target,
                     material_list: model.materials,
                     bind_group_camera: camera.bind_group,            
@@ -398,14 +396,14 @@ export class GPURenderer
         for (let i=0; i<gltf_models.length; i++)
         {
             let model = gltf_models[i];
-            for (let material in model.materials)
+            for (let material of model.materials)
             {
                 if (material.alphaMode == "Blend")
                 {
                     has_alpha = true;
                 }
                 else
-                {
+                {                    
                     has_opaque= true;
                 }
             }
@@ -429,7 +427,10 @@ export class GPURenderer
         if (msaa)
         {
             colorAttachment.view = target.view_msaa;
-            colorAttachment.resolveTarget = target.view_video;
+            if (!has_alpha)
+            {
+                colorAttachment.resolveTarget = target.view_video;
+            }
         }
         else
         {
@@ -502,6 +503,93 @@ export class GPURenderer
             }
             
             passEncoder.end();
+        }
+
+        if (has_alpha)
+        {
+            target.update_oit_buffers();
+
+            colorAttachment.loadOp = 'load';            
+            depthAttachment.depthLoadOp = 'load';
+            
+            let oitAttchment0 = {
+                view: target.oit_view0,
+                clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 0.0 },
+                loadOp: 'clear',
+                storeOp: 'store'
+            }
+    
+            let oitAttchment1 = {
+                view: target.oit_view1,
+                clearValue: { r: 1.0, g: 1.0, b: 1.0, a: 1.0 },
+                loadOp: 'clear',
+                storeOp: 'store'
+            }
+
+            let renderPassDesc_alpha = {
+                colorAttachments: [colorAttachment, oitAttchment0, oitAttchment1],
+                depthStencilAttachment: depthAttachment
+            }; 
+
+            let passEncoder = commandEncoder.beginRenderPass(renderPassDesc_alpha);
+
+            passEncoder.setViewport(
+                0,
+                0,
+                target.width,
+                target.height,
+                0,
+                1
+            );
+        
+            passEncoder.setScissorRect(
+                0,
+                0,
+                target.width,
+                target.height,
+            );
+
+            for (let model of simple_models)
+            {
+                this._render_simple_model(passEncoder, model, camera, lights, target, "Alpha");
+            }
+
+            for (let model of gltf_models)
+            {
+                this._render_gltf_model(passEncoder, model, camera, lights, target, "Alpha");
+            }
+
+            passEncoder.end();
+
+            {
+                colorAttachment.resolveTarget = target.view_video;
+
+                let renderPassDesc_oit = {
+                    colorAttachments: [colorAttachment],            
+                }; 
+
+                let passEncoder = commandEncoder.beginRenderPass(renderPassDesc_oit);
+
+                passEncoder.setViewport(
+                    0,
+                    0,
+                    target.width,
+                    target.height,
+                    0,
+                    1
+                );
+            
+                passEncoder.setScissorRect(
+                    0,
+                    0,
+                    target.width,
+                    target.height,
+                );
+
+                ResolveWeightedOIT(passEncoder, target);
+
+                passEncoder.end();
+            }
         }
 
 

@@ -11,6 +11,9 @@ function get_shader(options)
     let location_varying_viewdir = location_varying++;
     let location_varying_norm = location_varying++;
 
+    let alpha_mask = options.alpha_mode == "Mask";
+    let alpha_blend = options.alpha_mode == "Blend";
+
     let location_attrib_color = localtion_attrib;
     let location_varying_color = location_varying;
     if (options.has_color)
@@ -163,6 +166,7 @@ fn vs_main(input: VSIn) -> VSOut
 
 struct FSIn
 {
+    @builtin(position) coord_pix: vec4f,
     @location(${location_varying_viewdir}) viewDir: vec3f,
     @location(${location_varying_norm}) norm: vec3f,
 
@@ -184,7 +188,11 @@ struct FSIn
 
 struct FSOut
 {
-    @location(0) color: vec4f
+    @location(0) color: vec4f,
+#if ${alpha_blend}
+    @location(1) oit0: vec4f,
+    @location(2) oit1: vec4f,
+#endif
 };
 
 struct Material
@@ -469,6 +477,10 @@ fn fs_main(input: FSIn) -> FSOut
     base_color *= tex_color;
 #endif
 
+#if ${alpha_mask}
+    base_color.w = select(0.0, 1.0, base_color.w > uMaterial.alphaCutoff);
+#endif
+
 #if ${mOpt.specular_glossiness}
 
     var specularFactor = uMaterial.specularGlossiness.xyz;
@@ -511,6 +523,14 @@ fn fs_main(input: FSIn) -> FSOut
             norm = -norm;
         }
     }
+    let dxy =  max(abs(dpdx(norm)), abs(dpdy(norm)));
+
+#if ${alpha_mask || alpha_blend}
+    if (base_color.w == 0.0) 
+    {
+        discard;
+    }
+#endif
 
     var material : PhysicalMaterial;
 #if ${mOpt.specular_glossiness}
@@ -523,8 +543,7 @@ fn fs_main(input: FSIn) -> FSOut
 	material.roughness = max( roughnessFactor, 0.0525 );	
 	material.specularColor = mix( vec3( 0.04 ), base_color.xyz, metallicFactor );	
 #endif
-
-    let dxy =  max(abs(dpdx(norm)), abs(dpdy(norm)));
+    
     let geometryRoughness = max(max(dxy.x, dxy.y), dxy.z);	
     material.roughness += geometryRoughness;
 	material.roughness = min( material.roughness, 1.0 );
@@ -571,10 +590,22 @@ ${(()=>{
 })()}
 
     var col = emissive + specular;
+#if ${alpha_blend}
+    col = clamp(col, vec3(0.0), vec3(1.0));
+    output.color = vec4(col * tex_alpha, 0.0);
+    col += diffuse;
+
+    let alpha = base_color.w;
+    let a = min(1.0, alpha)*8.0 + 0.01;
+    let b = -input.coord_pix.z *0.95 + 1.0;
+    let weight = clamp(a * a * a * 1e8 * b * b * b, 1e-2, 3e2);
+    output.oit0 = vec4(col * alpha, alpha) * weight;
+    output.oit1 = vec4(alpha);    
+#else
     col += diffuse;
     col = clamp(col, vec3(0.0), vec3(1.0));
-
     output.color = vec4(col, 1.0);
+#endif
     
     return output;
 }
@@ -752,6 +783,57 @@ function GetPipelineStandard(options)
             };
         }
 
+        if (options.alpha_mode == "Blend")
+        {
+            depthStencil.depthWriteEnabled = false;
+            const colorState0 = {
+                format: options.view_format,
+                blend: {
+                    color: {
+                        srcFactor: "one",
+                        dstFactor: "one"
+                    },
+                    alpha: {
+                        srcFactor: "zero",
+                        dstFactor: "one"
+                    }
+                },
+                writeMask: GPUColorWrite.ALL
+            };
+
+            const colorState1 = {
+                format: 'rgba16float',
+                blend: {
+                    color: {
+                        srcFactor: "one",
+                        dstFactor: "one"
+                    },
+                    alpha: {
+                        srcFactor: "one",
+                        dstFactor: "one"
+                    }
+                },
+                writeMask: GPUColorWrite.ALL
+            };
+
+            const colorState2 = {
+                format: 'r8unorm',
+                blend: {
+                    color: {
+                        srcFactor: "zero",
+                        dstFactor: "one-minus-src"
+                    },
+                    alpha: {
+                        srcFactor: "zero",
+                        dstFactor: "one-minus-src"
+                    }
+                },
+                writeMask: GPUColorWrite.ALL
+            };
+
+            fragment.targets = [colorState0, colorState1, colorState2];
+        }
+
         engine_ctx.cache.pipelines.standard[signature] = engine_ctx.device.createRenderPipeline(pipelineDesc); 
     }
 
@@ -770,8 +852,7 @@ export function RenderStandard(passEncoder, params)
     let options = {};    
     options.alpha_mode = material.alphaMode;
     options.view_format= params.target.view_format;
-    options.is_msaa  = params.target.msaa;
-    options.is_highlight_pass = params.is_highlight_pass;
+    options.is_msaa  = params.target.msaa;    
     options.has_color = primitive.color_buf != null;
     options.material_options = primitive.material_options;
     options.lights_options = params.lights.get_options();
@@ -825,11 +906,22 @@ export function RenderStandard(passEncoder, params)
 
 export function RenderStandardBundle(params)
 {
+    let primitive = params.primitive;   
+    let material = params.material_list[primitive.material_idx];
+
+    let color_formats = [params.target.view_format];
+    if (material.alphaMode == "Blend")
+    {
+        color_formats.push('rgba16float');
+        color_formats.push('r8unorm');
+    }
+
     const renderBundleEncoder = engine_ctx.device.createRenderBundleEncoder({
-        colorFormats: [params.target.view_format],
+        colorFormats: color_formats,
         depthStencilFormat: 'depth32float',
         sampleCount: params.target.msaa?4:1
     });
+    
 
     RenderStandard(renderBundleEncoder, params);
 

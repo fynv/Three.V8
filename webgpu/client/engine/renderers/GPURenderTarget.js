@@ -13,6 +13,11 @@ export class GPURenderTarget
         this.view_video = null;
         this.view_msaa = null;
         this.view_depth = null;
+        this.oit_tex0 = null;
+        this.oit_view0 = null;
+        this.oit_tex1 = null;
+        this.oit_view1 = null;
+        this.bind_group_oit = null;
     }
 
     update(width = -1, height = -1)
@@ -59,7 +64,7 @@ export class GPURenderTarget
                     sampleCount: 4,
                     format: 'depth32float',
                     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
-                });
+                });                
             }
             else
             {
@@ -75,5 +80,84 @@ export class GPURenderTarget
             this.width = width;
             this.height = height;
         }
-    }    
+    } 
+    
+    update_oit_buffers()
+    {
+        let width = this.width;
+        let height = this.height;
+
+        if (this.oit_tex0== null || this.oit_tex0.width!=width || this.oit_tex0.height!=height)
+        {
+            this.oit_tex0 =  engine_ctx.device.createTexture({
+                size: { width, height },
+                dimension: '2d',
+                sampleCount: this.msaa?4:1,
+                format: 'rgba16float',
+                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+            });
+    
+            this.oit_tex1 =  engine_ctx.device.createTexture({
+                size: { width, height },
+                dimension: '2d',
+                sampleCount: this.msaa?4:1,
+                format: 'r8unorm',
+                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+            });
+
+            this.oit_view0 =  this.oit_tex0.createView();
+            this.oit_view1 =  this.oit_tex1.createView();
+
+            if (!("oit_resolve" in engine_ctx.cache.bindGroupLayouts))
+            {
+                engine_ctx.cache.bindGroupLayouts.oit_resolve = {};
+            }
+
+            let options = { msaa: this.msaa  };
+            let signature = JSON.stringify(options);
+
+            if (!(signature in engine_ctx.cache.bindGroupLayouts.oit_resolve))
+            {
+                engine_ctx.cache.bindGroupLayouts.oit_resolve[signature] = engine_ctx.device.createBindGroupLayout({
+                    entries: [
+                        {
+                            binding: 0,
+                            visibility: GPUShaderStage.FRAGMENT,
+                            texture:{
+                                viewDimension: "2d",
+                                multisampled: this.msaa,
+                                sampleType: "unfilterable-float"
+                            }
+                        },
+                        {
+                            binding: 1,
+                            visibility: GPUShaderStage.FRAGMENT,
+                            texture:{
+                                viewDimension: "2d",
+                                multisampled: this.msaa,
+                                sampleType: "unfilterable-float"
+                            }
+                        }
+                    ]
+                });
+            }
+           
+
+            const bindGroupLayout = engine_ctx.cache.bindGroupLayouts.oit_resolve[signature];
+            this.bind_group_oit = engine_ctx.device.createBindGroup({
+                layout: bindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: this.oit_view0 
+                    },
+                    {
+                        binding: 1,
+                        resource: this.oit_view1
+                    }
+                ]
+            });
+
+        }
+    }
 }
