@@ -62,7 +62,7 @@ function GetPipelineDrawSkyBox(options)
 
         const depthStencil = {
             depthWriteEnabled: false,
-            depthCompare: 'less',
+            depthCompare: 'always',
             format: 'depth32float'
         };
 

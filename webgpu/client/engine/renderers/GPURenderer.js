@@ -3,6 +3,7 @@ import { Color } from "../math/Color.js"
 import { Vector3 } from "../math/Vector3.js"
 import { Vector4 } from "../math/Vector4.js"
 import { Matrix4 } from "../math/Matrix4.js"
+import { RenderDepth, RenderDepthBundle} from "./routines/DepthOnly.js"
 import { DrawHemisphere, DrawHemisphereBundle } from "./routines/DrawHemisphere.js"
 import { DrawSkyBox, DrawSkyBoxBundle } from "./routines/DrawSkyBox.js"
 import { SimpleModel } from "../models/SimpleModel.js"
@@ -116,6 +117,7 @@ export class GPURenderer
     constructor()
     {
         this.bg_bundles = {};
+        this.depth_bundles = {};
         this.render_bundles = {};
         this.shadow_bundles = {};
     }
@@ -399,10 +401,83 @@ export class GPURenderer
         scene.lights.update_bind_group();
     }
 
+    _render_depth_simple_model(passEncoder, model, camera, target)
+    {
+        if (model.geometry.uuid == 0) return;
+        let material = model.material;
+        if (material.alphaMode != "Opaque") return;
+
+        let params = {            
+            target,
+            material_list: [material],
+            bind_group_camera: camera.bind_group,            
+            primitive: model.geometry,
+        };
+
+        //RenderDepth(passEncoder, params);
+
+        let signature = JSON.stringify({
+            id_primitive: model.geometry.uuid,
+            id_camera: camera.uuid,
+            id_target: target.uuid            
+        });
+
+        if (!(signature in this.shadow_bundles))
+        {    
+            this.shadow_bundles[signature] = RenderDepthBundle(params);
+        }
+        passEncoder.executeBundles([this.shadow_bundles[signature]]);
+
+    }
+
+    _render_depth_gltf_model(passEncoder, model, camera, target)
+    {
+        for (let mesh of model.meshes)
+        {
+            let matrix = model.matrixWorld.clone();
+            if (mesh.node_id >=0 && mesh.skin_id <0)
+            {
+                let node = model.nodes[mesh.node_id];
+                matrix.multiply(node.g_trans);
+            }
+            let MV = new Matrix4();
+            MV.multiplyMatrices(camera.matrixWorldInverse, matrix);
+
+            for (let primitive of mesh.primitives)
+            {
+                if (primitive.uuid == 0) continue;
+                if (!visible(MV, camera.projectionMatrix, primitive.min_pos, primitive.max_pos)) continue;
+
+                let idx_material = primitive.material_idx;
+                let material = model.materials[idx_material];
+
+                if (material.alphaMode != "Opaque") continue;
+
+                let params = {                    
+                    target,
+                    material_list: model.materials,
+                    bind_group_camera: camera.bind_group,            
+                    primitive: primitive,
+                };
+
+                let signature = JSON.stringify({
+                    id_primitive: primitive.uuid,
+                    id_camera: camera.uuid,
+                    id_target: target.uuid            
+                });
+        
+                if (!(signature in this.shadow_bundles))
+                {    
+                    this.shadow_bundles[signature] = RenderDepthBundle(params);
+                }
+                passEncoder.executeBundles([this.shadow_bundles[signature]]);        
+            }
+        }
+    }
+
     _render_simple_model(passEncoder, model, camera, lights, target, pass)
     {
         if (model.geometry.uuid == 0) return;
-
         let material = model.material;
 
         if (pass == "Opaque")
@@ -594,16 +669,55 @@ export class GPURenderer
             depthStoreOp: 'store',
         };
 
-        let renderPassDesc_opaque = {
-            colorAttachments: [colorAttachment],
-            depthStencilAttachment: depthAttachment
-        }; 
-
         let lights = scene.lights;
 
         let commandEncoder = engine_ctx.device.createCommandEncoder();
 
+        if (has_opaque)
         {
+            // depth-prepass
+            let renderPassDesc_depth = {
+                colorAttachments: [],
+                depthStencilAttachment: depthAttachment
+            }; 
+            let passEncoder = commandEncoder.beginRenderPass(renderPassDesc_depth);
+
+            passEncoder.setViewport(
+                0,
+                0,
+                target.width,
+                target.height,
+                0,
+                1
+            );
+        
+            passEncoder.setScissorRect(
+                0,
+                0,
+                target.width,
+                target.height,
+            );
+
+            for (let model of simple_models)
+            {
+                this._render_depth_simple_model(passEncoder, model, camera, target);
+            }
+
+            for (let model of gltf_models)
+            {
+                this._render_depth_gltf_model(passEncoder, model, camera, target);
+            }
+
+            passEncoder.end();
+
+            depthAttachment.depthLoadOp = 'load';
+        }
+
+        {
+            let renderPassDesc_opaque = {
+                colorAttachments: [colorAttachment],
+                depthStencilAttachment: depthAttachment
+            }; 
             let passEncoder = commandEncoder.beginRenderPass(renderPassDesc_opaque);
 
             passEncoder.setViewport(

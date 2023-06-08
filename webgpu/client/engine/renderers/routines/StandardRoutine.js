@@ -632,7 +632,7 @@ function GetPipelineStandard(options)
 
         const depthStencil = {
             depthWriteEnabled: true,
-            depthCompare: 'less',
+            depthCompare: 'less-equal',
             format: 'depth32float'
         };
 
