@@ -653,7 +653,7 @@ export class GPURenderer
         if (msaa)
         {
             colorAttachment.view = target.view_msaa;
-            if (!has_alpha)
+            if (!has_alpha && !has_opaque)
             {
                 colorAttachment.resolveTarget = target.view_video;
             }
@@ -779,6 +779,10 @@ export class GPURenderer
 
         if (has_opaque)
         {
+            if (!has_alpha)
+            {
+                colorAttachment.resolveTarget = target.view_video;
+            }
             let renderPassDesc_opaque = {
                 colorAttachments: [colorAttachment],
                 depthStencilAttachment: depthAttachment

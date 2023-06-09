@@ -164,6 +164,48 @@ fn vs_main(input: VSIn) -> VSOut
     return output;
 }
 
+const PI = 3.14159265359;
+const RECIPROCAL_PI = 0.3183098861837907;
+const EPSILON = 1e-6;
+
+var<private> seed : u32;
+
+fn InitRandomSeed(val0: u32, val1: u32) 
+{
+    var v0 = val0;
+    var v1 = val1;
+    var s0 = 0u;
+
+    for (var n = 0u; n<16u; n++)
+    {
+        s0 += 0x9e3779b9u;
+		v0 += ((v1 << 4) + 0xa341316cu) ^ (v1 + s0) ^ ((v1 >> 5) + 0xc8013ea4u);
+		v1 += ((v0 << 4) + 0xad90777du) ^ (v0 + s0) ^ ((v0 >> 5) + 0x7e95761eu);
+    }
+
+    seed = v0;
+}
+
+fn RandomInt() -> u32
+{
+    seed = 1664525u * seed + 1013904223u;
+    return seed;
+}
+
+fn RandomFloat() -> f32
+{
+    return (f32(RandomInt() & 0x00FFFFFFu) / f32(0x01000000));
+}
+
+var<private> jitter: f32 = 0.0;
+
+fn vogel_sample(j: f32, N: f32, jitter: f32) -> vec2f
+{
+    let r = sqrt((j+0.5)/N);
+    let theta = j * 2.4 + jitter * 2.0 * PI;
+    return vec2(r * cos(theta), r * sin(theta));
+}
+
 struct FSIn
 {
     @builtin(position) coord_pix: vec4f,
@@ -245,9 +287,6 @@ struct PhysicalMaterial
     specularColor: vec3f,
     specularF90: f32
 };
-
-const RECIPROCAL_PI = 0.3183098861837907;
-const EPSILON = 1e-6;
 
 fn pow2(x: f32) -> f32
 {
@@ -334,33 +373,6 @@ fn BRDF_GGX(lightDir: vec3f,  viewDir: vec3f, normal: vec3f, f0: vec3f, f90: f32
 @group(2) @binding(0)
 var uShadowSampler: sampler_comparison;
 
-@group(2) @binding(1)
-var<uniform> uPoisson32_64: array<vec4f, 48>;
-
-fn get_poisson_32(i: i32) -> vec2f
-{
-    if (i%2==0)
-    {
-        return uPoisson32_64[i/2].xy;
-    }
-    else
-    {
-        return uPoisson32_64[i/2].zw;
-    }
-}
-
-fn get_poisson_64(i: i32) -> vec2f
-{
-    if (i%2==0)
-    {
-        return uPoisson32_64[16 + i/2].xy;
-    }
-    else
-    {
-        return uPoisson32_64[16 + i/2].zw;
-    }
-}
-
 fn borderDepthTexture(shadowTex: texture_depth_2d, uv: vec2f) -> f32
 {
     return select(1.0, textureSampleLevel(shadowTex, uSampler, uv, 0),  
@@ -379,7 +391,7 @@ fn findBlocker(shadowTex: texture_depth_2d, uv : vec2f, z: f32, searchRegionRadi
 
     for (var i=0; i<32; i++)
     {
-        let offset = get_poisson_32(i) * searchRegionRadiusUV;
+        let offset = vogel_sample(f32(i), 32.0, 0.5)  * searchRegionRadiusUV;
         let shadowMapDepth = borderDepthTexture(shadowTex, uv + offset);
         if (shadowMapDepth<z)
         {
@@ -397,7 +409,7 @@ fn pcfFilter(shadowTex: texture_depth_2d, uv : vec2f, z: f32,  filterRadiusUV: v
 
     for (var i=0; i<64; i++)
     {
-        let offset = get_poisson_64(i) * filterRadiusUV;
+        let offset = vogel_sample(f32(i), 64.0, jitter) * filterRadiusUV;
         sum += borderPCFTexture(shadowTex, vec3(uv + offset, z));
     }    
 
@@ -432,7 +444,7 @@ fn computePCSSShadowCoef(shadow: DirectionalShadow, zEye: f32, uvz : vec3f, shad
 
 ${(()=>{
     let code = "";
-    let binding = lights_options.has_shadow? 2: 0;
+    let binding = lights_options.has_shadow? 1: 0;
     for (let i=0; i<directional_lights.length; i++)
     {        
         let has_shadow = directional_lights[i];
@@ -462,6 +474,9 @@ var uDirectionalShadowTex_${i}: texture_depth_2d;`
 @fragment
 fn fs_main(input: FSIn) -> FSOut
 {
+    InitRandomSeed(u32(input.coord_pix.x), u32(input.coord_pix.y));
+    jitter = RandomFloat();
+
     var output: FSOut;
 
     var base_color = uMaterial.color;
