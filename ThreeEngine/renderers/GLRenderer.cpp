@@ -2075,9 +2075,6 @@ void GLRenderer::render_depth_primitives(const DepthOnly::RenderParams& params, 
 
 void GLRenderer::render_depth_model(Camera* p_camera, SimpleModel* model)
 {
-	glm::mat4 view_matrix = p_camera->matrixWorldInverse;
-	if (!visible(view_matrix * model->matrixWorld, p_camera->projectionMatrix, model->geometry.min_pos, model->geometry.max_pos)) return;
-
 	const MeshStandardMaterial* material = &model->material;
 	if (material->alphaMode != AlphaMode::Opaque) return;
 
