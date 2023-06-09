@@ -65,12 +65,6 @@ function GetPipelineDrawHemisphere(options)
         let layout = engine_ctx.device.createPipelineLayout(pipelineLayoutDesc);
         let shaderModule = engine_ctx.device.createShaderModule({ code: shader_code });
 
-        const depthStencil = {
-            depthWriteEnabled: false,
-            depthCompare: 'always',
-            format: 'depth32float'
-        };
-
         const vertex = {
             module: shaderModule,
             entryPoint: 'vs_main',
@@ -100,8 +94,7 @@ function GetPipelineDrawHemisphere(options)
             vertex,
             fragment,
     
-            primitive,
-            depthStencil
+            primitive
         };
 
         if (options.msaa)
@@ -139,8 +132,7 @@ export function DrawHemisphere(passEncoder, target, camera, bg)
 export function DrawHemisphereBundle(target, camera, bg)
 {
     const renderBundleEncoder = engine_ctx.device.createRenderBundleEncoder({
-        colorFormats: [target.view_format],
-        depthStencilFormat: 'depth32float',
+        colorFormats: [target.view_format],        
         sampleCount: target.msaa?4:1
     });
 

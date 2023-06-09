@@ -60,12 +60,6 @@ function GetPipelineDrawSkyBox(options)
         let layout = engine_ctx.device.createPipelineLayout(pipelineLayoutDesc);
         let shaderModule = engine_ctx.device.createShaderModule({ code: shader_code });
 
-        const depthStencil = {
-            depthWriteEnabled: false,
-            depthCompare: 'always',
-            format: 'depth32float'
-        };
-
         const vertex = {
             module: shaderModule,
             entryPoint: 'vs_main',
@@ -95,8 +89,7 @@ function GetPipelineDrawSkyBox(options)
             vertex,
             fragment,
     
-            primitive,
-            depthStencil
+            primitive            
         };
 
         if (options.msaa)
@@ -135,8 +128,7 @@ export function DrawSkyBox(passEncoder, target, camera, bg)
 export function DrawSkyBoxBundle(target, camera, bg)
 {
     const renderBundleEncoder = engine_ctx.device.createRenderBundleEncoder({
-        colorFormats: [target.view_format],
-        depthStencilFormat: 'depth32float',
+        colorFormats: [target.view_format],       
         sampleCount: target.msaa?4:1
     });
 

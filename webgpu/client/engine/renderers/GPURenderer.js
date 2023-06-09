@@ -571,7 +571,7 @@ export class GPURenderer
 
     }
 
-    _render(scene, camera, target)
+    _render_scene(commandEncoder, scene, camera, target)
     {
         camera.updateMatrixWorld(false);
     	camera.updateConstant();
@@ -583,7 +583,6 @@ export class GPURenderer
         let has_opaque = false;
 
         // model culling
-
         for (let i=0; i<simple_models.length; i++)
         {
             let model = simple_models[i];
@@ -632,17 +631,109 @@ export class GPURenderer
                     }
                 }
             }
-        }        
+        }
+
+        let msaa= target.msaa;
+
+        // background pass
+        let clearColor = new Color(0.0, 0.0, 0.0);        
+
+        if(scene.background!=null &&
+            scene.background instanceof ColorBackground)
+        {
+            clearColor = scene.background.color;
+        }
+
+        let colorAttachment =  {            
+            clearValue: { r: clearColor.r, g: clearColor.g, b: clearColor.b, a: 1 },
+            loadOp: 'clear',
+            storeOp: 'store'
+        };
+
+        if (msaa)
+        {
+            colorAttachment.view = target.view_msaa;
+            if (!has_alpha)
+            {
+                colorAttachment.resolveTarget = target.view_video;
+            }
+        }
+        else
+        {
+            colorAttachment.view = target.view_video;
+        }
         
+        if(scene.background!=null)
+        {
+            if (scene.background instanceof HemisphereBackground)
+            {
+                scene.background.updateConstant();
+
+                let renderPassDesc_bg = {
+                    colorAttachments: [colorAttachment],                    
+                }; 
+                let passEncoder = commandEncoder.beginRenderPass(renderPassDesc_bg);
+    
+                passEncoder.setViewport(
+                    0,
+                    0,
+                    target.width,
+                    target.height,
+                    0,
+                    1
+                );
+            
+                passEncoder.setScissorRect(
+                    0,
+                    0,
+                    target.width,
+                    target.height,
+                );
+                
+                this._draw_hemisphere(passEncoder, target, camera, scene.background);        
+                
+                passEncoder.end();
+
+                colorAttachment.loadOp = 'load';
+            }
+            else if (scene.background instanceof CubeBackground)
+            {
+                let renderPassDesc_bg = {
+                    colorAttachments: [colorAttachment],                    
+                }; 
+                let passEncoder = commandEncoder.beginRenderPass(renderPassDesc_bg);
+
+                passEncoder.setViewport(
+                    0,
+                    0,
+                    target.width,
+                    target.height,
+                    0,
+                    1
+                );
+            
+                passEncoder.setScissorRect(
+                    0,
+                    0,
+                    target.width,
+                    target.height,
+                );
+
+                this._draw_skybox(passEncoder, target, camera, scene.background);    
+                
+                passEncoder.end();
+
+                colorAttachment.loadOp = 'load';
+            }            
+        }
+
         // depth-prepass
         let depthAttachment = {
             view: target.view_depth,
             depthClearValue: 1,
             depthLoadOp: 'clear',
             depthStoreOp: 'store',
-        };        
-
-        let commandEncoder = engine_ctx.device.createCommandEncoder();
+        };
 
         if (has_opaque)
         {            
@@ -684,36 +775,9 @@ export class GPURenderer
         }
 
         // opaque pass
-        let msaa= target.msaa;
-        let clearColor = new Color(0.0, 0.0, 0.0);        
-
-        if(scene.background!=null &&
-            scene.background instanceof ColorBackground)
-        {
-            clearColor = scene.background.color;
-        }
-
-        let colorAttachment =  {            
-            clearValue: { r: clearColor.r, g: clearColor.g, b: clearColor.b, a: 1 },
-            loadOp: 'clear',
-            storeOp: 'store'
-        };
-
-        if (msaa)
-        {
-            colorAttachment.view = target.view_msaa;
-            if (!has_alpha)
-            {
-                colorAttachment.resolveTarget = target.view_video;
-            }
-        }
-        else
-        {
-            colorAttachment.view = target.view_video;
-        }
-
         let lights = scene.lights;
 
+        if (has_opaque)
         {
             let renderPassDesc_opaque = {
                 colorAttachments: [colorAttachment],
@@ -735,39 +799,22 @@ export class GPURenderer
                 0,
                 target.width,
                 target.height,
-            );
-
-            while(scene.background!=null)
+            );           
+            
+            for (let model of simple_models)
             {
-                if (scene.background instanceof HemisphereBackground)
-                {
-                    scene.background.updateConstant();
-                    this._draw_hemisphere(passEncoder, target, camera, scene.background);
-                    break;
-                }
-
-                if (scene.background instanceof CubeBackground)
-                {
-                    this._draw_skybox(passEncoder, target, camera, scene.background);
-                    break;
-                }
-                break;
+                this._render_simple_model(passEncoder, model, camera, lights, target, "Opaque");
             }
 
-            if (has_opaque)
+            for (let model of gltf_models)
             {
-                for (let model of simple_models)
-                {
-                    this._render_simple_model(passEncoder, model, camera, lights, target, "Opaque");
-                }
-
-                for (let model of gltf_models)
-                {
-                    this._render_gltf_model(passEncoder, model, camera, lights, target, "Opaque");
-                }
+                this._render_gltf_model(passEncoder, model, camera, lights, target, "Opaque");
             }
             
             passEncoder.end();
+            
+            colorAttachment.loadOp = 'load';
+            depthAttachment.depthLoadOp = 'load';
         }
 
         // alpha pass
@@ -775,9 +822,6 @@ export class GPURenderer
         {
             target.update_oit_buffers();
 
-            colorAttachment.loadOp = 'load';            
-            depthAttachment.depthLoadOp = 'load';
-            
             let oitAttchment0 = {
                 view: target.oit_view0,
                 clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 0.0 },
@@ -858,6 +902,12 @@ export class GPURenderer
             }
         }
 
+    }
+
+    _render(scene, camera, target)
+    {        
+        let commandEncoder = engine_ctx.device.createCommandEncoder();
+        this._render_scene(commandEncoder, scene, camera, target);
 
         let cmdBuf = commandEncoder.finish();
         engine_ctx.queue.submit([cmdBuf]);
