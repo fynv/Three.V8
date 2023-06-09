@@ -89,6 +89,10 @@ R"(#version 430
 
 #DEFINES#
 
+#define EPSILON 1e-6
+#define PI 3.14159265359
+#define RECIPROCAL_PI 0.3183098861837907
+
 uint InitRandomSeed(uint val0, uint val1)
 {
 	uint v0 = val0, v1 = val1, s0 = 0u;
@@ -114,6 +118,14 @@ float RandomFloat(inout uint seed)
 }
 
 uint seed;
+float jitter;
+
+vec2 vogel_sample(float j, float N)
+{
+	float r = sqrt((j+0.5)/N);
+	float theta = j * 2.4 + jitter * 2.0 * PI;
+	return vec2(r * cos(theta), r * sin(theta));
+}
 
 layout (location = LOCATION_VARYING_VIEWDIR) in vec3 vViewDir;
 layout (location = LOCATION_VARYING_NORM) in vec3 vNorm;
@@ -179,10 +191,6 @@ struct IncidentLight {
 	vec3 direction;
 	bool visible;
 };
-
-#define EPSILON 1e-6
-#define PI 3.14159265359
-#define RECIPROCAL_PI 0.3183098861837907
 
 #ifndef saturate
 #define saturate( a ) clamp( a, 0.0, 1.0 )
@@ -337,14 +345,6 @@ float computeShadowCoef(in mat4 VPSB, sampler2DShadow shadowTex)
 	vec3 shadowCoords;
 	shadowCoords = computeShadowCoords(VPSB);
 	return borderPCFTexture(shadowTex, shadowCoords);
-}
-
-float jitter;
-vec2 vogel_sample(float j, float N)
-{
-	float r = sqrt((j+0.5)/N);
-	float theta = j * 2.4 + jitter * 2.0 * PI;
-	return vec2(r * cos(theta), r * sin(theta));
 }
 
 // Returns average blocker depth in the search region, as well as the number of found blockers.
