@@ -10,37 +10,7 @@ export class HemisphereLight extends IndirectLight
         this.skyColor = new Color(0.318, 0.318, 0.318 );
         this.groundColor = new Color(0.01, 0.025, 0.025);
         this.intensity = 1.0;
-
-        if (!("hemisphere_light" in engine_ctx.cache.bindGroupLayouts))
-        {
-            engine_ctx.cache.bindGroupLayouts.hemisphere_light = engine_ctx.device.createBindGroupLayout({
-                entries: [
-                    {
-                        binding: 0,
-                        visibility: GPUShaderStage.FRAGMENT,
-                        buffer:{
-                            type: "uniform"
-                        }
-                    }
-                ]
-            });
-        }
-
         this.constant = engine_ctx.createBuffer0(64, GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST);
-
-        const bindGroupLayout = engine_ctx.cache.bindGroupLayouts.hemisphere_light;
-        this.bind_group = engine_ctx.device.createBindGroup({
-            layout: bindGroupLayout,
-            entries: [
-                {
-                    binding: 0,
-                    resource:{
-                        buffer: this.constant
-                    }
-                }
-            ]
-        });
-
     }
 
     updateConstant()

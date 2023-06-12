@@ -7,37 +7,8 @@ export class AmbientLight extends IndirectLight
     {
         super();
         this.color = new Color(1.0, 1.0, 1.0);
-        this.intensity = 1.0;
-        
-        if (!("ambient_light" in engine_ctx.cache.bindGroupLayouts))
-        {
-            engine_ctx.cache.bindGroupLayouts.ambient_light = engine_ctx.device.createBindGroupLayout({
-                entries: [
-                    {
-                        binding: 0,
-                        visibility: GPUShaderStage.FRAGMENT,
-                        buffer:{
-                            type: "uniform"
-                        }
-                    }
-                ]
-            });
-        }
-
-        this.constant = engine_ctx.createBuffer0(48, GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST);
-
-        const bindGroupLayout = engine_ctx.cache.bindGroupLayouts.ambient_light;
-        this.bind_group = engine_ctx.device.createBindGroup({
-            layout: bindGroupLayout,
-            entries: [
-                {
-                    binding: 0,
-                    resource:{
-                        buffer: this.constant
-                    }
-                }
-            ]
-        });
+        this.intensity = 1.0;        
+        this.constant = engine_ctx.createBuffer0(48, GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST);  
     }
 
     updateConstant()
