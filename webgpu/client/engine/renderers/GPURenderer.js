@@ -1,4 +1,6 @@
 import { ColorBackground, HemisphereBackground, CubeBackground } from "../backgrounds/Background.js"
+import { BackgroundScene } from "../backgrounds/BackgroundScene.js"
+import { PerspectiveCameraEx } from "../cameras/PerspectiveCameraEx.js"
 import { Color } from "../math/Color.js"
 import { Vector3 } from "../math/Vector3.js"
 import { Vector4 } from "../math/Vector4.js"
@@ -14,6 +16,8 @@ import { RenderDirectionalShadow, RenderDirectionalShadowBundle } from "./routin
 import { MorphUpdate } from "./routines/MorphUpdate.js"
 import { SkinUpdate } from "./routines/SkinUpdate.js"
 import { ResolveWeightedOIT } from "./routines/WeightedOIT.js"
+import { AmbientLight } from "../lights/AmbientLight.js"
+import { HemisphereLight } from "../lights/HemisphereLight.js"
 
 function toViewAABB(MV, min_pos, max_pos)
 {
@@ -310,29 +314,24 @@ export class GPURenderer
     _pre_render(scene)
     {
         scene.clear_lists();
+
+        let lights = scene.lights;
         
         scene.traverse((obj)=>{
-            while(obj!=null)
+            if(obj!=null)
             {
                 if (obj instanceof SimpleModel)
                 {
                     scene.simple_models.push(obj);
-                    break;
                 }         
-
-                if (obj instanceof GLTFModel)
+                else if (obj instanceof GLTFModel)
                 {
                     scene.gltf_models.push(obj);
-                    break;
                 }
-
-                if (obj instanceof DirectionalLight)
+                else if (obj instanceof DirectionalLight)
                 {                    
-                    scene.lights.directional_lights.push(obj);
-                    break;
+                    lights.directional_lights.push(obj);
                 }
-
-                break;
             }
             obj.updateWorldMatrix(false, false);
         });
@@ -348,7 +347,7 @@ export class GPURenderer
         }
 
         let has_shadow_map = false;
-        for (let light of scene.lights.directional_lights)
+        for (let light of lights.directional_lights)
         {
             light.lookAtTarget();
             light.updateConstant();
@@ -359,7 +358,7 @@ export class GPURenderer
         {
             let commandEncoder = engine_ctx.device.createCommandEncoder();
 
-            for (let light of scene.lights.directional_lights)
+            for (let light of lights.directional_lights)
             {
                 let shadow = light.shadow;
                 if (shadow == null) continue;
@@ -398,7 +397,23 @@ export class GPURenderer
             engine_ctx.queue.submit([cmdBuf]);            
         }
 
-        scene.lights.update_bind_group();
+        if(scene.indirectLight!=null)
+        {
+            lights.reflection_map = scene.indirectLight.reflection;
+            if (scene.indirectLight instanceof AmbientLight)
+            {
+                scene.indirectLight.updateConstant();
+                lights.ambient_light = scene.indirectLight;               
+            }
+            else if (scene.indirectLight instanceof HemisphereLight)
+            {
+                scene.indirectLight.updateConstant();
+                lights.hemisphere_light = scene.indirectLight;
+            }
+
+        }
+
+        lights.update_bind_group();
     }
 
     _render_depth_simple_model(passEncoder, model, camera, target)
@@ -724,7 +739,16 @@ export class GPURenderer
                 passEncoder.end();
 
                 colorAttachment.loadOp = 'load';
-            }            
+            }
+            else if (scene.background instanceof BackgroundScene)
+            {
+                let bg = scene.background;
+                let cam = new PerspectiveCameraEx(camera.fov, camera.aspect, bg.near, bg.far);
+                cam.parent = camera.parent;
+                cam.position.copy(camera.position);
+                cam.quaternion.copy(camera.quaternion);
+                this._render_scene(commandEncoder, bg.scene, cam, target);
+            }
         }
 
         // depth-prepass

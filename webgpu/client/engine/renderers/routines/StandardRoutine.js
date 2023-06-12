@@ -65,8 +65,33 @@ function get_shader(options)
 
     let location_varying_world_pos = location_varying++;   
     
-    let lights_options = options.lights_options;
+    let lights_options = options.lights_options;    
     let directional_lights = lights_options.directional_lights;
+
+    let binding_lights = 0;
+    let binding_shadow_sampler = binding_lights;
+    if (lights_options.has_shadow) binding_lights++;
+
+    let binding_directional_light = binding_lights;
+    for (let i=0; i<directional_lights.length; i++)
+    {        
+        let has_shadow = directional_lights[i];
+        binding_lights++;
+
+        if (has_shadow)
+        {            
+            binding_lights+=2;
+        }
+    }
+
+    let has_lightmap = false;
+    let has_indirect_light = lights_options.has_ambient_light || lights_options.has_hemisphere_light;
+
+    let binding_ambient_light = binding_lights;
+    if (lights_options.has_ambient_light) binding_lights++;    
+
+    let binding_hemisphere_light = binding_lights;
+    if (lights_options.has_hemisphere_light) binding_lights++;
 
     return wgsl`
 struct Camera
@@ -195,6 +220,11 @@ fn RandomInt() -> u32
 fn RandomFloat() -> f32
 {
     return (f32(RandomInt() & 0x00FFFFFFu) / f32(0x01000000));
+}
+
+fn IGN(pixelX: i32, pixelY: i32) -> f32
+{
+    return fract(52.9829189 * fract(0.06711056*f32(pixelX) + 0.00583715*f32(pixelY)));
 }
 
 var<private> jitter: f32 = 0.0;
@@ -370,7 +400,7 @@ fn BRDF_GGX(lightDir: vec3f,  viewDir: vec3f, normal: vec3f, f0: vec3f, f90: f32
 }
 
 #if ${lights_options.has_shadow}
-@group(2) @binding(0)
+@group(2) @binding(${binding_shadow_sampler})
 var uShadowSampler: sampler_comparison;
 
 fn borderDepthTexture(shadowTex: texture_depth_2d, uv: vec2f) -> f32
@@ -444,7 +474,7 @@ fn computePCSSShadowCoef(shadow: DirectionalShadow, zEye: f32, uvz : vec3f, shad
 
 ${(()=>{
     let code = "";
-    let binding = lights_options.has_shadow? 1: 0;
+    let binding = binding_directional_light;
     for (let i=0; i<directional_lights.length; i++)
     {        
         let has_shadow = directional_lights[i];
@@ -471,9 +501,54 @@ var uDirectionalShadowTex_${i}: texture_depth_2d;`
     
 })()}
 
+#if ${lights_options.has_ambient_light}
+struct AmbientLight
+{
+    color: vec4f,
+    diffuseThresh: f32,
+    diffuseHigh: f32,
+    diffuseLow: f32,
+    specularThresh: f32,
+    specularHigh: f32,
+    specularLow: f32,
+};
+
+@group(2) @binding(${binding_ambient_light})
+var<uniform> uIndirectLight: AmbientLight;
+
+fn getIrradiance(normal: vec3f) -> vec3f
+{
+    return uIndirectLight.color.xyz * PI;
+}
+#endif
+
+#if ${lights_options.has_hemisphere_light}
+struct HemisphereLight
+{
+    skyColor: vec4f,
+    groundColor: vec4f,
+    diffuseThresh: f32,
+    diffuseHigh: f32,
+    diffuseLow: f32,
+    specularThresh: f32,
+    specularHigh: f32,
+    specularLow: f32,
+};
+
+@group(2) @binding(${binding_hemisphere_light})
+var<uniform> uIndirectLight: HemisphereLight;
+
+fn getIrradiance(normal: vec3f) -> vec3f
+{
+    let k = normal.y * 0.5 + 0.5;
+    return mix( uIndirectLight.groundColor.xyz, uIndirectLight.skyColor.xyz, k) * PI;
+}
+#endif
+
 @fragment
 fn fs_main(input: FSIn) -> FSOut
 {
+    //jitter = IGN(i32(input.coord_pix.x), i32(input.coord_pix.y));
     InitRandomSeed(u32(input.coord_pix.x), u32(input.coord_pix.y));
     jitter = RandomFloat();
 
@@ -596,6 +671,23 @@ ${(()=>{
     }
     return code;
 })()}
+
+#if ${has_lightmap}
+
+#elif ${has_indirect_light}
+    {
+        let irradiance = getIrradiance(norm);
+        var radiance = vec3(0.0);
+
+#if ${lights_options.has_reflection_map}
+
+#else
+        radiance = irradiance * RECIPROCAL_PI;
+#endif
+        diffuse += material.diffuseColor * irradiance * RECIPROCAL_PI;
+        specular +=  material.specularColor * radiance;
+    }
+#endif
 
     var col = emissive + specular;
 #if ${alpha_blend}

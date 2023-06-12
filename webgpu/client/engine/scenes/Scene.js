@@ -7,6 +7,7 @@ export class Scene extends Object3D
     {
         super();
         this.background = null;
+        this.indirectLight = null;
         this.lights = new Lights();        
         this.clear_lists();
     }

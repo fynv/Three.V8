@@ -11,6 +11,8 @@ import { SimpleModel } from "./engine/models/SimpleModel.js"
 import { Vector3 } from "./engine/math/Vector3.js"
 import { DirectionalLight } from "./engine/lights/DirectionalLight.js"
 import { GLTFLoader } from "./engine/loaders/GLTFLoader.js"
+import { AmbientLight } from "./engine/lights/AmbientLight.js"
+import { HemisphereLight } from "./engine/lights/HemisphereLight.js"
 
 export async function test()
 {
@@ -56,6 +58,13 @@ export async function test()
     bg.setCubemap(cubeImg);    
 
     scene.background = bg;
+
+    /*let indirectLight = new AmbientLight();
+    indirectLight.color.setRGB(0.3, 0.2, 0.1);*/
+
+    let indirectLight = new HemisphereLight();
+    scene.indirectLight = indirectLight;
+
     let camera = new PerspectiveCameraEx();
     camera.position.set(0.0, 0.0, 7.0);    
 

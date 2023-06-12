@@ -40,12 +40,18 @@ export class Lights
             }
             directional_lights.push(light.shadow!=null);            
         }
-        return { has_shadow, directional_lights };
+        let has_reflection_map = this.reflection_map!=null;
+        let has_ambient_light = this.ambient_light!=null;
+        let has_hemisphere_light = this.hemisphere_light!=null;
+        return { has_shadow, directional_lights, has_reflection_map, has_ambient_light, has_hemisphere_light};
     }
 
     clear_lists()
     {
         this.directional_lights = [];
+        this.reflection_map = null;
+        this.ambient_light = null;
+        this.hemisphere_light = null;
     }
 
     update_bind_group()
@@ -120,6 +126,31 @@ export class Lights
                 }
             }
 
+            if (this.ambient_light!=null)
+            {
+                entries.push({
+                    binding,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer:{
+                        type: "uniform"
+                    }
+                });
+                binding++;
+            }
+
+            if (this.hemisphere_light!=null)
+            {
+                entries.push({
+                    binding,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer:{
+                        type: "uniform"
+                    }
+                });
+                binding++;
+            }
+
+
             engine_ctx.cache.bindGroupLayouts.lights[signature] = engine_ctx.device.createBindGroupLayout({ entries });
         }   
         
@@ -161,6 +192,28 @@ export class Lights
                 });
                 binding++;
             }
+        }
+
+        if (this.ambient_light!=null)
+        {
+            entries.push({
+                binding,
+                resource:{
+                    buffer: this.ambient_light.constant
+                }
+            });
+            binding++;
+        }
+
+        if (this.hemisphere_light!=null)
+        {
+            entries.push({
+                binding,
+                resource:{
+                    buffer: this.hemisphere_light.constant
+                }
+            });
+            binding++;
         }
 
         const bindGroupLayout = engine_ctx.cache.bindGroupLayouts.lights[signature];
