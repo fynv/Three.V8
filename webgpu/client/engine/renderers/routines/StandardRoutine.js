@@ -84,14 +84,20 @@ function get_shader(options)
         }
     }
 
+    let binding_reflection_map =  binding_lights;
+    if (lights_options.has_reflection_map) binding_lights++; 
+
     let has_lightmap = false;
-    let has_indirect_light = lights_options.has_ambient_light || lights_options.has_hemisphere_light;
+    let has_indirect_light = lights_options.has_ambient_light || lights_options.has_hemisphere_light || lights_options.has_environment_map;
 
     let binding_ambient_light = binding_lights;
     if (lights_options.has_ambient_light) binding_lights++;    
 
     let binding_hemisphere_light = binding_lights;
     if (lights_options.has_hemisphere_light) binding_lights++;
+
+    let binding_environment_map =  binding_lights;
+    if (lights_options.has_environment_map) binding_lights++;
 
     return wgsl`
 struct Camera
@@ -399,6 +405,11 @@ fn BRDF_GGX(lightDir: vec3f,  viewDir: vec3f, normal: vec3f, f0: vec3f, f90: f32
 	return F*(V*D);
 }
 
+fn luminance(color: vec3f) -> f32
+{
+    return color.x * 0.2126 + color.y * 0.7152 + color.z *0.0722;
+}
+
 #if ${lights_options.has_shadow}
 @group(2) @binding(${binding_shadow_sampler})
 var uShadowSampler: sampler_comparison;
@@ -501,6 +512,49 @@ var uDirectionalShadowTex_${i}: texture_depth_2d;`
     
 })()}
 
+#if ${lights_options.has_reflection_map}
+
+@group(2) @binding(${binding_reflection_map})
+var uReflectionMap: texture_cube<f32>;
+
+fn getReflRadiance(reflectVec: vec3f, roughness: f32) -> vec3f
+{
+    var gloss : f32;
+    if (roughness < 0.053)
+    {
+        gloss = 1.0;        
+    }
+    else
+    {
+        let r2 = roughness * roughness;
+        let r4 = r2*r2;
+        gloss = log(2.0/r4 - 1.0)/log(2.0)/18.0;
+    }
+    let mip = (1.0-gloss)*6.0;
+    return textureSampleLevel(uReflectionMap, uSampler, reflectVec, mip).xyz;
+}
+
+fn getRadiance(reflectVec: vec3f, roughness: f32, irradiance: vec3f) -> vec3f
+{
+    var rad = getReflRadiance(reflectVec, roughness);
+    if (roughness > 0.053)
+    {        
+        let lum1 = luminance(rad);
+        if (lum1>0.0)
+        {
+            var rad2 = irradiance * RECIPROCAL_PI;
+            let lum2 = luminance(rad2);
+            let r2 = roughness*roughness;
+            let r4 = r2*r2;
+            let gloss = log(2.0/r4 - 1.0)/log(2.0)/18.0;
+            rad *= gloss + lum2/lum1 * (1.0-gloss);
+        }
+    }
+    return rad;
+}
+
+#endif
+
 #if ${lights_options.has_ambient_light}
 struct AmbientLight
 {
@@ -544,6 +598,47 @@ fn getIrradiance(normal: vec3f) -> vec3f
     return mix( uIndirectLight.groundColor.xyz, uIndirectLight.skyColor.xyz, k) * PI;
 }
 #endif
+
+#if ${lights_options.has_environment_map}
+struct EnvironmentMap
+{
+    SHCoefficients: array<vec4f, 9>,
+    diffuseThresh: f32,
+    diffuseHigh: f32,
+    diffuseLow: f32,
+    specularThresh: f32,
+    specularHigh: f32,
+    specularLow: f32,
+};
+
+@group(2) @binding(${binding_environment_map})
+var<uniform> uIndirectLight: EnvironmentMap;
+
+fn getIrradiance(normal: vec3f) -> vec3f
+{
+    let x = normal.x;
+    let y = normal.y;
+    let z = normal.z;
+
+    // band 0
+    var result = uIndirectLight.SHCoefficients[0].xyz * 0.886227;
+
+    // band 1
+	result += uIndirectLight.SHCoefficients[1].xyz * 2.0 * 0.511664 * y;
+	result += uIndirectLight.SHCoefficients[2].xyz * 2.0 * 0.511664 * z;
+	result += uIndirectLight.SHCoefficients[3].xyz * 2.0 * 0.511664 * x;
+
+    // band 2
+	result += uIndirectLight.SHCoefficients[4].xyz * 2.0 * 0.429043 * x * y;
+	result += uIndirectLight.SHCoefficients[5].xyz * 2.0 * 0.429043 * y * z;
+	result += uIndirectLight.SHCoefficients[6].xyz * ( 0.743125 * z * z - 0.247708 );
+	result += uIndirectLight.SHCoefficients[7].xyz * 2.0 * 0.429043 * x * z;
+	result += uIndirectLight.SHCoefficients[8].xyz * 0.429043 * ( x * x - y * y );
+
+    return result;
+}
+#endif
+
 
 @fragment
 fn fs_main(input: FSIn) -> FSOut
@@ -680,7 +775,9 @@ ${(()=>{
         var radiance = vec3(0.0);
 
 #if ${lights_options.has_reflection_map}
-
+        var reflectVec = reflect(-viewDir, norm);	
+        reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );	
+        radiance = getRadiance(reflectVec, material.roughness, irradiance);
 #else
         radiance = irradiance * RECIPROCAL_PI;
 #endif

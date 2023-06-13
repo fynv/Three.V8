@@ -18,6 +18,7 @@ import { SkinUpdate } from "./routines/SkinUpdate.js"
 import { ResolveWeightedOIT } from "./routines/WeightedOIT.js"
 import { AmbientLight } from "../lights/AmbientLight.js"
 import { HemisphereLight } from "../lights/HemisphereLight.js"
+import { EnvironmentMap } from "../lights/EnvironmentMap.js"
 
 function toViewAABB(MV, min_pos, max_pos)
 {
@@ -409,6 +410,11 @@ export class GPURenderer
             {
                 scene.indirectLight.updateConstant();
                 lights.hemisphere_light = scene.indirectLight;
+            }
+            else if (scene.indirectLight instanceof EnvironmentMap)
+            {
+                scene.indirectLight.updateConstant();
+                lights.environment_map = scene.indirectLight;
             }
 
         }

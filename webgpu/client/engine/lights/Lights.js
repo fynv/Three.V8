@@ -1,6 +1,6 @@
 export function LightsIsEmpty(options)
 {
-    return options.directional_lights.length == 0;
+    return options.directional_lights.length == 0 && !options.has_reflection_map && !options.has_ambient_light && !options.has_hemisphere_light && !options.has_environment_map;
 }
 
 export class Lights
@@ -25,6 +25,22 @@ export class Lights
             directional_lights.push(light.uuid);
         }       
         let obj = { directional_lights };
+        if (this.reflection_map!=null)
+        {
+            obj.reflection_map = this.reflection_map.uuid;
+        }
+        if (this.ambient_light!=null)
+        {
+            obj.ambient_light = this.ambient_light.uuid;
+        }
+        if (this.hemisphere_light!=null)
+        {
+            obj.hemisphere_light = this.hemisphere_light.uuid;
+        }
+        if (this.environment_map!=null)
+        {
+            obj.environment_map = this.environment_map.uuid;
+        }
         return JSON.stringify(obj);
     }
 
@@ -43,7 +59,8 @@ export class Lights
         let has_reflection_map = this.reflection_map!=null;
         let has_ambient_light = this.ambient_light!=null;
         let has_hemisphere_light = this.hemisphere_light!=null;
-        return { has_shadow, directional_lights, has_reflection_map, has_ambient_light, has_hemisphere_light};
+        let has_environment_map = this.environment_map!=null;
+        return { has_shadow, directional_lights, has_reflection_map, has_ambient_light, has_hemisphere_light, has_environment_map};
     }
 
     clear_lists()
@@ -52,6 +69,7 @@ export class Lights
         this.reflection_map = null;
         this.ambient_light = null;
         this.hemisphere_light = null;
+        this.environment_map = null;
     }
 
     update_bind_group()
@@ -60,7 +78,7 @@ export class Lights
         if (new_signature == this.signature) return;
         this.signature = new_signature;
 
-        let options = this.get_options();
+        let options = this.get_options();        
 
         if (LightsIsEmpty(options))
         {            
@@ -126,6 +144,18 @@ export class Lights
                 }
             }
 
+            if (this.reflection_map!=null)
+            {
+                entries.push({                
+                    binding,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture:{
+                        viewDimension: "cube"
+                    }
+                });
+                binding++;                
+            }
+
             if (this.ambient_light!=null)
             {
                 entries.push({
@@ -139,6 +169,18 @@ export class Lights
             }
 
             if (this.hemisphere_light!=null)
+            {
+                entries.push({
+                    binding,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer:{
+                        type: "uniform"
+                    }
+                });
+                binding++;
+            }
+
+            if (this.environment_map!=null)
             {
                 entries.push({
                     binding,
@@ -194,6 +236,17 @@ export class Lights
             }
         }
 
+        if (this.reflection_map!=null)
+        {
+            entries.push({                
+                binding,
+                resource: this.reflection_map.texture.createView({
+                    dimension: 'cube'
+                })
+            });
+            binding++;                
+        }
+
         if (this.ambient_light!=null)
         {
             entries.push({
@@ -211,6 +264,17 @@ export class Lights
                 binding,
                 resource:{
                     buffer: this.hemisphere_light.constant
+                }
+            });
+            binding++;
+        }
+
+        if (this.environment_map!=null)
+        {
+            entries.push({
+                binding,
+                resource:{
+                    buffer: this.environment_map.constant
                 }
             });
             binding++;
