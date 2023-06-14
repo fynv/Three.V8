@@ -226,13 +226,11 @@ const sky = {
                 negz = props.negz;
             }
 
-            (async() =>{
-                console.log("A");
+            (async() =>{                
                 let cube_img = await doc.imageLoader.loadCubeFromFile([
                     url+"/"+posx, url+"/"+negx, 
                     url+"/"+posy, url+"/"+negy, 
-                    url+"/"+posz, url+"/"+negz]);
-                console.log("B");
+                    url+"/"+posz, url+"/"+negz]);                
                 bg.setCubemap(cube_img);                
             })();
             doc.scene.background = bg; 
@@ -388,13 +386,11 @@ const env_light = {
                 {
                     let envMapCreator = new EnvironmentMapCreator(); 
                     (async()=>
-                    {                        
-                        console.log("C");
+                    {                       
                         let cube_img = await doc.imageLoader.loadCubeFromFile([
                             url+"/"+posx, url+"/"+negx, 
                             url+"/"+posy, url+"/"+negy, 
-                            url+"/"+posz, url+"/"+negz]);
-                        console.log("D");                                                
+                            url+"/"+posz, url+"/"+negz]);                        
                         let envLight = envMapCreator.create(cube_img);
                         doc.scene.indirectLight = envLight;                        
                     })();                    
