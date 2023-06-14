@@ -45,18 +45,19 @@ export async function test()
     //let bg = new HemisphereBackground();    
 
     let bg = new CubeBackground();
-
     let imageLoader = new ImageLoader();
-    let cubeImg = await imageLoader.loadCubeFromFile([
-        "./assets/textures/sky_cube_face0.jpg",
-        "./assets/textures/sky_cube_face1.jpg",
-        "./assets/textures/sky_cube_face2.jpg",
-        "./assets/textures/sky_cube_face3.jpg",
-        "./assets/textures/sky_cube_face4.jpg",
-        "./assets/textures/sky_cube_face5.jpg"
-    ]);    
 
-    bg.setCubemap(cubeImg);    
+    (async ()=>{        
+        let cubeImg = await imageLoader.loadCubeFromFile([
+            "./assets/textures/sky_cube_face0.jpg",
+            "./assets/textures/sky_cube_face1.jpg",
+            "./assets/textures/sky_cube_face2.jpg",
+            "./assets/textures/sky_cube_face3.jpg",
+            "./assets/textures/sky_cube_face4.jpg",
+            "./assets/textures/sky_cube_face5.jpg"
+        ]);            
+        bg.setCubemap(cubeImg);    
+    })();
 
     scene.background = bg;
 
@@ -67,8 +68,19 @@ export async function test()
     scene.indirectLight = indirectLight;*/
 
     let envMapCreator = new EnvironmentMapCreator(); 
-    let envMap = envMapCreator.create(bg);
-    scene.indirectLight = envMap;
+    
+    (async ()=>{        
+        let cubeImg = await imageLoader.loadCubeFromFile([
+            "./assets/textures/env_face0.jpg",
+            "./assets/textures/env_face1.jpg",
+            "./assets/textures/env_face2.jpg",
+            "./assets/textures/env_face3.jpg",
+            "./assets/textures/env_face4.jpg",
+            "./assets/textures/env_face5.jpg"
+        ]);       
+        let envMap = envMapCreator.create(cubeImg);
+        scene.indirectLight = envMap;
+    })();
 
     let camera = new PerspectiveCameraEx();
     camera.position.set(0.0, 0.0, 7.0);    

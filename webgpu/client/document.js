@@ -386,6 +386,7 @@ const env_light = {
                 }
                 else
                 {
+                    let envMapCreator = new EnvironmentMapCreator(); 
                     (async()=>
                     {                        
                         console.log("C");
@@ -393,8 +394,7 @@ const env_light = {
                             url+"/"+posx, url+"/"+negx, 
                             url+"/"+posy, url+"/"+negy, 
                             url+"/"+posz, url+"/"+negz]);
-                        console.log("D");                        
-                        let envMapCreator = new EnvironmentMapCreator(); 
+                        console.log("D");                                                
                         let envLight = envMapCreator.create(cube_img);
                         doc.scene.indirectLight = envLight;                        
                     })();                    
