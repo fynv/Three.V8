@@ -8,9 +8,10 @@ export class ImageLoader
     async loadFile(url)
     {
         const img = document.createElement('img');
-        img.src = url;
-        await img.decode();
-        return await createImageBitmap(img);
+        img.src = url;        
+        await img.decode();        
+        let bitmap = await createImageBitmap(img);        
+        return bitmap;
     }
 
     async loadCubeFromFile(urls)
@@ -19,13 +20,8 @@ export class ImageLoader
         for (let i=0; i<6; i++)
         {
             promises.push(this.loadFile(urls[i]));
-        }        
-        let ret = [];
-        for (let i=0; i<6; i++)
-        {
-            ret.push(await promises[i]);
-        }
-        return ret;
+        }  
+        return await Promise.all(promises);
     }
 
 }

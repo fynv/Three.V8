@@ -22,7 +22,7 @@ export async function test()
     let clock = new Clock();
 
     const render = () =>
-    { 
+    {
         let delta = clock.getDelta();
         doc.tick(delta);
         doc.render(renderer);

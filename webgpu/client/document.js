@@ -227,10 +227,12 @@ const sky = {
             }
 
             (async() =>{
+                console.log("A");
                 let cube_img = await doc.imageLoader.loadCubeFromFile([
                     url+"/"+posx, url+"/"+negx, 
                     url+"/"+posy, url+"/"+negy, 
-                    url+"/"+posz, url+"/"+negz]);                
+                    url+"/"+posz, url+"/"+negz]);
+                console.log("B");
                 bg.setCubemap(cube_img);                
             })();
             doc.scene.background = bg; 
@@ -385,12 +387,13 @@ const env_light = {
                 else
                 {
                     (async()=>
-                    {
+                    {                        
+                        console.log("C");
                         let cube_img = await doc.imageLoader.loadCubeFromFile([
                             url+"/"+posx, url+"/"+negx, 
                             url+"/"+posy, url+"/"+negy, 
                             url+"/"+posz, url+"/"+negz]);
-
+                        console.log("D");                        
                         let envMapCreator = new EnvironmentMapCreator(); 
                         let envLight = envMapCreator.create(cube_img);
                         doc.scene.indirectLight = envLight;                        
@@ -989,15 +992,14 @@ export class Document
     {
         const response = await fetch(url);
         const text = await response.text();
-        this.load_xml(text);       
-
+        this.load_xml(text);
     }
 
-    async load(module)
+    load(module)
     {
         this.reset();
         this.loaded_module = module;
-        await module.load(this);
+        module.load(this);
     }
 
 }
