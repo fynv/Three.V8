@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<document>
+	<scene>
+		<sky type="cube" create_env_light="false" path="assets/textures" posx="sky_cube_face0.jpg" negx="sky_cube_face1.jpg" posy="sky_cube_face2.jpg" negy="sky_cube_face3.jpg" posz="sky_cube_face4.jpg" negz="sky_cube_face5.jpg"/>
+		<sphere texture="assets/textures/uv-test-col.png" position="2, 0, 0" roughness="0.02" metalness="0.9"/>
+		<box size="2, 2, 2" rotation="21, -44, 0" texture="assets/textures/uv-test-bw.png" position="-2, 0, 0"/>
+		<plane size="10, 10" rotation="-90, 0, 0" position="0, -1.5, 0"/>
+		<directional_light position="5, 6, 0" castShadow="true" size="512, 512" area="-6.43, 3.23, -4.76, 4.76, 5.12, 14.12" radius="0.04" bias="0.001" force_cull="true" intensity="1.9"/>
+		<env_light type="cube" probe_position="0, -1, 2" path="assets/textures" posx="env_face0.jpg" negx="env_face1.jpg" posy="env_face2.jpg" negy="env_face3.jpg" posz="env_face4.jpg" negz="env_face5.jpg"/>
+		<model src="assets/models/bhmc.glb" scale="1.95, 1.95, 1.95" position="0, -1.5, 1.5"/>
+	</scene>
+</document>

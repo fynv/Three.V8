@@ -719,32 +719,35 @@ export class GPURenderer
             }
             else if (scene.background instanceof CubeBackground)
             {
-                let renderPassDesc_bg = {
-                    colorAttachments: [colorAttachment],                    
-                }; 
-                let passEncoder = commandEncoder.beginRenderPass(renderPassDesc_bg);
+                if(scene.background.cubemap!=null)
+                {
+                    let renderPassDesc_bg = {
+                        colorAttachments: [colorAttachment],                    
+                    }; 
+                    let passEncoder = commandEncoder.beginRenderPass(renderPassDesc_bg);
 
-                passEncoder.setViewport(
-                    0,
-                    0,
-                    target.width,
-                    target.height,
-                    0,
-                    1
-                );
-            
-                passEncoder.setScissorRect(
-                    0,
-                    0,
-                    target.width,
-                    target.height,
-                );
-
-                this._draw_skybox(passEncoder, target, camera, scene.background);    
+                    passEncoder.setViewport(
+                        0,
+                        0,
+                        target.width,
+                        target.height,
+                        0,
+                        1
+                    );
                 
-                passEncoder.end();
+                    passEncoder.setScissorRect(
+                        0,
+                        0,
+                        target.width,
+                        target.height,
+                    );
 
-                colorAttachment.loadOp = 'load';
+                    this._draw_skybox(passEncoder, target, camera, scene.background);    
+                    
+                    passEncoder.end();
+
+                    colorAttachment.loadOp = 'load';
+                }
             }
             else if (scene.background instanceof BackgroundScene)
             {
@@ -754,6 +757,8 @@ export class GPURenderer
                 cam.position.copy(camera.position);
                 cam.quaternion.copy(camera.quaternion);
                 this._render_scene(commandEncoder, bg.scene, cam, target);
+
+                colorAttachment.loadOp = 'load';
             }
         }
 
