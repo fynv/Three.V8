@@ -7,6 +7,7 @@ import { ColorBackground, HemisphereBackground, CubeBackground } from "./engine/
 import { PerspectiveCameraEx } from "./engine/cameras/PerspectiveCameraEx.js"
 import { OrbitControls } from "./engine/controls/OrbitControls.js"
 import { ImageLoader } from "./engine/loaders/ImageLoader.js"
+import { HDRImageLoader } from "./engine/loaders/HDRImageLoader.js"
 import { SimpleModel } from "./engine/models/SimpleModel.js"
 import { Vector3 } from "./engine/math/Vector3.js"
 import { DirectionalLight } from "./engine/lights/DirectionalLight.js"
@@ -46,6 +47,7 @@ export async function test()
 
     let bg = new CubeBackground();
     let imageLoader = new ImageLoader();
+    let hdrImageLoader = new HDRImageLoader();
 
     (async ()=>{        
         let cubeImg = await imageLoader.loadCubeFromFile([
@@ -68,8 +70,8 @@ export async function test()
     scene.indirectLight = indirectLight;*/
 
     let envMapCreator = new EnvironmentMapCreator(); 
-    
-    (async ()=>{        
+      
+    /*(async ()=>{        
         let cubeImg = await imageLoader.loadCubeFromFile([
             "./assets/textures/env_face0.jpg",
             "./assets/textures/env_face1.jpg",
@@ -78,6 +80,19 @@ export async function test()
             "./assets/textures/env_face4.jpg",
             "./assets/textures/env_face5.jpg"
         ]);       
+        let envMap = envMapCreator.create(cubeImg);
+        scene.indirectLight = envMap;
+    })();*/
+    
+    (async ()=>{        
+        let cubeImg = await hdrImageLoader.loadCubeFromFile([
+            "./assets/textures/env_face0.hdr",
+            "./assets/textures/env_face1.hdr",
+            "./assets/textures/env_face2.hdr",
+            "./assets/textures/env_face3.hdr",
+            "./assets/textures/env_face4.hdr",
+            "./assets/textures/env_face5.hdr"
+        ]);
         let envMap = envMapCreator.create(cubeImg);
         scene.indirectLight = envMap;
     })();

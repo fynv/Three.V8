@@ -7,4 +7,4 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s EXPORTED_RUNTIME_METHODS=\"['ccall', 
 add_subdirectory(GeoGen)
 add_subdirectory(GltfLoad)
 add_subdirectory(EnvMap)
-
+add_subdirectory(HDRLoad)

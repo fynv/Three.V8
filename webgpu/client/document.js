@@ -1,4 +1,5 @@
 import { ImageLoader } from "./engine/loaders/ImageLoader.js"
+import { HDRImageLoader } from "./engine/loaders/HDRImageLoader.js"
 import { GPURenderTarget } from "./engine/renderers/GPURenderTarget.js"
 import { Object3D } from "./engine/core/Object3D.js"
 import { Scene } from "./engine/scenes/Scene.js"
@@ -379,8 +380,16 @@ const env_light = {
 
                 if (posx.split('.').pop()=="hdr")
                 {
-
-
+                    let envMapCreator = new EnvironmentMapCreator();
+                    (async()=>
+                    { 
+                        let cube_img = await doc.hdrImageLoader.loadCubeFromFile([
+                            url+"/"+posx, url+"/"+negx, 
+                            url+"/"+posy, url+"/"+negy, 
+                            url+"/"+posz, url+"/"+negz]);
+                        let envLight = envMapCreator.create(cube_img);
+                        doc.scene.indirectLight = envLight;
+                    })();
                 }
                 else
                 {
@@ -392,7 +401,7 @@ const env_light = {
                             url+"/"+posy, url+"/"+negy, 
                             url+"/"+posz, url+"/"+negz]);                        
                         let envLight = envMapCreator.create(cube_img);
-                        doc.scene.indirectLight = envLight;                        
+                        doc.scene.indirectLight = envLight;
                     })();                    
                 }
             }
@@ -601,6 +610,7 @@ class BackgroundDocument extends BackgroundScene
             this.main_doc = doc;
         }
         this.imageLoader = this.main_doc.imageLoader;
+        this.hdrImageLoader = this.main_doc.hdrImageLoader;
         this.model_loader = this.main_doc.model_loader;    
         
         this.Tags = { scene, sky, env_light, group, plane, box, sphere, model, directional_light};
@@ -743,7 +753,8 @@ export class Document
         let observer = new ResizeObserver(size_changed);
         observer.observe(this.canvas);        
 
-        this.imageLoader = new ImageLoader();        
+        this.imageLoader = new ImageLoader();  
+        this.hdrImageLoader = new HDRImageLoader();      
         this.model_loader = new GLTFLoader();
 
         this.render_target = new GPURenderTarget(canvas_ctx, true);

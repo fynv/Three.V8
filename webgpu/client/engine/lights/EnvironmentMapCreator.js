@@ -2,8 +2,9 @@ import get_module from './EnvMap.js'
 import { coeffs } from "./filter_coeffs.js"
 import { CubeBackground } from "../backgrounds/Background.js"
 import { EnvironmentMap } from "./EnvironmentMap.js"
-import { CreateCubeTexture } from "../renderers/GPUUtils.js"
+import { CreateCubeTexture, CreateHDRCubeTexture } from "../renderers/GPUUtils.js"
 import { ReflectionMap } from "./IndirectLight.js"
+import { HDRImage } from "../loaders/HDRImageLoader.js"
 
 const shader_downsample = `
 @group(0) @binding(0)
@@ -947,19 +948,22 @@ export class EnvironmentMapCreator
     create(image)
     {
         let envMap = new EnvironmentMap();
-
+        let cubemap;
         if (image instanceof CubeBackground)
         {
-            let cubemap = image.cubemap;
-            envMap.reflection = this._createReflection(cubemap);
-            this._createSH(envMap.shCoefficients);
+            cubemap = image.cubemap;            
+        }
+        else if (image[0] instanceof HDRImage)
+        {
+            cubemap = CreateHDRCubeTexture(image);            
         }
         else
         {
-            let cubemap = CreateCubeTexture(image);
-            envMap.reflection = this._createReflection(cubemap);
-            this._createSH(envMap.shCoefficients);
+            cubemap = CreateCubeTexture(image);            
         }
+        
+        envMap.reflection = this._createReflection(cubemap);
+        this._createSH(envMap.shCoefficients);
 
         return envMap;
         

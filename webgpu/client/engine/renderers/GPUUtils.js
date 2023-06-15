@@ -96,5 +96,51 @@ export function CreateCubeTexture(images, flip_x = true)
 
 }
 
+export function CreateHDRTexture(image)
+{
+    let texture = engine_ctx.device.createTexture({
+        dimension: '2d',
+        size: [image.width, image.height],
+        format: "rgb9e5ufloat",
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+    });
 
+    let width = image.width;
+    let height = image.height;
+    
+    engine_ctx.queue.writeTexture(
+        { texture},
+        image.array_rgb9e5,
+        { bytesPerRow: width*4},
+        { width, height}
+    );
+
+    return texture;
+}
+
+
+export function CreateHDRCubeTexture(images)
+{
+    let cubemap = engine_ctx.device.createTexture({
+        dimension: '2d',          
+        size: [images[0].width, images[0].height, 6],
+        format: 'rgb9e5ufloat',
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+    });
+
+    for (let i=0; i<6; i++)
+    {
+        let image = images[i];
+        let width = image.width;
+        let height = image.height;
+        engine_ctx.queue.writeTexture(
+            { texture: cubemap, origin: [0, 0, i]},
+            image.array_rgb9e5,
+            { bytesPerRow: width*4},
+            { width, height}
+        );
+    }
+
+    return cubemap;
+}
 
