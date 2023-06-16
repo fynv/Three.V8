@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<document>
+	<scene>
+		<model src="assets/models/fireplace_room_atlas.glb" lightmap="assets/textures/lightmap.csv"/>
+	</scene>
+</document>

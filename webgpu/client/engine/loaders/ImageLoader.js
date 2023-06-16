@@ -10,7 +10,7 @@ export class ImageLoader
         const img = document.createElement('img');
         img.src = url;        
         await img.decode();        
-        let bitmap = await createImageBitmap(img);        
+        let bitmap = await createImageBitmap(img, { premultiplyAlpha: "none"});        
         return bitmap;
     }
 

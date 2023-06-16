@@ -14,6 +14,7 @@ import { EnvironmentMapCreator} from "./engine/lights/EnvironmentMapCreator.js"
 import { SimpleModel } from "./engine/models/SimpleModel.js"
 import { GLTFLoader } from "./engine/loaders/GLTFLoader.js"
 import { DirectionalLight } from "./engine/lights/DirectionalLight.js"
+import { LightmapLoader } from "./engine/loaders/LightmapLoader.js"
 
 function string_to_boolean(string) {
     switch (string.toLowerCase().trim()) {
@@ -519,6 +520,36 @@ const model = {
             url = props.src;
         }
         let model = doc.model_loader.loadModelFromFile(url);
+        
+        if (props.hasOwnProperty('lightmap'))
+        {
+            let lightmap_loader = new LightmapLoader();
+
+            let filename = props.lightmap;
+            let ext = filename.split('.').pop().toLowerCase();
+            if (ext=="hdr")
+            {                
+                (async()=>{
+                    let lightmap = await lightmap_loader.fromHDR(filename);
+                    model.setLightmap(lightmap);
+                })();
+            }
+            else if (ext=="png" || ext == "webp")
+            {                
+                (async()=>{
+                    let lightmap = await lightmap_loader.fromRGBM(filename);
+                    model.setLightmap(lightmap);
+                })();
+            }
+            if (ext=="csv")
+            {                
+                (async()=>{
+                    let lightmap = await lightmap_loader.fromImages(filename);
+                    model.setLightmap(lightmap);
+                })();
+            }
+        }
+
         if (parent != null) {
             parent.add(model);
         }
