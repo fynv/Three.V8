@@ -2,5 +2,6 @@
 <document>
 	<scene>
 		<model src="assets/models/fireplace_room_atlas.glb" lightmap="assets/textures/lightmap.csv"/>
+		<env_light type="cube" probe_position="1.5, 1, -1" path="assets/textures" posx="fireplace_env_face0.jpg" negx="fireplace_env_face1.jpg" posy="fireplace_env_face2.jpg" negy="fireplace_env_face3.jpg" posz="fireplace_env_face4.jpg" negz="fireplace_env_face5.jpg"/>
 	</scene>
 </document>

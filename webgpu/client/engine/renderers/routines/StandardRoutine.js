@@ -812,7 +812,7 @@ ${condition(options.has_lightmap,`
 ${condition(lights_options.has_reflection_map,`        
         var reflectVec = reflect(-viewDir, norm);
         reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );	
-        radiance = getRadiance(reflectVec, material.roughness, irradiance);
+        let radiance = getRadiance(reflectVec, material.roughness,  light_color * PI);
         specular += material.specularColor * radiance;
 `,`
         specular += material.specularColor * light_color;
