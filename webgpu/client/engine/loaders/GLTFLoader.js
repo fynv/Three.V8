@@ -153,7 +153,7 @@ export class GLTFLoader
                 {
                     let mesh = model.meshes[i];
                     let prim = mesh.primitives[j];
-                    prim.create_bind_group(mesh.constant, model.materials, model.textures);
+                    prim.create_bind_group(mesh.constant, model.materials, model.textures, model.lightmap);
                 }
             }
         };
@@ -718,40 +718,36 @@ export class GLTFLoader
                             primitive_out.cpu_uv = arrBuf;
                             primitive_out.uv_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.VERTEX, 0, num_pos*2*4);
 
-                        }        
+                        }
                         
                         if ("JOINTS_0" in info.draco_attributes)
-                        {
-                            let dataSize = num_pos * 4 * 4;
-
-                            let arrBuf = new ArrayBuffer(dataSize);
-                            let view = new Uint8Array(arrBuf);
-
+                        {                            
+                            let dataSize = num_pos * 4 * 4;                          
                             let attribute = decoder.GetAttributeByUniqueId( dracoGeometry, info.draco_attributes.JOINTS_0 );
                             let ptr = draco._malloc( dataSize );
                             decoder.GetAttributeDataArrayForAllPoints( dracoGeometry, attribute, draco.DT_UINT32, dataSize, ptr );
-                            let buf_in = new Uint8Array(draco.HEAPU8.buffer, ptr, dataSize);
-                            view.set(buf_in);
-                            draco._free( ptr );
-
-                            primitive_out.joints_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.STORAGE, 0, num_pos*4*4);
+                            primitive_out.joints_buf = engine_ctx.createBuffer(draco.HEAPU8.buffer, GPUBufferUsage.STORAGE, ptr, dataSize);
+                            draco._free( ptr );                            
                         }
 
                         if ("WEIGHTS_0" in info.draco_attributes)
-                        {
+                        {                            
                             let dataSize = num_pos * 4 * 4;
-
-                            let arrBuf = new ArrayBuffer(dataSize);
-                            let view = new Uint8Array(arrBuf);
-
                             let attribute = decoder.GetAttributeByUniqueId( dracoGeometry, info.draco_attributes.WEIGHTS_0 );
                             let ptr = draco._malloc( dataSize );
                             decoder.GetAttributeDataArrayForAllPoints( dracoGeometry, attribute, draco.DT_FLOAT32, dataSize, ptr );
-                            let buf_in = new Uint8Array(draco.HEAPU8.buffer, ptr, dataSize);
-                            view.set(buf_in);
-                            draco._free( ptr );
+                            primitive_out.weights_buf = engine_ctx.createBuffer(draco.HEAPU8.buffer, GPUBufferUsage.STORAGE,  ptr, dataSize);
+                            draco._free( ptr );                            
+                        }
 
-                            primitive_out.weights_buf = engine_ctx.createBuffer(arrBuf, GPUBufferUsage.STORAGE, 0, num_pos*4*4);
+                        if ("TEXCOORD_1" in info.draco_attributes)
+                        {
+                            let dataSize =  num_pos * 2 *4;                           
+                            let attribute = decoder.GetAttributeByUniqueId( dracoGeometry, info.draco_attributes.TEXCOORD_1 );
+                            let ptr = draco._malloc( dataSize );
+                            decoder.GetAttributeDataArrayForAllPoints( dracoGeometry, attribute, draco.DT_FLOAT32, dataSize, ptr );
+                            primitive_out.lightmap_uv_buf = engine_ctx.createBuffer(draco.HEAPU8.buffer, GPUBufferUsage.VERTEX, ptr, dataSize);
+                            draco._free( ptr );
                         }
 
                         draco.destroy(dracoGeometry);
@@ -976,6 +972,14 @@ export class GLTFLoader
                 pendings.push((async()=>{
                     await bin_loader.reached(bin_offset + info.weights_offset + num_pos*4*4);
                     primitive_out.weights_buf = engine_ctx.createBuffer(bin_loader.arrBuf, GPUBufferUsage.STORAGE, bin_offset + info.weights_offset, num_pos*4*4);
+                })());
+            }
+
+            if (info.uv2_offset >= 0)
+            {
+                pendings.push((async()=>{
+                    await bin_loader.reached(bin_offset + info.uv2_offset + num_pos*2*4);                    
+                    primitive_out.lightmap_uv_buf = engine_ctx.createBuffer(bin_loader.arrBuf, GPUBufferUsage.VERTEX, bin_offset + info.uv2_offset, num_pos*2*4);
                 })());
             }
 
@@ -1568,7 +1572,26 @@ export class GLTFLoader
                             }                            
                         }
                         info.is_sparse = prim_is_sparse;
-                    } 
+                    }
+                    
+                    if ("TEXCOORD_1" in primitive_in.attributes)
+                    {
+                        let id_uv_in = primitive_in.attributes["TEXCOORD_1"];
+                        let acc_uv_in = json.accessors[id_uv_in];
+                        if ("bufferView" in acc_uv_in)
+                        {
+                            let view_uv2_in = json.bufferViews[acc_uv_in.bufferView];
+                            info.uv2_offset = (view_uv2_in.byteOffset||0) + (acc_uv_in.byteOffset||0);
+                        }
+                        else
+                        {
+                            info.uv2_offset = -1;
+                        }
+                    }
+                    else
+                    {
+                        info.uv2_offset = -1;
+                    }
 
                     let pending_load = load_primitive(primitive_out, info);
                     pending_loads.push(pending_load);
@@ -1725,7 +1748,7 @@ export class GLTFLoader
                     {
                         let emissive_stength = extensions.KHR_materials_emissive_strength;
                         let strength = emissive_stength.emissiveStrength;
-                        material_out.multiplyScalar(strength);
+                        material_out.emissive.multiplyScalar(strength);
                     }
                     if ("KHR_materials_pbrSpecularGlossiness" in extensions)
                     {
@@ -1781,7 +1804,7 @@ export class GLTFLoader
                 {
                     let mesh = model.meshes[i];
                     let prim = mesh.primitives[j];
-                    prim.create_bind_group(mesh.constant, model.materials, model.textures);
+                    prim.create_bind_group(mesh.constant, model.materials, model.textures, model.lightmap);
                 }
                 
             }
@@ -1797,7 +1820,7 @@ export class GLTFLoader
                 {
                     let mesh = model.meshes[i];
                     let prim = mesh.primitives[j];
-                    prim.create_bind_group(mesh.constant, model.materials, model.textures);
+                    prim.create_bind_group(mesh.constant, model.materials, model.textures, model.lightmap);
                 }
             }
             

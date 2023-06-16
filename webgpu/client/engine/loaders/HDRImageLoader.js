@@ -12,6 +12,12 @@ export class HDRImage
 
 export class HDRImageLoader
 {
+    constructor()
+    {
+
+
+    }
+    
     async loadFile(url, flip_x = false)
     {
         const response = await fetch(url);

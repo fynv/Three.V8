@@ -1,4 +1,7 @@
-import { wgsl } from '../../wgsl-preprocessor.js';
+function condition(cond, a, b="")
+{
+    return cond? a: b;
+}
 
 function get_shader(options)
 {
@@ -32,7 +35,7 @@ function get_shader(options)
     let alpha = options.alphaMode != "Opaque";
     let alpha_mask = options.alphaMode == "Mask";
     
-    return wgsl`
+    return `
 struct Shadow
 {
     VPSBMat: mat4x4f,
@@ -74,26 +77,26 @@ struct VSIn
 {
     @location(${location_attrib_pos}) pos: vec3f,
 
-#if ${options.has_color}
+${condition(options.has_color,`
     @location(${location_attrib_color}) color: vec4f
-#endif 
+`)}
 
-#if ${mOpt.has_color_texture}
+${condition(mOpt.has_color_texture,`
     @location(${location_attrib_uv}) uv: vec2f
-#endif
+`)}
 };
 
 struct VSOut 
 {
     @builtin(position) Position: vec4f,
 
-#if ${options.has_color}
+${condition(options.has_color,`
     @location(${location_varying_color}) alpha: f32,
-#endif   
+`)}
 
-#if ${mOpt.has_color_texture}
+${condition(mOpt.has_color_texture,`
     @location(${location_varying_uv}) uv: vec2f,
-#endif
+`)}
 
     @location(${location_varying_uv + 1}) dummy: f32
 };
@@ -113,26 +116,26 @@ fn vs_main(input: VSIn) -> VSOut
     proj_pos.z = (proj_pos.z + proj_pos.w) * 0.5;    
     output.Position = proj_pos;    
 
-#if ${options.has_color}
+${condition(options.has_color,`
     output.alpha = input.color.w;
-#endif
+`)}
 
-#if ${mOpt.has_color_texture}
+${condition(mOpt.has_color_texture,`
     output.uv = input.uv;
-#endif
+`)}
 
     return output;
 }
 
 struct FSIn
 {
-#if ${options.has_color}
+${condition(options.has_color,`
     @location(${location_varying_color}) alpha: f32,
-#endif    
+`)}
 
-#if ${mOpt.has_color_texture}
+${condition(mOpt.has_color_texture,`
     @location(${location_varying_uv}) uv: vec2f,
-#endif
+`)}
 
     @location(${location_varying_uv + 1}) dummy: f32
 };
@@ -140,34 +143,34 @@ struct FSIn
 @group(1) @binding(2)
 var uSampler: sampler;
 
-#if ${mOpt.has_color_texture}
+${condition(mOpt.has_color_texture,`
 @group(1) @binding(${binding_tex_color})
 var uTexColor: texture_2d<f32>;
-#endif
+`)}
 
 @fragment
 fn fs_main(input: FSIn)
 {
-#if ${alpha}
+${condition(alpha,`
     var base_alpha = uMaterial.color.w;
     
-#if ${options.has_color}
+${condition(options.has_color,`
     base_alpha *= input.alpha;
-#endif
+`)}
 
-#if ${mOpt.has_color_texture}
+${condition(mOpt.has_color_texture,`
     base_alpha *= textureSample(uTexColor, uSampler, input.uv).w;
-#endif
+`)}
 
-#if ${alpha_mask}
+${condition(alpha_mask,`
     base_alpha = base_alpha > uMaterial.alphaCutoff? 1.0 : 0.0;
-#endif
+`)}
 
     if (base_alpha<0.5)
     {
         discard;
     }
-#endif
+`)}
 }
 `;
 
@@ -183,8 +186,12 @@ function GetPipelineDirectionalShadow(options)
 
     if (!(signature in engine_ctx.cache.pipelines.directional_shadow))
     {
-        let material_signature = JSON.stringify(options.material_options);
-        let primitive_layout = engine_ctx.cache.bindGroupLayouts.primitive[material_signature];
+        let prim_options = {
+            material: options.material_options,
+            has_lightmap: options.has_lightmap
+        };
+        let prim_signature = JSON.stringify(prim_options);
+        let primitive_layout = engine_ctx.cache.bindGroupLayouts.primitive[prim_signature];
         let bindGroupLayouts = [engine_ctx.cache.bindGroupLayouts.directional_light_shadow, primitive_layout];
         const pipelineLayoutDesc = { bindGroupLayouts };
         let layout = engine_ctx.device.createPipelineLayout(pipelineLayoutDesc);
@@ -297,6 +304,7 @@ export function RenderDirectionalShadow(passEncoder, params)
     options.alpha_mode = material.alphaMode;
     options.has_color = primitive.color_buf != null;
     options.force_cull = params.force_cull;
+    options.has_lightmap = primitive.has_lightmap;
 	options.material_options = primitive.material_options;
 
     let pipeline = GetPipelineDirectionalShadow(options);

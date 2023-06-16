@@ -1,23 +1,26 @@
-import { wgsl } from '../../wgsl-preprocessor.js';
+function condition(cond, a, b="")
+{
+    return cond? a: b;
+}
 
 function get_shader(is_msaa)
 {
-    return wgsl`
-#if ${is_msaa}
+    return `
+${condition(is_msaa,`
 @group(0) @binding(0)
 var uTex0: texture_multisampled_2d<f32>;
 
 @group(0) @binding(1)
 var uTex1: texture_multisampled_2d<f32>;
 
-#else
+`,`
 @group(0) @binding(0)
 var uTex0: texture_2d<f32>;
 
 @group(0) @binding(1)
 var uTex1: texture_2d<f32>;
 
-#endif
+`)}
 
 @vertex
 fn vs_main(@builtin(vertex_index) vertId: u32) -> @builtin(position) vec4f
@@ -30,30 +33,31 @@ fn vs_main(@builtin(vertex_index) vertId: u32) -> @builtin(position) vec4f
 struct FS_IN
 {
     @builtin(position) coord_pix: vec4f,
-#if ${is_msaa}
+
+${condition(is_msaa,`
     @builtin(sample_index) sampleId: u32
-#endif
+`)}
 }
 
 @fragment
 fn fs_main(input: FS_IN) -> @location(0) vec4f
 {
     let ucoord2d = vec2u(input.coord_pix.xy);
-#if ${is_msaa}
+${condition(is_msaa,`
     var reveal = textureLoad(uTex1, ucoord2d, input.sampleId).x;
-#else
+`,`
     var reveal = textureLoad(uTex1, ucoord2d, 0).x;
-#endif
+`)}
     if (reveal>1.0) 
     {
         discard;
     }
     reveal = 1.0 - reveal;
-#if ${is_msaa}
+${condition(is_msaa,`
     var col = textureLoad(uTex0, ucoord2d, input.sampleId);
-#else
+`,`
     var col = textureLoad(uTex0, ucoord2d, 0);
-#endif
+`)}
     return vec4(col.xyz*reveal/max(col.w, 1e-5), reveal);
 
 }

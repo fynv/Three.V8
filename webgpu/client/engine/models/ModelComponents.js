@@ -42,6 +42,7 @@ export class Primitive
         this.uv_buf = null;
         this.joints_buf = null;
         this.weights_buf = null;
+        this.lightmap_uv_buf = null;
 
         this.num_face = 0;
         this.type_indices = 2;
@@ -69,6 +70,7 @@ export class Primitive
         this.constant_skin = null;
         this.bind_group_skin = null;
         this.bind_group_skin2 = null;
+        
     }
 
     updateUUID()
@@ -76,7 +78,7 @@ export class Primitive
         this.uuid = MathUtils.generateUUID();
     }
 
-    create_bind_group(model_constant, material_list, tex_list)
+    create_bind_group(model_constant, material_list, tex_list, lightmap = null)
     {        
         let material = material_list[this.material_idx];
        
@@ -86,7 +88,12 @@ export class Primitive
         }
 
         this.material_options = material.get_options(tex_list);
-        let signature = JSON.stringify(this.material_options);
+        this.has_lightmap = lightmap != null;
+        let options = {
+            material: this.material_options,
+            has_lightmap: this.has_lightmap
+        };
+        let signature = JSON.stringify(options);
         if (!(signature in engine_ctx.cache.bindGroupLayouts.primitive))
         {
 
@@ -121,6 +128,18 @@ export class Primitive
 
             let binding = 3;
             for (let i=0; i<count_textures; i++)
+            {
+                entries.push({
+                    binding,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture:{
+                        viewDimension: "2d"
+                    }
+                });
+                binding++;
+            }
+
+            if (lightmap!=null)
             {
                 entries.push({
                     binding,
@@ -202,6 +221,15 @@ export class Primitive
             entries.push({
                 binding,
                 resource: tex.createView()
+            });
+            binding++;
+        }
+
+        if (lightmap!=null)
+        {
+            entries.push({
+                binding,
+                resource: lightmap.createView()
             });
             binding++;
         }

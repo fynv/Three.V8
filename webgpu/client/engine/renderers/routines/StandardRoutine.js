@@ -1,67 +1,83 @@
-import { wgsl } from '../../wgsl-preprocessor.js';
 import { LightsIsEmpty } from "../../lights/Lights.js"
+
+function condition(cond, a, b="")
+{
+    return cond? a: b;
+}
 
 function get_shader(options)
 {
-    let localtion_attrib = 0;
+    let location_attrib = 0;
     let location_varying = 0;
 
-    let location_attrib_pos = localtion_attrib++;
-    let location_attrib_norm = localtion_attrib++;
+    let location_attrib_pos = location_attrib++;
+    let location_attrib_norm = location_attrib++;
     let location_varying_viewdir = location_varying++;
     let location_varying_norm = location_varying++;
 
     let alpha_mask = options.alpha_mode == "Mask";
     let alpha_blend = options.alpha_mode == "Blend";
 
-    let location_attrib_color = localtion_attrib;
+    let location_attrib_color = location_attrib;
     let location_varying_color = location_varying;
     if (options.has_color)
     {
-        localtion_attrib++;
+        location_attrib++;
         location_varying++;
     }
 
     let mOpt = options.material_options;
     let has_uv = mOpt.has_color_texture || mOpt.has_metalness_map || mOpt.has_specular_map || mOpt.has_normal_map || mOpt.has_emissive_map;
 
-    let location_attrib_uv = localtion_attrib;
+    let location_attrib_uv = location_attrib;
     let location_varying_uv =  location_varying;
 
     if (has_uv)
     {
-        localtion_attrib++;
+        location_attrib++;
+        location_varying++;
+    }
+    
+    let location_attrib_atlas_uv = location_attrib;
+    let location_varying_atlas_uv = location_varying;
+    
+    if (options.has_lightmap)
+    {
+        location_attrib++;
         location_varying++;
     }
 
-    let material_binding = 3;
+    let primitive_binding = 3;
     
-    let binding_tex_color = material_binding;
-    if (mOpt.has_color_texture) material_binding++;
+    let binding_tex_color = primitive_binding;
+    if (mOpt.has_color_texture) primitive_binding++;
 
-    let binding_tex_metalness = material_binding;
-    if (mOpt.has_metalness_map) material_binding++;
+    let binding_tex_metalness = primitive_binding;
+    if (mOpt.has_metalness_map) primitive_binding++;
 
-    let binding_tex_specular = material_binding;
-    if (mOpt.has_specular_map) material_binding++;
+    let binding_tex_specular = primitive_binding;
+    if (mOpt.has_specular_map) primitive_binding++;
 
-    let binding_tex_normal = material_binding;
-    let location_attrib_tangent = localtion_attrib;
+    let binding_tex_normal = primitive_binding;
+    let location_attrib_tangent = location_attrib;
     let location_varying_tangent = location_varying;
-    let location_attrib_bitangent = localtion_attrib;
+    let location_attrib_bitangent = location_attrib;
     let location_varying_bitangent = location_varying;
 
     if (mOpt.has_normal_map)
     {
-        material_binding++;
-        localtion_attrib++;
-        location_attrib_bitangent = localtion_attrib++;
+        primitive_binding++;
+        location_attrib++;
+        location_attrib_bitangent = location_attrib++;
         location_varying++;
-        location_varying_bitangent = localtion_attrib++;
+        location_varying_bitangent = location_varying++;
     }
 
-    let binding_tex_emissive = material_binding;
-    if (mOpt.has_emissive_map) material_binding++;    
+    let binding_tex_emissive = primitive_binding;
+    if (mOpt.has_emissive_map) primitive_binding++;    
+
+    let binding_lightmap = primitive_binding;
+    if (options.has_lightmap) primitive_binding++;
 
     let location_varying_world_pos = location_varying++;   
     
@@ -86,8 +102,7 @@ function get_shader(options)
 
     let binding_reflection_map =  binding_lights;
     if (lights_options.has_reflection_map) binding_lights++; 
-
-    let has_lightmap = false;
+    
     let has_indirect_light = lights_options.has_ambient_light || lights_options.has_hemisphere_light || lights_options.has_environment_map;
 
     let binding_ambient_light = binding_lights;
@@ -99,7 +114,7 @@ function get_shader(options)
     let binding_environment_map =  binding_lights;
     if (lights_options.has_environment_map) binding_lights++;
 
-    return wgsl`
+    return `
 struct Camera
 {
     projMat: mat4x4f, 
@@ -125,19 +140,22 @@ struct VSIn
     @location(${location_attrib_pos}) pos: vec3f,
     @location(${location_attrib_norm}) norm: vec3f,
 
-#if ${options.has_color}
+${condition(options.has_color,`
     @location(${location_attrib_color}) color: vec4f,
-#endif 
+`)}
 
-#if ${has_uv}
+${condition(has_uv,`
     @location(${location_attrib_uv}) uv: vec2f,
-#endif
+`)}
 
-#if ${mOpt.has_normal_map}
+${condition(options.has_lightmap,`
+    @location(${location_attrib_atlas_uv}) atlasUV: vec2f,
+`)}
+
+${condition(mOpt.has_normal_map,`
     @location(${location_attrib_tangent}) tangent: vec3f,
     @location(${location_attrib_bitangent}) bitangent: vec3f,
-#endif
-
+`)}
 }
 
 struct VSOut 
@@ -146,18 +164,22 @@ struct VSOut
     @location(${location_varying_viewdir}) viewDir: vec3f,
     @location(${location_varying_norm}) norm: vec3f,
 
-#if ${options.has_color}
+${condition(options.has_color,`
     @location(${location_varying_color}) color: vec4f,
-#endif 
+`)}
 
-#if ${has_uv}
+${condition(has_uv,`
     @location(${location_varying_uv}) uv: vec2f,
-#endif
+`)}
 
-#if ${mOpt.has_normal_map}
+${condition(options.has_lightmap,`
+    @location(${location_varying_atlas_uv}) atlasUV: vec2f,
+`)}
+
+${condition(mOpt.has_normal_map,`
     @location(${location_varying_tangent}) tangent: vec3f,
     @location(${location_varying_bitangent}) bitangent: vec3f,
-#endif
+`)}
 
     @location(${location_varying_world_pos}) worldPos: vec3f,
 };
@@ -176,21 +198,25 @@ fn vs_main(input: VSIn) -> VSOut
     let world_norm = uModel.normalMat * vec4(input.norm, 0.0);
     output.norm = world_norm.xyz;
 
-#if ${options.has_color}
+${condition(options.has_color,`
     output.color = input.color;
-#endif
+`)}
 
-#if ${has_uv}
+${condition(has_uv,`
     output.uv = input.uv;
-#endif
+`)}
 
-#if ${mOpt.has_normal_map}
+${condition(options.has_lightmap,`
+    output.atlasUV = input.atlasUV;
+`)}
+
+${condition(mOpt.has_normal_map,`
     let world_tangent = uModel.modelMat * vec4(input.tangent, 0.0);
     output.tangent = world_tangent.xyz;
 
     let world_bitangent = uModel.modelMat * vec4(input.bitangent, 0.0);
     output.bitangent = world_bitangent.xyz;
-#endif
+`)}
 
     return output;
 }
@@ -248,18 +274,22 @@ struct FSIn
     @location(${location_varying_viewdir}) viewDir: vec3f,
     @location(${location_varying_norm}) norm: vec3f,
 
-#if ${options.has_color}
+${condition(options.has_color,`
     @location(${location_varying_color}) color: vec4f,
-#endif     
+`)}
 
-#if ${has_uv}
+${condition(has_uv,`
     @location(${location_varying_uv}) uv: vec2f,
-#endif
+`)}
 
-#if ${mOpt.has_normal_map}
+${condition(options.has_lightmap,`
+    @location(${location_varying_atlas_uv}) atlasUV: vec2f,
+`)}
+
+${condition(mOpt.has_normal_map,`
     @location(${location_varying_tangent}) tangent: vec3f,
     @location(${location_varying_bitangent}) bitangent: vec3f,
-#endif
+`)}
 
     @location(${location_varying_world_pos}) worldPos: vec3f,
 };
@@ -267,10 +297,10 @@ struct FSIn
 struct FSOut
 {
     @location(0) color: vec4f,
-#if ${alpha_blend}
+${condition(alpha_blend,`
     @location(1) oit0: vec4f,
     @location(2) oit1: vec4f,
-#endif
+`)}
 };
 
 struct Material
@@ -291,30 +321,35 @@ var<uniform> uMaterial: Material;
 @group(1) @binding(2)
 var uSampler: sampler;
 
-#if ${mOpt.has_color_texture}
+${condition(mOpt.has_color_texture,`
 @group(1) @binding(${binding_tex_color})
 var uTexColor: texture_2d<f32>;
-#endif
+`)}
 
-#if ${mOpt.has_metalness_map}
+${condition(mOpt.has_metalness_map,`
 @group(1) @binding(${binding_tex_metalness})
 var uTexMetalness: texture_2d<f32>;
-#endif
+`)}
 
-#if ${mOpt.has_specular_map}
+${condition(mOpt.has_specular_map,`
 @group(1) @binding(${binding_tex_specular})
 var uTexSpecular: texture_2d<f32>;
-#endif
+`)}
 
-#if ${mOpt.has_normal_map}
+${condition(mOpt.has_normal_map,`
 @group(1) @binding(${binding_tex_normal})
 var uTexNormal: texture_2d<f32>;
-#endif
+`)}
 
-#if ${mOpt.has_emissive_map}
+${condition(mOpt.has_emissive_map,`
 @group(1) @binding(${binding_tex_emissive})
 var uTexEmissive: texture_2d<f32>;
-#endif
+`)}
+
+${condition(options.has_lightmap,`
+@group(1) @binding(${binding_lightmap})
+var uTexLightmap: texture_2d<f32>;
+`)}
 
 struct PhysicalMaterial
 {
@@ -410,7 +445,7 @@ fn luminance(color: vec3f) -> f32
     return color.x * 0.2126 + color.y * 0.7152 + color.z *0.0722;
 }
 
-#if ${lights_options.has_shadow}
+${condition(lights_options.has_shadow,`
 @group(2) @binding(${binding_shadow_sampler})
 var uShadowSampler: sampler_comparison;
 
@@ -479,8 +514,7 @@ fn computePCSSShadowCoef(shadow: DirectionalShadow, zEye: f32, uvz : vec3f, shad
 
     return pcfFilter(shadowTex, uv, z, penumbraRadius);
 }
-
-#endif
+`)}
 
 
 ${(()=>{
@@ -512,8 +546,7 @@ var uDirectionalShadowTex_${i}: texture_depth_2d;`
     
 })()}
 
-#if ${lights_options.has_reflection_map}
-
+${condition(lights_options.has_reflection_map,`
 @group(2) @binding(${binding_reflection_map})
 var uReflectionMap: texture_cube<f32>;
 
@@ -552,10 +585,9 @@ fn getRadiance(reflectVec: vec3f, roughness: f32, irradiance: vec3f) -> vec3f
     }
     return rad;
 }
+`)}
 
-#endif
-
-#if ${lights_options.has_ambient_light}
+${condition(lights_options.has_ambient_light,`
 struct AmbientLight
 {
     color: vec4f,
@@ -574,9 +606,9 @@ fn getIrradiance(normal: vec3f) -> vec3f
 {
     return uIndirectLight.color.xyz * PI;
 }
-#endif
+`)}
 
-#if ${lights_options.has_hemisphere_light}
+${condition(lights_options.has_hemisphere_light,`
 struct HemisphereLight
 {
     skyColor: vec4f,
@@ -597,9 +629,9 @@ fn getIrradiance(normal: vec3f) -> vec3f
     let k = normal.y * 0.5 + 0.5;
     return mix( uIndirectLight.groundColor.xyz, uIndirectLight.skyColor.xyz, k) * PI;
 }
-#endif
+`)}
 
-#if ${lights_options.has_environment_map}
+${condition(lights_options.has_environment_map,`
 struct EnvironmentMap
 {
     SHCoefficients: array<vec4f, 9>,
@@ -637,7 +669,7 @@ fn getIrradiance(normal: vec3f) -> vec3f
 
     return result;
 }
-#endif
+`)}
 
 
 @fragment
@@ -651,47 +683,49 @@ fn fs_main(input: FSIn) -> FSOut
 
     var base_color = uMaterial.color;
 
-#if ${options.has_color}
+${condition(options.has_color,`
     base_color *= input.color;
-#endif
+`)}
 
     var tex_alpha = 1.0;
-#if ${mOpt.has_color_texture}
+
+${condition(mOpt.has_color_texture,`
     let tex_color = textureSample(uTexColor, uSampler, input.uv);
     tex_alpha = tex_color.w;
     base_color *= tex_color;
-#endif
+`)}
 
-#if ${alpha_mask}
+${condition(alpha_mask,`
     base_color.w = select(0.0, 1.0, base_color.w > uMaterial.alphaCutoff);
-#endif
+`)}
 
-#if ${mOpt.specular_glossiness}
 
+${condition(mOpt.specular_glossiness,`
     var specularFactor = uMaterial.specularGlossiness.xyz;
     var glossinessFactor = uMaterial.specularGlossiness.w;
 
-#if ${mOpt.has_specular_map}
+${condition(mOpt.has_specular_map,`
     specularFactor *= textureSample(uTexSpecular, uSampler, input.uv).xyz;
     glossinessFactor *= textureSample(uTexSpecular, uSampler, input.uv).w;
-#endif
+`)}
 
-#else
+`,`
 
     var metallicFactor = uMaterial.metalicFactor;
     var roughnessFactor = uMaterial.roughnessFactor;
 
-#if ${mOpt.has_metalness_map}
+${condition(mOpt.has_metalness_map,`
     metallicFactor *= textureSample(uTexMetalness, uSampler, input.uv).z;
     roughnessFactor *= textureSample(uTexMetalness, uSampler, input.uv).y;
-#endif
+`)}
 
-#endif
+`)}
 
     let viewDir = normalize(input.viewDir);
     var norm = normalize(input.norm);
 
-#if ${mOpt.has_normal_map}
+
+${condition(mOpt.has_normal_map,`
     {
         let T = normalize(input.tangent);
         let B = normalize(input.bitangent);
@@ -699,7 +733,7 @@ fn fs_main(input: FSIn) -> FSOut
         bump = (2.0*bump - 1.0) * vec3(uMaterial.normalScale, 1.0 );
         norm = normalize(bump.x*T + bump.y*B + bump.z*norm);        
     }
-#endif
+`)}
 
     if (uMaterial.doubleSided!=0)
     {
@@ -711,16 +745,17 @@ fn fs_main(input: FSIn) -> FSOut
     let dxy =  max(abs(dpdx(norm)), abs(dpdy(norm)));
 
     var material : PhysicalMaterial;
-#if ${mOpt.specular_glossiness}
+
+${condition(mOpt.specular_glossiness,`
     material.diffuseColor = base_color.xyz * ( 1.0 -
         max( max( specularFactor.r, specularFactor.g ), specularFactor.b ) );
     material.roughness = max( 1.0 - glossinessFactor, 0.0525 );	
     material.specularColor = specularFactor.rgb;
-#else
+`,`
     material.diffuseColor = base_color.xyz * ( 1.0 - metallicFactor );	
 	material.roughness = max( roughnessFactor, 0.0525 );	
 	material.specularColor = mix( vec3( 0.04 ), base_color.xyz, metallicFactor );	
-#endif
+`)}
     
     let geometryRoughness = max(max(dxy.x, dxy.y), dxy.z);	
     material.roughness += geometryRoughness;
@@ -728,9 +763,10 @@ fn fs_main(input: FSIn) -> FSOut
 	material.specularF90 = 1.0;
 
     let emissive = uMaterial.emissive.xyz;    
-#if ${mOpt.has_emissive_map}
+
+${condition(mOpt.has_emissive_map,`
     emissive *= textureSample(uTexEmissive, uSampler, input.uv).xyz;
-#endif
+`)}
 
     var specular = vec3(0.0);
     var diffuse = vec3(0.0);
@@ -739,10 +775,11 @@ ${(()=>{
     for (let i=0; i<directional_lights.length; i++)
     {
         let has_shadow = directional_lights[i];
-        code += wgsl`
+        code += `
     {        
         var l_shadow = 1.0;
-#if ${has_shadow}        
+
+${condition(has_shadow,`
         let shadowCoords = uDirectionalShadow_${i}.VPSBMat * vec4(input.worldPos, 1.0);        
         if (uDirectionalShadow_${i}.light_radius > 0.0)        
         {
@@ -753,7 +790,7 @@ ${(()=>{
         {
             l_shadow = borderPCFTexture(uDirectionalShadowTex_${i}, shadowCoords.xyz);
         }
-#endif
+`)}
         var directLight: IncidentLight;
         directLight.color = uDirectionalLight_${i}.color.xyz *l_shadow;
         directLight.direction = uDirectionalLight_${i}.direction.xyz;
@@ -767,27 +804,40 @@ ${(()=>{
     return code;
 })()}
 
-#if ${has_lightmap}
+${condition(options.has_lightmap,`
+    {    
+        let light_color = textureSampleLevel(uTexLightmap, uSampler, input.atlasUV, 0).xyz;
+        diffuse += material.diffuseColor * light_color;
 
-#elif ${has_indirect_light}
+${condition(lights_options.has_reflection_map,`        
+        var reflectVec = reflect(-viewDir, norm);
+        reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );	
+        radiance = getRadiance(reflectVec, material.roughness, irradiance);
+        specular += material.specularColor * radiance;
+`,`
+        specular += material.specularColor * light_color;
+`)}
+    }
+`,condition(has_indirect_light, `
     {
         let irradiance = getIrradiance(norm);
         var radiance = vec3(0.0);
 
-#if ${lights_options.has_reflection_map}
+${condition(lights_options.has_reflection_map,` 
         var reflectVec = reflect(-viewDir, norm);	
         reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );	
         radiance = getRadiance(reflectVec, material.roughness, irradiance);
-#else
+`,`
         radiance = irradiance * RECIPROCAL_PI;
-#endif
+`)}
         diffuse += material.diffuseColor * irradiance * RECIPROCAL_PI;
         specular +=  material.specularColor * radiance;
     }
-#endif
+`))}
 
     var col = emissive + specular;
-#if ${alpha_blend}
+
+${condition(alpha_blend,` 
     col = clamp(col, vec3(0.0), vec3(1.0));
     output.color = vec4(col * tex_alpha, 0.0);
     col += diffuse;
@@ -798,12 +848,11 @@ ${(()=>{
     let weight = clamp(a * a * a * 1e8 * b * b * b, 1e-2, 3e2);
     output.oit0 = vec4(col * alpha, alpha) * weight;
     output.oit1 = vec4(alpha);    
-#else
+`,`
     col += diffuse;
     col = clamp(col, vec3(0.0), vec3(1.0));
     output.color = vec4(col, 1.0);
-#endif
-    
+`)}    
     return output;
 }
 `;
@@ -819,8 +868,12 @@ function GetPipelineStandard(options)
 
     if (!(signature in engine_ctx.cache.pipelines.standard))
     {
-        let material_signature = JSON.stringify(options.material_options);
-        let primitive_layout = engine_ctx.cache.bindGroupLayouts.primitive[material_signature];
+        let prim_options = {
+            material: options.material_options,
+            has_lightmap: options.has_lightmap
+        };
+        let prim_signature = JSON.stringify(prim_options);
+        let primitive_layout = engine_ctx.cache.bindGroupLayouts.primitive[prim_signature];
         let bindGroupLayouts = [engine_ctx.cache.bindGroupLayouts.perspective_camera, primitive_layout];
         if (!LightsIsEmpty(options.lights_options))
         {
@@ -831,7 +884,7 @@ function GetPipelineStandard(options)
 
         const pipelineLayoutDesc = { bindGroupLayouts };
         let layout = engine_ctx.device.createPipelineLayout(pipelineLayoutDesc);
-        let code = get_shader(options);
+        let code = get_shader(options);        
         let shaderModule = engine_ctx.device.createShaderModule({ code });
 
         const depthStencil = {
@@ -842,10 +895,10 @@ function GetPipelineStandard(options)
 
         let vertex_bufs = [];
 
-        let localtion_attrib = 0;
+        let location_attrib = 0;
 
         const positionAttribDesc = {
-            shaderLocation: localtion_attrib++,
+            shaderLocation: location_attrib++,
             offset: 0,
             format: 'float32x4'
         };
@@ -859,7 +912,7 @@ function GetPipelineStandard(options)
         vertex_bufs.push(positionBufferDesc);
 
         const normalAttribDesc = {
-            shaderLocation: localtion_attrib++, 
+            shaderLocation: location_attrib++, 
             offset: 0,
             format: 'float32x4'
         };
@@ -875,7 +928,7 @@ function GetPipelineStandard(options)
         if (options.has_color)
         {
             const colorAttribDesc = {
-                shaderLocation: localtion_attrib++, 
+                shaderLocation: location_attrib++, 
                 offset: 0,
                 format: 'float32x4'
             };        
@@ -894,7 +947,7 @@ function GetPipelineStandard(options)
         if (has_uv)
         {
             const UVAttribDesc = {
-                shaderLocation: localtion_attrib++, 
+                shaderLocation: location_attrib++, 
                 offset: 0,
                 format: 'float32x2'
             };        
@@ -908,10 +961,28 @@ function GetPipelineStandard(options)
             vertex_bufs.push(UVBufferDesc);
         }
 
+        if (options.has_lightmap)
+        {
+            const UVAttribDesc = {
+                shaderLocation: location_attrib++, 
+                offset: 0,
+                format: 'float32x2'
+            };        
+    
+            const UVBufferDesc = {
+                attributes: [UVAttribDesc],
+                arrayStride: 4 * 2,
+                stepMode: 'vertex'
+            };
+
+            vertex_bufs.push(UVBufferDesc);
+
+        }
+
         if (mOpt.has_normal_map)
         {
             const tangentAttribDesc = {
-                shaderLocation: localtion_attrib++, 
+                shaderLocation: location_attrib++, 
                 offset: 0,
                 format: 'float32x4'
             };
@@ -925,7 +996,7 @@ function GetPipelineStandard(options)
             vertex_bufs.push(tangentBufferDesc);
 
             const bitangentAttribDesc = {
-                shaderLocation: localtion_attrib++, 
+                shaderLocation: location_attrib++, 
                 offset: 0,
                 format: 'float32x4'
             };
@@ -1050,6 +1121,7 @@ export function RenderStandard(passEncoder, params)
     options.view_format= params.target.view_format;
     options.is_msaa  = params.target.msaa;    
     options.has_color = primitive.color_buf != null;
+    options.has_lightmap = primitive.has_lightmap;
     options.material_options = primitive.material_options;
     options.lights_options = params.lights.get_options();
 
@@ -1063,27 +1135,32 @@ export function RenderStandard(passEncoder, params)
         passEncoder.setBindGroup(2, params.lights.bind_group);   
     }
 
-    let localtion_attrib = 0;
+    let location_attrib = 0;
 
-    passEncoder.setVertexBuffer(localtion_attrib++, geo.pos_buf);
-    passEncoder.setVertexBuffer(localtion_attrib++, geo.normal_buf);
+    passEncoder.setVertexBuffer(location_attrib++, geo.pos_buf);
+    passEncoder.setVertexBuffer(location_attrib++, geo.normal_buf);
 
     if (options.has_color)
     {
-        passEncoder.setVertexBuffer(localtion_attrib++, primitive.color_buf);
+        passEncoder.setVertexBuffer(location_attrib++, primitive.color_buf);
     }
 
     let mOpt = options.material_options;
     let has_uv = mOpt.has_color_texture || mOpt.has_metalness_map || mOpt.has_specular_map || mOpt.has_normal_map || mOpt.has_emissive_map;
     if (has_uv)
 	{
-        passEncoder.setVertexBuffer(localtion_attrib++, primitive.uv_buf);
+        passEncoder.setVertexBuffer(location_attrib++, primitive.uv_buf);
+    }
+
+    if (options.has_lightmap)
+    {
+        passEncoder.setVertexBuffer(location_attrib++, primitive.lightmap_uv_buf);
     }
 
     if (mOpt.has_normal_map)
     {
-        passEncoder.setVertexBuffer(localtion_attrib++, geo.tangent_buf);
-        passEncoder.setVertexBuffer(localtion_attrib++, geo.bitangent_buf);
+        passEncoder.setVertexBuffer(location_attrib++, geo.tangent_buf);
+        passEncoder.setVertexBuffer(location_attrib++, geo.bitangent_buf);
     }
 
     if (primitive.index_buf!=null)

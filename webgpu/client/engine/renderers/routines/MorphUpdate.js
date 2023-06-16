@@ -1,10 +1,13 @@
-import { wgsl } from '../../wgsl-preprocessor.js';
+function condition(cond, a, b="")
+{
+    return cond? a: b;
+}
 
 function get_shader(sparse)
 {    
     let idx_uniform = sparse? 8 : 7;
 
-    return wgsl`
+    return `
 @group(0) @binding(0)
 var<storage, read> coefs : array<f32>;
 
@@ -26,10 +29,10 @@ var<storage, read> norm_delta : array<vec4f>;
 @group(0) @binding(6)
 var<storage, read_write> norm_out : array<vec4f>;
 
-#if ${sparse}
+${condition(sparse,`
 @group(0) @binding(7)
 var<storage, read> nonzero : array<i32>;
-#endif
+`)}
 
 struct Params
 {
@@ -51,11 +54,11 @@ fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>)
     var pos = pos_base[idx];
     var norm = norm_base[idx];
 
-#if ${sparse}
+${condition(sparse,`
     let to_morph = (nonzero[idx]!=0);
-#else
+`,`
     let to_morph = true;
-#endif
+`)}
     if (to_morph)
     {
         for (var i=0; i<uParams.num_deltas; i++)

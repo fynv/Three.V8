@@ -1,8 +1,6 @@
-import { wgsl } from '../../wgsl-preprocessor.js';
-
 function get_shader()
 {
-    return wgsl`
+    return `
 @group(0) @binding(0)
 var<storage, read> rela_mats : array<mat4x4f>;
 

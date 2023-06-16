@@ -23,6 +23,7 @@ export class GLTFModel extends Object3D
         this.skins = [];
         this.skins_loaded = false;
         this.needUpdateSkinnedMeshes = false;
+        this.lightmap = null;
         this.animations = [];
         this.animation_dict = {};
         this.current_playing = [];
@@ -174,6 +175,18 @@ export class GLTFModel extends Object3D
 
         this.needUpdateSkinnedMeshes = num_skins > 0;
 
+    }
+
+    setLightmap(lightmap)
+    {
+        this.lightmap = lightmap;
+        for (let mesh of this.meshes)
+        {       
+            for (let prim of mesh.primitives)
+            {
+                prim.create_bind_group(mesh.constant, this.materials, this.textures, this.lightmap);
+            }
+        }
     }
 
     setAnimationFrame(frame, no_pending = false)

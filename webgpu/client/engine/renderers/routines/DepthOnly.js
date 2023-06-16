@@ -46,8 +46,12 @@ function GetPipelineDepth(options)
 
     if (!(signature in engine_ctx.cache.pipelines.depth))
     {
-        let material_signature = JSON.stringify(options.material_options);
-        let primitive_layout = engine_ctx.cache.bindGroupLayouts.primitive[material_signature];
+        let prim_options = {
+            material: options.material_options,
+            has_lightmap: options.has_lightmap
+        };
+        let prim_signature = JSON.stringify(prim_options);
+        let primitive_layout = engine_ctx.cache.bindGroupLayouts.primitive[prim_signature];
         let bindGroupLayouts = [engine_ctx.cache.bindGroupLayouts.perspective_camera, primitive_layout];
 
         const pipelineLayoutDesc = { bindGroupLayouts };
@@ -126,6 +130,7 @@ export function RenderDepth(passEncoder, params)
 
     let options = {};    
     options.is_msaa  = params.target.msaa; 
+    options.has_lightmap = primitive.has_lightmap;
     options.material_options = primitive.material_options;
     
     let pipeline = GetPipelineDepth(options);
