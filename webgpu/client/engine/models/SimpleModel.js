@@ -33,10 +33,26 @@ export class SimpleModel extends Object3D
         let geo_set = new GeometrySet();
 
         let p_pos = geoGen.ccall("GeoGetPosition", "number", ["number"], [p_geo]);
-        geo_set.pos_buf = engine_ctx.createBuffer(geoGen.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_pos, this.geometry.num_pos*4*4);
-
         let p_norm = geoGen.ccall("GeoGetNormal", "number", ["number"], [p_geo]);
-        geo_set.normal_buf = engine_ctx.createBuffer(geoGen.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_norm, this.geometry.num_pos*4*4);        
+
+        this.geometry.cpu_pos = new ArrayBuffer(this.geometry.num_pos*3*4);
+        this.geometry.cpu_norm = new ArrayBuffer(this.geometry.num_pos*3*4);
+        {
+            let view_in = new Uint8Array(geoGen.HEAPU8.buffer,  p_pos, this.geometry.num_pos*3*4)
+            let view_out = new Uint8Array(this.geometry.cpu_pos);
+            view_out.set(view_in);
+        }       
+        {
+            let view_in = new Uint8Array(geoGen.HEAPU8.buffer,  p_norm, this.geometry.num_pos*3*4)
+            let view_out = new Uint8Array(this.geometry.cpu_norm);
+            view_out.set(view_in);
+        }    
+        
+        let p_pos4 = geoGen.ccall("GeoGetPosition4", "number", ["number"], [p_geo]);
+        geo_set.pos_buf = engine_ctx.createBuffer(geoGen.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_pos4, this.geometry.num_pos*4*4);
+
+        let p_norm4 = geoGen.ccall("GeoGetNormal4", "number", ["number"], [p_geo]);
+        geo_set.normal_buf = engine_ctx.createBuffer(geoGen.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_norm4, this.geometry.num_pos*4*4);        
 
         this.geometry.geometry[0] = geo_set;
 
@@ -44,6 +60,12 @@ export class SimpleModel extends Object3D
         this.geometry.uv_buf = engine_ctx.createBuffer(geoGen.HEAPU8.buffer, GPUBufferUsage.VERTEX, p_uv, this.geometry.num_pos*2*4);
 
         let p_faces = geoGen.ccall("GeoGetFaces", "number", ["number"], [p_geo]);
+        this.geometry.cpu_indices = new ArrayBuffer(this.geometry.num_face*3*4);
+        {
+            let view_in = new Uint8Array(geoGen.HEAPU8.buffer,  p_faces, this.geometry.num_face*3*4)
+            let view_out = new Uint8Array(this.geometry.cpu_indices);
+            view_out.set(view_in);
+        }
         this.geometry.index_buf = engine_ctx.createBuffer(geoGen.HEAPU8.buffer, GPUBufferUsage.INDEX, p_faces, this.geometry.num_face*3*4);
 
         let data_view = new DataView(geoGen.HEAPU8.buffer);

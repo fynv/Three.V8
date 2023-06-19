@@ -126,7 +126,7 @@ export class GLTFLoader
 
     }
 
-    loadModelFromFile(url)
+    loadModelFromFile(url, geometry_callback = null)
     {
         let model = new GLTFModel;
         let gltf_version;
@@ -1605,6 +1605,11 @@ export class GLTFLoader
                         if (is_skinned)
                         {                            
                             primitive_out.create_bind_group_skin(model.skins[mesh_out.skin_id].buf_rela_mat);
+                        }
+
+                        if (geometry_callback!=null)
+                        {
+                            geometry_callback(i, j);
                         }
                     })(); 
                 }

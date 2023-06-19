@@ -10,6 +10,8 @@ extern "C"
 	EMSCRIPTEN_KEEPALIVE int GeoGetNumFace(void* ptr);
 	EMSCRIPTEN_KEEPALIVE void* GeoGetPosition(void* ptr);
 	EMSCRIPTEN_KEEPALIVE void* GeoGetNormal(void* ptr);
+	EMSCRIPTEN_KEEPALIVE void* GeoGetPosition4(void* ptr);
+	EMSCRIPTEN_KEEPALIVE void* GeoGetNormal4(void* ptr);
 	EMSCRIPTEN_KEEPALIVE void* GeoGetUV(void* ptr);
 	EMSCRIPTEN_KEEPALIVE void* GeoGetFaces(void* ptr);
 	EMSCRIPTEN_KEEPALIVE void* GeoGetMinPos(void* ptr);
@@ -23,14 +25,35 @@ extern "C"
 #include <cstdio>
 #include <vector>
 
+inline void vec3_to_vec4(const void* ptr_vec3, void* ptr_vec4, int count, float w)
+{
+    const glm::vec3* p_in = (const glm::vec3*)ptr_vec3;
+    glm::vec4* p_out = (glm::vec4*)ptr_vec4;
+    for (int i=0; i<count; i++)
+    {
+        p_out[i] = glm::vec4(p_in[i], w);
+    }
+}
+
 struct Geometry
 {
-	std::vector<glm::vec4> pos;
-	std::vector<glm::vec4> norm;
+	std::vector<glm::vec3> pos;
+	std::vector<glm::vec3> norm;
+	std::vector<glm::vec4> pos4;
+	std::vector<glm::vec4> norm4;
 	std::vector<glm::vec2> uv;
 	std::vector<glm::ivec3> faces;
 	glm::vec3 min_pos;
 	glm::vec3 max_pos;
+
+	void vec3_to_vec4()
+	{
+		pos4.resize(pos.size());
+		norm4.resize(norm.size());
+		::vec3_to_vec4(pos.data(), pos4.data(), (int)pos.size(), 1.0);
+		::vec3_to_vec4(norm.data(), norm4.data(), (int)norm.size(), 0.0);
+	}
+
 };
 
 void GeoDelete(void* ptr)
@@ -62,6 +85,20 @@ void* GeoGetNormal(void* ptr)
 	Geometry* geo = (Geometry*)ptr;
 	return geo->norm.data();
 }
+
+
+void* GeoGetPosition4(void* ptr)
+{
+	Geometry* geo = (Geometry*)ptr;
+	return geo->pos4.data();
+}
+
+void* GeoGetNormal4(void* ptr)
+{
+	Geometry* geo = (Geometry*)ptr;
+	return geo->norm4.data();
+}
+
 
 void* GeoGetUV(void* ptr)
 {
@@ -98,15 +135,15 @@ void* CreateBox(float width, float height, float depth)
 	// x positive
 	{
 		int v_start = (int)geo->pos.size();
-		geo->pos.push_back({ half_w, half_h, half_d, 1.0f });
-		geo->pos.push_back({ half_w, half_h, -half_d, 1.0f });
-		geo->pos.push_back({ half_w, -half_h, half_d, 1.0f });
-		geo->pos.push_back({ half_w, -half_h, -half_d, 1.0f });
+		geo->pos.push_back({ half_w, half_h, half_d });
+		geo->pos.push_back({ half_w, half_h, -half_d });
+		geo->pos.push_back({ half_w, -half_h, half_d });
+		geo->pos.push_back({ half_w, -half_h, -half_d });
 
-		geo->norm.push_back({ 1.0f, 0.0f, 0.0f, 0.0f });
-		geo->norm.push_back({ 1.0f, 0.0f, 0.0f, 0.0f });
-		geo->norm.push_back({ 1.0f, 0.0f, 0.0f, 0.0f });
-		geo->norm.push_back({ 1.0f, 0.0f, 0.0f, 0.0f });
+		geo->norm.push_back({ 1.0f, 0.0f, 0.0f });
+		geo->norm.push_back({ 1.0f, 0.0f, 0.0f });
+		geo->norm.push_back({ 1.0f, 0.0f, 0.0f });
+		geo->norm.push_back({ 1.0f, 0.0f, 0.0f });
 
 		geo->uv.push_back({ 0.0f, 0.0f });
 		geo->uv.push_back({ 1.0f, 0.0f });
@@ -120,15 +157,15 @@ void* CreateBox(float width, float height, float depth)
 	// x negative
 	{
 		int v_start = (int)geo->pos.size();
-		geo->pos.push_back({ -half_w, half_h, -half_d, 1.0f });
-		geo->pos.push_back({ -half_w, half_h, half_d, 1.0f });
-		geo->pos.push_back({ -half_w, -half_h, -half_d, 1.0f });
-		geo->pos.push_back({ -half_w, -half_h, half_d, 1.0f });
+		geo->pos.push_back({ -half_w, half_h, -half_d });
+		geo->pos.push_back({ -half_w, half_h, half_d });
+		geo->pos.push_back({ -half_w, -half_h, -half_d });
+		geo->pos.push_back({ -half_w, -half_h, half_d });
 
-		geo->norm.push_back({ -1.0f, 0.0f, 0.0f, 0.0f });
-		geo->norm.push_back({ -1.0f, 0.0f, 0.0f, 0.0f });
-		geo->norm.push_back({ -1.0f, 0.0f, 0.0f, 0.0f });
-		geo->norm.push_back({ -1.0f, 0.0f, 0.0f, 0.0f });
+		geo->norm.push_back({ -1.0f, 0.0f, 0.0f });
+		geo->norm.push_back({ -1.0f, 0.0f, 0.0f });
+		geo->norm.push_back({ -1.0f, 0.0f, 0.0f });
+		geo->norm.push_back({ -1.0f, 0.0f, 0.0f });
 
 		geo->uv.push_back({ 0.0f, 0.0f });
 		geo->uv.push_back({ 1.0f, 0.0f });
@@ -142,15 +179,15 @@ void* CreateBox(float width, float height, float depth)
 	// y positive
 	{
 		int v_start = (int)geo->pos.size();
-		geo->pos.push_back({ -half_w, half_h, -half_d, 1.0f });
-		geo->pos.push_back({ half_w, half_h, -half_d, 1.0f });
-		geo->pos.push_back({ -half_w, half_h, half_d, 1.0f });
-		geo->pos.push_back({ half_w, half_h, half_d, 1.0f });
+		geo->pos.push_back({ -half_w, half_h, -half_d });
+		geo->pos.push_back({ half_w, half_h, -half_d });
+		geo->pos.push_back({ -half_w, half_h, half_d });
+		geo->pos.push_back({ half_w, half_h, half_d });
 
-		geo->norm.push_back({ 0.0f, 1.0f, 0.0f, 0.0f });
-		geo->norm.push_back({ 0.0f, 1.0f, 0.0f, 0.0f });
-		geo->norm.push_back({ 0.0f, 1.0f, 0.0f, 0.0f });
-		geo->norm.push_back({ 0.0f, 1.0f, 0.0f, 0.0f });
+		geo->norm.push_back({ 0.0f, 1.0f, 0.0f });
+		geo->norm.push_back({ 0.0f, 1.0f, 0.0f });
+		geo->norm.push_back({ 0.0f, 1.0f, 0.0f });
+		geo->norm.push_back({ 0.0f, 1.0f, 0.0f });
 
 		geo->uv.push_back({ 0.0f, 0.0f });
 		geo->uv.push_back({ 1.0f, 0.0f });
@@ -164,15 +201,15 @@ void* CreateBox(float width, float height, float depth)
 	// y negative
 	{
 		int v_start = (int)geo->pos.size();
-		geo->pos.push_back({ -half_w, -half_h, half_d, 1.0f });
-		geo->pos.push_back({ half_w, -half_h, half_d, 1.0f });
-		geo->pos.push_back({ -half_w, -half_h, -half_d, 1.0f });
-		geo->pos.push_back({ half_w, -half_h, -half_d, 1.0f });
+		geo->pos.push_back({ -half_w, -half_h, half_d });
+		geo->pos.push_back({ half_w, -half_h, half_d });
+		geo->pos.push_back({ -half_w, -half_h, -half_d });
+		geo->pos.push_back({ half_w, -half_h, -half_d });
 
-		geo->norm.push_back({ 0.0f, -1.0f, 0.0f, 0.0f });
-		geo->norm.push_back({ 0.0f, -1.0f, 0.0f, 0.0f });
-		geo->norm.push_back({ 0.0f, -1.0f, 0.0f, 0.0f });
-		geo->norm.push_back({ 0.0f, -1.0f, 0.0f, 0.0f });
+		geo->norm.push_back({ 0.0f, -1.0f, 0.0f });
+		geo->norm.push_back({ 0.0f, -1.0f, 0.0f });
+		geo->norm.push_back({ 0.0f, -1.0f, 0.0f });
+		geo->norm.push_back({ 0.0f, -1.0f, 0.0f });
 
 		geo->uv.push_back({ 0.0f, 0.0f });
 		geo->uv.push_back({ 1.0f, 0.0f });
@@ -186,15 +223,15 @@ void* CreateBox(float width, float height, float depth)
 	// z positive
 	{
 		int v_start = (int)geo->pos.size();
-		geo->pos.push_back({ -half_w, half_h, half_d, 1.0f });
-		geo->pos.push_back({ half_w, half_h, half_d, 1.0f });
-		geo->pos.push_back({ -half_w, -half_h, half_d, 1.0f });
-		geo->pos.push_back({ half_w, -half_h, half_d, 1.0f });
+		geo->pos.push_back({ -half_w, half_h, half_d });
+		geo->pos.push_back({ half_w, half_h, half_d });
+		geo->pos.push_back({ -half_w, -half_h, half_d });
+		geo->pos.push_back({ half_w, -half_h, half_d });
 
-		geo->norm.push_back({ 0.0f, 0.0f, 1.0f, 0.0f });
-		geo->norm.push_back({ 0.0f, 0.0f, 1.0f, 0.0f });
-		geo->norm.push_back({ 0.0f, 0.0f, 1.0f, 0.0f });
-		geo->norm.push_back({ 0.0f, 0.0f, 1.0f, 0.0f });
+		geo->norm.push_back({ 0.0f, 0.0f, 1.0f });
+		geo->norm.push_back({ 0.0f, 0.0f, 1.0f });
+		geo->norm.push_back({ 0.0f, 0.0f, 1.0f });
+		geo->norm.push_back({ 0.0f, 0.0f, 1.0f });
 
 		geo->uv.push_back({ 0.0f, 0.0f });
 		geo->uv.push_back({ 1.0f, 0.0f });
@@ -208,15 +245,15 @@ void* CreateBox(float width, float height, float depth)
 	// z negative
 	{
 		int v_start = (int)geo->pos.size();
-		geo->pos.push_back({ half_w, half_h, -half_d, 1.0f });
-		geo->pos.push_back({ -half_w, half_h, -half_d, 1.0f });
-		geo->pos.push_back({ half_w, -half_h, -half_d, 1.0f });
-		geo->pos.push_back({ -half_w, -half_h, -half_d, 1.0f });
+		geo->pos.push_back({ half_w, half_h, -half_d });
+		geo->pos.push_back({ -half_w, half_h, -half_d });
+		geo->pos.push_back({ half_w, -half_h, -half_d });
+		geo->pos.push_back({ -half_w, -half_h, -half_d });
 
-		geo->norm.push_back({ 0.0f, 0.0f, -1.0f, 0.0f });
-		geo->norm.push_back({ 0.0f, 0.0f, -1.0f, 0.0f });
-		geo->norm.push_back({ 0.0f, 0.0f, -1.0f, 0.0f });
-		geo->norm.push_back({ 0.0f, 0.0f, -1.0f, 0.0f });
+		geo->norm.push_back({ 0.0f, 0.0f, -1.0f });
+		geo->norm.push_back({ 0.0f, 0.0f, -1.0f });
+		geo->norm.push_back({ 0.0f, 0.0f, -1.0f });
+		geo->norm.push_back({ 0.0f, 0.0f, -1.0f });
 
 		geo->uv.push_back({ 0.0f, 0.0f });
 		geo->uv.push_back({ 1.0f, 0.0f });
@@ -229,6 +266,7 @@ void* CreateBox(float width, float height, float depth)
 	geo->min_pos = { -half_w, -half_h, -half_d };
 	geo->max_pos = { half_w, half_h, half_d };
 	
+	geo->vec3_to_vec4();
 	return geo;
 }
 
@@ -261,8 +299,8 @@ void* CreateSphere(float radius, int widthSegments, int heightSegments)
 			glm::vec3 dir = { cos_phi * sin_theta, sin_phi, cos_phi * cos_theta };
 
 			int idx = i + j * count_x;
-			geo->pos[idx] = glm::vec4(dir * radius, 1.0f);
-			geo->norm[idx] = glm::vec4(dir, 0.0f);
+			geo->pos[idx] = dir * radius;
+			geo->norm[idx] = dir;
 			geo->uv[idx] = { u,v };
 		}
 	}
@@ -285,6 +323,7 @@ void* CreateSphere(float radius, int widthSegments, int heightSegments)
 	geo->min_pos = { -radius, -radius, -radius };
 	geo->max_pos = { radius, radius, radius };
 
+	geo->vec3_to_vec4();
 	return geo;
 }
 
@@ -298,15 +337,15 @@ void* CreatePlane(float width, float height)
 
 	{
 		int v_start = (int)geo->pos.size();
-		geo->pos.push_back({ -half_w, half_h, 0.0f, 1.0f });
-		geo->pos.push_back({ half_w, half_h, 0.0f, 1.0f });
-		geo->pos.push_back({ -half_w, -half_h, 0.0f, 1.0f });
-		geo->pos.push_back({ half_w, -half_h, 0.0f, 1.0f });
+		geo->pos.push_back({ -half_w, half_h, 0.0f });
+		geo->pos.push_back({ half_w, half_h, 0.0f });
+		geo->pos.push_back({ -half_w, -half_h, 0.0f });
+		geo->pos.push_back({ half_w, -half_h, 0.0f });
 
-		geo->norm.push_back({ 0.0f, 0.0f, 1.0f, 0.0f });
-		geo->norm.push_back({ 0.0f, 0.0f, 1.0f, 0.0f });
-		geo->norm.push_back({ 0.0f, 0.0f, 1.0f, 0.0f });
-		geo->norm.push_back({ 0.0f, 0.0f, 1.0f, 0.0f });
+		geo->norm.push_back({ 0.0f, 0.0f, 1.0f });
+		geo->norm.push_back({ 0.0f, 0.0f, 1.0f });
+		geo->norm.push_back({ 0.0f, 0.0f, 1.0f });
+		geo->norm.push_back({ 0.0f, 0.0f, 1.0f });
 
 		geo->uv.push_back({ 0.0f, 0.0f });
 		geo->uv.push_back({ 1.0f, 0.0f });
@@ -320,6 +359,7 @@ void* CreatePlane(float width, float height)
 	geo->min_pos = { -half_w, -half_h, 0.0f };
 	geo->max_pos = { half_w, half_h, 0.0f };
 
+	geo->vec3_to_vec4();
 	return geo;
 
 }
