@@ -2029,7 +2029,7 @@ export class GLTFLoader
         }
     }
 
-    loadAnimationsFromFile(url)
+    loadAnimationsFromFile(url, json_ready_callback = null)
     {
         let animations = [];
         let animation_dict = {};
@@ -2066,6 +2066,10 @@ export class GLTFLoader
             }
 
             this.load_animations(json, animations, animation_dict, bin_loader, bin_offset);
+            if (json_ready_callback!=null)
+            {
+                json_ready_callback();
+            }
         }
 
         let ext =  get_url_extension(url);

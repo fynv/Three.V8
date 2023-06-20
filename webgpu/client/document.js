@@ -1,3 +1,4 @@
+import { Vector3 } from "./engine/math/Vector3.js"
 import { ImageLoader } from "./engine/loaders/ImageLoader.js"
 import { HDRImageLoader } from "./engine/loaders/HDRImageLoader.js"
 import { GPURenderTarget } from "./engine/renderers/GPURenderTarget.js"
@@ -15,6 +16,8 @@ import { SimpleModel } from "./engine/models/SimpleModel.js"
 import { GLTFLoader } from "./engine/loaders/GLTFLoader.js"
 import { DirectionalLight } from "./engine/lights/DirectionalLight.js"
 import { LightmapLoader } from "./engine/loaders/LightmapLoader.js"
+import { BoundingVolumeHierarchy } from "./engine/core/BoundingVolumeHierarchy.js"
+import { AnimationMixer } from "./engine/models/AnimationMixer.js"
 
 function string_to_boolean(string) {
     switch (string.toLowerCase().trim()) {
@@ -34,6 +37,159 @@ function string_to_boolean(string) {
     }
 }
 
+class JoyStick {
+    constructor(options) {
+        const circleOut = document.createElement("div")
+        circleOut.style.cssText = "position:absolute; bottom:35px; left:50%; transform:translateX(-50%) translateY(40px); border-radius:50%; padding:80px";
+        const circle = document.createElement("div");
+        circle.style.cssText = "position:relative; width:80px; height:80px; background:rgba(126, 126, 126, 0.5); border:#444 solid medium; border-radius:50%;";
+        const thumb = document.createElement("div");
+        thumb.style.cssText = "position: absolute; left: 20px; top: 20px; width: 40px; height: 40px; border-radius: 50%; background: #fff;";
+        circleOut.appendChild(circle)
+        circle.appendChild(thumb);
+        document.body.appendChild(circleOut);
+        
+        this.domElement = thumb;
+        this.domCircle = circleOut
+        this.maxRadius = options.maxRadius || 40;
+        this.maxRadiusSquared = this.maxRadius * this.maxRadius;
+        this.onMove = options.onMove;
+        this.doc = options.doc;
+        
+        const move = (evt) => {
+            
+            evt = evt || window.event;
+            const mouse = this.getMousePosition(evt);
+            let delta_x = mouse.x - this.offset.x;
+            let delta_y = mouse.y - this.offset.y;
+            
+            const run_status = Math.abs(delta_x) - 50 >= 0 || Math.abs(delta_y) - 50 >= 0;
+            const sqMag = delta_x * delta_x + delta_y * delta_y;
+            if (sqMag > this.maxRadiusSquared) {
+                const magnitude = Math.sqrt(sqMag);
+                delta_x /= magnitude;
+                delta_y /= magnitude;
+                delta_x *= this.maxRadius;
+                delta_y *= this.maxRadius;
+            }
+            
+            this.domElement.style.left = `${20.0 + delta_x}px`;
+            this.domElement.style.top = `${20.0 + delta_y}px`;            
+            
+            const forward = -delta_y / this.maxRadius;
+            const turn = delta_x / this.maxRadius;
+            
+            if (this.onMove != undefined) this.onMove(forward, turn, run_status);
+            
+            evt.stopPropagation();
+        };
+        
+        const up = (evt) => {            
+            if ('ontouchstart' in window) {
+                this.domCircle.ontouchmove = null;
+                this.domCircle.ontouchend = null;
+            }
+            else {                
+                document.onmousemove = null;
+                document.onmouseup = null;
+            }     
+            this.domElement.style.top = `20.0px`;
+            this.domElement.style.left = `20.0px`;
+            if (this.onMove != undefined) this.onMove(0, 0, false);                        
+            
+            evt.stopPropagation();
+        };
+        
+        const tap = (evt) =>
+        {
+            evt = evt || window.event;
+            this.offset = this.getMousePosition(evt);
+            
+            if ('ontouchstart' in window) {
+                this.domCircle.ontouchmove = move;
+                this.domCircle.ontouchend = up;
+            }
+            else {                
+                document.onmousemove = move;
+                document.onmouseup = up;
+            }
+            
+            evt.stopPropagation();
+        };
+        
+        if (this.domElement != undefined) {         
+            if ('ontouchstart' in window) {
+                this.domElement.addEventListener('touchstart', tap);
+            }
+            else {
+                this.domElement.addEventListener('mousedown', tap);
+            }
+        }
+        
+    }
+    
+    getMousePosition(evt) {
+        let clientX = evt.targetTouches ? evt.targetTouches[0].pageX : evt.clientX;
+        let clientY = evt.targetTouches ? evt.targetTouches[0].pageY : evt.clientY;
+        return { x: clientX, y: clientY };
+    }
+}
+
+class AnimCrossFader
+{
+    constructor(fade_time)
+    {
+        this.mixer = new AnimationMixer();
+        this.fade_time = fade_time || 500.0;        
+    } 
+
+    add_clips(clips)
+    {
+        this.mixer.animations = clips.animations;
+        this.mixer.animation_dict = clips.animation_dict;
+    }
+
+    set_current(clip_name)
+    {        
+        this.start_time = Date.now();
+        this.mixer.startAnimation(clip_name);
+    }
+    
+    update_weights(weight_cur)
+    {
+        let lst_active = this.mixer.currentPlaying;
+        let weight_last = lst_active[lst_active.length - 1].weight;        
+        let k = (1.0 - weight_cur)/(1.0-weight_last);
+        let weights = [];
+        for (let i=0; i< lst_active.length-1; i++)
+        {
+            let w = lst_active[i].weight * k;
+            weights.push(w);
+        }
+        weights.push(weight_cur);        
+        this.mixer.setWeights(weights);
+    }
+
+    get_frame()
+    {        
+        let lst_active = this.mixer.currentPlaying;
+        if (lst_active.length<1) return;
+        if (lst_active.length>1)
+        {
+            let cur_time = Date.now();            
+            let delta = cur_time - this.start_time;            
+            let weight = 1.0;
+            if (delta<this.fade_time)
+            {
+                weight = delta/this.fade_time;
+            }
+            this.update_weights(weight);
+        }
+        return this.mixer.getFrame();
+    }
+}
+
+// Tags
 const create_default_controls = (doc)=>{
     if (doc.controls)
         doc.controls.dispose();
@@ -560,6 +716,269 @@ const model = {
     }
 };
 
+const avatar = {
+    create: (doc, props, parent) => {
+        let avatar = model.create(doc, props, parent);
+        doc.avatar = avatar;
+        if (!props.hasOwnProperty('lookat_height')) {
+            props.lookat_height = '1';
+        }
+
+        let lookat_height = parseFloat(props.lookat_height);
+        avatar.state = "idle";
+        avatar.move = null;
+
+        const name_idle = props.name_idle;
+        const name_forward = props.name_forward;
+        const name_backward = props.name_backward;
+
+        let cam = new Object3D();
+        const camera_position = props.camera_position.split(',');
+        const [camx, camy, camz] = camera_position;
+        cam.position.set(+camx, +camy, +camz);
+        avatar.add(cam);
+
+        const anims = doc.model_loader.loadAnimationsFromFile(props.url_anim, ()=>{
+            if (props.hasOwnProperty('fix_anims')) 
+            {            
+                doc.loaded_module[props.fix_anims](anims.animations);
+            }
+        });
+
+        let mixer = new AnimCrossFader();
+        mixer.add_clips(anims);
+        mixer.set_current(name_idle);
+        avatar.cur_action = name_idle;
+        avatar.mixer = mixer;
+
+        const onMove = (forward, turn, run_status)=>
+        {
+            avatar.move = { forward, turn};
+            let action_changed = false;
+            let new_action = null;
+
+            if (forward > 0)
+            {
+                if (avatar.state != "forward")
+                {
+                    new_action = name_forward;
+                    action_changed = true;
+                    avatar.state = "forward";
+                }            
+            }
+            else if (forward < 0)
+            {
+                if (avatar.state != "backward")
+                {
+                    new_action = name_backward;
+                    action_changed = true;
+                    avatar.state = "backward";
+                }
+            }
+            else
+            {
+                if (avatar.state != "idle")
+                {
+                    new_action = name_idle;
+                    action_changed = true;
+                    avatar.state = "idle";
+                }
+            }
+                   
+            if (action_changed)
+            {
+                mixer.set_current(new_action);
+                avatar.cur_action = new_action;
+            }
+        };
+
+        const joystick = new JoyStick({ width: doc.width, height: doc.height, onMove: onMove});   
+
+        if (doc.controls != null) {
+            doc.controls.dispose();
+            doc.controls = null;
+        }
+        
+
+        const update_avatar = (doc, mixer, delta) => {            
+            let frame = mixer.get_frame();
+            avatar.setAnimationFrame(frame);
+
+            if (avatar.move)
+            {
+                if (avatar.move.forward !=0)
+                {
+                    let threshold = 0.4;
+                    let movement = delta * avatar.move.forward * 2.0;
+                    let pos = avatar.position.clone();
+                    pos.y += threshold;
+
+                    if (doc.building.length > 0 && movement !=0)
+                    {
+                        // cast front
+                        {
+                            let negated = false;
+                            let dir = avatar.getWorldDirection(new Vector3());
+                            if (avatar.move.forward < 0) 
+                            {
+                                dir.negate();
+                                negated = true;
+                            }
+
+                            const intersect = doc.bvh.intersect({origin: pos, direction: dir});
+                            if (intersect!==null)
+                            {                    
+                                if (!negated)
+                                {
+                                    if (movement > intersect.t - 0.3) 
+                                    {
+                                        movement = intersect.t - 0.3;
+                                    }
+                                }
+                                else
+                                {
+                                    if (-movement > intersect.t - 0.3) 
+                                    {
+                                        movement = 0.3 - intersect.t;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    avatar.translateZ(movement);
+                    pos = avatar.position.clone();
+                    pos.y += threshold;
+
+                    if (doc.building.length > 0)
+                    {
+                        if (movement !=0)
+                        {
+                            // cast up
+                            {
+                                let dir = new Vector3(0,1,0);
+                                const intersect = doc.bvh.intersect({origin: pos, direction: dir});
+                                if (intersect!==null)
+                                {
+                                    const targetY = threshold + intersect.t;
+                                    if (targetY < 2.0)
+                                    {
+                                        avatar.translateZ(-movement);
+                                        pos = avatar.position.clone();
+                                        pos.y += threshold;
+                                    }
+                                }
+                            }
+
+                            // cast left
+                            {
+                                let cast_from =  avatar.localToWorld(new Vector3(0,0,0));
+                                let cast_to = avatar.localToWorld(new Vector3(1,0,0));
+                                let dir = new Vector3();
+                                dir.subVectors(cast_to, cast_from);
+                                const intersect = doc.bvh.intersect({origin: pos, direction: dir});
+                                if (intersect!==null)
+                                {
+                                    if (intersect.t < 0.3) 
+                                    {
+                                        avatar.translateX(intersect.t - 0.3);
+                                        pos = avatar.position.clone();
+                                        pos.y += threshold;
+                                    }
+                                }
+                            }
+
+                            // cast right
+                            {
+                                let cast_from =  avatar.localToWorld(new Vector3(0,0,0));
+                                let cast_to = avatar.localToWorld(new Vector3(-1,0,0));
+                                let dir = new Vector3();
+                                dir.subVectors(cast_to, cast_from);
+                                const intersect = doc.bvh.intersect({origin: pos, direction: dir});
+                                if (intersect!==null)
+                                {
+                                    if (intersect.t < 0.3) 
+                                    {
+                                        avatar.translateX(0.3 - intersect.t);
+                                        pos = avatar.position.clone();
+                                        pos.y += threshold;
+                                    }
+                                }
+                            }
+                        }
+
+                        // cast down
+                        {
+                            let dir = new Vector3(0, -1, 0);
+                            pos.y += 0.2;
+                            const intersect = doc.bvh.intersect({origin: pos, direction: dir});
+                            
+                            const gravity = 0.3;
+                            if (intersect!==null)
+                            {
+                                const targetY = pos.y - intersect.t;
+                                if (targetY > avatar.position.y) {
+                                    //Going up                            
+                                    avatar.translateY(0.2 * (targetY - avatar.position.y));
+                                    avatar.velocityY = 0;
+                                }
+                                else if (targetY < avatar.position.y){
+                                    // Falling
+                                    if (avatar.velocityY == undefined) avatar.velocityY = 0;
+                                    avatar.velocityY += delta * gravity;
+                                    avatar.translateY(-avatar.velocityY);
+                                    if (avatar.position.y < targetY) {
+                                        avatar.velocityY = 0;
+                                        avatar.translateY(targetY - avatar.position.y);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (avatar.move.turn != 0)
+                {
+                    avatar.rotateY(-avatar.move.turn * delta);
+                }
+            }
+            let look_from = cam.getWorldPosition(new Vector3());
+            let look_at = avatar.getWorldPosition(new Vector3());
+            look_at.y += lookat_height;
+
+            let dir = new Vector3();
+            dir.subVectors(look_from, look_at);
+            let dis = dir.length();
+            dir.normalize();
+            const intersect = doc.bvh.intersect({origin: look_at, direction: dir});
+            if (intersect!==null)
+            {
+                let max_dis = intersect.t * 0.9 + doc.camera.near;
+                if (dis > max_dis)
+                {
+                    dir.multiplyScalar(max_dis);
+                    look_from.addVectors(look_at, dir);
+                }        
+            }            
+            doc.camera.position.lerp(look_from, 0.1);            
+            doc.camera.lookAt(look_at);
+
+            
+        };
+
+        doc.set_tick(mixer, update_avatar);
+
+        return avatar;
+
+    },
+
+    remove: (doc, avatar) =>
+    {
+        doc.remove_tick(avatar.mixer);
+        doc.avatar = null;
+    }
+
+
+};
 
 const directional_light = {
     create: (doc, props, parent) => {
@@ -789,7 +1208,7 @@ export class Document
         this.model_loader = new GLTFLoader();
 
         this.render_target = new GPURenderTarget(canvas_ctx, true);
-        this.Tags = { scene, camera, control, sky, env_light, group, plane, box, sphere, model, directional_light};
+        this.Tags = { scene, camera, control, sky, env_light, group, plane, box, sphere, model, avatar, directional_light};
         this.reset();
     }
 
@@ -896,6 +1315,23 @@ export class Document
         }
     }
 
+    add_building_object(obj) 
+    {
+        this.building.push(obj);
+    }
+
+    remove_building_object(obj) 
+    {
+        for (let i = 0; i < this.building.length; i++) 
+        {
+            if (this.building[i] == obj) 
+            {
+                this.building.splice(i, 1);
+                i--;
+            }
+        }
+    }
+
     create(tag, props, parent = null)
     {   
         if (!(tag in this.Tags)) return null;
@@ -958,6 +1394,11 @@ export class Document
             obj.roughness = parseFloat(props.roughness);
         }
 
+        if (props.hasOwnProperty('is_building') && string_to_boolean(props.is_building)) 
+        {            
+            this.add_building_object(obj);
+        }
+
         if (props.hasOwnProperty('ontick')) 
         {           
             this.set_tick(obj, this.loaded_module[props.ontick]);
@@ -978,7 +1419,10 @@ export class Document
 
     remove(obj)
     {
-        obj.traverse((child) => {         
+        obj.traverse((child) => { 
+            this.remove_unload(child);
+            this.remove_tick(child);
+            this.remove_building_object(child);        
             if (child.hasOwnProperty('tag')) {
                 const tag = this.Tags[child.tag];
                 if (tag.hasOwnProperty('remove')) {
@@ -1024,6 +1468,15 @@ export class Document
         const xmlDoc = parser.parseFromString(xmlText, "text/xml");        
         let root = xmlDoc.documentElement;
         this.load_xml_node(root);
+
+        if (this.building.length>0)
+        { 
+            this.bvh = new BoundingVolumeHierarchy(this.building);
+        }
+        else
+        {
+            this.bvh = null;
+        }
     }
 
     async load_xml_url(url)

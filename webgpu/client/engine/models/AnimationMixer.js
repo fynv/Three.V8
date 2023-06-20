@@ -11,7 +11,7 @@ export class AnimationMixer
     {
         this.animations = [];
         this.animation_dict = {};
-        this.current_playing = [];
+        this.currentPlaying = [];
     }
     
     addAnimation(anim)
@@ -30,26 +30,19 @@ export class AnimationMixer
     
     startAnimation(name)
     {
-        for (let playback of this.current_playing)
-        {
-            if (playback.name == name)
-            {
-                playback.time_start = Date.now();
-                return;
-            }
-        }
-        let weight = m_current_playing.length>0?0:1;
-        this.current_playing.push({ name, time_start: Date.now(), weight})
+        this.stopAnimation(name);
+        let weight = this.currentPlaying.length>0?0:1;
+        this.currentPlaying.push({ name, time_start: Date.now(), weight})
     }
 
     stopAnimation(name)
     {
-        for (let i =0; i<this.current_playing.length; i++)
+        for (let i =0; i<this.currentPlaying.length; i++)
         {
-            let playback = this.current_playing[i];        
+            let playback = this.currentPlaying[i];        
             if (playback.name == name)
             {
-                this.current_playing.splice(i,1);
+                this.currentPlaying.splice(i,1);
                 return;
             }
         }        
@@ -57,17 +50,17 @@ export class AnimationMixer
     
     setWeights(weights)
     {
-        for (let i=0; i< weights.length && i<this.current_playing.length; i++)
+        for (let i=0; i< weights.length && i<this.currentPlaying.length; i++)
         {
-            this.current_playing[i].weight = weights[i];
+            this.currentPlaying[i].weight = weights[i];
         }
         
-        for (let i=0; i<this.current_playing.length; i++)
+        for (let i=0; i<this.currentPlaying.length-1; i++)
         {
-            let playback = this.current_playing[i];
+            let playback = this.currentPlaying[i];
             if (playback.weight <= 0)
             {
-                this.current_playing.splice(i, 1);
+                this.currentPlaying.splice(i, 1);
                 i--;
             }
         }
@@ -80,7 +73,7 @@ export class AnimationMixer
         let t = Date.now();
         let acc_weight = 0;
 
-        for (let playback of this.current_playing)
+        for (let playback of this.currentPlaying)
         {
             if (!(playback.name in this.animation_dict)) continue;
             let id_anim = this.animation_dict[playback.name];
@@ -146,7 +139,7 @@ export class AnimationMixer
 
                 if(dst_trans ==null)
                 {
-                    dst_trans.translations.push(src_trans);
+                    dst_frame.translations.push(src_trans);
                 }
                 else
                 {
@@ -170,7 +163,7 @@ export class AnimationMixer
 
                 if(dst_rot == null)
                 {
-                    dst_rot.rotations.push(src_rot);
+                    dst_frame.rotations.push(src_rot);
                 }
                 else
                 {
@@ -192,7 +185,7 @@ export class AnimationMixer
 
                 if (dst_scale == null)
                 {
-                    dst_scale.scales.push(src_scale);
+                    dst_frame.scales.push(src_scale);
                 }
                 else
                 {

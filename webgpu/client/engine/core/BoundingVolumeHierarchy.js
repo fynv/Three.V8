@@ -10,9 +10,7 @@ export class BoundingVolumeHierarchy
         this.lst_blas = [];
         this.lst_info = [];
         this.tlas = null;
-
         this.addModels(objects);
-        
     }
 
     async _init()
@@ -118,6 +116,16 @@ export class BoundingVolumeHierarchy
     intersect(ray, culling = 0)
     {
         if (this.module == null || this.tlas == null) return null;
+
+        if (!("near" in ray))
+        {
+            ray.near = 0;
+        }
+
+        if (!("far" in ray))
+        {
+            ray.far = Number.MAX_VALUE;
+        }
 
         let p_interection =  this.module.ccall("alloc", "number", ["number"], [20]);
         let result = this.module.ccall("IntersectTLAS", "number", ["number","number","number","number","number","number","number","number","number","number","number"], 

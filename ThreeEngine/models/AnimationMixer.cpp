@@ -17,20 +17,11 @@ void AnimationMixer::addAnimation(const AnimationClip& anim)
 
 void AnimationMixer::startAnimation(const char* name)
 {
-
+	this->stopAnimation(name);
 	auto iter = m_animation_dict.find(name);
 	if (iter != m_animation_dict.end())
 	{
-		int id_anim = iter->second;
-		for (size_t i = 0; i < m_current_playing.size(); i++)
-		{
-			PlayBack& playback = m_current_playing[i];
-			if (playback.id_anim == id_anim)
-			{
-				playback.time_start = time_sec();
-				return;
-			}
-		}
+		int id_anim = iter->second;		
 		float weight = m_current_playing.size() > 0 ? 0.0f : 1.0f;
 		m_current_playing.push_back({ id_anim, time_sec(), weight });
 	}
