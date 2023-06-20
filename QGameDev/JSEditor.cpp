@@ -78,8 +78,13 @@ void JSEditor::doc_close()
 			int result = QMessageBox::question(this, tr("Save file"), tr("File has been modified. Save it?"), QMessageBox::StandardButtons(QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel));
 			if (result == QMessageBox::Yes)
 			{
-				doc_save();
-				emit doc_close_ret(true);
+				GetText([this](QString text) {
+					QFile file(file_path);
+					file.open(QFile::WriteOnly);
+					file.write(text.toUtf8());
+					file.close();
+					emit doc_close_ret(true);
+				});
 			}
 			else if (result == QMessageBox::No)
 			{
