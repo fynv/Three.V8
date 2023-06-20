@@ -82,6 +82,7 @@ export class SimpleModel extends Object3D
 
         geoGen.ccall("GeoDelete", null, ["number"], [p_geo]);
 
+        this.geometry.set_geometry_ready();
         this.geometry.updateUUID();
 
     }

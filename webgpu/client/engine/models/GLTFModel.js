@@ -27,6 +27,33 @@ export class GLTFModel extends Object3D
         this.animations = [];
         this.animation_dict = {};
         this.current_playing = [];
+
+        this.is_meta_ready = false;
+        this.meta_resolvers = [];
+    }
+
+    async meta_ready()
+    {
+        return new Promise((resolve, reject) => {
+            if (this.is_meta_ready)
+            {
+                resolve(true);
+            }
+            else
+            {
+                this.meta_resolvers.push(resolve);
+            }
+        });
+
+    }
+
+    set_meta_ready()
+    {
+        this.is_meta_ready = true;
+        for (let resolve of this.meta_resolvers) 
+        {
+            resolve(true);
+        }
     }
 
     calculate_bounding_box()

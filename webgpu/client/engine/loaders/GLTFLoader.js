@@ -126,7 +126,7 @@ export class GLTFLoader
 
     }
 
-    loadModelFromFile(url, geometry_callback = null)
+    loadModelFromFile(url)
     {
         let model = new GLTFModel;
         let gltf_version;
@@ -984,7 +984,8 @@ export class GLTFLoader
             }
 
             
-            await Promise.all(pendings);            
+            await Promise.all(pendings);
+            primitive_out.set_geometry_ready();
 
             if (geo_set.normal_buf == null)
             {
@@ -1605,12 +1606,7 @@ export class GLTFLoader
                         if (is_skinned)
                         {                            
                             primitive_out.create_bind_group_skin(model.skins[mesh_out.skin_id].buf_rela_mat);
-                        }
-
-                        if (geometry_callback!=null)
-                        {
-                            geometry_callback(i, j);
-                        }
+                        }                        
                     })(); 
                 }
             }
@@ -1851,8 +1847,9 @@ export class GLTFLoader
             }
 
             this.load_animations(json, model.animations, model.animation_dict, bin_loader, bin_offset);
-        };
 
+            model.set_meta_ready();
+        };
 
         let ext =  get_url_extension(url);
         if (ext=="glb")

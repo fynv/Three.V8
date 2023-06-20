@@ -1,13 +1,17 @@
 import get_module from './BVH.js'
+import { SimpleModel } from "../models/SimpleModel.js"
+import { GLTFModel } from "../models/GLTFModel.js"
 
 export class BoundingVolumeHierarchy
 {
-    constructor()
+    constructor(objects = [])
     {
         this.module = null;
         this.lst_blas = [];
         this.lst_info = [];
         this.tlas = null;
+
+        this.addModels(objects);
         
     }
 
@@ -20,6 +24,7 @@ export class BoundingVolumeHierarchy
     async addPrimitive(prim, matrix, info)
     {     
         await this._init();
+        await prim.geometry_ready();
 
         let p_indices = this.module.ccall("alloc", "number", ["number"], [prim.cpu_indices.byteLength]);
         this.module.HEAPU8.set(new Uint8Array(prim.cpu_indices), p_indices);
@@ -50,6 +55,64 @@ export class BoundingVolumeHierarchy
         this.module.HEAPU8.set(new Uint8Array(arr_blas.buffer), p_lst_blas);
         this.tlas = this.module.ccall("CreateTLAS", "number", ["number", "number"], [this.lst_blas.length, p_lst_blas]);
         this.module.ccall("dealloc", null, ["number"], [p_lst_blas]);        
+    }
+
+    async addModel(model)
+    {
+        if (model instanceof SimpleModel)
+        {
+            let material = model.material;
+            if (material.alphaMode!="Opaque") return;
+            let primitive = model.geometry;
+            await this.addPrimitive(primitive, model.matrixWorld, {model});
+        }
+        else if (model instanceof GLTFModel)
+        {
+            await model.meta_ready();
+            let materials = model.materials;
+            let num_mesh = model.meshes.length;
+            let pendings = [];
+            for (let i=0; i<num_mesh; i++)
+            {
+                let mesh = model.meshes[i];
+                let matrix = model.matrixWorld;
+                if (mesh.node_id>=0 && mesh.skin_id < 0)
+                {
+                    let node = model.nodes[mesh.node_id];
+                    matrix.multiply(node.g_trans);
+                }
+                let num_primitives = mesh.primitives.length;
+                for (let j=0; j<num_primitives; j++)
+                {
+                    let primitive = mesh.primitives[j];
+                    let material = materials[primitive.material_idx];
+                    if (material.alphaMode == "Opaque")
+                    {
+                        pendings.push(this.addPrimitive(primitive, matrix, {model, mesh_idx: i, prim_idx: j}));
+                    }
+                }
+            }
+            await Promise.all(pendings);
+        }
+    }
+
+    async addModels(objects)
+    {
+        let object_set = new Set();
+        for (let obj of objects)
+        {
+            obj.updateWorldMatrix(true, false);
+            obj.traverse((child)=>{
+                child.updateWorldMatrix(false, false);
+                object_set.add(obj);
+            });
+        }
+        let pendings = [];
+        for (let model of object_set)
+        {
+            pendings.push(this.addModel(model));
+        }
+        await Promise.all(pendings);
     }
 
     intersect(ray, culling = 0)

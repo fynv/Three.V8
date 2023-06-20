@@ -70,7 +70,33 @@ export class Primitive
         this.constant_skin = null;
         this.bind_group_skin = null;
         this.bind_group_skin2 = null;
+
+        this.is_geometry_ready = false;
+        this.geometry_resolvers = [];
         
+    }
+
+    async geometry_ready()
+    {
+        return new Promise((resolve, reject) => {
+            if (this.is_geometry_ready)
+            {
+                resolve(true);
+            }
+            else
+            {
+                this.geometry_resolvers.push(resolve);
+            }
+        });
+    }
+
+    set_geometry_ready()
+    {
+        this.is_geometry_ready = true;
+        for (let resolve of this.geometry_resolvers) 
+        {
+            resolve(true);
+        }
     }
 
     updateUUID()
