@@ -1,4 +1,4 @@
-﻿import { OrbitControls } from "./controls/OrbitControls.js";
+import { OrbitControls } from "./controls/OrbitControls.js";
 import { Vector3 } from "./math/Vector3.js";
 import { view, UIViewDispatcher } from "./view.js";
 
@@ -118,7 +118,7 @@ class AnimCrossFader
     constructor(fade_time)
     {
         this.mixer = new AnimationMixer();
-        this.fade_time = fade_time || 0.5;        
+        this.fade_time = fade_time || 500.0;        
     }
     
     add_clips(clips)
@@ -353,7 +353,7 @@ const sky = {
         if (props.hasOwnProperty("type"))
         {
             type = props.type;
-        }        
+        }
         if (type == "uniform")
         {
             let bg = new ColorBackground();
