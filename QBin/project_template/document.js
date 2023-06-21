@@ -137,14 +137,26 @@ class AnimCrossFader
         let lst_active = this.mixer.currentPlaying;
         let weight_last = lst_active[lst_active.length - 1].weight;        
         let k = (1.0 - weight_cur)/(1.0-weight_last);
-        let weights = [];
-        for (let i=0; i< lst_active.length-1; i++)
+        
+        if (k>0.0)
         {
-            let w = lst_active[i].weight * k;
-            weights.push(w);
+            let weights = [];
+            for (let i=0; i< lst_active.length-1; i++)
+            {
+                let w = lst_active[i].weight * k;
+                weights.push(w);
+            }
+            weights.push(weight_cur);
+            this.mixer.setWeights(weights);
         }
-        weights.push(weight_cur);
-        this.mixer.setWeights(weights);
+        else
+        {
+            while(this.mixer.currentPlaying.length>1)
+            {
+                this.mixer.stopAnimation(0);
+            }
+            this.mixer.setWeights([1.0]);
+        }
     }
     
     get_frame()
@@ -952,7 +964,7 @@ const avatar = {
         mixer.add_clips(anims);
         mixer.set_current(name_idle);
         avatar.cur_action = name_idle;
-        avatar.mixer = mixer;       
+        avatar.mixer = mixer;
         
         const onMove = (forward, turn, run_status)=>
         {

@@ -29,23 +29,14 @@ export class AnimationMixer
     }
     
     startAnimation(name)
-    {
-        this.stopAnimation(name);
+    {        
         let weight = this.currentPlaying.length>0?0:1;
         this.currentPlaying.push({ name, time_start: Date.now(), weight})
     }
 
-    stopAnimation(name)
+    stopAnimation(idx)
     {
-        for (let i =0; i<this.currentPlaying.length; i++)
-        {
-            let playback = this.currentPlaying[i];        
-            if (playback.name == name)
-            {
-                this.currentPlaying.splice(i,1);
-                return;
-            }
-        }        
+        this.currentPlaying.splice(idx,1);
     }
     
     setWeights(weights)
@@ -53,16 +44,6 @@ export class AnimationMixer
         for (let i=0; i< weights.length && i<this.currentPlaying.length; i++)
         {
             this.currentPlaying[i].weight = weights[i];
-        }
-        
-        for (let i=0; i<this.currentPlaying.length-1; i++)
-        {
-            let playback = this.currentPlaying[i];
-            if (playback.weight <= 0)
-            {
-                this.currentPlaying.splice(i, 1);
-                i--;
-            }
         }
     }
     

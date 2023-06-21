@@ -20,7 +20,7 @@ public:
 	std::vector<PlayBack> m_current_playing;
 
 	void startAnimation(const char* name);
-	void stopAnimation(const char* name);
+	void stopAnimation(int i);
 
 	void getFrame(AnimationFrame& frame);
 

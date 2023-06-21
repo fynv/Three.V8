@@ -17,7 +17,6 @@ void AnimationMixer::addAnimation(const AnimationClip& anim)
 
 void AnimationMixer::startAnimation(const char* name)
 {
-	this->stopAnimation(name);
 	auto iter = m_animation_dict.find(name);
 	if (iter != m_animation_dict.end())
 	{
@@ -27,24 +26,10 @@ void AnimationMixer::startAnimation(const char* name)
 	}
 }
 
-void AnimationMixer::stopAnimation(const char* name)
+void AnimationMixer::stopAnimation(int i)
 {
-	auto iter = m_animation_dict.find(name);
-	if (iter != m_animation_dict.end())
-	{
-		int id_anim = iter->second;
-		for (size_t i = 0; i < m_current_playing.size(); i++)
-		{
-			PlayBack& playback = m_current_playing[i];
-			if (playback.id_anim == id_anim)
-			{
-				m_current_playing.erase(m_current_playing.begin() + i);
-				return;
-			}
-		}
-	}
+	m_current_playing.erase(m_current_playing.begin() + i);
 }
-
 
 void AnimationMixer::getFrame(AnimationFrame& dst_frame)
 {

@@ -1318,7 +1318,7 @@ pre[class*="language-"] {
 <p> <code>AnimationMixer</code>()</p>
 <p>Creates a new AnimationMixer.</p>
 <h1 class="atx" id="properties">Properties</h1>
-<h2 class="atx" id="animations">animations()</h2>
+<h2 class="atx" id="animations">animations</h2>
 <p><code>.animations</code>: Array</p>
 <p>Read-only property for displaying the info of added animation clips.</p>
 <p><code>.currentPlaying</code>: Array </p>
@@ -1393,12 +1393,11 @@ pre[class*="language-"] {
 <p><code>.startAnimation</code>(<code>name</code>: String) : undefined</p>
 <p>Start an animation by name.</p>
 <h2 class="atx" id="stopanimation">stopAnimation()</h2>
-<p><code>.stopAnimation</code>(<code>name</code>: String) : undefined</p>
-<p>Stop an animation by name.</p>
+<p><code>.stopAnimation</code>(<code>idx</code>: Number) : undefined</p>
+<p>Stop an animation by index.</p>
 <h2 class="atx" id="setweights">setWeights()</h2>
 <p><code>.setWeights</code>(<code>weights</code>: Array) : undefined</p>
 <p>Set blending weigths for each animation currently being played.</p>
-<p>A weight of 0 will cause the corresponding animation clip being removed from the current playing list.</p>
 <h2 class="atx" id="getframe">getFrame()</h2>
 <p><code>.getFrame</code>() : Object</p>
 <p>Get the mixed animation frame of current time point.</p>

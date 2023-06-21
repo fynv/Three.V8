@@ -173,7 +173,9 @@ void WrapperAnimationMixer::StopAnimation(const v8::FunctionCallbackInfo<v8::Val
 {
 	LocalContext lctx(info);
 	AnimationMixer* self = lctx.self<AnimationMixer>();
-	self->stopAnimation(lctx.jstr_to_str(info[0]).c_str());
+	int idx;
+	lctx.jnum_to_num(info[0], idx);
+	self->stopAnimation(idx);
 }
 
 void WrapperAnimationMixer::GetCurrentPlaying(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
@@ -208,16 +210,6 @@ void WrapperAnimationMixer::SetWeights(const v8::FunctionCallbackInfo<v8::Value>
 		lctx.jnum_to_num(weights->Get(lctx.context, i).ToLocalChecked(), w);
 		self->m_current_playing[i].weight = w;
 	}
-
-	for (size_t i = 0; i < self->m_current_playing.size(); i++)
-	{
-		if (self->m_current_playing[i].weight <= 0.0f)
-		{
-			self->m_current_playing.erase(self->m_current_playing.begin() + i);
-			i--;
-		}
-	}
-
 }
 
 void WrapperAnimationMixer::GetFrame(const v8::FunctionCallbackInfo<v8::Value>& info)
