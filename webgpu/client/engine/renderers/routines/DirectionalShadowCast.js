@@ -78,11 +78,11 @@ struct VSIn
     @location(${location_attrib_pos}) pos: vec3f,
 
 ${condition(options.has_color,`
-    @location(${location_attrib_color}) color: vec4f
+    @location(${location_attrib_color}) color: vec4f,
 `)}
 
 ${condition(mOpt.has_color_texture,`
-    @location(${location_attrib_uv}) uv: vec2f
+    @location(${location_attrib_uv}) uv: vec2f,
 `)}
 };
 

@@ -179,8 +179,7 @@ class AnimCrossFader
                 this.mixer.stopAnimation(0);
             }
             this.mixer.setWeights([1.0]);
-        }
-        console.log(this.mixer.currentPlaying);
+        }        
     }
 
     get_frame()
