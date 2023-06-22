@@ -1,6 +1,7 @@
 export function LightsIsEmpty(options)
 {
-    return options.directional_lights.length == 0 && !options.has_reflection_map && !options.has_ambient_light && !options.has_hemisphere_light && !options.has_environment_map;
+    return options.directional_lights.length == 0 && !options.has_reflection_map 
+        && !options.has_ambient_light && !options.has_hemisphere_light && !options.has_environment_map && !options.has_probe_grid;
 }
 
 export class Lights
@@ -41,6 +42,10 @@ export class Lights
         {
             obj.environment_map = this.environment_map.uuid;
         }
+        if (this.probe_grid!=null)
+        {
+            obj.probe_grid = this.probe_grid.uuid;
+        }
         return JSON.stringify(obj);
     }
 
@@ -60,7 +65,8 @@ export class Lights
         let has_ambient_light = this.ambient_light!=null;
         let has_hemisphere_light = this.hemisphere_light!=null;
         let has_environment_map = this.environment_map!=null;
-        return { has_shadow, directional_lights, has_reflection_map, has_ambient_light, has_hemisphere_light, has_environment_map};
+        let has_probe_grid = this.probe_grid!=null;
+        return { has_shadow, directional_lights, has_reflection_map, has_ambient_light, has_hemisphere_light, has_environment_map, has_probe_grid};
     }
 
     clear_lists()
@@ -70,6 +76,7 @@ export class Lights
         this.ambient_light = null;
         this.hemisphere_light = null;
         this.environment_map = null;
+        this.probe_grid = null;
     }
 
     update_bind_group()
@@ -192,6 +199,35 @@ export class Lights
                 binding++;
             }
 
+            if (this.probe_grid!=null)
+            {
+                entries.push({
+                    binding,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer:{
+                        type: "uniform"
+                    }
+                });
+                binding++;
+
+                entries.push({
+                    binding,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture:{
+                        viewDimension: "2d",                        
+                    }
+                });
+                binding++;
+
+                entries.push({
+                    binding,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture:{
+                        viewDimension: "2d",                        
+                    }
+                });
+                binding++;
+            }
 
             engine_ctx.cache.bindGroupLayouts.lights[signature] = engine_ctx.device.createBindGroupLayout({ entries });
         }   
@@ -244,7 +280,7 @@ export class Lights
                     dimension: 'cube'
                 })
             });
-            binding++;                
+            binding++;
         }
 
         if (this.ambient_light!=null)
@@ -278,6 +314,30 @@ export class Lights
                 }
             });
             binding++;
+        }
+
+        if (this.probe_grid!=null)
+        {
+            entries.push({
+                binding,
+                resource:{
+                    buffer: this.probe_grid.constant
+                }
+            });
+            binding++;
+
+            entries.push({                
+                binding,
+                resource: this.probe_grid.tex_irradiance.createView()
+            });
+            binding++;
+
+            entries.push({                
+                binding,
+                resource: this.probe_grid.tex_visibility.createView()
+            });
+            binding++;
+
         }
 
         const bindGroupLayout = engine_ctx.cache.bindGroupLayouts.lights[signature];

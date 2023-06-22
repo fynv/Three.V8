@@ -19,6 +19,7 @@ import { ResolveWeightedOIT } from "./routines/WeightedOIT.js"
 import { AmbientLight } from "../lights/AmbientLight.js"
 import { HemisphereLight } from "../lights/HemisphereLight.js"
 import { EnvironmentMap } from "../lights/EnvironmentMap.js"
+import { ProbeGrid } from "../lights/ProbeGrid.js"
 
 function toViewAABB(MV, min_pos, max_pos)
 {
@@ -415,6 +416,11 @@ export class GPURenderer
             {
                 scene.indirectLight.updateConstant();
                 lights.environment_map = scene.indirectLight;
+            }
+            else if (scene.indirectLight instanceof ProbeGrid)
+            {
+                scene.indirectLight.updateConstant();
+                lights.probe_grid = scene.indirectLight;
             }
 
         }

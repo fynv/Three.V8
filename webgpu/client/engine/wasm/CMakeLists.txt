@@ -9,3 +9,6 @@ add_subdirectory(GltfLoad)
 add_subdirectory(EnvMap)
 add_subdirectory(HDRLoad)
 add_subdirectory(BVH)
+add_subdirectory(IrrPresample)
+
+

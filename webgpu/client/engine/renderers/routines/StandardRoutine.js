@@ -103,7 +103,7 @@ function get_shader(options)
     let binding_reflection_map =  binding_lights;
     if (lights_options.has_reflection_map) binding_lights++; 
     
-    let has_indirect_light = lights_options.has_ambient_light || lights_options.has_hemisphere_light || lights_options.has_environment_map;
+    let has_indirect_light = lights_options.has_ambient_light || lights_options.has_hemisphere_light || lights_options.has_environment_map || lights_options.has_probe_grid;
 
     let binding_ambient_light = binding_lights;
     if (lights_options.has_ambient_light) binding_lights++;    
@@ -113,6 +113,9 @@ function get_shader(options)
 
     let binding_environment_map =  binding_lights;
     if (lights_options.has_environment_map) binding_lights++;
+    
+    let binding_probe_grid = binding_lights;
+    if (lights_options.has_probe_grid) binding_lights+=3;
 
     return `
 struct Camera
@@ -226,6 +229,7 @@ const RECIPROCAL_PI = 0.3183098861837907;
 const EPSILON = 1e-6;
 
 var<private> seed : u32;
+var<private> viewDir: vec3f;
 
 fn InitRandomSeed(val0: u32, val1: u32) 
 {
@@ -602,7 +606,7 @@ struct AmbientLight
 @group(2) @binding(${binding_ambient_light})
 var<uniform> uIndirectLight: AmbientLight;
 
-fn getIrradiance(normal: vec3f) -> vec3f
+fn getIrradiance(world_pos: vec3f, normal: vec3f) -> vec3f
 {
     return uIndirectLight.color.xyz * PI;
 }
@@ -624,7 +628,7 @@ struct HemisphereLight
 @group(2) @binding(${binding_hemisphere_light})
 var<uniform> uIndirectLight: HemisphereLight;
 
-fn getIrradiance(normal: vec3f) -> vec3f
+fn getIrradiance(world_pos: vec3f, normal: vec3f) -> vec3f
 {
     let k = normal.y * 0.5 + 0.5;
     return mix( uIndirectLight.groundColor.xyz, uIndirectLight.skyColor.xyz, k) * PI;
@@ -646,7 +650,7 @@ struct EnvironmentMap
 @group(2) @binding(${binding_environment_map})
 var<uniform> uIndirectLight: EnvironmentMap;
 
-fn getIrradiance(normal: vec3f) -> vec3f
+fn getIrradiance(world_pos: vec3f, normal: vec3f) -> vec3f
 {
     let x = normal.x;
     let y = normal.y;
@@ -669,6 +673,153 @@ fn getIrradiance(normal: vec3f) -> vec3f
 
     return result;
 }
+`)}
+
+${condition(lights_options.has_probe_grid,`
+struct ProbeGrid
+{
+    coverageMin: vec4f,
+    coverageMax: vec4f,
+    divisions: vec4i,
+    ypower: f32,
+    normalBias: f32,    
+    visRes: i32,
+    packSize: i32,
+    packRes: i32,
+    irrRes: i32,
+    irrPackRes: i32,
+    diffuseThresh: f32,
+    diffuseHigh: f32,
+    diffuseLow: f32,
+    specularThresh: f32,
+    specularHigh: f32,
+    specularLow: f32,
+};
+
+@group(2) @binding(${binding_probe_grid})
+var<uniform> uProbeGrid: ProbeGrid;
+`)}
+
+${condition(lights_options.has_probe_grid,`
+@group(2) @binding(${binding_probe_grid + 1})
+var uTexIrr: texture_2d<f32>;
+
+@group(2) @binding(${binding_probe_grid + 2})
+var uTexVis: texture_2d<f32>;
+
+fn signNotZero(v: vec2f) -> vec2f
+{
+    return vec2(select(-1.0, 1.0, v.x >= 0.0), select(-1.0, 1.0, v.y >= 0.0));
+}
+
+fn vec3_to_oct(v: vec3f) -> vec2f
+{
+    let p = v.xy * (1.0/ (abs(v.x) + abs(v.y) + abs(v.z)));
+    return select(p, ((1.0 - abs(p.yx)) * signNotZero(p)), v.z <= 0.0);
+}
+
+fn get_irradiance_common(idx: i32, dir: vec3f) -> vec3f
+{
+    let probe_uv = vec3_to_oct(dir)*0.5 + 0.5;
+    let pack_x = idx % uProbeGrid.packSize;
+    let pack_y = idx / uProbeGrid.packSize;
+    let uv = (vec2(f32(pack_x), f32(pack_y)) * f32(uProbeGrid.irrRes + 2) + (probe_uv * f32(uProbeGrid.irrRes) + 1.0))/f32(uProbeGrid.irrPackRes);
+    return textureSampleLevel(uTexIrr, uSampler, uv, 0).xyz;
+}
+
+fn get_mean_dis_common(dir: vec3f, idx: i32) -> vec2f
+{
+    let probe_uv = vec3_to_oct(dir)*0.5 + 0.5;
+    let pack_x = idx % uProbeGrid.packSize;
+    let pack_y = idx / uProbeGrid.packSize;
+    let uv = (vec2(f32(pack_x), f32(pack_y)) * f32(uProbeGrid.visRes + 2) + (probe_uv * f32(uProbeGrid.visRes) + 1.0))/f32(uProbeGrid.packRes);
+    return textureSampleLevel(uTexVis, uSampler, uv, 0).xy;
+}
+
+fn get_visibility_common(wpos: vec3f, idx: i32, vert_world: vec3f, scale: f32) -> f32
+{
+    var dir = wpos - vert_world;
+    let dis = length(dir);
+    dir = normalize(dir);
+
+    let mean_dis_var = get_mean_dis_common(dir, idx);
+    let mean_dis = mean_dis_var.x;
+    let mean_var = mean_dis_var.y;
+    let mean_var2 =  mean_var * mean_var;
+    let delta = max(dis - mean_dis, 0.0);
+    let delta2 = delta*delta * scale * scale;	
+    return mean_var2/(mean_var2 + delta2);
+}
+
+fn get_visibility(wpos: vec3f, vert: vec3i,  vert_world: vec3f) -> f32
+{
+    let idx = vert.x + (vert.y + vert.z*uProbeGrid.divisions.y)*uProbeGrid.divisions.x;
+    return get_visibility_common(wpos, idx, vert_world, 1.0);
+}
+
+fn get_irradiance(vert: vec3i, dir: vec3f) -> vec3f
+{    
+    let idx = vert.x + (vert.y + vert.z*uProbeGrid.divisions.y)*uProbeGrid.divisions.x;
+    return get_irradiance_common(idx, dir);
+}
+
+fn getIrradiance(world_pos: vec3f, normal: vec3f) -> vec3f
+{
+    let dx = dpdx(world_pos);
+    let dy = -dpdy(world_pos);
+    let N = normalize(cross(dx,dy));
+    let wpos = world_pos + (N + 3.0 * viewDir) * uProbeGrid.normalBias;
+    
+    let size_grid = uProbeGrid.coverageMax.xyz - uProbeGrid.coverageMin.xyz;
+    var pos_normalized = (wpos - uProbeGrid.coverageMin.xyz)/size_grid;
+    pos_normalized.y = pow(pos_normalized.y, 1.0/uProbeGrid.ypower);	
+    var pos_voxel = pos_normalized * vec3f(uProbeGrid.divisions.xyz) - vec3(0.5);
+    pos_voxel = clamp(pos_voxel, vec3(0.0), vec3f(uProbeGrid.divisions.xyz) - vec3(1.0));
+
+    let i_voxel = clamp(vec3i(pos_voxel), vec3i(0), uProbeGrid.divisions.xyz - vec3i(2));
+    let frac_voxel = pos_voxel - vec3f(i_voxel);
+
+    var sum_weight = 0.0;
+    var irr = vec3(0.0);
+
+    for (var i=0; i<8; i++)
+    {
+        let x = i & 1;
+        let y = (i>>1)&1;
+        let z = i>>2;
+        let vert = i_voxel + vec3i(x,y,z);
+        var vert_normalized = (vec3f(vert) + vec3f(0.5))/vec3f(uProbeGrid.divisions.xyz);
+        vert_normalized.y = pow(vert_normalized.y, uProbeGrid.ypower); 
+        let vert_world = vert_normalized * size_grid + uProbeGrid.coverageMin.xyz;
+        let dir = normalize(vert_world - world_pos);
+        var dotDirN = dot(dir, N);
+        let k = 0.9;
+        dotDirN = (k*dotDirN + sqrt(1.0 - (1.0-dotDirN*dotDirN)*k*k))/(k+1.0);
+        var weight = dotDirN * get_visibility(wpos, vert, vert_world);	
+
+        let crushThreshold = 0.2;
+        if (weight < crushThreshold) {
+            weight *= weight * weight / (crushThreshold*crushThreshold); 
+        }
+
+        let w = vec3(1.0) - abs(vec3f(f32(x),f32(y),f32(z)) - frac_voxel);
+        weight *= w.x * w.y * w.z;
+        if (weight> 0.0)
+        {					
+            sum_weight += weight;
+            irr += get_irradiance(vert, normal) * weight;			
+        }
+
+    }
+    
+    if (sum_weight>0.0)
+	{        
+		return irr/sum_weight;
+	}	
+
+	return vec3(0.0);
+}
+
 `)}
 
 
@@ -721,7 +872,7 @@ ${condition(mOpt.has_metalness_map,`
 
 `)}
 
-    let viewDir = normalize(input.viewDir);
+    viewDir= normalize(input.viewDir);
     var norm = normalize(input.norm);
 
 
@@ -820,7 +971,7 @@ ${condition(lights_options.has_reflection_map,`
     }
 `,condition(has_indirect_light, `
     {
-        let irradiance = getIrradiance(norm);
+        let irradiance = getIrradiance(input.worldPos, norm);
         var radiance = vec3(0.0);
 
 ${condition(lights_options.has_reflection_map,` 
