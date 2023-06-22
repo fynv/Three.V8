@@ -11,7 +11,7 @@ export class ProbeGrid extends IndirectLight
         this.coverage_max = new Vector3(10.0, 10.0, 10.0);
         this.divisions = new Vector3(10,5,10);
         this.ypower = 1.0;
-        this.normal_bias = 0.2;
+        this.normalBias = 0.2;
         this.vis_res = 16;
         this.pack_size = 0;
         this.pack_res = 0;
@@ -22,7 +22,7 @@ export class ProbeGrid extends IndirectLight
 
         this.probe_data = null;
         this.visibility_data = null;
-        this.per_primitive = false;
+        this.perPrimitive = false;
         this.tex_irradiance = null;
         this.tex_visibility = null;
 
@@ -98,7 +98,7 @@ export class ProbeGrid extends IndirectLight
         iuniform[9] = this.divisions.y;
         iuniform[10] = this.divisions.z;
         uniform[12] = this.ypower;
-        uniform[13] = this.normal_bias;
+        uniform[13] = this.normalBias;
         iuniform[14] = this.vis_res;
         iuniform[15] = this.pack_size;
         iuniform[16] = this.pack_res;

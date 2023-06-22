@@ -12,6 +12,7 @@ import { AmbientLight} from "./engine/lights/AmbientLight.js"
 import { HemisphereLight } from "./engine/lights/HemisphereLight.js"
 import { EnvironmentMap } from "./engine/lights/EnvironmentMap.js"
 import { EnvironmentMapCreator} from "./engine/lights/EnvironmentMapCreator.js"
+import { ProbeGridLoader } from "./engine/loaders/ProbeGridLoader.js"
 import { SimpleModel } from "./engine/models/SimpleModel.js"
 import { GLTFLoader } from "./engine/loaders/GLTFLoader.js"
 import { DirectionalLight } from "./engine/lights/DirectionalLight.js"
@@ -574,6 +575,32 @@ const env_light = {
                     })();                    
                 }
             }
+        }
+        else if (type == "probe_grid")
+        {
+            let probe_data = "assets/probes.dat";
+            if (props.hasOwnProperty('probe_data')) 
+            {
+                probe_data = props.probe_data;
+            }
+
+            let probeGridLoader = new ProbeGridLoader();
+            (async()=>
+            {
+                let probe_grid = await probeGridLoader.loadFile(probe_data);
+                if (props.hasOwnProperty('normal_bias'))
+                {
+                    probe_grid.normalBias = parseFloat(props.normal_bias);
+                }
+                
+                if (props.hasOwnProperty('per_primitive'))
+                {
+                    probe_grid.perPrimitive =string_to_boolean(props.per_primitive);
+                }
+
+                doc.scene.indirectLight = probe_grid;
+
+            })();
         }
 
         return doc.scene.indirectLight;
