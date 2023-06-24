@@ -18,6 +18,7 @@ export class GPURenderTarget
         this.oit_tex1 = null;
         this.oit_view1 = null;
         this.bind_group_oit = null;
+        this.bind_group_depth = null;
     }
 
     update(width = -1, height = -1)
@@ -77,8 +78,44 @@ export class GPURenderTarget
             }
             this.view_depth = this.tex_depth.createView();
 
+            if (!("depth" in engine_ctx.cache.bindGroupLayouts))
+            {
+                engine_ctx.cache.bindGroupLayouts.depth = {};
+            }
+
+            let options = { msaa: this.msaa  };
+            let signature = JSON.stringify(options);
+
+            if (!(signature in engine_ctx.cache.bindGroupLayouts.depth))
+            {
+                engine_ctx.cache.bindGroupLayouts.depth[signature] = engine_ctx.device.createBindGroupLayout({
+                    entries: [
+                        {
+                            binding: 0,
+                            visibility: GPUShaderStage.FRAGMENT,
+                            texture:{
+                                viewDimension: "2d",
+                                multisampled: this.msaa,
+                                sampleType: "unfilterable-float"
+                            }
+                        }
+                    ]
+                });
+            }
+            const bindGroupLayout = engine_ctx.cache.bindGroupLayouts.depth[signature];
+            this.bind_group_depth = engine_ctx.device.createBindGroup({
+                layout: bindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: this.view_depth 
+                    }                    
+                ]
+            });
+
             this.width = width;
             this.height = height;
+            this.uuid = MathUtils.generateUUID();
         }
     } 
     

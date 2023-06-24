@@ -19,6 +19,7 @@ import { DirectionalLight } from "./engine/lights/DirectionalLight.js"
 import { LightmapLoader } from "./engine/loaders/LightmapLoader.js"
 import { BoundingVolumeHierarchy } from "./engine/core/BoundingVolumeHierarchy.js"
 import { AnimationMixer } from "./engine/models/AnimationMixer.js"
+import { Fog } from "./engine/scenes/Fog.js"
 
 function string_to_boolean(string) {
     switch (string.toLowerCase().trim()) {
@@ -308,6 +309,17 @@ const control = {
         }
     }
 };
+
+const fog = {
+    create: (doc, props, parent) =>{        
+        doc.scene.fog = new Fog();
+        if (props.hasOwnProperty("density"))
+        {
+            doc.scene.fog.density = parseFloat(props.density);
+        }
+        return doc.scene.fog;
+    }
+}
 
 const sky = {
     reset: (doc) => {
@@ -1247,7 +1259,7 @@ export class Document
         this.model_loader = new GLTFLoader();
 
         this.render_target = new GPURenderTarget(canvas_ctx, true);
-        this.Tags = { scene, camera, control, sky, env_light, group, plane, box, sphere, model, avatar, directional_light};
+        this.Tags = { scene, camera, control, fog, sky, env_light, group, plane, box, sphere, model, avatar, directional_light};
         this.reset();
     }
 

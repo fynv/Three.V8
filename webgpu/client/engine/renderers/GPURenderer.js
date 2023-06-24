@@ -20,6 +20,9 @@ import { AmbientLight } from "../lights/AmbientLight.js"
 import { HemisphereLight } from "../lights/HemisphereLight.js"
 import { EnvironmentMap } from "../lights/EnvironmentMap.js"
 import { ProbeGrid } from "../lights/ProbeGrid.js"
+import { DrawFog, DrawFogBundle } from "./routines/DrawFog.js"
+import { FogRayMarching, FogRayMarchingBundle } from "./routines/FogRayMarching.js"
+import { FogRayMarchingEnv, FogRayMarchingEnvBundle} from "./routines/FogRayMarchingEnv.js"
 
 function toViewAABB(MV, min_pos, max_pos)
 {
@@ -126,6 +129,8 @@ export class GPURenderer
         this.depth_bundles = {};
         this.render_bundles = {};
         this.shadow_bundles = {};
+        this.fog_bundles = {};
+        this.fog_rm_bundles = {};
     }
 
     _draw_hemisphere(passEncoder, target, camera, bg)
@@ -316,8 +321,16 @@ export class GPURenderer
     _pre_render(scene)
     {
         scene.clear_lists();
+        
+        let fog = null;
+        if (scene.fog!=null && scene.fog.density>0.0)
+        {
+            fog = scene.fog;
+            fog.updateConstant();
+        }
 
         let lights = scene.lights;
+        lights.fog = fog;
         
         scene.traverse((obj)=>{
             if(obj!=null)
@@ -425,7 +438,7 @@ export class GPURenderer
 
         }
 
-        lights.update_bind_group();
+        lights.update_bind_group();        
     }
 
     _render_depth_simple_model(passEncoder, model, camera, target)
@@ -519,7 +532,7 @@ export class GPURenderer
         let params = {            
             target,
             material_list: [material],
-            bind_group_camera: camera.bind_group,            
+            bind_group_camera: camera.bind_group,
             primitive: model.geometry,
             lights
         };
@@ -844,7 +857,7 @@ export class GPURenderer
                 0,
                 target.width,
                 target.height,
-            );           
+            );
             
             for (let model of simple_models)
             {
@@ -949,14 +962,86 @@ export class GPURenderer
 
     }
 
+    _render_fog(passEncoder, camera, lights, fog, target)
+    {
+        let params = {
+            target,
+            bind_group_camera: camera.bind_group,
+            bind_group_fog: fog.bind_group,
+            lights
+        };
+
+        // DrawFog(passEncoder, params);
+        let signature = JSON.stringify({
+            id_fog: fog.uuid,
+            id_camera: camera.uuid,
+            id_target: target.uuid,
+            signature_lights: lights.signature
+        });
+
+        if (!(signature in this.fog_bundles))
+        {    
+            this.fog_bundles[signature] = DrawFogBundle(params);
+        }
+        passEncoder.executeBundles([this.fog_bundles[signature]]);
+
+        if (params.lights.directional_lights.length>0)
+        {
+            //FogRayMarching(passEncoder, params);
+            if (!(signature in this.fog_rm_bundles))
+            {
+                this.fog_rm_bundles[signature] = FogRayMarchingBundle(params);                
+            }
+            passEncoder.executeBundles([this.fog_rm_bundles[signature]]);
+        }        
+
+        if (params.lights.probe_grid !=null)
+        {
+            FogRayMarchingEnv(passEncoder, params);
+        }
+    }
+
     _render(scene, camera, target)
     {        
         let commandEncoder = engine_ctx.device.createCommandEncoder();
         this._render_scene(commandEncoder, scene, camera, target);
 
+        if (scene.fog!=null && scene.fog.density>0.0)
+        {
+            let colorAttachment =  {                            
+                view: target.view_video,
+                loadOp: 'load',
+                storeOp: 'store',                
+            };
+
+            let renderPassDesc = {
+                colorAttachments: [colorAttachment],                
+            }; 
+            let passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
+
+            passEncoder.setViewport(
+                0,
+                0,
+                target.width,
+                target.height,
+                0,
+                1
+            );
+        
+            passEncoder.setScissorRect(
+                0,
+                0,
+                target.width,
+                target.height,
+            );
+            
+            this._render_fog(passEncoder, camera, scene.lights, scene.fog, target);
+
+            passEncoder.end();
+        }
+
         let cmdBuf = commandEncoder.finish();
         engine_ctx.queue.submit([cmdBuf]);
-
     }
     
 

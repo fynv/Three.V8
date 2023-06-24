@@ -117,6 +117,9 @@ function get_shader(options)
     let binding_probe_grid = binding_lights;
     if (lights_options.has_probe_grid) binding_lights+=3;
 
+    let binding_fog = binding_lights;
+    if (lights_options.has_fog) binding_lights++;
+
     return `
 struct Camera
 {
@@ -819,9 +822,18 @@ fn getIrradiance(world_pos: vec3f, normal: vec3f) -> vec3f
 
 	return vec3(0.0);
 }
-
 `)}
 
+${condition(lights_options.has_fog,`
+struct Fog
+{
+    rgba: vec4f,  
+    max_num_steps: i32,
+    min_step: f32
+};
+@group(2) @binding(${binding_fog})
+var<uniform> uFog: Fog;
+`)}
 
 @fragment
 fn fs_main(input: FSIn) -> FSOut
@@ -940,6 +952,18 @@ ${condition(has_shadow,`
         else
         {
             l_shadow = borderPCFTexture(uDirectionalShadowTex_${i}, shadowCoords.xyz);
+        }
+`)}
+
+${condition(lights_options.has_fog,`
+        if (l_shadow>0.0)
+        {
+            let zEye = -dot(input.worldPos - uDirectionalLight_${i}.origin.xyz, uDirectionalLight_${i}.direction.xyz);
+            if (zEye>0.0)
+			{
+				let att = pow(1.0 - uFog.rgba.w, zEye);
+				l_shadow *= att;
+			}
         }
 `)}
         var directLight: IncidentLight;

@@ -18,19 +18,34 @@ export class ProbeGrid extends IndirectLight
         this.irr_res = 8;
         this.irr_pack_res = 0;
 
-        this.constant = engine_ctx.createBuffer0(112, GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST);  
+        this.constant = engine_ctx.createBuffer0(112, GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST);
 
         this.probe_data = null;
         this.visibility_data = null;
         this.perPrimitive = false;
         this.tex_irradiance = null;
         this.tex_visibility = null;
+        this.probe_buf0 = null;
+        this.sampler = engine_ctx.device.createSampler({
+            magFilter: 'linear',
+            minFilter: 'linear',
+        });
 
     }
 
     allocate_probes()
     {
         let num_probes =  this.divisions.x * this.divisions.y * this.divisions.z;
+        let arr_buf0 = new Float32Array(num_probes*4);
+        for (let i=0; i<num_probes; i++)
+        {
+            arr_buf0[i*4] = this.probe_data[i*36];
+            arr_buf0[i*4 + 1] = this.probe_data[i*36 + 1];
+            arr_buf0[i*4 + 2] = this.probe_data[i*36 + 2];
+            arr_buf0[i*4 + 3] = this.probe_data[i*36 + 3];
+        }
+        this.probe_buf0 = engine_ctx.createBuffer(arr_buf0.buffer, GPUBufferUsage.STORAGE, 0, num_probes*16);
+
         let pack_size = Math.floor(Math.ceil(Math.sqrt(num_probes)));
         this.irr_pack_res = pack_size * (this.irr_res + 2);
         this.tex_irradiance = engine_ctx.device.createTexture({
