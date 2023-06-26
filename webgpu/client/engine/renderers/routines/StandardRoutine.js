@@ -275,9 +275,12 @@ fn vogel_sample(j: f32, N: f32, jitter: f32) -> vec2f
     return vec2(r * cos(theta), r * sin(theta));
 }
 
+var<private> N: vec3f;
+
 struct FSIn
 {
     @builtin(position) coord_pix: vec4f,
+    @builtin(front_facing) front_facing: bool,
     @location(${location_varying_viewdir}) viewDir: vec3f,
     @location(${location_varying_norm}) norm: vec3f,
 
@@ -768,9 +771,6 @@ fn get_irradiance(vert: vec3i, dir: vec3f) -> vec3f
 
 fn getIrradiance(world_pos: vec3f, normal: vec3f) -> vec3f
 {
-    let dx = dpdx(world_pos);
-    let dy = -dpdy(world_pos);
-    let N = normalize(cross(dx,dy));
     let wpos = world_pos + (N + 3.0 * viewDir) * uProbeGrid.normalBias;
     
     let size_grid = uProbeGrid.coverageMax.xyz - uProbeGrid.coverageMin.xyz;
@@ -898,15 +898,23 @@ ${condition(mOpt.has_normal_map,`
     }
 `)}
 
-    if (uMaterial.doubleSided!=0)
+    if (uMaterial.doubleSided!=0 && !input.front_facing)
     {
-        if (dot(viewDir,norm)<0.0) 
-        {
-            norm = -norm;
-        }
+        norm = -norm;
     }
     let dxy =  max(abs(dpdx(norm)), abs(dpdy(norm)));
+    let geometryRoughness = max(max(dxy.x, dxy.y), dxy.z);	
 
+    let dx = dpdx(input.worldPos);
+    let dy = -dpdy(input.worldPos);
+    N = normalize(cross(dx,dy));
+
+${condition(alpha_mask,`
+    if (base_color.w == 0.0)
+    {
+        discard;
+    }
+`)}
     var material : PhysicalMaterial;
 
 ${condition(mOpt.specular_glossiness,`
@@ -918,9 +926,8 @@ ${condition(mOpt.specular_glossiness,`
     material.diffuseColor = base_color.xyz * ( 1.0 - metallicFactor );	
 	material.roughness = max( roughnessFactor, 0.0525 );	
 	material.specularColor = mix( vec3( 0.04 ), base_color.xyz, metallicFactor );	
-`)}
-    
-    let geometryRoughness = max(max(dxy.x, dxy.y), dxy.z);	
+`)}    
+   
     material.roughness += geometryRoughness;
 	material.roughness = min( material.roughness, 1.0 );
 	material.specularF90 = 1.0;
