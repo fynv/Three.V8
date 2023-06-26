@@ -361,6 +361,11 @@ export class GPURenderer
             this._update_gltf_model(model);
         }
 
+        if (scene.background!=null && (scene.background instanceof BackgroundScene))
+        {
+            this._pre_render(scene.background.scene);
+        }
+
         let has_shadow_map = false;
         for (let light of lights.directional_lights)
         {
@@ -770,8 +775,8 @@ export class GPURenderer
             }
             else if (scene.background instanceof BackgroundScene)
             {
-                let bg = scene.background;
-                let cam = new PerspectiveCameraEx(camera.fov, camera.aspect, bg.near, bg.far);
+                let bg = scene.background;                
+                let cam = new PerspectiveCameraEx(camera.fov, camera.aspect, bg.near, bg.far);                
                 cam.parent = camera.parent;
                 cam.position.copy(camera.position);
                 cam.quaternion.copy(camera.quaternion);
@@ -819,7 +824,7 @@ export class GPURenderer
             }
 
             for (let model of gltf_models)
-            {
+            {                
                 this._render_depth_gltf_model(passEncoder, model, camera, target);
             }
 

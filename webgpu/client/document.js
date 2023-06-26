@@ -438,7 +438,7 @@ const sky = {
             }
 
             let bg_doc = new BackgroundDocument(doc, near, far);
-            bg_doc.load_local_xml(path_scene);
+            bg_doc.load_xml_url(path_scene);
             doc.scene.background = bg_doc;
 
         }
@@ -1133,7 +1133,7 @@ class BackgroundDocument extends BackgroundScene
     {
         if (!(tag in this.Tags)) return null;
         
-        const obj = this.Tags[tag].create(this, props, mode, parent);
+        const obj = this.Tags[tag].create(this, props, parent);
         if (obj == null) return null;
 
         if (Object.isExtensible(obj)) 
