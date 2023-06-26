@@ -441,9 +441,63 @@ export class GPURenderer
                 lights.probe_grid = scene.indirectLight;
             }
 
-        }
+        }        
 
         lights.update_bind_group();        
+
+        if (lights.probe_grid!=null && lights.probe_grid.perPrimitive)
+        {
+            for (let model of scene.simple_models)
+            {
+                let prim = model.geometry;
+                if (prim.envMap == null)
+                {
+                    prim.envMap = new EnvironmentMap();
+                    prim.create_bind_group(model.constant, [model.material], model.textures);
+                }
+                let position = new Vector3();
+                position.addVectors(prim.min_pos, prim.max_pos);
+                position.multiplyScalar(0.5);
+
+                let pos4 = new Vector4(position.x, position.y, position.z, 1.0);
+                pos4.applyMatrix4(model.matrixWorld);
+                lights.probe_grid.get_probe(new Vector3(pos4.x, pos4.y, pos4.z), prim.envMap);
+                
+            }
+
+            for (let model of scene.gltf_models)
+            {
+                if (model.lightmap!=null) continue;                
+                for (let mesh of model.meshes)
+                {
+                    let matrix = model.matrixWorld.clone();                    
+                    if (mesh.node_id >=0 && mesh.skin_id <0)
+                    {
+                        let node = model.nodes[mesh.node_id];
+                        matrix.multiply(node.g_trans);
+                    }
+
+                    for (let prim of mesh.primitives)
+                    {
+                        if (prim.uuid == 0) continue;
+                        if (prim.envMap == null)
+                        {
+                            prim.envMap = new EnvironmentMap();
+                            prim.create_bind_group(mesh.constant, model.materials, model.textures, model.lightmap);
+                        }
+                        let position = new Vector3();
+                        position.addVectors(prim.min_pos, prim.max_pos);
+                        position.multiplyScalar(0.5);
+
+                        let pos4 = new Vector4(position.x, position.y, position.z, 1.0);
+                        pos4.applyMatrix4(matrix);
+                        lights.probe_grid.get_probe(new Vector3(pos4.x, pos4.y, pos4.z), prim.envMap);
+
+                    }
+                }                
+            }
+
+        }
     }
 
     _render_depth_simple_model(passEncoder, model, camera, target)

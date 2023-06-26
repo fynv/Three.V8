@@ -129,4 +129,67 @@ export class ProbeGrid extends IndirectLight
         engine_ctx.queue.writeBuffer(this.constant, 0, uniform.buffer, uniform.byteOffset, uniform.byteLength);
     }
 
+    get_probe(position, envMap)
+    {
+        let size_grid = new Vector3();
+        size_grid.subVectors(this.coverage_max, this.coverage_min);
+        let pos_normalized = new Vector3();
+        pos_normalized.subVectors(position, this.coverage_min);
+        pos_normalized.divide(size_grid);
+        pos_normalized.y = Math.pow(pos_normalized.y, 1.0/this.ypower);
+        let pos_voxel = new Vector3();
+        pos_voxel.multiplyVectors(pos_normalized, this.divisions);
+        pos_voxel.subScalar(0.5);
+        pos_voxel.clamp(new Vector3(0,0,0), new Vector3(this.divisions.x - 1, this.divisions.y - 1, this.divisions.z - 1));
+        let i_voxel = pos_voxel.clone(); i_voxel.floor();
+        i_voxel.clamp(new Vector3(0,0,0), new Vector3(this.divisions.x - 2, this.divisions.y - 2, this.divisions.z - 2));
+        let frac_voxel = new Vector3();
+        frac_voxel.subVectors(pos_voxel, i_voxel);
+
+        let sum_weight = 0;
+        let sumSH = new Array(9);
+        for (let i=0;i<9;i++)
+        {
+            sumSH[i] = [0,0,0];
+        }
+
+        for (let i=0;i<8;i++)
+        {
+            let x = i & 1;
+            let y = (i>>1)&1;
+            let z = i>>2;
+            let delta = new Vector3();
+            delta.subVectors(new Vector3(x,y,z), frac_voxel);
+            let wx = 1.0 - Math.abs(delta.x);
+            let wy = 1.0 - Math.abs(delta.y);
+            let wz = 1.0 - Math.abs(delta.z);
+            let weight = wx*wy*wz;
+            if (weight > 0)
+            {
+                sum_weight += weight;
+                let vert = new Vector3();
+                vert.addVectors(i_voxel, new Vector3(x,y,z));
+                let idx = vert.x + (vert.y + vert.z * this.divisions.y) * this.divisions.x;
+                for (let k=0; k<9; k++)
+                {
+                    sumSH[k][0] += this.probe_data[idx*36 + k*4]*weight;
+                    sumSH[k][1] += this.probe_data[idx*36 + k*4 + 1]*weight;
+                    sumSH[k][2] += this.probe_data[idx*36 + k*4 + 2]*weight;
+                }
+            }
+        }
+
+        if (sum_weight>0)
+        {
+            for (let k=0; k<9; k++)
+            {
+                sumSH[k][0]/=sum_weight;
+                sumSH[k][1]/=sum_weight;
+                sumSH[k][2]/=sum_weight;
+            }
+        }        
+        envMap.shCoefficients = sumSH;
+        envMap.updateConstant();
+    }
+
 }

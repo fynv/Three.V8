@@ -79,6 +79,9 @@ function get_shader(options)
     let binding_lightmap = primitive_binding;
     if (options.has_lightmap) primitive_binding++;
 
+    let binding_primitive_probe = primitive_binding;
+    if (options.has_primtive_probe) primitive_binding++;
+    
     let location_varying_world_pos = location_varying++;   
     
     let lights_options = options.lights_options;    
@@ -359,6 +362,22 @@ var uTexEmissive: texture_2d<f32>;
 ${condition(options.has_lightmap,`
 @group(1) @binding(${binding_lightmap})
 var uTexLightmap: texture_2d<f32>;
+`)}
+
+struct EnvironmentMap
+{
+    SHCoefficients: array<vec4f, 9>,
+    diffuseThresh: f32,
+    diffuseHigh: f32,
+    diffuseLow: f32,
+    specularThresh: f32,
+    specularHigh: f32,
+    specularLow: f32,
+};
+
+${condition(options.has_primtive_probe,`
+@group(1) @binding(${binding_primitive_probe})
+var<uniform> uIndirectLight: EnvironmentMap;
 `)}
 
 struct PhysicalMaterial
@@ -642,20 +661,11 @@ fn getIrradiance(world_pos: vec3f, normal: vec3f) -> vec3f
 `)}
 
 ${condition(lights_options.has_environment_map,`
-struct EnvironmentMap
-{
-    SHCoefficients: array<vec4f, 9>,
-    diffuseThresh: f32,
-    diffuseHigh: f32,
-    diffuseLow: f32,
-    specularThresh: f32,
-    specularHigh: f32,
-    specularLow: f32,
-};
-
 @group(2) @binding(${binding_environment_map})
 var<uniform> uIndirectLight: EnvironmentMap;
+`)}
 
+${condition(lights_options.has_environment_map || options.has_primtive_probe,`
 fn getIrradiance(world_pos: vec3f, normal: vec3f) -> vec3f
 {
     let x = normal.x;
@@ -681,7 +691,7 @@ fn getIrradiance(world_pos: vec3f, normal: vec3f) -> vec3f
 }
 `)}
 
-${condition(lights_options.has_probe_grid,`
+${condition(lights_options.has_probe_grid && !options.has_primtive_probe,`
 struct ProbeGrid
 {
     coverageMin: vec4f,
@@ -706,7 +716,7 @@ struct ProbeGrid
 var<uniform> uProbeGrid: ProbeGrid;
 `)}
 
-${condition(lights_options.has_probe_grid,`
+${condition(lights_options.has_probe_grid && !options.has_primtive_probe,`
 @group(2) @binding(${binding_probe_grid + 1})
 var uTexIrr: texture_2d<f32>;
 
@@ -1052,7 +1062,8 @@ function GetPipelineStandard(options)
     {
         let prim_options = {
             material: options.material_options,
-            has_lightmap: options.has_lightmap
+            has_lightmap: options.has_lightmap,
+            has_envmap: options.has_primtive_probe
         };
         let prim_signature = JSON.stringify(prim_options);
         let primitive_layout = engine_ctx.cache.bindGroupLayouts.primitive[prim_signature];
@@ -1306,6 +1317,7 @@ export function RenderStandard(passEncoder, params)
     options.has_lightmap = primitive.has_lightmap;
     options.material_options = primitive.material_options;
     options.lights_options = params.lights.get_options();
+    options.has_primtive_probe = primitive.envMap!=null;
 
     let pipeline = GetPipelineStandard(options);
     passEncoder.setPipeline(pipeline);

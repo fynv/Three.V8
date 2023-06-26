@@ -43,6 +43,7 @@ export class Primitive
         this.joints_buf = null;
         this.weights_buf = null;
         this.lightmap_uv_buf = null;
+        this.envMap = null;
 
         this.num_face = 0;
         this.type_indices = 2;
@@ -117,7 +118,8 @@ export class Primitive
         this.has_lightmap = lightmap != null;
         let options = {
             material: this.material_options,
-            has_lightmap: this.has_lightmap
+            has_lightmap: this.has_lightmap,
+            has_envmap: this.envMap !=null
         };
         let signature = JSON.stringify(options);
         if (!(signature in engine_ctx.cache.bindGroupLayouts.primitive))
@@ -172,6 +174,18 @@ export class Primitive
                     visibility: GPUShaderStage.FRAGMENT,
                     texture:{
                         viewDimension: "2d"
+                    }
+                });
+                binding++;
+            }
+
+            if (this.envMap!=null)
+            {
+                entries.push({
+                    binding,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer:{
+                        type: "uniform"
                     }
                 });
                 binding++;
@@ -256,6 +270,17 @@ export class Primitive
             entries.push({
                 binding,
                 resource: lightmap.createView()
+            });
+            binding++;
+        }
+
+        if (this.envMap!=null)
+        {
+            entries.push({
+                binding,
+                resource:{
+                    buffer: this.envMap.constant
+                }
             });
             binding++;
         }

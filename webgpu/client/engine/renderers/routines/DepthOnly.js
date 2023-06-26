@@ -48,7 +48,8 @@ function GetPipelineDepth(options)
     {
         let prim_options = {
             material: options.material_options,
-            has_lightmap: options.has_lightmap
+            has_lightmap: options.has_lightmap,
+            has_envmap: options.has_primtive_probe
         };
         let prim_signature = JSON.stringify(prim_options);
         let primitive_layout = engine_ctx.cache.bindGroupLayouts.primitive[prim_signature];
@@ -132,6 +133,7 @@ export function RenderDepth(passEncoder, params)
     options.is_msaa  = params.target.msaa; 
     options.has_lightmap = primitive.has_lightmap;
     options.material_options = primitive.material_options;
+    options.has_primtive_probe = primitive.envMap!=null;
     
     let pipeline = GetPipelineDepth(options);
     passEncoder.setPipeline(pipeline);
