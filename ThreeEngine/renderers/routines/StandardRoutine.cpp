@@ -127,6 +127,8 @@ vec2 vogel_sample(float j, float N)
 	return vec2(r * cos(theta), r * sin(theta));
 }
 
+vec3 N;
+
 layout (location = LOCATION_VARYING_VIEWDIR) in vec3 vViewDir;
 layout (location = LOCATION_VARYING_NORM) in vec3 vNorm;
 
@@ -698,10 +700,7 @@ vec3 get_irradiance(in ivec3 vert, in vec3 dir)
 }
 
 vec3 getIrradiance(in vec3 normal)
-{
-	vec3 dx = dFdx(vWorldPos);
-	vec3 dy = dFdy(vWorldPos);
-	vec3 N = normalize(cross(dx, dy));
+{	
 	vec3 viewDir = normalize(vViewDir);
 	vec3 wpos = vWorldPos + (N + 3.0 * viewDir) * uNormalBias;
 	
@@ -801,9 +800,6 @@ int get_probe_idx(in ivec3 ipos)
 
 vec3 getIrradiance(in vec3 normal)
 {
-	vec3 dx = dFdx(vWorldPos);
-	vec3 dy = dFdy(vWorldPos);
-	vec3 N = normalize(cross(dx, dy));
 	vec3 viewDir = normalize(vViewDir);		
 	vec3 wpos = vWorldPos + (N + 3.0 * viewDir) * uNormalBias;
 
@@ -974,10 +970,6 @@ void main()
 	base_color.w = base_color.w > uAlphaCutoff ? 1.0 : 0.0;
 #endif
 
-#if ALPHA_MASK || ALPHA_BLEND
-	if (base_color.w == 0.0) discard;
-#endif
-
 #if SPECULAR_GLOSSINESS
 
 	vec3 specularFactor = uSpecularGlossiness.xyz;
@@ -1022,6 +1014,17 @@ void main()
 	{		
 		norm = -norm;
 	}
+	
+	vec3 dxy = max(abs(dFdx(norm)), abs(dFdy(norm)));
+	float geometryRoughness = max(max(dxy.x, dxy.y), dxy.z);	
+	
+	vec3 dx = dFdx(vWorldPos);
+	vec3 dy = dFdy(vWorldPos);
+	N = normalize(cross(dx, dy));
+
+#if ALPHA_MASK || ALPHA_BLEND
+	if (base_color.w == 0.0) discard;
+#endif
 
 	PhysicalMaterial material;
 
@@ -1036,13 +1039,10 @@ void main()
 	material.specularColor = mix( vec3( 0.04 ), base_color.xyz, metallicFactor );	
 #endif
 
-	bool has_specular = length(material.specularColor)>0.0;
-
-	vec3 dxy = max(abs(dFdx(norm)), abs(dFdy(norm)));
-	float geometryRoughness = max(max(dxy.x, dxy.y), dxy.z);	
+	bool has_specular = length(material.specularColor)>0.0;	
 	material.roughness += geometryRoughness;
 	material.roughness = min( material.roughness, 1.0 );
-	material.specularF90 = 1.0;
+	material.specularF90 = 1.0;	
 
 	vec3 emissive = uEmissive.xyz;
 #if HAS_EMISSIVE_MAP

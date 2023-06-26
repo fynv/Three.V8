@@ -1026,6 +1026,10 @@ bool calc_shading()
 		norm = -norm;
 	}
 
+#if ALPHA_MASK
+	if (base_color.w == 0.0) return;
+#endif
+
 	PhysicalMaterial material;
 
 #if SPECULAR_GLOSSINESS
