@@ -13,6 +13,7 @@ import { HemisphereLight } from "./engine/lights/HemisphereLight.js"
 import { EnvironmentMap } from "./engine/lights/EnvironmentMap.js"
 import { EnvironmentMapCreator} from "./engine/lights/EnvironmentMapCreator.js"
 import { ProbeGridLoader } from "./engine/loaders/ProbeGridLoader.js"
+import { LODProbeGridLoader } from "./engine/loaders/LODProbeGridLoader.js"
 import { SimpleModel } from "./engine/models/SimpleModel.js"
 import { GLTFLoader } from "./engine/loaders/GLTFLoader.js"
 import { DirectionalLight } from "./engine/lights/DirectionalLight.js"
@@ -597,6 +598,32 @@ const env_light = {
             }
 
             let probeGridLoader = new ProbeGridLoader();
+            (async()=>
+            {
+                let probe_grid = await probeGridLoader.loadFile(probe_data);
+                if (props.hasOwnProperty('normal_bias'))
+                {
+                    probe_grid.normalBias = parseFloat(props.normal_bias);
+                }
+                
+                if (props.hasOwnProperty('per_primitive'))
+                {
+                    probe_grid.perPrimitive =string_to_boolean(props.per_primitive);
+                }
+
+                doc.scene.indirectLight = probe_grid;
+
+            })();
+        }
+        else if (type == "lod_probe_grid")
+        {
+            let probe_data = "assets/lod_probes.dat";
+            if (props.hasOwnProperty('probe_data')) 
+            {
+                probe_data = props.probe_data;
+            }
+
+            let probeGridLoader = new LODProbeGridLoader();
             (async()=>
             {
                 let probe_grid = await probeGridLoader.loadFile(probe_data);

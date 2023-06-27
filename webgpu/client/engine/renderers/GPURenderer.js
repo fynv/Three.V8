@@ -20,9 +20,11 @@ import { AmbientLight } from "../lights/AmbientLight.js"
 import { HemisphereLight } from "../lights/HemisphereLight.js"
 import { EnvironmentMap } from "../lights/EnvironmentMap.js"
 import { ProbeGrid } from "../lights/ProbeGrid.js"
+import { LODProbeGrid } from "../lights/LODProbeGrid.js"
 import { DrawFog, DrawFogBundle } from "./routines/DrawFog.js"
 import { FogRayMarching, FogRayMarchingBundle } from "./routines/FogRayMarching.js"
 import { FogRayMarchingEnv, FogRayMarchingEnvBundle} from "./routines/FogRayMarchingEnv.js"
+import { FogRayMarchingEnv2, FogRayMarchingEnvBundle2} from "./routines/FogRayMarchingEnv2.js"
 
 function toViewAABB(MV, min_pos, max_pos)
 {
@@ -131,6 +133,7 @@ export class GPURenderer
         this.shadow_bundles = {};
         this.fog_bundles = {};
         this.fog_rm_bundles = {};
+        this.fog_rm_env_bundles = {};
     }
 
     _draw_hemisphere(passEncoder, target, camera, bg)
@@ -440,6 +443,11 @@ export class GPURenderer
                 scene.indirectLight.updateConstant();
                 lights.probe_grid = scene.indirectLight;
             }
+            else if (scene.indirectLight instanceof LODProbeGrid)
+            {
+                scene.indirectLight.updateConstant();
+                lights.lod_probe_grid = scene.indirectLight;
+            }
 
         }        
 
@@ -496,7 +504,58 @@ export class GPURenderer
                     }
                 }                
             }
+        }
 
+        if (lights.lod_probe_grid!=null && lights.lod_probe_grid.perPrimitive)
+        {            
+            for (let model of scene.simple_models)
+            {
+                let prim = model.geometry;
+                if (prim.envMap == null)
+                {
+                    prim.envMap = new EnvironmentMap();
+                    prim.create_bind_group(model.constant, [model.material], model.textures);
+                }
+                let position = new Vector3();
+                position.addVectors(prim.min_pos, prim.max_pos);
+                position.multiplyScalar(0.5);
+
+                let pos4 = new Vector4(position.x, position.y, position.z, 1.0);
+                pos4.applyMatrix4(model.matrixWorld);
+                lights.lod_probe_grid.get_probe(new Vector3(pos4.x, pos4.y, pos4.z), prim.envMap);
+            }
+
+            for (let model of scene.gltf_models)
+            {
+                if (model.lightmap!=null) continue;                
+                for (let mesh of model.meshes)
+                {
+                    let matrix = model.matrixWorld.clone();                    
+                    if (mesh.node_id >=0 && mesh.skin_id <0)
+                    {
+                        let node = model.nodes[mesh.node_id];
+                        matrix.multiply(node.g_trans);
+                    }
+
+                    for (let prim of mesh.primitives)
+                    {
+                        if (prim.uuid == 0) continue;
+                        if (prim.envMap == null)
+                        {
+                            prim.envMap = new EnvironmentMap();
+                            prim.create_bind_group(mesh.constant, model.materials, model.textures, model.lightmap);
+                        }
+                        let position = new Vector3();
+                        position.addVectors(prim.min_pos, prim.max_pos);
+                        position.multiplyScalar(0.5);
+
+                        let pos4 = new Vector4(position.x, position.y, position.z, 1.0);
+                        pos4.applyMatrix4(matrix);
+                        lights.lod_probe_grid.get_probe(new Vector3(pos4.x, pos4.y, pos4.z), prim.envMap);
+
+                    }
+                }                
+            }
         }
     }
 
@@ -1056,7 +1115,22 @@ export class GPURenderer
 
         if (params.lights.probe_grid !=null)
         {
-            FogRayMarchingEnv(passEncoder, params);
+            //FogRayMarchingEnv(passEncoder, params);
+            if (!(signature in this.fog_rm_env_bundles))
+            {
+                this.fog_rm_env_bundles[signature] = FogRayMarchingEnvBundle(params);  
+            }
+            passEncoder.executeBundles([this.fog_rm_env_bundles[signature]]);
+        }
+
+        if (params.lights.lod_probe_grid !=null)
+        {
+            //FogRayMarchingEnv2(passEncoder, params);
+            if (!(signature in this.fog_rm_env_bundles))
+            {
+                this.fog_rm_env_bundles[signature] = FogRayMarchingEnvBundle2(params);  
+            }
+            passEncoder.executeBundles([this.fog_rm_env_bundles[signature]]);
         }
     }
 

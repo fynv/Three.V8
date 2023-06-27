@@ -106,7 +106,8 @@ function get_shader(options)
     let binding_reflection_map =  binding_lights;
     if (lights_options.has_reflection_map) binding_lights++; 
     
-    let has_indirect_light = lights_options.has_ambient_light || lights_options.has_hemisphere_light || lights_options.has_environment_map || lights_options.has_probe_grid;
+    let has_indirect_light = lights_options.has_ambient_light || lights_options.has_hemisphere_light || 
+        lights_options.has_environment_map || lights_options.has_probe_grid || lights_options.has_lod_probe_grid;
 
     let binding_ambient_light = binding_lights;
     if (lights_options.has_ambient_light) binding_lights++;    
@@ -119,6 +120,7 @@ function get_shader(options)
     
     let binding_probe_grid = binding_lights;
     if (lights_options.has_probe_grid) binding_lights+=3;
+    if (lights_options.has_lod_probe_grid) binding_lights+=5;
 
     let binding_fog = binding_lights;
     if (lights_options.has_fog) binding_lights++;
@@ -716,7 +718,32 @@ struct ProbeGrid
 var<uniform> uProbeGrid: ProbeGrid;
 `)}
 
-${condition(lights_options.has_probe_grid && !options.has_primtive_probe,`
+${condition(lights_options.has_lod_probe_grid && !options.has_primtive_probe,`
+struct ProbeGrid
+{
+    coverageMin: vec4f,
+    coverageMax: vec4f,
+    baseDivisions: vec4i,
+    subDivisionLevel: i32,
+    normalBias: f32,
+    numProbes: i32,
+    visRes: i32,
+    packSize: i32,
+    packRes: i32,
+    irrRes: i32,
+    irrPackRes: i32,
+    diffuseThresh: f32,
+    diffuseHigh: f32,
+    diffuseLow: f32,
+    specularThresh: f32,
+    specularHigh: f32,
+    specularLow: f32,
+};
+@group(2) @binding(${binding_probe_grid})
+var<uniform> uProbeGrid: ProbeGrid;
+`)}
+
+${condition((lights_options.has_probe_grid || lights_options.has_lod_probe_grid) && !options.has_primtive_probe,`
 @group(2) @binding(${binding_probe_grid + 1})
 var uTexIrr: texture_2d<f32>;
 
@@ -767,6 +794,9 @@ fn get_visibility_common(wpos: vec3f, idx: i32, vert_world: vec3f, scale: f32) -
     return mean_var2/(mean_var2 + delta2);
 }
 
+`)}
+
+${condition(lights_options.has_probe_grid && !options.has_primtive_probe,`
 fn get_visibility(wpos: vec3f, vert: vec3i,  vert_world: vec3f) -> f32
 {
     let idx = vert.x + (vert.y + vert.z*uProbeGrid.divisions.y)*uProbeGrid.divisions.x;
@@ -832,6 +862,113 @@ fn getIrradiance(world_pos: vec3f, normal: vec3f) -> vec3f
 
 	return vec3(0.0);
 }
+`)}
+
+${condition(lights_options.has_lod_probe_grid && !options.has_primtive_probe,`
+@group(2) @binding(${binding_probe_grid + 3})
+var<storage, read> bPosLod: array<vec4f>;
+
+@group(2) @binding(${binding_probe_grid + 4})
+var<storage, read> bIndexData: array<i32>;
+
+fn get_visibility(wpos: vec3f, idx: i32, lod: i32, vert_world: vec3f) -> f32
+{
+    let scale = f32(1<<u32(uProbeGrid.subDivisionLevel -lod));
+    return get_visibility_common(wpos, idx, vert_world, scale);
+}
+
+fn get_probe_idx(ipos: vec3i) -> i32
+{
+    let base_offset = uProbeGrid.baseDivisions.x * uProbeGrid.baseDivisions.y * uProbeGrid.baseDivisions.z;
+    let ipos_base = ipos / (1<<u32(uProbeGrid.subDivisionLevel));
+    var node_idx = ipos_base.x + (ipos_base.y + ipos_base.z *  uProbeGrid.baseDivisions.y) *  uProbeGrid.baseDivisions.x;
+    var probe_idx = bIndexData[node_idx];
+
+    var lod = 0;
+    var digit_mask = 1 << u32(uProbeGrid.subDivisionLevel -1);
+    while(lod<uProbeGrid.subDivisionLevel && probe_idx>=uProbeGrid.numProbes)
+    {
+        let offset = base_offset + (probe_idx - uProbeGrid.numProbes)*8;
+        var sub = 0;
+        if ((ipos.x & digit_mask) !=0) 
+        {
+            sub+=1;
+        }
+		if ((ipos.y & digit_mask) !=0) 
+        {
+            sub+=2;
+        }
+		if ((ipos.z & digit_mask) !=0) 
+        {
+            sub+=4;
+        }
+        node_idx = offset + sub;
+        probe_idx = bIndexData[node_idx];
+
+        lod++;
+		digit_mask >>=1;
+    }
+    return probe_idx;
+}
+
+fn getIrradiance(world_pos: vec3f, normal: vec3f) -> vec3f
+{
+    let wpos = world_pos + (N + 3.0 * viewDir) * uProbeGrid.normalBias;
+    let divs = uProbeGrid.baseDivisions.xyz * (1<<u32(uProbeGrid.subDivisionLevel));
+
+    let size_grid = uProbeGrid.coverageMax.xyz - uProbeGrid.coverageMin.xyz;
+    var pos_normalized = (wpos - uProbeGrid.coverageMin.xyz)/size_grid;    
+    var pos_voxel = pos_normalized * vec3f(divs) - vec3(0.5);
+    pos_voxel = clamp(pos_voxel, vec3(0.0), vec3f(divs) - vec3(1.0));
+
+    let i_voxel = clamp(vec3i(pos_voxel), vec3i(0), divs - vec3i(2));
+    let frac_voxel = pos_voxel - vec3f(i_voxel);
+
+    var sum_weight = 0.0;
+    var irr = vec3(0.0);
+
+    for (var i=0; i<8; i++)
+    {
+        let x = i&1;
+        let y = (i>>1)&1;
+        let z = i>>2;
+        let vert = i_voxel + vec3i(x,y,z);
+        let idx_probe = get_probe_idx(vert);
+        let pos_lod = bPosLod[idx_probe];
+        let probe_world = pos_lod.xyz;
+        let dir = normalize(probe_world - world_pos);
+        var dotDirN = dot(dir, N);
+        let k = 0.9;
+        dotDirN = (k*dotDirN + sqrt(1.0 - (1.0-dotDirN*dotDirN)*k*k))/(k+1.0);
+        var weight = dotDirN * get_visibility(wpos, idx_probe, i32(pos_lod.w), probe_world);
+
+        let crushThreshold = 0.2;
+        if (weight < crushThreshold) {
+            weight *= weight * weight / (crushThreshold*crushThreshold); 
+        }
+
+        let w = vec3(1.0) - abs(vec3f(f32(x),f32(y),f32(z)) - frac_voxel);
+        weight *= w.x * w.y * w.z;
+        if (weight> 0.0)
+        {	
+            var sample_dir = normal;
+
+            let distance = get_mean_dis_common(sample_dir, idx_probe).x;
+            let pos_to = wpos + distance * sample_dir;
+            sample_dir = normalize(pos_to - probe_world);
+
+            sum_weight += weight;
+            irr += get_irradiance_common(idx_probe, sample_dir) * weight;			
+        }
+    }
+
+    if (sum_weight>0.0)
+	{   
+		return irr/sum_weight;
+	}    
+	return vec3(0.0);
+}
+
 `)}
 
 ${condition(lights_options.has_fog,`
