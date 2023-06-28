@@ -1054,7 +1054,57 @@ const avatar = {
         doc.remove_tick(avatar.mixer);
         doc.avatar = null;
     }
+};
 
+const character = {
+    create: (doc, props, parent) => {
+        let character = model.create(doc, props, parent);
+        character.state = "idle";
+        character.move = null;
+        character.name_idle = props.name_idle;
+        character.name_forward = props.name_forward;
+        character.name_backward = props.name_backward;
+        const anims = doc.model_loader.loadAnimationsFromFile(props.url_anim, ()=>{
+            if (props.hasOwnProperty('fix_anims')) 
+            {            
+                doc.loaded_module[props.fix_anims](anims.animations);
+            }
+        });
+
+        let mixer = new AnimCrossFader();
+        mixer.add_clips(anims);
+        mixer.set_current(character.name_idle);
+        character.cur_action = character.name_idle;
+        character.mixer = mixer;
+
+        const update_character = (doc, mixer, delta) => {
+            let frame = mixer.get_frame();
+            character.setAnimationFrame(frame);
+        };      
+        doc.set_tick(mixer, update_character);
+                
+        return character;
+    },
+
+    remove: (doc, character) =>
+    {
+        doc.remove_tick(character.mixer);
+    },
+
+    set_state: (doc, character, state) => {
+        let new_action = null;
+        if (state == 'idle') {
+            new_action = character.name_idle;
+        }
+        else if (state == 'forward') {
+            new_action = character.name_forward;
+        }
+        else if (state == 'backward') {
+            new_action = character.name_backward;
+        }       
+        character.mixer.set_current(new_action);
+        character.state = state;
+    }
 
 };
 
@@ -1286,7 +1336,7 @@ export class Document
         this.model_loader = new GLTFLoader();
 
         this.render_target = new GPURenderTarget(canvas_ctx, true);
-        this.Tags = { scene, camera, control, fog, sky, env_light, group, plane, box, sphere, model, avatar, directional_light};
+        this.Tags = { scene, camera, control, fog, sky, env_light, group, plane, box, sphere, model, avatar, character, directional_light};
         this.reset();
     }
 
