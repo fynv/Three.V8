@@ -11,6 +11,7 @@ import { DrawSkyBox, DrawSkyBoxBundle } from "./routines/DrawSkyBox.js"
 import { SimpleModel } from "../models/SimpleModel.js"
 import { GLTFModel } from "../models/GLTFModel.js"
 import { RenderStandard, RenderStandardBundle } from "./routines/StandardRoutine.js"
+import { RenderSimple, RenderSimpleBundle } from "./routines/SimpleRountine.js"
 import { DirectionalLight } from "../lights/DirectionalLight.js"
 import { RenderDirectionalShadow, RenderDirectionalShadowBundle } from "./routines/DirectionalShadowCast.js"
 import { MorphUpdate } from "./routines/MorphUpdate.js"
@@ -25,6 +26,9 @@ import { DrawFog, DrawFogBundle } from "./routines/DrawFog.js"
 import { FogRayMarching, FogRayMarchingBundle } from "./routines/FogRayMarching.js"
 import { FogRayMarchingEnv, FogRayMarchingEnvBundle} from "./routines/FogRayMarchingEnv.js"
 import { FogRayMarchingEnv2, FogRayMarchingEnvBundle2} from "./routines/FogRayMarchingEnv2.js"
+import { SimpleFogRayMarching, SimpleFogRayMarchingBundle } from "./routines/SimpleFogRayMarching.js"
+import { SimpleFogRayMarchingEnv, SimpleFogRayMarchingEnvBundle} from "./routines/SimpleFogRayMarchingEnv.js"
+import { SimpleFogRayMarchingEnv2, SimpleFogRayMarchingEnvBundle2} from "./routines/SimpleFogRayMarchingEnv2.js"
 
 function toViewAABB(MV, min_pos, max_pos)
 {
@@ -134,6 +138,9 @@ export class GPURenderer
         this.fog_bundles = {};
         this.fog_rm_bundles = {};
         this.fog_rm_env_bundles = {};
+        this.render_bundles_simple = {};
+        this.fog_rm_bundles_simple = {};
+        this.fog_rm_env_bundles_simple = {};
     }
 
     _draw_hemisphere(passEncoder, target, camera, bg)
@@ -1172,6 +1179,550 @@ export class GPURenderer
 
             passEncoder.end();
         }
+
+        let cmdBuf = commandEncoder.finish();
+        engine_ctx.queue.submit([cmdBuf]);
+    }
+
+    _render_simple_model_simple(passEncoder, model, camera, lights, target, pass)
+    {
+        if (model.geometry.uuid == 0) return;
+        let material = model.material;
+
+        if (pass == "Opaque")
+        {
+            if (material.alphaMode == "Blend") return;
+        }
+        else if (pass == "Alpha")
+        {
+            if (material.alphaMode != "Blend") return;
+        }
+
+        let params = {            
+            target,
+            material_list: [material],
+            bind_group_camera: camera.bind_group,
+            primitive: model.geometry,
+            lights
+        };
+
+        //RenderSimple(passEncoder, params);
+
+        let signature = JSON.stringify({
+            id_primitive: model.geometry.uuid,
+            id_camera: camera.uuid,
+            id_target: target.uuid,
+            signature_lights: lights.signature,
+            pass            
+        });
+
+        if (!(signature in this.render_bundles_simple))
+        {    
+            this.render_bundles_simple[signature] = RenderSimpleBundle(params);
+        }
+        passEncoder.executeBundles([this.render_bundles_simple[signature]]);
+    }
+
+    _render_gltf_model_simple(passEncoder, model, camera, lights, target, pass)
+    {
+        for (let mesh of model.meshes)
+        {
+            let matrix = model.matrixWorld.clone();
+            if (mesh.node_id >=0 && mesh.skin_id <0)
+            {
+                let node = model.nodes[mesh.node_id];
+                matrix.multiply(node.g_trans);
+            }
+            let MV = new Matrix4();
+            MV.multiplyMatrices(camera.matrixWorldInverse, matrix);
+
+            for (let primitive of mesh.primitives)
+            {
+                if (primitive.uuid == 0) continue;
+                if (!visible(MV, camera.projectionMatrix, primitive.min_pos, primitive.max_pos)) continue;
+
+                let idx_material = primitive.material_idx;
+                let material = model.materials[idx_material];
+
+                if (pass == "Opaque")
+                {
+                    if (material.alphaMode == "Blend") continue;
+                }
+                else if (pass == "Alpha")
+                {
+                    if (material.alphaMode != "Blend") continue;
+                }
+
+                let params = {                    
+                    target,
+                    material_list: model.materials,
+                    bind_group_camera: camera.bind_group,            
+                    primitive: primitive,
+                    lights
+                };
+
+                let signature = JSON.stringify({
+                    id_primitive:  primitive.uuid,
+                    id_camera: camera.uuid,
+                    id_target: target.uuid,
+                    signature_lights: lights.signature,
+                    pass            
+                });
+
+                if (!(signature in this.render_bundles_simple))
+                {    
+                    this.render_bundles_simple[signature] = RenderSimpleBundle(params);
+                }
+                passEncoder.executeBundles([this.render_bundles_simple[signature]]);
+            }
+        }
+
+    }
+
+    _render_scene_simple(commandEncoder, scene, camera, target)
+    {
+        camera.updateMatrixWorld(false);
+    	camera.updateConstant();
+
+        let simple_models = [...scene.simple_models];
+        let gltf_models =  [...scene.gltf_models];
+        
+        let has_alpha = false;
+        let has_opaque = false;
+
+        // model culling
+        for (let i=0; i<simple_models.length; i++)
+        {
+            let model = simple_models[i];
+            let MV = new Matrix4();
+            MV.multiplyMatrices(camera.matrixWorldInverse, model.matrixWorld);
+            if (!visible(MV, camera.projectionMatrix, model.geometry.min_pos, model.geometry.max_pos))
+            {
+                simple_models.splice(i,1);
+                i--;
+            }
+            else
+            {
+                let material = model.material;
+                if (material.alphaMode == "Blend")
+                {
+                    has_alpha = true;
+                }
+                else
+                {
+                    has_opaque= true;
+                }
+            }
+        }
+
+        for (let i=0; i<gltf_models.length; i++)
+        {
+            let model = gltf_models[i];
+            let MV = new Matrix4();
+            MV.multiplyMatrices(camera.matrixWorldInverse, model.matrixWorld);
+            if (!visible(MV, camera.projectionMatrix, model.min_pos, model.max_pos))
+            {
+                gltf_models.splice(i,1);
+                i--;
+            }
+            else
+            {
+                for (let material of model.materials)
+                {
+                    if (material.alphaMode == "Blend")
+                    {
+                        has_alpha = true;
+                    }
+                    else
+                    {                    
+                        has_opaque= true;
+                    }
+                }
+            }
+        }
+
+        let msaa= target.msaa;
+
+        // background pass
+        let clearColor = new Color(0.0, 0.0, 0.0);        
+
+        if(scene.background!=null &&
+            scene.background instanceof ColorBackground)
+        {
+            clearColor = scene.background.color;
+        }
+
+        let colorAttachment =  {            
+            clearValue: { r: clearColor.r, g: clearColor.g, b: clearColor.b, a: 1 },
+            loadOp: 'clear',
+            storeOp: 'store'
+        };
+
+        if (msaa)
+        {
+            colorAttachment.view = target.view_msaa;
+            if (!has_alpha && !has_opaque)
+            {
+                colorAttachment.resolveTarget = target.view_video;
+            }
+        }
+        else
+        {
+            colorAttachment.view = target.view_video;
+        }
+
+        if(scene.background!=null)
+        {
+            if (scene.background instanceof HemisphereBackground)
+            {
+                scene.background.updateConstant();
+
+                let renderPassDesc_bg = {
+                    colorAttachments: [colorAttachment],                    
+                }; 
+                let passEncoder = commandEncoder.beginRenderPass(renderPassDesc_bg);
+    
+                passEncoder.setViewport(
+                    0,
+                    0,
+                    target.width,
+                    target.height,
+                    0,
+                    1
+                );
+            
+                passEncoder.setScissorRect(
+                    0,
+                    0,
+                    target.width,
+                    target.height,
+                );
+                
+                this._draw_hemisphere(passEncoder, target, camera, scene.background);        
+                
+                passEncoder.end();
+
+                colorAttachment.loadOp = 'load';
+            }
+            else if (scene.background instanceof CubeBackground)
+            {
+                if(scene.background.cubemap!=null)
+                {
+                    let renderPassDesc_bg = {
+                        colorAttachments: [colorAttachment],                    
+                    }; 
+                    let passEncoder = commandEncoder.beginRenderPass(renderPassDesc_bg);
+
+                    passEncoder.setViewport(
+                        0,
+                        0,
+                        target.width,
+                        target.height,
+                        0,
+                        1
+                    );
+                
+                    passEncoder.setScissorRect(
+                        0,
+                        0,
+                        target.width,
+                        target.height,
+                    );
+
+                    this._draw_skybox(passEncoder, target, camera, scene.background);    
+                    
+                    passEncoder.end();
+
+                    colorAttachment.loadOp = 'load';
+                }
+            }
+            else if (scene.background instanceof BackgroundScene)
+            {
+                let bg = scene.background;                
+                let cam = new PerspectiveCameraEx(camera.fov, camera.aspect, bg.near, bg.far);                
+                cam.parent = camera.parent;
+                cam.position.copy(camera.position);
+                cam.quaternion.copy(camera.quaternion);
+                this._render_scene_simple(commandEncoder, bg.scene, cam, target);
+
+                colorAttachment.loadOp = 'load';
+            }
+        }
+
+        // depth-prepass
+        let depthAttachment = {
+            view: target.view_depth,
+            depthClearValue: 1,
+            depthLoadOp: 'clear',
+            depthStoreOp: 'store',
+        };
+
+        if (has_opaque)
+        {            
+            let renderPassDesc_depth = {
+                colorAttachments: [],
+                depthStencilAttachment: depthAttachment
+            }; 
+            let passEncoder = commandEncoder.beginRenderPass(renderPassDesc_depth);
+
+            passEncoder.setViewport(
+                0,
+                0,
+                target.width,
+                target.height,
+                0,
+                1
+            );
+        
+            passEncoder.setScissorRect(
+                0,
+                0,
+                target.width,
+                target.height,
+            );
+
+            for (let model of simple_models)
+            {
+                this._render_depth_simple_model(passEncoder, model, camera, target);
+            }
+
+            for (let model of gltf_models)
+            {                
+                this._render_depth_gltf_model(passEncoder, model, camera, target);
+            }
+
+            passEncoder.end();
+
+            depthAttachment.depthLoadOp = 'load';
+        }
+
+        // opaque pass
+        let lights = scene.lights;
+
+        if (has_opaque)
+        {
+            if (!has_alpha)
+            {
+                colorAttachment.resolveTarget = target.view_video;
+            }
+            let renderPassDesc_opaque = {
+                colorAttachments: [colorAttachment],
+                depthStencilAttachment: depthAttachment
+            }; 
+            let passEncoder = commandEncoder.beginRenderPass(renderPassDesc_opaque);
+
+            passEncoder.setViewport(
+                0,
+                0,
+                target.width,
+                target.height,
+                0,
+                1
+            );
+        
+            passEncoder.setScissorRect(
+                0,
+                0,
+                target.width,
+                target.height,
+            );
+
+            for (let model of simple_models)
+            {
+                this._render_simple_model_simple(passEncoder, model, camera, lights, target, "Opaque");
+            }
+
+            for (let model of gltf_models)
+            {
+                this._render_gltf_model_simple(passEncoder, model, camera, lights, target, "Opaque");
+            }
+            
+            passEncoder.end();
+            
+            colorAttachment.loadOp = 'load';
+            depthAttachment.depthLoadOp = 'load';
+        }
+
+        // alpha pass
+        if (has_alpha)
+        {
+            target.update_oit_buffers();
+
+            let oitAttchment0 = {
+                view: target.oit_view0,
+                clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 0.0 },
+                loadOp: 'clear',
+                storeOp: 'store'
+            }
+    
+            let oitAttchment1 = {
+                view: target.oit_view1,
+                clearValue: { r: 1.0, g: 1.0, b: 1.0, a: 1.0 },
+                loadOp: 'clear',
+                storeOp: 'store'
+            }
+
+            let renderPassDesc_alpha = {
+                colorAttachments: [colorAttachment, oitAttchment0, oitAttchment1],
+                depthStencilAttachment: depthAttachment
+            }; 
+
+            let passEncoder = commandEncoder.beginRenderPass(renderPassDesc_alpha);
+
+            passEncoder.setViewport(
+                0,
+                0,
+                target.width,
+                target.height,
+                0,
+                1
+            );
+        
+            passEncoder.setScissorRect(
+                0,
+                0,
+                target.width,
+                target.height,
+            );
+
+            for (let model of simple_models)
+            {
+                this._render_simple_model_simple(passEncoder, model, camera, lights, target, "Alpha");
+            }
+
+            for (let model of gltf_models)
+            {
+                this._render_gltf_model_simple(passEncoder, model, camera, lights, target, "Alpha");
+            }
+
+            passEncoder.end();
+
+            {
+                colorAttachment.resolveTarget = target.view_video;
+
+                let renderPassDesc_oit = {
+                    colorAttachments: [colorAttachment],            
+                }; 
+
+                let passEncoder = commandEncoder.beginRenderPass(renderPassDesc_oit);
+
+                passEncoder.setViewport(
+                    0,
+                    0,
+                    target.width,
+                    target.height,
+                    0,
+                    1
+                );
+            
+                passEncoder.setScissorRect(
+                    0,
+                    0,
+                    target.width,
+                    target.height,
+                );
+
+                ResolveWeightedOIT(passEncoder, target);
+
+                passEncoder.end();
+            }
+        }
+
+    }
+
+    _render_fog_simple(passEncoder, camera, lights, fog, target)
+    {
+        let params = {
+            target,
+            bind_group_camera: camera.bind_group,
+            bind_group_fog: fog.bind_group,
+            lights
+        };
+
+        // DrawFog(passEncoder, params);
+        let signature = JSON.stringify({
+            id_fog: fog.uuid,
+            id_camera: camera.uuid,
+            id_target: target.uuid,
+            signature_lights: lights.signature
+        });
+
+        if (!(signature in this.fog_bundles))
+        {    
+            this.fog_bundles[signature] = DrawFogBundle(params);
+        }
+        passEncoder.executeBundles([this.fog_bundles[signature]]);
+
+        if (params.lights.directional_lights.length>0)
+        {
+            //SimpleFogRayMarching(passEncoder, params);
+            if (!(signature in this.fog_rm_bundles_simple))
+            {
+                this.fog_rm_bundles_simple[signature] = SimpleFogRayMarchingBundle(params);                
+            }
+            passEncoder.executeBundles([this.fog_rm_bundles_simple[signature]]);
+        }        
+
+        if (params.lights.probe_grid !=null)
+        {
+            //SimpleFogRayMarchingEnv(passEncoder, params);
+            if (!(signature in this.fog_rm_env_bundles_simple))
+            {
+                this.fog_rm_env_bundles_simple[signature] = SimpleFogRayMarchingEnvBundle(params);  
+            }
+            passEncoder.executeBundles([this.fog_rm_env_bundles_simple[signature]]);
+        }
+
+        if (params.lights.lod_probe_grid !=null)
+        {
+            //SimpleFogRayMarchingEnv2(passEncoder, params);
+            if (!(signature in this.fog_rm_env_bundles_simple))
+            {
+                this.fog_rm_env_bundles_simple[signature] = SimpleFogRayMarchingEnvBundle2(params);  
+            }
+            passEncoder.executeBundles([this.fog_rm_env_bundles_simple[signature]]);
+        }
+    }
+
+    _render_simple(scene, camera, target)
+    {
+        let commandEncoder = engine_ctx.device.createCommandEncoder();
+        this._render_scene_simple(commandEncoder, scene, camera, target);
+
+        if (scene.fog!=null && scene.fog.density>0.0)
+        {
+            let colorAttachment =  {                            
+                view: target.view_video,
+                loadOp: 'load',
+                storeOp: 'store',                
+            };
+
+            let renderPassDesc = {
+                colorAttachments: [colorAttachment],                
+            }; 
+            let passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
+
+            passEncoder.setViewport(
+                0,
+                0,
+                target.width,
+                target.height,
+                0,
+                1
+            );
+        
+            passEncoder.setScissorRect(
+                0,
+                0,
+                target.width,
+                target.height,
+            );
+            
+            this._render_fog_simple(passEncoder, camera, scene.lights, scene.fog, target);
+
+            passEncoder.end();
+        }
+
 
         let cmdBuf = commandEncoder.finish();
         engine_ctx.queue.submit([cmdBuf]);

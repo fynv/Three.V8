@@ -1,7 +1,7 @@
 export function LightsIsEmpty(options)
 {
     return options.directional_lights.length == 0 && !options.has_reflection_map 
-        && !options.has_ambient_light && !options.has_hemisphere_light && !options.has_environment_map && !options.has_probe_grid;
+        && !options.has_ambient_light && !options.has_hemisphere_light && !options.has_environment_map && !options.has_probe_grid && !options.has_lod_probe_grid;
 }
 
 export class Lights
