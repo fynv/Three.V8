@@ -182,17 +182,15 @@ Start an animation by name.
 
 ## stopAnimation()
 
-`.stopAnimation`(`name`: String) : undefined
+`.stopAnimation`(`idx`: Number) : undefined
 
-Stop an animation by name.
+Stop an animation by index.
 
 ## setWeights()
 
 `.setWeights`(`weights`: Array) : undefined
 
 Set blending weigths for each animation currently being played.
-
-A weight of 0 will cause the corresponding animation clip being removed from the current playing list.
 
 ## getFrame()
 

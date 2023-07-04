@@ -126,7 +126,7 @@ export function fix_anims(anims)
 
 ## Using lightmaps
 
-Using Lightmapper.exe, you can insert a 2nd UV set into villa.glb. In this way, we get villa_atlas.glb:
+Using [Lightmapper.exe](index.html#lightmap-tools), you can insert a 2nd UV set into villa.glb. In this way, we get villa_atlas.glb:
 
 ![](atlas_model.jpg)
 
