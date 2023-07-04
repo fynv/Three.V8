@@ -37,6 +37,7 @@ V8VM::~V8VM()
 
 #include "cameras/Camera.hpp"
 #include "cameras/PerspectiveCamera.hpp"
+#include "cameras/Reflector.hpp"
 
 #include "backgrounds/Background.hpp"
 #include "backgrounds/BackgroundScene.hpp"
@@ -126,6 +127,7 @@ GlobalDefinitions GameContext::s_globals =
 		{ "Object3D", WrapperObject3D::New,  WrapperObject3D::create_template },
 		{ "Camera", WrapperCamera::New,  WrapperCamera::create_template },
 		{ "PerspectiveCamera", WrapperPerspectiveCamera::New,  WrapperPerspectiveCamera::create_template },
+		{ "Reflector", WrapperReflector::New, WrapperReflector::create_template },
 		{ "ColorBackground", WrapperColorBackground::New,  WrapperColorBackground::create_template },
 		{ "CubeBackground", WrapperCubeBackground::New,  WrapperCubeBackground::create_template },
 		{ "HemisphereBackground", WrapperHemisphereBackground::New,  WrapperHemisphereBackground::create_template },

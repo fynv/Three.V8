@@ -501,6 +501,9 @@
     <ClCompile Include="utils\Cube2Octa.cpp">
       <Filter>Source Files\utils</Filter>
     </ClCompile>
+    <ClCompile Include="cameras\Reflector.cpp">
+      <Filter>Source Files\cameras</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -919,6 +922,9 @@
     </ClInclude>
     <ClInclude Include="utils\Cube2Octa.h">
       <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="cameras\Reflector.h">
+      <Filter>Header Files\cameras</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

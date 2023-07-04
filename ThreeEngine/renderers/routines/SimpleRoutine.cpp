@@ -2,7 +2,8 @@
 #include "models/ModelComponents.h"
 #include "lights/DirectionalLight.h"
 #include "SimpleRoutine.h"
-
+#include "cameras/Camera.h"
+#include "cameras/Reflector.h"
 
 static std::string g_vertex =
 R"(#version 430
@@ -74,6 +75,22 @@ void main()
 static std::string g_frag_part0 =
 R"(#version 430
 #DEFINES#
+
+#if IS_REFLECT
+layout (std140, binding = BINDING_CAMERA) uniform Camera
+{
+	mat4 uProjMat;
+	mat4 uViewMat;	
+	mat4 uInvProjMat;
+	mat4 uInvViewMat;	
+	vec3 uEyePos;
+};
+
+layout (std140, binding = BINDING_MATRIX_REFLECTOR) uniform MatrixReflector
+{
+	mat4 uMatrixReflector;
+};
+#endif
 
 vec3 N;
 
@@ -758,6 +775,12 @@ void main()
 	if (base_color.w == 0.0) discard;
 #endif
 
+#if IS_REFLECT
+	vec4 pos_refl_eye = uMatrixReflector * vec4(uEyePos, 1.0);
+	vec4 pos_refl_frag = uMatrixReflector * vec4(vWorldPos, 1.0);
+	if (pos_refl_eye.z * pos_refl_frag.z > 0.0) discard;    
+#endif
+
 	PhysicalMaterial material;
 
 #if SPECULAR_GLOSSINESS
@@ -915,8 +938,25 @@ void SimpleRoutine::s_generate_shaders(const Options& options, Bindings& binding
 		}
 	}
 
+	if (options.is_reflect)
 	{
-		bindings.binding_model = bindings.binding_camera + 1;
+		defines += "#define IS_REFLECT 1\n";
+		bindings.binding_matrix_reflector = bindings.binding_camera + 1;
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_MATRIX_REFLECTOR %d\n", bindings.binding_matrix_reflector);
+			defines += line;
+		}
+
+	}
+	else
+	{
+		defines += "#define IS_REFLECT 0\n";
+		bindings.binding_matrix_reflector = bindings.binding_camera;
+	}
+
+	{
+		bindings.binding_model = bindings.binding_matrix_reflector + 1;
 		{
 			char line[64];
 			sprintf(line, "#define BINDING_MODEL %d\n", bindings.binding_model);
@@ -1415,7 +1455,11 @@ void SimpleRoutine::_render_common(const RenderParams& params)
 	const MeshStandardMaterial& material = *(MeshStandardMaterial*)params.material_list[params.primitive->material_idx];
 	const GeometrySet& geo = params.primitive->geometry[params.primitive->geometry.size() - 1];
 
-	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_camera, params.constant_camera->m_id);
+	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_camera, params.camera->m_constant.m_id);
+	if (m_options.is_reflect)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_matrix_reflector, params.camera->reflector->m_constant.m_id);
+	}
 	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_model, params.constant_model->m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_material, material.constant_material.m_id);
 
@@ -1632,7 +1676,7 @@ void SimpleRoutine::render(const RenderParams& params)
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
 
-	if (m_options.alpha_mode == AlphaMode::Mask)
+	if (m_options.alpha_mode == AlphaMode::Mask || (m_options.alpha_mode == AlphaMode::Opaque && params.camera->reflector != nullptr))
 	{
 		glDepthMask(GL_TRUE);
 	}
@@ -1641,6 +1685,7 @@ void SimpleRoutine::render(const RenderParams& params)
 		glDepthMask(GL_FALSE);
 	}
 
+	glFrontFace(params.camera->reflector != nullptr ? GL_CW : GL_CCW);
 	if (material.doubleSided)
 	{
 		glDisable(GL_CULL_FACE);
@@ -1687,7 +1732,7 @@ void SimpleRoutine::render_batched(const RenderParams& params, const std::vector
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
 
-	if (m_options.alpha_mode == AlphaMode::Mask)
+	if (m_options.alpha_mode == AlphaMode::Mask || (m_options.alpha_mode == AlphaMode::Opaque && params.camera->reflector != nullptr))
 	{
 		glDepthMask(GL_TRUE);
 	}

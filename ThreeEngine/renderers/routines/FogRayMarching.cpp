@@ -1,9 +1,9 @@
 #include <string>
 #include <GL/glew.h>
 #include "cameras/Camera.h"
+#include "cameras/Reflector.h"
 #include "scenes/Fog.h"
 #include "FogRayMarching.h"
-
 
 static std::string g_vertex =
 R"(#version 430
@@ -49,6 +49,13 @@ layout (std140, binding = 2) uniform DirectionalLight
 	vec4 light_origin;
 	vec4 light_direction;
 };
+
+#if IS_REFLECT
+layout (std140, binding = 3) uniform MatrixReflector
+{
+	mat4 uMatrixReflector;
+};
+#endif
 
 #if MSAA
 layout (location = 0) uniform sampler2DMS uDepthTex;
@@ -106,6 +113,19 @@ void main()
 	float dis = length(pos_view.xyz);
 
 	vec3 dir = (uInvViewMat * vec4(pos_view.xyz/dis, 0.0)).xyz;		
+
+	float start = 0.0;
+#if IS_REFLECT	
+	vec4 pos_refl_eye = uMatrixReflector * vec4(uEyePos, 1.0);
+	vec4 dir_refl = uMatrixReflector * vec4(dir, 0.0);
+	if (dir_refl.z * pos_refl_eye.z>0) 
+    {
+		outColor = vec4(0.0);
+        return;
+    }
+	start = -pos_refl_eye.z/dir_refl.z;	
+#endif
+
 	float step = dis/float(max_num_steps);
 	if (step<min_step) step = min_step;
 
@@ -115,7 +135,7 @@ void main()
 	float delta = RandomFloat(seed);
 
 	vec3 col = vec3(0.0);
-	float start = step * (delta - 0.5);
+	start += step * (delta - 0.5);
 	for (float t = start; t<dis; t+=step)
 	{
 		float _step = min(step, dis - t);
@@ -183,6 +203,14 @@ layout (std140, binding = 3) uniform DirectionalShadow
 	vec2 shadowBottomTop;
 	vec2 shadowNearFar;
 };
+
+
+#if IS_REFLECT
+layout (std140, binding = 4) uniform MatrixReflector
+{
+	mat4 uMatrixReflector;
+};
+#endif
 
 
 #if MSAA
@@ -299,6 +327,17 @@ void main()
 		start = max(max(0.0, min_dis.x), max(min_dis.y, min_dis.z));
 		end = min(min(dis, max_dis.x), min(max_dis.y, max_dis.z));		
 	}
+
+#if IS_REFLECT	
+	vec4 pos_refl_eye = uMatrixReflector * vec4(uEyePos, 1.0);
+	vec4 dir_refl = uMatrixReflector * vec4(dir, 0.0);
+	if (dir_refl.z * pos_refl_eye.z>0) 
+    {
+		outColor = vec4(0.0);
+        return;
+    }
+	start = max(start, -pos_refl_eye.z/dir_refl.z);
+#endif
 	
 	float step = (end - start)/float(max_num_steps);
 	if (step<min_step) step = min_step;
@@ -353,16 +392,25 @@ inline void replace(std::string& str, const char* target, const char* source)
 }
 
 
-FogRayMarching::FogRayMarching(bool msaa): m_msaa(msaa)
+FogRayMarching::FogRayMarching(const Options& options): m_options(options)
 {
 	std::string defines = "";
-	if (msaa)
+	if (options.msaa)
 	{
 		defines += "#define MSAA 1\n";
 	}
 	else
 	{
 		defines += "#define MSAA 0\n";
+	}
+
+	if (options.is_reflect)
+	{
+		defines += "#define IS_REFLECT 1\n";
+	}
+	else
+	{
+		defines += "#define IS_REFLECT 0\n";
 	}
 
 	std::string s_frag = g_frag;
@@ -388,8 +436,13 @@ void FogRayMarching::_render_no_shadow(const RenderParams& params)
 	glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.fog->m_constant.m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 2, params.constant_diretional_light->m_id);
 
+	if (m_options.is_reflect)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, 3, params.camera->reflector->m_constant.m_id);
+	}
+
 	glActiveTexture(GL_TEXTURE0);
-	if (m_msaa)
+	if (m_options.msaa)
 	{
 		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, params.tex_depth->tex_id);
 	}
@@ -414,8 +467,13 @@ void FogRayMarching::_render_shadowed(const RenderParams& params)
 	glBindBufferBase(GL_UNIFORM_BUFFER, 2, params.constant_diretional_light->m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 3, params.constant_diretional_shadow->m_id);
 
+	if (m_options.is_reflect)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, 4, params.camera->reflector->m_constant.m_id);
+	}
+
 	glActiveTexture(GL_TEXTURE0);
-	if (m_msaa)
+	if (m_options.msaa)
 	{
 		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, params.tex_depth->tex_id);
 	}

@@ -3,6 +3,7 @@
 #include "core/Object3D.h"
 #include "renderers/GLUtils.h"
 
+class Reflector;
 class Camera : public Object3D
 {
 public:
@@ -17,6 +18,8 @@ public:
 	virtual void updateWorldMatrix(bool updateParents, bool updateChildren) override;
 	virtual void lookAt(const glm::vec3& target) override;
 	virtual glm::vec3 getWorldDirection() override;
+
+	Reflector* reflector = nullptr;
 
 	GLBuffer m_constant;
 	void updateConstant();

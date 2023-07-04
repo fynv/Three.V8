@@ -2,6 +2,8 @@
 #include "models/ModelComponents.h"
 #include "lights/DirectionalLight.h"
 #include "StandardRoutine.h"
+#include "cameras/Camera.h"
+#include "cameras/Reflector.h"
 
 static std::string g_vertex =
 R"(#version 430
@@ -88,6 +90,22 @@ static std::string g_frag_part0 =
 R"(#version 430
 
 #DEFINES#
+
+#if IS_REFLECT
+layout (std140, binding = BINDING_CAMERA) uniform Camera
+{
+	mat4 uProjMat;
+	mat4 uViewMat;	
+	mat4 uInvProjMat;
+	mat4 uInvViewMat;	
+	vec3 uEyePos;
+};
+
+layout (std140, binding = BINDING_MATRIX_REFLECTOR) uniform MatrixReflector
+{
+	mat4 uMatrixReflector;
+};
+#endif
 
 #define EPSILON 1e-6
 #define PI 3.14159265359
@@ -450,6 +468,44 @@ R"(
 layout (location = LOCATION_TEX_LIGHTMAP) uniform sampler2D uTexLightmap;
 #endif 
 
+#if HAS_REFLECTOR
+layout (std140, binding = BINDING_REFLECTOR_CAMERA) uniform ReflectorCamera
+{
+	mat4 uReflProjMat;
+	mat4 uReflViewMat;	
+	mat4 uReflInvProjMat;
+	mat4 uReflInvViewMat;	
+	vec3 uReflEyePos;
+};
+
+layout (location = LOCATION_TEX_REFLECTOR) uniform sampler2D uTexReflector;
+layout (location = LOCATION_TEX_REFLECTOR_DEPTH) uniform sampler2D uTexReflectorDepth;
+
+vec3 getRadiance(in vec3 worldPos, in vec3 reflectVec, float roughness, in vec3 irradiance)
+{
+	vec4 dir_view = uReflViewMat * vec4(reflectVec, 0.0);
+	vec4 proj = uReflProjMat * vec4(dir_view.xyz, 1.0);
+	proj*= 1.0/proj.w;
+	vec2 uv = vec2((proj.x + 1.0)*0.5, (proj.y + 1.0)*0.5);
+	vec3 rad = textureLod(uTexReflector, uv, 0.0).xyz;
+
+	if (roughness > 0.053)
+	{
+		vec3 rad2 = irradiance * RECIPROCAL_PI;
+		float lum1 = luminance(rad);
+		if (lum1>0.0)
+		{
+			float lum2 = luminance(rad2);			
+			float r2 = roughness*roughness;
+			float r4 = r2*r2;
+			float gloss = log(2.0/r4 - 1.0)/log(2.0)/18.0;
+			rad *= gloss + lum2/lum1 * (1.0-gloss);
+		}
+	}
+	return rad;
+}
+#endif
+
 vec3 shGetIrradianceAt( in vec3 normal, in vec4 shCoefficients[ 9 ] ) 
 {
 	// normal is assumed to have unit length
@@ -473,7 +529,7 @@ vec3 shGetIrradianceAt( in vec3 normal, in vec4 shCoefficients[ 9 ] )
 
 	return result;
 }
-#if HAS_REFLECTION_MAP
+#if HAS_REFLECTION_MAP && !HAS_REFLECTOR
 
 layout (location = LOCATION_TEX_REFLECTION_MAP) uniform samplerCube uReflectionMap;
 
@@ -909,8 +965,8 @@ vec3 getIrradiance(in vec3 normal)
 #endif
 
 
-#if HAS_REFLECTION_MAP
-vec3 getRadiance(in vec3 reflectVec, float roughness, in vec3 irradiance)
+#if HAS_REFLECTION_MAP && !HAS_REFLECTOR
+vec3 getRadiance(in vec3 worldPos, in vec3 reflectVec, float roughness, in vec3 irradiance)
 {
 	vec3 rad = getReflRadiance(reflectVec, roughness);
 
@@ -1024,6 +1080,12 @@ void main()
 
 #if ALPHA_MASK || ALPHA_BLEND
 	if (base_color.w == 0.0) discard;
+#endif
+
+#if IS_REFLECT
+	vec4 pos_refl_eye = uMatrixReflector * vec4(uEyePos, 1.0);
+	vec4 pos_refl_frag = uMatrixReflector * vec4(vWorldPos, 1.0);
+	if (pos_refl_eye.z * pos_refl_frag.z > 0.0) discard;    
 #endif
 
 	PhysicalMaterial material;
@@ -1152,14 +1214,14 @@ void main()
 
 	if (has_specular)
 	{
-#if HAS_REFLECTION_MAP	
-#if HAS_REFLECTION_DISTANCE
+#if HAS_REFLECTION_MAP	|| HAS_REFLECTOR
+#if HAS_REFLECTION_DISTANCE && !HAS_REFLECTOR
 		vec3 reflectVec = getReflectionDir(-viewDir, norm);
 #else	
 		vec3 reflectVec = reflect(-viewDir, norm);	
 #endif // HAS_REFLECTION_DISTANCE
 		reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );			
-		vec3 radiance = getRadiance(reflectVec, material.roughness, light_color * PI);
+		vec3 radiance = getRadiance(vWorldPos, reflectVec, material.roughness, light_color * PI);
 		specular +=  material.specularColor * radiance;
 #else
 		specular += material.specularColor * light_color;
@@ -1173,15 +1235,15 @@ void main()
 
 		if (has_specular)
 		{
-#if HAS_REFLECTION_MAP
+#if HAS_REFLECTION_MAP || HAS_REFLECTOR
 
-#if HAS_REFLECTION_DISTANCE
+#if HAS_REFLECTION_DISTANCE && !HAS_REFLECTOR
 			vec3 reflectVec = getReflectionDir(-viewDir, norm);
 #else
 			vec3 reflectVec = reflect(-viewDir, norm);		
 #endif // HAS_REFLECTION_DISTANCE
 			reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );		
-			radiance = getRadiance(reflectVec, material.roughness, irradiance);
+			radiance = getRadiance(vWorldPos, reflectVec, material.roughness, irradiance);
 
 #else
 			radiance = irradiance * RECIPROCAL_PI;
@@ -1330,8 +1392,25 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 		}
 	}
 
+	if (options.is_reflect)
 	{
-		bindings.binding_model = bindings.binding_camera + 1;
+		defines += "#define IS_REFLECT 1\n";
+		bindings.binding_matrix_reflector = bindings.binding_camera + 1;
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_MATRIX_REFLECTOR %d\n", bindings.binding_matrix_reflector);
+			defines += line;
+		}
+
+	}
+	else
+	{
+		defines += "#define IS_REFLECT 0\n";
+		bindings.binding_matrix_reflector = bindings.binding_camera;
+	}
+
+	{
+		bindings.binding_model = bindings.binding_matrix_reflector + 1;
 		{
 			char line[64];
 			sprintf(line, "#define BINDING_MODEL %d\n", bindings.binding_model);
@@ -1746,10 +1825,41 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 		bindings.location_tex_reflection_distance = bindings.location_tex_reflection_map;
 	}
 
+	if (options.has_reflector)
+	{
+		defines += "#define HAS_REFLECTOR 1\n";
+		bindings.binding_reflector_camera = bindings.binding_directional_shadows + 1;
+		bindings.location_tex_reflector = bindings.location_tex_reflection_distance + 1;
+		bindings.location_tex_reflector_depth = bindings.location_tex_reflection_distance + 2;
+
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_REFLECTOR_CAMERA %d\n", bindings.binding_reflector_camera);
+			defines += line;
+		}
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_TEX_REFLECTOR %d\n", bindings.location_tex_reflector);
+			defines += line;
+		}
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_TEX_REFLECTOR_DEPTH %d\n", bindings.location_tex_reflector_depth);
+			defines += line;
+		}
+	}
+	else
+	{
+		defines += "#define HAS_REFLECTOR 0\n";
+		bindings.binding_reflector_camera = bindings.binding_directional_shadows;
+		bindings.location_tex_reflector = bindings.location_tex_reflection_distance;
+		bindings.location_tex_reflector_depth = bindings.location_tex_reflection_distance;
+	}
+
 	if (options.has_environment_map)
 	{
 		defines += "#define HAS_ENVIRONMENT_MAP 1\n";
-		bindings.binding_environment_map = bindings.binding_directional_shadows + 1;
+		bindings.binding_environment_map = bindings.binding_reflector_camera + 1;
 		
 		{
 			char line[64];
@@ -1761,7 +1871,7 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	else
 	{
 		defines += "#define HAS_ENVIRONMENT_MAP 0\n";
-		bindings.binding_environment_map = bindings.binding_directional_shadows;		
+		bindings.binding_environment_map = bindings.binding_reflector_camera;
 	}
 
 	if (options.has_probe_grid)
@@ -1834,7 +1944,7 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 
 	if (options.has_probe_grid || options.has_lod_probe_grid)
 	{
-		bindings.location_tex_irradiance = bindings.location_tex_reflection_distance + 1;
+		bindings.location_tex_irradiance = bindings.location_tex_reflector_depth + 1;
 		bindings.location_tex_visibility = bindings.location_tex_irradiance + 1;
 		{
 			char line[64];
@@ -1849,8 +1959,8 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	}
 	else
 	{
-		bindings.location_tex_irradiance = bindings.location_tex_reflection_distance;
-		bindings.location_tex_visibility = bindings.location_tex_reflection_distance;
+		bindings.location_tex_irradiance = bindings.location_tex_reflector_depth;
+		bindings.location_tex_visibility = bindings.location_tex_reflector_depth;
 	}
 
 	if (options.has_ambient_light)
@@ -1942,7 +2052,11 @@ void StandardRoutine::_render_common(const RenderParams& params)
 	const MeshStandardMaterial& material = *(MeshStandardMaterial*)params.material_list[params.primitive->material_idx];
 	const GeometrySet& geo = params.primitive->geometry[params.primitive->geometry.size() - 1];
 
-	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_camera, params.constant_camera->m_id);
+	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_camera, params.camera->m_constant.m_id);
+	if (m_options.is_reflect)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_matrix_reflector, params.camera->reflector->m_constant.m_id);
+	}
 	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_model, params.constant_model->m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_material, material.constant_material.m_id);
 
@@ -1954,6 +2068,11 @@ void StandardRoutine::_render_common(const RenderParams& params)
 	if (m_options.num_directional_shadows > 0)
 	{
 		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_directional_shadows, params.lights->constant_directional_shadows->m_id);
+	}
+
+	if (m_options.has_reflector)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_reflector_camera, params.reflector->m_camera.m_constant.m_id);
 	}
 
 	if (m_options.has_environment_map)
@@ -2151,6 +2270,19 @@ void StandardRoutine::_render_common(const RenderParams& params)
 		texture_idx++;
 	}
 
+	if (m_options.has_reflector)
+	{
+		glActiveTexture(GL_TEXTURE0 + texture_idx);
+		glBindTexture(GL_TEXTURE_2D, params.reflector->m_target.m_tex_video->tex_id);
+		glUniform1i(m_bindings.location_tex_reflector, texture_idx);
+		texture_idx++;
+
+		glActiveTexture(GL_TEXTURE0 + texture_idx);
+		glBindTexture(GL_TEXTURE_2D, params.reflector->m_target.m_tex_depth->tex_id);
+		glUniform1i(m_bindings.location_tex_reflector_depth, texture_idx);
+		texture_idx++;
+	}
+
 	if (m_options.has_probe_grid)
 	{
 		if (params.lights->probe_grid->m_tex_visibility != nullptr)
@@ -2205,7 +2337,7 @@ void StandardRoutine::render(const RenderParams& params)
 	glEnable(GL_DEPTH_TEST);	
 	glDepthFunc(GL_LEQUAL);
 
-	if (m_options.alpha_mode == AlphaMode::Mask)
+	if (m_options.alpha_mode == AlphaMode::Mask || (m_options.alpha_mode == AlphaMode::Opaque && params.camera->reflector != nullptr))
 	{
 		glDepthMask(GL_TRUE);
 	}
@@ -2214,6 +2346,7 @@ void StandardRoutine::render(const RenderParams& params)
 		glDepthMask(GL_FALSE);
 	}
 
+	glFrontFace(params.camera->reflector != nullptr ? GL_CW : GL_CCW);
 	if (material.doubleSided)
 	{
 		glDisable(GL_CULL_FACE);
@@ -2260,7 +2393,7 @@ void StandardRoutine::render_batched(const RenderParams& params, const std::vect
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
 
-	if (m_options.alpha_mode == AlphaMode::Mask)
+	if (m_options.alpha_mode == AlphaMode::Mask || (m_options.alpha_mode == AlphaMode::Opaque && params.camera->reflector!=nullptr))
 	{
 		glDepthMask(GL_TRUE);
 	}

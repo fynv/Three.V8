@@ -1,5 +1,7 @@
 #include <string>
 #include <GL/glew.h>
+#include "cameras/Camera.h"
+#include "cameras/Reflector.h"
 #include "FogRayMarchingEnv.h"
 
 static std::string g_vertex =
@@ -39,6 +41,13 @@ layout (std140, binding = 1) uniform Fog
 	float min_step;
 };
 
+#if IS_REFLECT
+layout (std140, binding = 2) uniform MatrixReflector
+{
+	mat4 uMatrixReflector;
+};
+#endif
+
 
 #if MSAA
 layout (location = 0) uniform sampler2DMS uDepthTex;
@@ -74,7 +83,7 @@ float RandomFloat(inout uint seed)
 }
 
 #if HAS_PROBE_GRID
-layout (std140, binding = 2) uniform ProbeGrid
+layout (std140, binding = 3) uniform ProbeGrid
 {
 	vec4 uCoverageMin;
 	vec4 uCoverageMax;
@@ -95,13 +104,13 @@ layout (std140, binding = 2) uniform ProbeGrid
 };
 
 
-layout (std430, binding = 3) buffer ProbeSH0
+layout (std430, binding = 4) buffer ProbeSH0
 {
 	vec4 bProbeSH0[];
 };
 
 #if PROBE_REFERENCE_RECORDED
-layout (std430, binding = 4) buffer ProbeReferences
+layout (std430, binding = 5) buffer ProbeReferences
 {
 	uint bReferenced[];
 };
@@ -110,7 +119,7 @@ layout (std430, binding = 4) buffer ProbeReferences
 #endif
 
 #if HAS_LOD_PROBE_GRID
-layout (std140, binding = 2) uniform ProbeGrid
+layout (std140, binding = 3) uniform ProbeGrid
 {
 	vec4 uCoverageMin;
 	vec4 uCoverageMax;
@@ -132,18 +141,18 @@ layout (std140, binding = 2) uniform ProbeGrid
 };
 
 
-layout (std430, binding = 3) buffer ProbePosLod
+layout (std430, binding = 4) buffer ProbePosLod
 {
 	vec4 bProbePosLod[];
 };
 
-layout (std430, binding = 4) buffer ProbeSH0
+layout (std430, binding = 5) buffer ProbeSH0
 {
 	vec4 bProbeSH0[];
 };
 
 
-layout (std430, binding = 5) buffer ProbeIndex
+layout (std430, binding = 6) buffer ProbeIndex
 {
 	int bIndexData[];
 };
@@ -384,6 +393,19 @@ void main()
 	float dis = length(pos_view.xyz);
 
 	vec3 dir = (uInvViewMat * vec4(pos_view.xyz/dis, 0.0)).xyz;		
+
+	float start = 0.0;
+#if IS_REFLECT	
+	vec4 pos_refl_eye = uMatrixReflector * vec4(uEyePos, 1.0);
+	vec4 dir_refl = uMatrixReflector * vec4(dir, 0.0);
+	if (dir_refl.z * pos_refl_eye.z>0) 
+    {
+		outColor = vec4(0.0);
+        return;
+    }
+	start = -pos_refl_eye.z/dir_refl.z;	
+#endif
+
 	float step = dis/float(max_num_steps)*4.0;
 	if (step<min_step*4.0) step = min_step*4.0;
 
@@ -393,7 +415,7 @@ void main()
 	float delta = RandomFloat(seed);
 
 	vec3 col = vec3(0.0);
-	float start = step * (delta - 0.5);
+	start += step * (delta - 0.5);
 	for (float t = start; t<dis; t+=step)
 	{
 		float _step = min(step, dis - t);
@@ -441,6 +463,15 @@ FogRayMarchingEnv::FogRayMarchingEnv(const Options& options) : m_options(options
 		defines += "#define MSAA 0\n";
 	}
 
+	if (options.is_reflect)
+	{
+		defines += "#define IS_REFLECT 1\n";
+	}
+	else
+	{
+		defines += "#define IS_REFLECT 0\n";
+	}
+
 	if (options.has_probe_grid)
 	{
 		defines += "#define HAS_PROBE_GRID 1\n";
@@ -481,37 +512,42 @@ void FogRayMarchingEnv::render(const RenderParams& params)
 	glDisable(GL_CULL_FACE);
 
 	glUseProgram(m_prog->m_id);
-	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.constant_camera->m_id);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.camera->m_constant.m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.constant_fog->m_id);	
+
+	if (m_options.is_reflect)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, 3, params.camera->reflector->m_constant.m_id);
+	}
 
 	if (m_options.has_probe_grid)
 	{
-		glBindBufferBase(GL_UNIFORM_BUFFER, 2, params.lights->probe_grid->m_constant.m_id);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 3, params.lights->probe_grid->m_constant.m_id);
 		if (params.lights->probe_grid->m_probe_bufs[0] != nullptr)
 		{
-			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, params.lights->probe_grid->m_probe_bufs[0]->m_id);
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, params.lights->probe_grid->m_probe_bufs[0]->m_id);
 		}	
 		if (m_options.probe_reference_recorded)
 		{
-			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, params.lights->probe_grid->m_ref_buf->m_id);
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, params.lights->probe_grid->m_ref_buf->m_id);
 		}
 	}
 
 	if (m_options.has_lod_probe_grid)
 	{
-		glBindBufferBase(GL_UNIFORM_BUFFER, 2, params.lights->lod_probe_grid->m_constant.m_id);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 3, params.lights->lod_probe_grid->m_constant.m_id);
 		if (params.lights->lod_probe_grid->m_probe_bufs[0] != nullptr)
 		{
-			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, params.lights->lod_probe_grid->m_probe_bufs[0]->m_id);
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, params.lights->lod_probe_grid->m_probe_bufs[0]->m_id);
 		}
 		if (params.lights->lod_probe_grid->m_probe_bufs[1] != nullptr)
 		{
-			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, params.lights->lod_probe_grid->m_probe_bufs[1]->m_id);
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, params.lights->lod_probe_grid->m_probe_bufs[1]->m_id);
 		}
 
 		if (params.lights->lod_probe_grid->m_sub_index_buf != nullptr)
 		{
-			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, params.lights->lod_probe_grid->m_sub_index_buf->m_id);
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, params.lights->lod_probe_grid->m_sub_index_buf->m_id);
 		}
 	}
 

@@ -7,6 +7,8 @@
 #include "renderers/GLUtils.h"
 
 class Primitive;
+class Camera;
+class Reflector;
 class StandardRoutine
 {
 public:	
@@ -19,6 +21,8 @@ public:
 		AlphaMode alpha_mode = AlphaMode::Opaque;
 		bool is_highlight_pass = false;
 		bool has_lightmap = false;
+		bool has_reflector = false;
+		bool is_reflect = false;
 		bool specular_glossiness = false;
 		bool has_color = false;
 		bool has_color_texture = false;		
@@ -37,7 +41,7 @@ public:
 		bool probe_reference_recorded = false;
 		bool has_lod_probe_grid = false;
 		bool has_ambient_light = false;
-		bool has_hemisphere_light = false;
+		bool has_hemisphere_light = false;		
 		int tone_shading = 0;
 		bool has_fog = false;
 		bool use_ssao = false;
@@ -49,9 +53,10 @@ public:
 	{
 		const GLTexture2D** tex_list;
 		const MeshStandardMaterial** material_list;
-		const GLBuffer* constant_camera;
+		const Camera* camera;
 		const GLBuffer* constant_model;
 		const Primitive* primitive;
+		const Reflector* reflector;
 		const Lights* lights;
 		const GLTexture2D* tex_lightmap;
 		const GLBuffer* constant_fog;
@@ -69,6 +74,7 @@ private:
 		int location_attrib_pos;
 		int location_attrib_norm;
 		int binding_camera;
+		int binding_matrix_reflector;
 		int binding_model;
 		int location_varying_viewdir;
 		int location_varying_norm;
@@ -98,6 +104,9 @@ private:
 		int location_tex_lightmap;
 		int location_tex_reflection_map;
 		int location_tex_reflection_distance;
+		int binding_reflector_camera;
+		int location_tex_reflector;
+		int location_tex_reflector_depth;
 		int binding_environment_map;
 		int binding_probe_grid;		
 		int location_tex_irradiance;

@@ -13,6 +13,7 @@
 class LightmapRenderTarget;
 class GLRenderer;
 class Mesh;
+class Reflector;
 class GLTFModel : public Object3D
 {
 public:
@@ -55,6 +56,8 @@ public:
 	void init_lightmap(GLRenderer* renderer, int width = -1, int height = -1, float texels_per_unit = 128.0f);
 	void load_lightmap(const HDRImage& img);
 	void load_lightmap(const DDSImage& img);	
+
+	Reflector* reflector = nullptr;
 
 	// animations
 	void setAnimationFrame(const AnimationFrame& frame);

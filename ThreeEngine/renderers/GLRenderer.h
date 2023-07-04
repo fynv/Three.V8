@@ -174,7 +174,7 @@ private:
 	void render_picking_model(Camera* p_camera, GLTFModel* model, GLPickingTarget& target);
 	
 	std::unordered_map<uint64_t, std::unique_ptr<DrawFog>> fog_draw_map;
-	std::unique_ptr<FogRayMarching> fog_ray_march[2];
+	std::unordered_map<uint64_t, std::unique_ptr<FogRayMarching>> fog_ray_march;	
 	std::unordered_map<uint64_t, std::unique_ptr<FogRayMarchingEnv>> fog_ray_march_map;
 	
 	void _render_fog(const Camera& camera, const Lights& lights, const Fog& fog, GLRenderTarget& target);

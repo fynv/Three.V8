@@ -7,6 +7,7 @@
 #include "renderers/GLUtils.h"
 
 class Primitive;
+class Camera;
 class SimpleRoutine
 {
 public:
@@ -19,6 +20,7 @@ public:
 		AlphaMode alpha_mode = AlphaMode::Opaque;
 		bool is_highlight_pass = false;
 		bool has_lightmap = false;
+		bool is_reflect = false;
 		bool specular_glossiness = false;
 		bool has_color = false;
 		bool has_color_texture = false;
@@ -44,7 +46,7 @@ public:
 	{
 		const GLTexture2D** tex_list;
 		const MeshStandardMaterial** material_list;
-		const GLBuffer* constant_camera;
+		const Camera* camera;
 		const GLBuffer* constant_model;
 		const Primitive* primitive;
 		const Lights* lights;
@@ -63,6 +65,7 @@ private:
 		int location_attrib_pos;
 		int location_attrib_norm;
 		int binding_camera;
+		int binding_matrix_reflector;
 		int binding_model;
 		int location_varying_viewdir;
 		int location_varying_norm;

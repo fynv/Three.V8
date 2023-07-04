@@ -1,6 +1,7 @@
 #include <GL/glew.h>
 #include "models/ModelComponents.h"
 #include "DepthOnly.h"
+#include "cameras/Camera.h"
 
 
 static std::string g_vertex =
@@ -58,6 +59,7 @@ void DepthOnly::render(const RenderParams& params)
 	glDepthFunc(GL_LEQUAL);
 	glDepthMask(GL_TRUE);
 
+	glFrontFace(params.camera->reflector != nullptr ? GL_CW : GL_CCW);
 	if (material.doubleSided)
 	{
 		glDisable(GL_CULL_FACE);
@@ -69,7 +71,7 @@ void DepthOnly::render(const RenderParams& params)
 	}
 
 	glUseProgram(m_prog->m_id);
-	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.constant_camera->m_id);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.camera->m_constant.m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.constant_model->m_id);
 
 	glBindBuffer(GL_ARRAY_BUFFER, geo.pos_buf->m_id);
@@ -120,7 +122,7 @@ void DepthOnly::render_batched(const RenderParams& params, const std::vector<voi
 	}
 
 	glUseProgram(m_prog->m_id);
-	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.constant_camera->m_id);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.camera->m_constant.m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.constant_model->m_id);
 
 	glBindBuffer(GL_ARRAY_BUFFER, geo.pos_buf->m_id);

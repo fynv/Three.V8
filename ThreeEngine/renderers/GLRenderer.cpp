@@ -27,6 +27,7 @@
 #include "lights/LODProbeGridWidget.h"
 #include "lights/ProbeRayList.h"
 #include "LightmapRayList.h"
+#include "cameras/Reflector.h"
 
 //#include <gtx/string_cast.hpp>
 
@@ -241,7 +242,7 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 			WireDraw = std::unique_ptr<DrawWire>(new DrawWire);
 		}
 		DrawWire::RenderParams params2;
-		params2.constant_camera = params.constant_camera;
+		params2.constant_camera = &params.camera->m_constant;
 		params2.constant_model = params.constant_model;
 		params2.primitive = params.primitive;
 		params2.radius = material->wire_width;
@@ -293,7 +294,8 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 		options.has_hemisphere_light = lights->hemisphere_light != nullptr;
 		options.use_ssao = m_use_ssao;
 	}
-
+	options.has_reflector = params.reflector != nullptr;
+	options.is_reflect = params.camera->reflector != nullptr;
 	options.has_reflection_map = lights->reflection_map != nullptr;
 	if (options.has_reflection_map)
 	{
@@ -342,6 +344,8 @@ void GLRenderer::render_primitives(const StandardRoutine::RenderParams& params, 
 		options.has_hemisphere_light = lights->hemisphere_light != nullptr;
 		options.use_ssao = m_use_ssao;
 	}
+	options.has_reflector = params.reflector != nullptr;
+	options.is_reflect = params.camera->reflector != nullptr;
 	options.has_reflection_map = lights->reflection_map != nullptr;
 	if (options.has_reflection_map)
 	{
@@ -358,7 +362,9 @@ void GLRenderer::render_primitives(const StandardRoutine::RenderParams& params, 
 }
 
 void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog* fog, SimpleModel* model, GLRenderTarget& target, Pass pass)
-{		
+{	
+	if (p_camera->reflector != nullptr && model->reflector == p_camera->reflector) return;
+	
 	const GLTexture2D* tex = &model->texture;
 	if (model->repl_texture != nullptr)
 	{
@@ -384,9 +390,10 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 	StandardRoutine::RenderParams params;
 	params.tex_list = &tex;
 	params.material_list = &material;
-	params.constant_camera = &p_camera->m_constant;
+	params.camera = p_camera;
 	params.constant_model = &model->m_constant;
 	params.primitive = &model->geometry;
+	params.reflector = model->reflector;
 	params.lights = &lights;
 	params.tex_lightmap = nullptr;
 
@@ -413,6 +420,8 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 
 void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog* fog, GLTFModel* model, GLRenderTarget& target, Pass pass)
 {
+	if (p_camera->reflector != nullptr && model->reflector == p_camera->reflector) return;
+
 	std::vector<const GLTexture2D*> tex_lst(model->m_textures.size());
 	for (size_t i = 0; i < tex_lst.size(); i++)         
 	{ 
@@ -481,9 +490,10 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 				StandardRoutine::RenderParams params;
 				params.tex_list = tex_lst.data();
 				params.material_list = material_lst.data();
-				params.constant_camera = &p_camera->m_constant;
+				params.camera = p_camera;
 				params.constant_model = mesh.model_constant.get();
 				params.primitive = &primitive;
+				params.reflector = model->reflector;
 				params.lights = &lights;
 				params.tex_lightmap = nullptr;
 				if (model->lightmap != nullptr)
@@ -548,9 +558,10 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 				StandardRoutine::RenderParams params;
 				params.tex_list = tex_lst.data();
 				params.material_list = material_lst.data();
-				params.constant_camera = &p_camera->m_constant;
+				params.camera = p_camera;
 				params.constant_model = mesh.model_constant.get();
 				params.primitive = &primitive;
+				params.reflector = model->reflector;
 				params.lights = &lights;
 				params.tex_lightmap = nullptr;
 				if (model->lightmap != nullptr)
@@ -912,6 +923,7 @@ void GLRenderer::render_primitive_simple(const SimpleRoutine::RenderParams& para
 		options.has_ambient_light = lights->ambient_light != nullptr;
 		options.has_hemisphere_light = lights->hemisphere_light != nullptr;
 	}
+	options.is_reflect = params.camera->reflector != nullptr;
 	options.has_fog = params.constant_fog != nullptr;		
 	SimpleRoutine* routine = get_simple_routine(options);
 	routine->render(params);
@@ -948,6 +960,7 @@ void GLRenderer::render_primitives_simple(const SimpleRoutine::RenderParams& par
 		options.has_ambient_light = lights->ambient_light != nullptr;
 		options.has_hemisphere_light = lights->hemisphere_light != nullptr;
 	}
+	options.is_reflect = params.camera->reflector != nullptr;
 	options.has_fog = params.constant_fog != nullptr;
 	SimpleRoutine* routine = get_simple_routine(options);
 	routine->render_batched(params, offset_lst, count_lst);
@@ -955,6 +968,8 @@ void GLRenderer::render_primitives_simple(const SimpleRoutine::RenderParams& par
 
 void GLRenderer::render_model_simple(Camera* p_camera, const Lights& lights, const Fog* fog, SimpleModel* model, Pass pass)
 {
+	if (p_camera->reflector != nullptr && model->reflector == p_camera->reflector) return;
+
 	const GLTexture2D* tex = &model->texture;
 	if (model->repl_texture != nullptr)
 	{
@@ -975,7 +990,7 @@ void GLRenderer::render_model_simple(Camera* p_camera, const Lights& lights, con
 	SimpleRoutine::RenderParams params;
 	params.tex_list = &tex;
 	params.material_list = &material;
-	params.constant_camera = &p_camera->m_constant;
+	params.camera = p_camera;
 	params.constant_model = &model->m_constant;
 	params.primitive = &model->geometry;
 	params.lights = &lights;
@@ -995,6 +1010,9 @@ void GLRenderer::render_model_simple(Camera* p_camera, const Lights& lights, con
 
 void GLRenderer::render_model_simple(Camera* p_camera, const Lights& lights, const Fog* fog, GLTFModel* model, Pass pass)
 {
+	if (p_camera->reflector != nullptr && model->reflector == p_camera->reflector) return;
+
+
 	std::vector<const GLTexture2D*> tex_lst(model->m_textures.size());
 	for (size_t i = 0; i < tex_lst.size(); i++)
 	{
@@ -1063,7 +1081,7 @@ void GLRenderer::render_model_simple(Camera* p_camera, const Lights& lights, con
 				SimpleRoutine::RenderParams params;
 				params.tex_list = tex_lst.data();
 				params.material_list = material_lst.data();
-				params.constant_camera = &p_camera->m_constant;
+				params.camera = p_camera;
 				params.constant_model = mesh.model_constant.get();
 				params.primitive = &primitive;
 				params.lights = &lights;
@@ -1118,7 +1136,7 @@ void GLRenderer::render_model_simple(Camera* p_camera, const Lights& lights, con
 				SimpleRoutine::RenderParams params;
 				params.tex_list = tex_lst.data();
 				params.material_list = material_lst.data();
-				params.constant_camera = &p_camera->m_constant;
+				params.camera = p_camera;
 				params.constant_model = mesh.model_constant.get();
 				params.primitive = &primitive;
 				params.lights = &lights;
@@ -1441,6 +1459,7 @@ void GLRenderer::_render_fog(const Camera& camera, const Lights& lights, const F
 	options.has_ambient_light = lights.ambient_light != nullptr;
 	options.has_hemisphere_light = lights.hemisphere_light != nullptr;
 	options.has_environment_map = lights.environment_map != nullptr;
+	options.is_reflect = camera.reflector != nullptr;
 
 	uint64_t hash = crc64(0, (const unsigned char*)&options, sizeof(DrawFog::Options));
 	auto iter = fog_draw_map.find(hash);
@@ -1452,7 +1471,7 @@ void GLRenderer::_render_fog(const Camera& camera, const Lights& lights, const F
 
 	DrawFog::RenderParams params;
 	params.tex_depth = target.m_tex_depth.get();
-	params.constant_camera = &camera.m_constant;
+	params.camera = &camera;
 	params.constant_fog = &fog.m_constant;
 	params.lights = &lights;
 
@@ -1461,13 +1480,17 @@ void GLRenderer::_render_fog(const Camera& camera, const Lights& lights, const F
 
 void GLRenderer::_render_fog_rm(const Camera& camera, DirectionalLight& light, const Fog& fog, GLRenderTarget& target)
 {
-	bool msaa = target.msaa();
-	int idx = msaa ? 1 : 0;
-	if (fog_ray_march[idx] == nullptr)
+	FogRayMarching::Options options;
+	options.msaa = target.msaa();	
+	options.is_reflect = camera.reflector != nullptr;
+
+	uint64_t hash = crc64(0, (const unsigned char*)&options, sizeof(FogRayMarching::Options));
+	auto iter = fog_ray_march.find(hash);
+	if (iter == fog_ray_march.end())
 	{
-		fog_ray_march[idx] = std::unique_ptr<FogRayMarching>(new FogRayMarching(msaa));
+		fog_ray_march[hash] = std::unique_ptr<FogRayMarching>(new FogRayMarching(options));
 	}
-	FogRayMarching* fog_rm = fog_ray_march[idx].get();
+	FogRayMarching* fog_rm = fog_ray_march[hash].get();
 
 	light.updateConstant();
 	FogRayMarching::RenderParams params;
@@ -1498,6 +1521,7 @@ void GLRenderer::_render_fog_rm_env(const Camera& camera, const Lights& lights, 
 		options.probe_reference_recorded = lights.probe_grid->record_references;
 	}
 	options.has_lod_probe_grid = lights.lod_probe_grid != nullptr;
+	options.is_reflect = camera.reflector != nullptr;
 
 	uint64_t hash = crc64(0, (const unsigned char*)&options, sizeof(FogRayMarchingEnv::Options));
 	auto iter = fog_ray_march_map.find(hash);
@@ -1509,7 +1533,7 @@ void GLRenderer::_render_fog_rm_env(const Camera& camera, const Lights& lights, 
 
 	FogRayMarchingEnv::RenderParams params;
 	params.tex_depth = target.m_tex_depth.get();
-	params.constant_camera = &camera.m_constant;
+	params.camera = &camera;
 	params.constant_fog = &fog.m_constant;
 	params.lights = &lights;
 
@@ -1581,13 +1605,16 @@ void GLRenderer::_pre_render(Scene& scene)
 	scene.clear_lists();
 
 	auto* p_scene = &scene;
-	scene.traverse([p_scene](Object3D* obj) {
+	Reflector* reflector = nullptr;
+	Reflector** p_reflector = &reflector;
+	scene.traverse([p_scene, p_reflector](Object3D* obj) {
 		do
 		{
 			{
 				SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
 				if (model)
 				{
+					model->reflector = *p_reflector;
 					p_scene->simple_models.push_back(model);
 					break;
 				}
@@ -1596,6 +1623,7 @@ void GLRenderer::_pre_render(Scene& scene)
 				GLTFModel* model = dynamic_cast<GLTFModel*>(obj);
 				if (model)
 				{
+					model->reflector = *p_reflector;
 					p_scene->gltf_models.push_back(model);
 					break;
 				}
@@ -1614,6 +1642,15 @@ void GLRenderer::_pre_render(Scene& scene)
 				{
 					light->lookAtTarget();
 					p_scene->directional_lights.push_back(light);
+					break;
+				}
+			}
+			{
+				Reflector* reflector = dynamic_cast<Reflector*>(obj);
+				if (reflector)
+				{
+					*p_reflector = reflector;
+					p_scene->reflectors.push_back(reflector);
 					break;
 				}
 			}
@@ -2080,7 +2117,7 @@ void GLRenderer::render_depth_model(Camera* p_camera, SimpleModel* model)
 
 	DepthOnly::RenderParams params;
 	params.material_list = &material;
-	params.constant_camera = &p_camera->m_constant;
+	params.camera = p_camera;
 	params.constant_model = &model->m_constant;
 	params.primitive = &model->geometry;	
 	render_depth_primitive(params);
@@ -2136,7 +2173,7 @@ void GLRenderer::render_depth_model(Camera* p_camera, GLTFModel* model)
 
 				DepthOnly::RenderParams params;
 				params.material_list = material_lst.data();
-				params.constant_camera = &p_camera->m_constant;
+				params.camera = p_camera;
 				params.constant_model = mesh.model_constant.get();
 				params.primitive = &primitive;
 				render_depth_primitives(params, material_offsets, material_counts);
@@ -2169,7 +2206,7 @@ void GLRenderer::render_depth_model(Camera* p_camera, GLTFModel* model)
 
 				DepthOnly::RenderParams params;
 				params.material_list = material_lst.data();
-				params.constant_camera = &p_camera->m_constant;
+				params.camera = p_camera;
 				params.constant_model = mesh.model_constant.get();
 				params.primitive = &primitive;
 				render_depth_primitive(params);
@@ -2452,7 +2489,7 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 	glClearDepth(1.0f);
 	glClear(GL_DEPTH_BUFFER_BIT);
 
-	if (has_opaque)
+	if (camera.reflector==nullptr &&  has_opaque)
 	{
 		glDisable(GL_BLEND);	
 
@@ -2779,7 +2816,7 @@ void GLRenderer::_render_scene_simple(Scene& scene, Camera& camera, GLRenderTarg
 	glClearDepth(1.0f);
 	glClear(GL_DEPTH_BUFFER_BIT);
 
-	if (has_opaque)
+	if (camera.reflector == nullptr && has_opaque)
 	{
 		glDisable(GL_BLEND);
 		// depth-prepass
@@ -2895,7 +2932,7 @@ void GLRenderer::_render_simple(Scene& scene, Camera& camera, GLRenderTarget& ta
 	}
 
 	if (fog != nullptr)
-	{
+	{		
 		fog->updateConstant();
 
 		glEnable(GL_BLEND);
@@ -2999,10 +3036,11 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 	}
 	_pre_render(scene);
 
+	PerspectiveCamera* p_cam = (PerspectiveCamera*)(&camera);
+
 	if (scene.indirectLight != nullptr && scene.indirectLight->dynamic_map)
 	{
-		IndirectLight* light = scene.indirectLight;
-		PerspectiveCamera* p_cam = (PerspectiveCamera*)(&camera);
+		IndirectLight* light = scene.indirectLight;		
 
 		camera.updateMatrixWorld(false);
 		glm::vec3 cam_pos = camera.getWorldPosition();
@@ -3046,8 +3084,40 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 			}
 			ReflDisCreator->Create(light->cube_target.get(), light->reflection.get(), p_cam->z_near, p_cam->z_far);
 #endif
+		}	
+	}
+	else
+	{
+		camera.updateMatrixWorld(false);
+
+		for (size_t i = 0; i < scene.reflectors.size(); i++)
+		{
+			Reflector* reflector = scene.reflectors[i];
+			reflector->updateConstant();
+
+			glm::mat4 A = reflector->matrixWorld;
+			glm::mat4 B = A;			
+			B[2] = -B[2];			
+			A = glm::inverse(A);
+			B *= A;
+
+			reflector->m_camera.position = p_cam->position;
+			reflector->m_camera.quaternion = p_cam->quaternion;
+			reflector->m_camera.scale = p_cam->scale;
+			reflector->m_camera.applyMatrix4(B);
+
+			if (target.m_width != reflector->m_target.m_width || target.m_height != reflector->m_target.m_height)
+			{
+				reflector->m_camera.fov = p_cam->fov;
+				reflector->m_camera.aspect = p_cam->aspect;
+				reflector->m_camera.z_near = p_cam->z_near;
+				reflector->m_camera.z_far = p_cam->z_far;
+				reflector->m_camera.updateProjectionMatrix();
+				reflector->m_target.update_framebuffers(target.m_width, target.m_height);
+			}
+			this->_render_simple(scene, reflector->m_camera, reflector->m_target);			
 		}
-	
+
 	}
 	_render(scene, camera, target, true);
 }

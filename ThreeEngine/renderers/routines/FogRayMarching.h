@@ -9,7 +9,16 @@ class Fog;
 class FogRayMarching
 {
 public:
-	FogRayMarching(bool msaa);
+	struct Options
+	{
+		Options()
+		{
+			memset(this, 0, sizeof(Options));
+		}
+		bool msaa = false;		
+		bool is_reflect = false;
+	};
+	FogRayMarching(const Options& options);
 
 	struct RenderParams
 	{
@@ -29,7 +38,7 @@ private:
 	void _render_no_shadow(const RenderParams& params);
 	void _render_shadowed(const RenderParams& params);
 
-	bool m_msaa;
+	Options m_options;
 	std::unique_ptr<GLProgram> m_prog;
 	std::unique_ptr<GLProgram> m_prog_shadow;
 

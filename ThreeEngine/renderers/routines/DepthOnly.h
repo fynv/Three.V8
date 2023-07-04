@@ -7,6 +7,7 @@
 #include "renderers/GLUtils.h"
 
 class Primitive;
+class Camera;
 class DepthOnly
 {
 public:
@@ -15,7 +16,7 @@ public:
 	struct RenderParams
 	{		
 		const MeshStandardMaterial** material_list;
-		const GLBuffer* constant_camera;
+		const Camera* camera;
 		const GLBuffer* constant_model;
 		const Primitive* primitive;
 	};

@@ -12,6 +12,7 @@ class SimpleModel;
 class GLTFModel;
 class VolumeIsosurfaceModel;
 class DirectionalLight;
+class Reflector;
 class Scene : public Object3D
 {
 public:
@@ -25,6 +26,7 @@ public:
 	std::vector<GLTFModel*> gltf_models;
 	std::vector<VolumeIsosurfaceModel*> volume_isosurface_models;
 	std::vector<DirectionalLight*> directional_lights;		
+	std::vector<Reflector*> reflectors;
 
 	void clear_lists()
 	{
@@ -32,6 +34,7 @@ public:
 		gltf_models.clear();
 		volume_isosurface_models.clear();
 		directional_lights.clear();
+		reflectors.clear();
 	}	
 
 	std::vector<Object3D*> widgets; // for editor visualization

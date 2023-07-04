@@ -270,6 +270,9 @@
     <ClInclude Include="loaders\DDSImageLoader.hpp">
       <Filter>Header Files\loaders</Filter>
     </ClInclude>
+    <ClInclude Include="cameras\Reflector.hpp">
+      <Filter>Header Files\cameras</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="binding.cpp">

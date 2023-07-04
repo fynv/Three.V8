@@ -140,6 +140,7 @@
     <ClCompile Include="backgrounds\BackgroundScene.cpp" />
     <ClCompile Include="cameras\Camera.cpp" />
     <ClCompile Include="cameras\PerspectiveCamera.cpp" />
+    <ClCompile Include="cameras\Reflector.cpp" />
     <ClCompile Include="core\BoundingVolumeHierarchy.cpp" />
     <ClCompile Include="core\CWBVH.cpp" />
     <ClCompile Include="core\Object3D.cpp" />
@@ -279,6 +280,7 @@
     <ClInclude Include="backgrounds\BackgroundScene.h" />
     <ClInclude Include="cameras\Camera.h" />
     <ClInclude Include="cameras\PerspectiveCamera.h" />
+    <ClInclude Include="cameras\Reflector.h" />
     <ClInclude Include="core\BoundingVolumeHierarchy.h" />
     <ClInclude Include="core\CWBVH.h" />
     <ClInclude Include="core\Object3D.h" />

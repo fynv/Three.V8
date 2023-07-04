@@ -4,6 +4,7 @@
 #include "lights/Lights.h"
 #include "renderers/GLUtils.h"
 
+class Camera;
 class DrawFog
 {
 public:
@@ -16,14 +17,15 @@ public:
 		bool msaa = false;
 		bool has_environment_map = false;
 		bool has_ambient_light = false;
-		bool has_hemisphere_light = false;		
+		bool has_hemisphere_light = false;
+		bool is_reflect = false;
 	};
 	DrawFog(const Options& options);
 
 	struct RenderParams
 	{
 		const GLTexture2D* tex_depth;
-		const GLBuffer* constant_camera;
+		const Camera* camera;
 		const GLBuffer* constant_fog;
 		const Lights* lights;
 	};

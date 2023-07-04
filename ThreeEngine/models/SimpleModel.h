@@ -5,6 +5,7 @@
 #include "materials/MeshStandardMaterial.h"
 #include "renderers/GLUtils.h"
 
+class Reflector;
 class MeshStandardMaterial;
 class SimpleModel : public Object3D
 {
@@ -24,6 +25,8 @@ public:
 	void set_roughness(float roughness);
 
 	void set_toon_shading(int mode, float wire_width, const glm::vec3& wire_color);
+
+	Reflector* reflector = nullptr;
 };
 
 

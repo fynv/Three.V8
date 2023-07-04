@@ -1,6 +1,8 @@
 #include <string>
 #include <GL/glew.h>
 #include "DrawFog.h"
+#include "cameras/Camera.h"
+#include "cameras/Reflector.h"
 
 static std::string g_vertex =
 R"(#version 430
@@ -37,6 +39,13 @@ layout (std140, binding = 1) uniform Fog
 	vec4 fog_rgba;
 };
 
+#if IS_REFLECT
+layout (std140, binding = 2) uniform MatrixReflector
+{
+	mat4 uMatrixReflector;
+};
+#endif
+
 #if MSAA
 layout (location = 0) uniform sampler2DMS uDepthTex;
 #else
@@ -47,7 +56,7 @@ layout (location = 0) uniform sampler2D uDepthTex;
 #define RECIPROCAL_PI 0.3183098861837907
 
 #if HAS_ENVIRONMENT_MAP
-layout (std140, binding = 2) uniform EnvironmentMap
+layout (std140, binding = 3) uniform EnvironmentMap
 {
 	vec4 uSHCoefficients[9];
 };
@@ -57,7 +66,7 @@ vec3 GetIrradiance()
 	return uSHCoefficients[0].xyz * 0.886227;
 }
 #elif HAS_AMBIENT_LIGHT
-layout (std140, binding = 2) uniform AmbientLight
+layout (std140, binding = 3) uniform AmbientLight
 {
 	vec4 uAmbientColor;
 };
@@ -68,7 +77,7 @@ vec3 GetIrradiance()
 }
 #elif HAS_HEMISPHERE_LIGHT
 
-layout (std140, binding = 2) uniform HemisphereLight
+layout (std140, binding = 3) uniform HemisphereLight
 {
 	vec4 uHemisphereSkyColor;
 	vec4 uHemisphereGroundColor;
@@ -106,7 +115,22 @@ void main()
 	vec4 pos_view = uInvProjMat * vec4(x_proj, y_proj, depth, 1.0);
 	pos_view *= 1.0/pos_view.w;
 	float dis = length(pos_view.xyz);
-	float alpha = 1.0 - pow(1.0 - fog_rgba.w, dis);
+
+#if !IS_REFLECT
+	float length = dis;
+#else
+	vec3 dir = (uInvViewMat * vec4(pos_view.xyz/dis, 0.0)).xyz;
+	vec4 pos_refl_eye = uMatrixReflector * vec4(uEyePos, 1.0);
+	vec4 dir_refl = uMatrixReflector * vec4(dir, 0.0);
+	if (dir_refl.z * pos_refl_eye.z>0) 
+    {
+		outColor = vec4(0.0);
+        return;
+    }
+	float length = dis + pos_refl_eye.z/dir_refl.z;
+#endif
+
+	float alpha = 1.0 - pow(1.0 - fog_rgba.w, length);
 	
 	vec3 irradiance = GetIrradiance();	
 
@@ -142,6 +166,15 @@ DrawFog::DrawFog(const Options& options) : m_options(options)
 	else
 	{
 		defines += "#define MSAA 0\n";
+	}
+
+	if (options.is_reflect)
+	{
+		defines += "#define IS_REFLECT 1\n";		
+	}
+	else
+	{
+		defines += "#define IS_REFLECT 0\n";	
 	}
 
 	if (options.has_environment_map)
@@ -183,22 +216,27 @@ void DrawFog::render(const RenderParams& params)
 	glDisable(GL_CULL_FACE);
 
 	glUseProgram(m_prog->m_id);
-	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.constant_camera->m_id);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 0, params.camera->m_constant.m_id);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.constant_fog->m_id);
+
+	if (m_options.is_reflect)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, 2, params.camera->reflector->m_constant.m_id);
+	}
 
 	if (m_options.has_environment_map)
 	{
-		glBindBufferBase(GL_UNIFORM_BUFFER, 2, params.lights->environment_map->m_constant.m_id);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 3, params.lights->environment_map->m_constant.m_id);
 	}
 
 	if (m_options.has_ambient_light)
 	{
-		glBindBufferBase(GL_UNIFORM_BUFFER, 2, params.lights->ambient_light->m_constant.m_id);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 3, params.lights->ambient_light->m_constant.m_id);
 	}
 
 	if (m_options.has_hemisphere_light)
 	{
-		glBindBufferBase(GL_UNIFORM_BUFFER, 2, params.lights->hemisphere_light->m_constant.m_id);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 3, params.lights->hemisphere_light->m_constant.m_id);
 	}
 
 	glActiveTexture(GL_TEXTURE0);
