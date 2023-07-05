@@ -13,6 +13,8 @@ class Camera extends Object3D {
 
 		this.projectionMatrix = new Matrix4();
 		this.projectionMatrixInverse = new Matrix4();
+		
+		this.scissor = null;
 
 	}
 

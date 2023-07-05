@@ -153,7 +153,7 @@ export class GLTFLoader
                 {
                     let mesh = model.meshes[i];
                     let prim = mesh.primitives[j];
-                    prim.create_bind_group(mesh.constant, model.materials, model.textures, model.lightmap);
+                    prim.create_bind_group(mesh.constant, model.materials, model.textures, model.lightmap, model.reflector);
                 }
             }
         };
@@ -1805,7 +1805,7 @@ export class GLTFLoader
                 {
                     let mesh = model.meshes[i];
                     let prim = mesh.primitives[j];
-                    prim.create_bind_group(mesh.constant, model.materials, model.textures, model.lightmap);
+                    prim.create_bind_group(mesh.constant, model.materials, model.textures, model.lightmap, model.reflector);
                 }
                 
             }
@@ -1821,7 +1821,7 @@ export class GLTFLoader
                 {
                     let mesh = model.meshes[i];
                     let prim = mesh.primitives[j];
-                    prim.create_bind_group(mesh.constant, model.materials, model.textures, model.lightmap);
+                    prim.create_bind_group(mesh.constant, model.materials, model.textures, model.lightmap, model.reflector);
                 }
             }
             

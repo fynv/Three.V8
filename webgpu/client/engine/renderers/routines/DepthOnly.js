@@ -46,14 +46,20 @@ function GetPipelineDepth(options)
 
     if (!(signature in engine_ctx.cache.pipelines.depth))
     {
+        let camera_options = { has_reflector: options.is_reflect };
+        let camera_signature =  JSON.stringify(camera_options);
+        let camera_layout = engine_ctx.cache.bindGroupLayouts.perspective_camera[camera_signature];
+        
         let prim_options = {
             material: options.material_options,
             has_lightmap: options.has_lightmap,
+            has_reflector: options.has_reflector,
             has_envmap: options.has_primtive_probe
         };
         let prim_signature = JSON.stringify(prim_options);
         let primitive_layout = engine_ctx.cache.bindGroupLayouts.primitive[prim_signature];
-        let bindGroupLayouts = [engine_ctx.cache.bindGroupLayouts.perspective_camera, primitive_layout];
+        
+        let bindGroupLayouts = [camera_layout, primitive_layout];
 
         const pipelineLayoutDesc = { bindGroupLayouts };
         let layout = engine_ctx.device.createPipelineLayout(pipelineLayoutDesc);        
@@ -94,7 +100,7 @@ function GetPipelineDepth(options)
         };
 
         const primitive = {
-            frontFace: 'ccw',
+            frontFace: options.is_reflect?'cw':'ccw',
             cullMode:  options.material_options.doubleSided ? "none" : "back",
             topology: 'triangle-list'
         };
@@ -132,12 +138,14 @@ export function RenderDepth(passEncoder, params)
     let options = {};    
     options.is_msaa  = params.target.msaa; 
     options.has_lightmap = primitive.has_lightmap;
+    options.has_reflector = primitive.has_reflector;
     options.material_options = primitive.material_options;
-    options.has_primtive_probe = primitive.envMap!=null;
+    options.has_primtive_probe = primitive.envMap!=null;    
+    options.is_reflect = params.camera.reflector!=null;
     
     let pipeline = GetPipelineDepth(options);
     passEncoder.setPipeline(pipeline);
-    passEncoder.setBindGroup(0, params.bind_group_camera);
+    passEncoder.setBindGroup(0, params.camera.bind_group);
     passEncoder.setBindGroup(1, primitive.bind_group); 
     passEncoder.setVertexBuffer(0, geo.pos_buf);
 

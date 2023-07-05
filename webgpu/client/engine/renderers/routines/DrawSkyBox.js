@@ -56,7 +56,11 @@ function GetPipelineDrawSkyBox(options)
 
     if (!(signature in engine_ctx.cache.pipelines.draw_sky_box))
     {
-        const pipelineLayoutDesc = { bindGroupLayouts: [engine_ctx.cache.bindGroupLayouts.perspective_camera, engine_ctx.cache.bindGroupLayouts.cube_background] };
+        let camera_options = { has_reflector: options.is_reflect };
+        let camera_signature =  JSON.stringify(camera_options);
+        let camera_layout = engine_ctx.cache.bindGroupLayouts.perspective_camera[camera_signature];
+        
+        const pipelineLayoutDesc = { bindGroupLayouts: [camera_layout, engine_ctx.cache.bindGroupLayouts.cube_background] };
         let layout = engine_ctx.device.createPipelineLayout(pipelineLayoutDesc);
         let shaderModule = engine_ctx.device.createShaderModule({ code: shader_code });
 
@@ -112,7 +116,8 @@ export function DrawSkyBox(passEncoder, target, camera, bg)
 {
     let options = {
         msaa: target.msaa,
-        view_format: target.view_format
+        view_format: target.view_format,
+        is_reflect: camera.reflector!=null
     };
 
     let pipeline = GetPipelineDrawSkyBox(options);

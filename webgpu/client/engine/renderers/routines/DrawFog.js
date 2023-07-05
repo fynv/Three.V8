@@ -18,6 +18,11 @@ struct Camera
 @group(0) @binding(0)
 var<uniform> uCamera: Camera;
 
+${condition(options.is_reflect,`
+@group(0) @binding(1)
+var<uniform> uMatrixReflector: mat4x4f;
+`)}
+
 struct VSOut 
 {
     @builtin(position) Position: vec4f,
@@ -143,7 +148,22 @@ ${condition(options.is_msaa,`
     var pos_view = uCamera.invProjMat * vec4(vPosProj, depth, 1.0);
     pos_view *= 1.0/pos_view.w;
     let dis = length(pos_view.xyz);
-    let alpha = 1.0 - pow(1.0 - uFog.rgba.w, dis);
+
+${condition(!options.is_reflect,`
+    let length = dis;
+`,`
+    let dir = (uCamera.invViewMat * vec4(pos_view.xyz/dis, 0.0)).xyz;
+    let pos_refl_eye = uMatrixReflector * vec4(uCamera.eyePos, 1.0);
+    let dir_refl = uMatrixReflector * vec4(dir, 0.0);
+    if (dir_refl.z * pos_refl_eye.z>0) 
+    {
+        return vec4(0.0);
+    }
+    let length = dis + pos_refl_eye.z/dir_refl.z;
+
+`)}
+
+    let alpha = 1.0 - pow(1.0 - uFog.rgba.w, length);
     let irradiance = GetIrradiance();
     let col = uFog.rgba.xyz* irradiance * RECIPROCAL_PI * alpha;
 
@@ -162,10 +182,13 @@ function GetPipelineDrawFog(options)
 
     if (!(signature in engine_ctx.cache.pipelines.draw_fog))
     {
+        let camera_options = { has_reflector: options.is_reflect };
+        let camera_signature =  JSON.stringify(camera_options);        
+        
         let options2 = { msaa: options.is_msaa};
         let signature2 = JSON.stringify(options2);
         let bindGroupLayouts = [
-            engine_ctx.cache.bindGroupLayouts.perspective_camera, 
+            engine_ctx.cache.bindGroupLayouts.perspective_camera[camera_signature], 
             engine_ctx.cache.bindGroupLayouts.fog, 
             engine_ctx.cache.bindGroupLayouts.depth[signature2], 
         ];        
@@ -236,10 +259,11 @@ export function DrawFog(passEncoder, params)
     options.has_ambient_light = params.lights.ambient_light!=null;
     options.has_hemisphere_light = params.lights.hemisphere_light!=null;
     options.has_environment_light = params.lights.environment_map!=null;
+    options.is_reflect = params.camera.reflector!=null;
 
     let pipeline = GetPipelineDrawFog(options);
     passEncoder.setPipeline(pipeline);
-    passEncoder.setBindGroup(0, params.bind_group_camera);
+    passEncoder.setBindGroup(0, params.camera.bind_group);
     passEncoder.setBindGroup(1, params.bind_group_fog);
     passEncoder.setBindGroup(2, params.target.bind_group_depth);
     if (options.has_ambient_light || options.has_hemisphere_light || options.has_environment_light)

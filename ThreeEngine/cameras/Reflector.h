@@ -20,6 +20,8 @@ public:
 
 	GLRenderTarget m_target;
 	PerspectiveCamera m_camera;
+
+	void calc_scissor();
 };
 
 

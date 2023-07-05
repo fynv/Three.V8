@@ -79,6 +79,9 @@ function get_shader(options)
     let binding_lightmap = primitive_binding;
     if (options.has_lightmap) primitive_binding++;
 
+    let binding_reflector = primitive_binding;
+    if (options.has_reflector) primitive_binding+=3;
+
     let binding_primitive_probe = primitive_binding;
     if (options.has_primtive_probe) primitive_binding++;
     
@@ -132,11 +135,17 @@ struct Camera
     viewMat: mat4x4f,
     invProjMat: mat4x4f,
     invViewMat: mat4x4f,
-    eyePos: vec3f
+    eyePos: vec4f,
+    scissor: vec4f
 };
 
 @group(0) @binding(0)
 var<uniform> uCamera: Camera;
+
+${condition(options.is_reflect,`
+@group(0) @binding(1)
+var<uniform> uMatrixReflector: mat4x4f;
+`)}
    
 struct Model
 {
@@ -205,7 +214,7 @@ fn vs_main(input: VSIn) -> VSOut
     proj_pos.z = (proj_pos.z + proj_pos.w) * 0.5;
     output.Position = proj_pos;
     output.worldPos = world_pos.xyz;
-    output.viewDir = uCamera.eyePos - world_pos.xyz;
+    output.viewDir = uCamera.eyePos.xyz - world_pos.xyz;
     let world_norm = uModel.normalMat * vec4(input.norm, 0.0);
     output.norm = world_norm.xyz;
 
@@ -364,6 +373,48 @@ var uTexEmissive: texture_2d<f32>;
 ${condition(options.has_lightmap,`
 @group(1) @binding(${binding_lightmap})
 var uTexLightmap: texture_2d<f32>;
+`)}
+
+${condition(options.has_reflector, `
+@group(1) @binding(${binding_reflector})
+var uTexReflector: texture_2d<f32>;
+
+@group(1) @binding(${binding_reflector + 1})
+var uTexReflectorDepth: texture_depth_2d;
+
+@group(1) @binding(${binding_reflector + 2})
+var<uniform> uCameraReflector: Camera;
+
+fn getRadiance(world_pos: vec3f, reflectVec: vec3f, roughness: f32, irradiance: vec3f) -> vec3f
+{
+    let dir_view = uCameraReflector.viewMat * vec4(reflectVec, 0.0);
+    var proj = uCameraReflector.projMat * vec4(dir_view.xyz, 1.0);
+    proj*= 1.0/proj.w;
+
+    proj.x = max(proj.x, uCameraReflector.scissor.x);
+    proj.y = max(proj.y, uCameraReflector.scissor.y);
+    proj.x = min(proj.x, uCameraReflector.scissor.z);
+    proj.y = min(proj.y, uCameraReflector.scissor.w);
+
+    let uv = vec2((proj.x + 1.0)*0.5, (1.0 - proj.y)*0.5);
+    var rad = textureSampleLevel(uTexReflector, uSampler, uv, 0).xyz;
+    
+    if (roughness > 0.053)
+    {        
+        let lum1 = luminance(rad);
+        if (lum1>0.0)
+        {
+            var rad2 = irradiance * RECIPROCAL_PI;
+            let lum2 = luminance(rad2);
+            let r2 = roughness*roughness;
+            let r4 = r2*r2;
+            let gloss = log(2.0/r4 - 1.0)/log(2.0)/18.0;
+            rad *= gloss + lum2/lum1 * (1.0-gloss);
+        }
+    }
+    return rad;
+}
+
 `)}
 
 struct EnvironmentMap
@@ -577,7 +628,7 @@ var uDirectionalShadowTex_${i}: texture_depth_2d;`
     
 })()}
 
-${condition(lights_options.has_reflection_map,`
+${condition(lights_options.has_reflection_map && !options.has_reflector,`
 @group(2) @binding(${binding_reflection_map})
 var uReflectionMap: texture_cube<f32>;
 
@@ -598,7 +649,7 @@ fn getReflRadiance(reflectVec: vec3f, roughness: f32) -> vec3f
     return textureSampleLevel(uReflectionMap, uSampler, reflectVec, mip).xyz;
 }
 
-fn getRadiance(reflectVec: vec3f, roughness: f32, irradiance: vec3f) -> vec3f
+fn getRadiance(world_pos: vec3f, reflectVec: vec3f, roughness: f32, irradiance: vec3f) -> vec3f
 {
     var rad = getReflRadiance(reflectVec, roughness);
     if (roughness > 0.053)
@@ -1062,6 +1113,15 @@ ${condition(alpha_mask,`
         discard;
     }
 `)}
+
+${condition(options.is_reflect,`
+    let pos_refl_eye = uMatrixReflector * vec4(uCamera.eyePos.xyz, 1.0);
+    let pos_refl_frag = uMatrixReflector * vec4(input.worldPos, 1.0);
+    if (pos_refl_eye.z * pos_refl_frag.z > 0.0)
+    {
+        discard;
+    }
+`)}
     var material : PhysicalMaterial;
 
 ${condition(mOpt.specular_glossiness,`
@@ -1138,10 +1198,10 @@ ${condition(options.has_lightmap,`
         let light_color = textureSampleLevel(uTexLightmap, uSampler, input.atlasUV, 0).xyz;
         diffuse += material.diffuseColor * light_color;
 
-${condition(lights_options.has_reflection_map,`        
+${condition(lights_options.has_reflection_map || options.has_reflector,`
         var reflectVec = reflect(-viewDir, norm);
         reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );	
-        let radiance = getRadiance(reflectVec, material.roughness,  light_color * PI);
+        let radiance = getRadiance(input.worldPos, reflectVec, material.roughness,  light_color * PI);
         specular += material.specularColor * radiance;
 `,`
         specular += material.specularColor * light_color;
@@ -1152,10 +1212,10 @@ ${condition(lights_options.has_reflection_map,`
         let irradiance = getIrradiance(input.worldPos, norm);
         var radiance = vec3(0.0);
 
-${condition(lights_options.has_reflection_map,` 
+${condition(lights_options.has_reflection_map || options.has_reflector,` 
         var reflectVec = reflect(-viewDir, norm);	
         reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );	
-        radiance = getRadiance(reflectVec, material.roughness, irradiance);
+        radiance = getRadiance(input.worldPos, reflectVec, material.roughness, irradiance);
 `,`
         radiance = irradiance * RECIPROCAL_PI;
 `)}
@@ -1197,14 +1257,20 @@ function GetPipelineStandard(options)
 
     if (!(signature in engine_ctx.cache.pipelines.standard))
     {
+        let camera_options = { has_reflector: options.is_reflect };
+        let camera_signature =  JSON.stringify(camera_options);
+        let camera_layout = engine_ctx.cache.bindGroupLayouts.perspective_camera[camera_signature];
+        
         let prim_options = {
             material: options.material_options,
             has_lightmap: options.has_lightmap,
+            has_reflector: options.has_reflector,
             has_envmap: options.has_primtive_probe
         };
         let prim_signature = JSON.stringify(prim_options);
         let primitive_layout = engine_ctx.cache.bindGroupLayouts.primitive[prim_signature];
-        let bindGroupLayouts = [engine_ctx.cache.bindGroupLayouts.perspective_camera, primitive_layout];
+        
+        let bindGroupLayouts = [camera_layout, primitive_layout];
         if (!LightsIsEmpty(options.lights_options))
         {
             let lights_signature = JSON.stringify(options.lights_options);
@@ -1218,7 +1284,7 @@ function GetPipelineStandard(options)
         let shaderModule = engine_ctx.device.createShaderModule({ code });
 
         const depthStencil = {
-            depthWriteEnabled: options.alpha_mode == "Mask",
+            depthWriteEnabled: options.alpha_mode == "Mask" || (options.alpha_mode == "Opaque" && options.is_reflect),
             depthCompare: 'less-equal',
             format: 'depth32float'
         };
@@ -1359,7 +1425,7 @@ function GetPipelineStandard(options)
         };
 
         const primitive = {
-            frontFace: 'ccw',
+            frontFace: options.is_reflect?'cw':'ccw',
             cullMode:  options.material_options.doubleSided ? "none" : "back",
             topology: 'triangle-list'
         };
@@ -1452,13 +1518,15 @@ export function RenderStandard(passEncoder, params)
     options.is_msaa  = params.target.msaa;    
     options.has_color = primitive.color_buf != null;
     options.has_lightmap = primitive.has_lightmap;
+    options.has_reflector = primitive.has_reflector;
     options.material_options = primitive.material_options;
     options.lights_options = params.lights.get_options();
     options.has_primtive_probe = primitive.envMap!=null;
+    options.is_reflect = params.camera.reflector!=null;
 
     let pipeline = GetPipelineStandard(options);
     passEncoder.setPipeline(pipeline);
-    passEncoder.setBindGroup(0, params.bind_group_camera);
+    passEncoder.setBindGroup(0, params.camera.bind_group);
     passEncoder.setBindGroup(1, primitive.bind_group);   
 
     if (params.lights.bind_group!=null)

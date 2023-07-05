@@ -68,6 +68,8 @@ function get_shader(options)
     let binding_lightmap = primitive_binding;
     if (options.has_lightmap) primitive_binding++;
 
+    if (options.has_reflector) primitive_binding+=3;
+
     let binding_primitive_probe = primitive_binding;
     if (options.has_primtive_probe) primitive_binding++;
 
@@ -124,6 +126,11 @@ struct Camera
 
 @group(0) @binding(0)
 var<uniform> uCamera: Camera;
+
+${condition(options.is_reflect,`
+@group(0) @binding(1)
+var<uniform> uMatrixReflector: mat4x4f;
+`)}
 
 struct Model
 {
@@ -865,6 +872,15 @@ ${condition(alpha_mask,`
     }
 `)}
 
+${condition(options.is_reflect,`
+    let pos_refl_eye = uMatrixReflector * vec4(uCamera.eyePos, 1.0);
+    let pos_refl_frag = uMatrixReflector * vec4(input.worldPos, 1.0);
+    if (pos_refl_eye.z * pos_refl_frag.z > 0.0)
+    {
+        discard;
+    }
+`)}
+
     var material : PhysicalMaterial;
 
 ${condition(mOpt.specular_glossiness,`
@@ -977,14 +993,20 @@ function GetPipelineSimple(options)
 
     if (!(signature in engine_ctx.cache.pipelines.simple))
     {
+        let camera_options = { has_reflector: options.is_reflect };
+        let camera_signature =  JSON.stringify(camera_options);
+        let camera_layout = engine_ctx.cache.bindGroupLayouts.perspective_camera[camera_signature];
+        
         let prim_options = {
             material: options.material_options,
             has_lightmap: options.has_lightmap,
+            has_reflector: options.has_reflector,
             has_envmap: options.has_primtive_probe
         };
         let prim_signature = JSON.stringify(prim_options);
         let primitive_layout = engine_ctx.cache.bindGroupLayouts.primitive[prim_signature];
-        let bindGroupLayouts = [engine_ctx.cache.bindGroupLayouts.perspective_camera, primitive_layout];
+        
+        let bindGroupLayouts = [camera_layout, primitive_layout];
         if (!LightsIsEmpty(options.lights_options))
         {
             let lights_signature = JSON.stringify(options.lights_options);
@@ -998,7 +1020,7 @@ function GetPipelineSimple(options)
         let shaderModule = engine_ctx.device.createShaderModule({ code });
 
         const depthStencil = {
-            depthWriteEnabled: options.alpha_mode == "Mask",
+            depthWriteEnabled: options.alpha_mode == "Mask" || (options.alpha_mode == "Opaque" && options.is_reflect),
             depthCompare: 'less-equal',
             format: 'depth32float'
         };
@@ -1106,7 +1128,7 @@ function GetPipelineSimple(options)
         };
 
         const primitive = {
-            frontFace: 'ccw',
+            frontFace: options.is_reflect?'cw':'ccw',
             cullMode:  options.material_options.doubleSided ? "none" : "back",
             topology: 'triangle-list'
         };
@@ -1197,13 +1219,15 @@ export function RenderSimple(passEncoder, params)
     options.is_msaa  = params.target.msaa;    
     options.has_color = primitive.color_buf != null;
     options.has_lightmap = primitive.has_lightmap;
+    options.has_reflector = primitive.has_reflector;
     options.material_options = primitive.material_options;
     options.lights_options = params.lights.get_options();
     options.has_primtive_probe = primitive.envMap!=null;
+    options.is_reflect = params.camera.reflector!=null;
 
     let pipeline = GetPipelineSimple(options);
     passEncoder.setPipeline(pipeline);
-    passEncoder.setBindGroup(0, params.bind_group_camera);
+    passEncoder.setBindGroup(0, params.camera.bind_group);
     passEncoder.setBindGroup(1, primitive.bind_group);   
 
     if (params.lights.bind_group!=null)

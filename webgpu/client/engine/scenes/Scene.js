@@ -17,6 +17,7 @@ export class Scene extends Object3D
     {
         this.simple_models = [];
         this.gltf_models = [];     
+        this.reflectors = [];
         this.lights.clear_lists();   
     }
 }

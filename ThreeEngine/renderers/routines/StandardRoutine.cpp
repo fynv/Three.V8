@@ -475,7 +475,8 @@ layout (std140, binding = BINDING_REFLECTOR_CAMERA) uniform ReflectorCamera
 	mat4 uReflViewMat;	
 	mat4 uReflInvProjMat;
 	mat4 uReflInvViewMat;	
-	vec3 uReflEyePos;
+	vec4 uReflEyePos;
+	vec4 uReflScissor;
 };
 
 layout (location = LOCATION_TEX_REFLECTOR) uniform sampler2D uTexReflector;
@@ -486,6 +487,9 @@ vec3 getRadiance(in vec3 worldPos, in vec3 reflectVec, float roughness, in vec3 
 	vec4 dir_view = uReflViewMat * vec4(reflectVec, 0.0);
 	vec4 proj = uReflProjMat * vec4(dir_view.xyz, 1.0);
 	proj*= 1.0/proj.w;
+	proj.xy = max(proj.xy, uReflScissor.xy);
+	proj.xy = min(proj.xy, uReflScissor.zw);
+
 	vec2 uv = vec2((proj.x + 1.0)*0.5, (proj.y + 1.0)*0.5);
 	vec3 rad = textureLod(uTexReflector, uv, 0.0).xyz;
 

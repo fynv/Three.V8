@@ -8,6 +8,7 @@ struct CameraConst
 	glm::mat4 InvProjMat;
 	glm::mat4 InvViewMat;
 	glm::vec4 EyePos;
+	glm::vec4 Scissor;
 };
 
 Camera::Camera()
@@ -64,5 +65,6 @@ void Camera::updateConstant()
 	c.InvProjMat = projectionMatrixInverse;
 	c.InvViewMat = matrixWorld;
 	c.EyePos = matrixWorld[3];
+	c.Scissor = glm::vec4(m_scissor.min_proj, m_scissor.max_proj);
 	m_constant.upload(&c);
 }

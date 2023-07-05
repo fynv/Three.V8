@@ -16,12 +16,20 @@ export class SimpleModel extends Object3D
         this.constant = engine_ctx.createBuffer0(128, GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST);
         this.setColor(0.8, 0.8, 0.8);    
         this.geometry.create_bind_group(this.constant, [this.material], this.textures);
+        this.reflector = null;
 
     }
 
     updateConstant()
     {
         UpdateConstant_Model(this.constant, this.matrixWorld);
+    }
+
+    set_reflector(reflector)
+    {
+        this.reflector = reflector;
+        this.geometry.create_bind_group(this.constant, [this.material], this.textures, null, this.reflector);
+
     }
 
     _create(geoGen, p_geo)

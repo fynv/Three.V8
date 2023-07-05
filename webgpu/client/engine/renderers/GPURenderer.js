@@ -5,6 +5,7 @@ import { Color } from "../math/Color.js"
 import { Vector3 } from "../math/Vector3.js"
 import { Vector4 } from "../math/Vector4.js"
 import { Matrix4 } from "../math/Matrix4.js"
+import { Quaternion } from "../math/Quaternion.js"
 import { RenderDepth, RenderDepthBundle} from "./routines/DepthOnly.js"
 import { DrawHemisphere, DrawHemisphereBundle } from "./routines/DrawHemisphere.js"
 import { DrawSkyBox, DrawSkyBoxBundle } from "./routines/DrawSkyBox.js"
@@ -29,6 +30,8 @@ import { FogRayMarchingEnv2, FogRayMarchingEnvBundle2} from "./routines/FogRayMa
 import { SimpleFogRayMarching, SimpleFogRayMarchingBundle } from "./routines/SimpleFogRayMarching.js"
 import { SimpleFogRayMarchingEnv, SimpleFogRayMarchingEnvBundle} from "./routines/SimpleFogRayMarchingEnv.js"
 import { SimpleFogRayMarchingEnv2, SimpleFogRayMarchingEnvBundle2} from "./routines/SimpleFogRayMarchingEnv2.js"
+import { Reflector } from "../cameras/Reflector.js"
+import { Vector2 } from "../math/Vector2.js"
 
 function toViewAABB(MV, min_pos, max_pos)
 {
@@ -94,7 +97,7 @@ function toViewAABB(MV, min_pos, max_pos)
     return { min_pos_view, max_pos_view };
 }
 
-function visible(MV, P, min_pos, max_pos)
+function visible(MV, P, min_pos, max_pos, scissor = { min_proj: new Vector2(-1,-1), max_proj: new Vector2(1,1) })
 {
     let { min_pos_view, max_pos_view} = toViewAABB(MV, min_pos, max_pos);
 
@@ -122,7 +125,7 @@ function visible(MV, P, min_pos, max_pos)
     max_pos_proj.applyMatrix4(P);
     max_pos_proj.multiplyScalar(1.0/max_pos_proj.w);
 
-    return max_pos_proj.x >= -1.0 && min_pos_proj.x <= 1.0 && max_pos_proj.y >= -1.0 && min_pos_proj.y <= 1.0;
+    return max_pos_proj.x >= scissor.min_proj.x && min_pos_proj.x <= scissor.max_proj.x && max_pos_proj.y >= scissor.min_proj.y && min_pos_proj.y <= scissor.max_proj.y;
 
 }
 
@@ -341,21 +344,25 @@ export class GPURenderer
 
         let lights = scene.lights;
         lights.fog = fog;
-        
+
         scene.traverse((obj)=>{
             if(obj!=null)
             {
                 if (obj instanceof SimpleModel)
                 {
-                    scene.simple_models.push(obj);
+                    scene.simple_models.push(obj);                    
                 }         
                 else if (obj instanceof GLTFModel)
                 {
-                    scene.gltf_models.push(obj);
+                    scene.gltf_models.push(obj);                    
                 }
                 else if (obj instanceof DirectionalLight)
                 {                    
                     lights.directional_lights.push(obj);
+                }
+                else if (obj instanceof Reflector)
+                {                    
+                    scene.reflectors.push(obj);
                 }
             }
             obj.updateWorldMatrix(false, false);
@@ -575,7 +582,7 @@ export class GPURenderer
         let params = {            
             target,
             material_list: [material],
-            bind_group_camera: camera.bind_group,            
+            camera,
             primitive: model.geometry,
         };
 
@@ -597,6 +604,11 @@ export class GPURenderer
 
     _render_depth_gltf_model(passEncoder, model, camera, target)
     {
+        let scissor = { min_proj: new Vector2(-1,-1), max_proj: new Vector2(1,1) };
+        if (camera.scissor!=null)
+        {
+            scissor = camera.scissor;
+        }
         for (let mesh of model.meshes)
         {
             let matrix = model.matrixWorld.clone();
@@ -611,7 +623,7 @@ export class GPURenderer
             for (let primitive of mesh.primitives)
             {
                 if (primitive.uuid == 0) continue;
-                if (!visible(MV, camera.projectionMatrix, primitive.min_pos, primitive.max_pos)) continue;
+                if (!visible(MV, camera.projectionMatrix, primitive.min_pos, primitive.max_pos, scissor)) continue;
 
                 let idx_material = primitive.material_idx;
                 let material = model.materials[idx_material];
@@ -621,7 +633,7 @@ export class GPURenderer
                 let params = {                    
                     target,
                     material_list: model.materials,
-                    bind_group_camera: camera.bind_group,            
+                    camera, 
                     primitive: primitive,
                 };
 
@@ -642,6 +654,8 @@ export class GPURenderer
 
     _render_simple_model(passEncoder, model, camera, lights, target, pass)
     {
+        if (camera.reflector!=null && model.reflector == camera.reflector) return;
+
         if (model.geometry.uuid == 0) return;
         let material = model.material;
 
@@ -657,7 +671,7 @@ export class GPURenderer
         let params = {            
             target,
             material_list: [material],
-            bind_group_camera: camera.bind_group,
+            camera,
             primitive: model.geometry,
             lights
         };
@@ -681,7 +695,15 @@ export class GPURenderer
     }
 
     _render_gltf_model(passEncoder, model, camera, lights, target, pass)
-    {        
+    {      
+        if (camera.reflector!=null && model.reflector == camera.reflector) return;
+
+        let scissor = { min_proj: new Vector2(-1,-1), max_proj: new Vector2(1,1) };
+        if (camera.scissor!=null)
+        {
+            scissor = camera.scissor;
+        }
+
         for (let mesh of model.meshes)
         {
             let matrix = model.matrixWorld.clone();
@@ -696,7 +718,7 @@ export class GPURenderer
             for (let primitive of mesh.primitives)
             {
                 if (primitive.uuid == 0) continue;
-                if (!visible(MV, camera.projectionMatrix, primitive.min_pos, primitive.max_pos)) continue;
+                if (!visible(MV, camera.projectionMatrix, primitive.min_pos, primitive.max_pos, scissor)) continue;
 
                 let idx_material = primitive.material_idx;
                 let material = model.materials[idx_material];
@@ -713,7 +735,7 @@ export class GPURenderer
                 let params = {                    
                     target,
                     material_list: model.materials,
-                    bind_group_camera: camera.bind_group,            
+                    camera,          
                     primitive: primitive,
                     lights
                 };
@@ -740,6 +762,12 @@ export class GPURenderer
     {
         camera.updateMatrixWorld(false);
     	camera.updateConstant();
+        
+        let scissor = { min_proj: new Vector2(-1,-1), max_proj: new Vector2(1,1), origin: new Vector2(0,0), size: new Vector2(target.width, target.height) };
+        if (camera.scissor!=null)
+        {
+            scissor = camera.scissor;
+        }
 
         let simple_models = [...scene.simple_models];
         let gltf_models =  [...scene.gltf_models];
@@ -753,7 +781,7 @@ export class GPURenderer
             let model = simple_models[i];
             let MV = new Matrix4();
             MV.multiplyMatrices(camera.matrixWorldInverse, model.matrixWorld);
-            if (!visible(MV, camera.projectionMatrix, model.geometry.min_pos, model.geometry.max_pos))
+            if (!visible(MV, camera.projectionMatrix, model.geometry.min_pos, model.geometry.max_pos, scissor))
             {
                 simple_models.splice(i,1);
                 i--;
@@ -777,7 +805,7 @@ export class GPURenderer
             let model = gltf_models[i];
             let MV = new Matrix4();
             MV.multiplyMatrices(camera.matrixWorldInverse, model.matrixWorld);
-            if (!visible(MV, camera.projectionMatrix, model.min_pos, model.max_pos))
+            if (!visible(MV, camera.projectionMatrix, model.min_pos, model.max_pos, scissor))
             {
                 gltf_models.splice(i,1);
                 i--;
@@ -826,7 +854,7 @@ export class GPURenderer
         else
         {
             colorAttachment.view = target.view_video;
-        }
+        }      
         
         if(scene.background!=null)
         {
@@ -849,10 +877,10 @@ export class GPURenderer
                 );
             
                 passEncoder.setScissorRect(
-                    0,
-                    0,
-                    target.width,
-                    target.height,
+                    scissor.origin.x,
+                    scissor.origin.y,
+                    scissor.size.x,
+                    scissor.size.y,
                 );
                 
                 this._draw_hemisphere(passEncoder, target, camera, scene.background);        
@@ -880,10 +908,10 @@ export class GPURenderer
                     );
                 
                     passEncoder.setScissorRect(
-                        0,
-                        0,
-                        target.width,
-                        target.height,
+                        scissor.origin.x,
+                        scissor.origin.y,
+                        scissor.size.x,
+                        scissor.size.y,
                     );
 
                     this._draw_skybox(passEncoder, target, camera, scene.background);    
@@ -914,7 +942,7 @@ export class GPURenderer
             depthStoreOp: 'store',
         };
 
-        if (has_opaque)
+        if (camera.reflector==null && has_opaque)
         {            
             let renderPassDesc_depth = {
                 colorAttachments: [],
@@ -932,10 +960,10 @@ export class GPURenderer
             );
         
             passEncoder.setScissorRect(
-                0,
-                0,
-                target.width,
-                target.height,
+                scissor.origin.x,
+                scissor.origin.y,
+                scissor.size.x,
+                scissor.size.y,
             );
 
             for (let model of simple_models)
@@ -978,10 +1006,10 @@ export class GPURenderer
             );
         
             passEncoder.setScissorRect(
-                0,
-                0,
-                target.width,
-                target.height,
+                scissor.origin.x,
+                scissor.origin.y,
+                scissor.size.x,
+                scissor.size.y,
             );
             
             for (let model of simple_models)
@@ -1036,10 +1064,10 @@ export class GPURenderer
             );
         
             passEncoder.setScissorRect(
-                0,
-                0,
-                target.width,
-                target.height,
+                scissor.origin.x,
+                scissor.origin.y,
+                scissor.size.x,
+                scissor.size.y,
             );
 
             for (let model of simple_models)
@@ -1073,10 +1101,10 @@ export class GPURenderer
                 );
             
                 passEncoder.setScissorRect(
-                    0,
-                    0,
-                    target.width,
-                    target.height,
+                    scissor.origin.x,
+                    scissor.origin.y,
+                    scissor.size.x,
+                    scissor.size.y,
                 );
 
                 ResolveWeightedOIT(passEncoder, target);
@@ -1091,7 +1119,7 @@ export class GPURenderer
     {
         let params = {
             target,
-            bind_group_camera: camera.bind_group,
+            camera,
             bind_group_fog: fog.bind_group,
             lights
         };
@@ -1146,6 +1174,12 @@ export class GPURenderer
         let commandEncoder = engine_ctx.device.createCommandEncoder();
         this._render_scene(commandEncoder, scene, camera, target);
 
+        let scissor = { min_proj: new Vector2(-1,-1), max_proj: new Vector2(1,1), origin: new Vector2(0,0), size: new Vector2(target.width, target.height) };
+        if (camera.scissor!=null)
+        {
+            scissor = camera.scissor;
+        }
+
         if (scene.fog!=null && scene.fog.density>0.0)
         {
             let colorAttachment =  {                            
@@ -1169,10 +1203,10 @@ export class GPURenderer
             );
         
             passEncoder.setScissorRect(
-                0,
-                0,
-                target.width,
-                target.height,
+                scissor.origin.x,
+                scissor.origin.y,
+                scissor.size.x,
+                scissor.size.y,
             );
             
             this._render_fog(passEncoder, camera, scene.lights, scene.fog, target);
@@ -1186,6 +1220,8 @@ export class GPURenderer
 
     _render_simple_model_simple(passEncoder, model, camera, lights, target, pass)
     {
+        if (camera.reflector!=null && model.reflector == camera.reflector) return;
+
         if (model.geometry.uuid == 0) return;
         let material = model.material;
 
@@ -1201,7 +1237,7 @@ export class GPURenderer
         let params = {            
             target,
             material_list: [material],
-            bind_group_camera: camera.bind_group,
+            camera,
             primitive: model.geometry,
             lights
         };
@@ -1225,6 +1261,14 @@ export class GPURenderer
 
     _render_gltf_model_simple(passEncoder, model, camera, lights, target, pass)
     {
+        if (camera.reflector!=null && model.reflector == camera.reflector) return;
+
+        let scissor = { min_proj: new Vector2(-1,-1), max_proj: new Vector2(1,1) };
+        if (camera.scissor!=null)
+        {
+            scissor = camera.scissor;
+        }
+
         for (let mesh of model.meshes)
         {
             let matrix = model.matrixWorld.clone();
@@ -1239,7 +1283,7 @@ export class GPURenderer
             for (let primitive of mesh.primitives)
             {
                 if (primitive.uuid == 0) continue;
-                if (!visible(MV, camera.projectionMatrix, primitive.min_pos, primitive.max_pos)) continue;
+                if (!visible(MV, camera.projectionMatrix, primitive.min_pos, primitive.max_pos, scissor)) continue;
 
                 let idx_material = primitive.material_idx;
                 let material = model.materials[idx_material];
@@ -1256,7 +1300,7 @@ export class GPURenderer
                 let params = {                    
                     target,
                     material_list: model.materials,
-                    bind_group_camera: camera.bind_group,            
+                    camera,
                     primitive: primitive,
                     lights
                 };
@@ -1284,6 +1328,12 @@ export class GPURenderer
         camera.updateMatrixWorld(false);
     	camera.updateConstant();
 
+        let scissor = { min_proj: new Vector2(-1,-1), max_proj: new Vector2(1,1), origin: new Vector2(0,0), size: new Vector2(target.width, target.height) };
+        if (camera.scissor!=null)
+        {
+            scissor = camera.scissor;
+        }
+
         let simple_models = [...scene.simple_models];
         let gltf_models =  [...scene.gltf_models];
         
@@ -1296,7 +1346,7 @@ export class GPURenderer
             let model = simple_models[i];
             let MV = new Matrix4();
             MV.multiplyMatrices(camera.matrixWorldInverse, model.matrixWorld);
-            if (!visible(MV, camera.projectionMatrix, model.geometry.min_pos, model.geometry.max_pos))
+            if (!visible(MV, camera.projectionMatrix, model.geometry.min_pos, model.geometry.max_pos, scissor))
             {
                 simple_models.splice(i,1);
                 i--;
@@ -1320,7 +1370,7 @@ export class GPURenderer
             let model = gltf_models[i];
             let MV = new Matrix4();
             MV.multiplyMatrices(camera.matrixWorldInverse, model.matrixWorld);
-            if (!visible(MV, camera.projectionMatrix, model.min_pos, model.max_pos))
+            if (!visible(MV, camera.projectionMatrix, model.min_pos, model.max_pos, scissor))
             {
                 gltf_models.splice(i,1);
                 i--;
@@ -1370,7 +1420,7 @@ export class GPURenderer
         {
             colorAttachment.view = target.view_video;
         }
-
+       
         if(scene.background!=null)
         {
             if (scene.background instanceof HemisphereBackground)
@@ -1392,10 +1442,10 @@ export class GPURenderer
                 );
             
                 passEncoder.setScissorRect(
-                    0,
-                    0,
-                    target.width,
-                    target.height,
+                    scissor.origin.x,
+                    scissor.origin.y,
+                    scissor.size.x,
+                    scissor.size.y,
                 );
                 
                 this._draw_hemisphere(passEncoder, target, camera, scene.background);        
@@ -1423,10 +1473,10 @@ export class GPURenderer
                     );
                 
                     passEncoder.setScissorRect(
-                        0,
-                        0,
-                        target.width,
-                        target.height,
+                        scissor.origin.x,
+                        scissor.origin.y,
+                        scissor.size.x,
+                        scissor.size.y,
                     );
 
                     this._draw_skybox(passEncoder, target, camera, scene.background);    
@@ -1457,7 +1507,7 @@ export class GPURenderer
             depthStoreOp: 'store',
         };
 
-        if (has_opaque)
+        if (camera.reflector==null && has_opaque)
         {            
             let renderPassDesc_depth = {
                 colorAttachments: [],
@@ -1475,10 +1525,10 @@ export class GPURenderer
             );
         
             passEncoder.setScissorRect(
-                0,
-                0,
-                target.width,
-                target.height,
+                scissor.origin.x,
+                scissor.origin.y,
+                scissor.size.x,
+                scissor.size.y,
             );
 
             for (let model of simple_models)
@@ -1521,10 +1571,10 @@ export class GPURenderer
             );
         
             passEncoder.setScissorRect(
-                0,
-                0,
-                target.width,
-                target.height,
+                scissor.origin.x,
+                scissor.origin.y,
+                scissor.size.x,
+                scissor.size.y,
             );
 
             for (let model of simple_models)
@@ -1579,10 +1629,10 @@ export class GPURenderer
             );
         
             passEncoder.setScissorRect(
-                0,
-                0,
-                target.width,
-                target.height,
+                scissor.origin.x,
+                scissor.origin.y,
+                scissor.size.x,
+                scissor.size.y,
             );
 
             for (let model of simple_models)
@@ -1616,10 +1666,10 @@ export class GPURenderer
                 );
             
                 passEncoder.setScissorRect(
-                    0,
-                    0,
-                    target.width,
-                    target.height,
+                    scissor.origin.x,
+                    scissor.origin.y,
+                    scissor.size.x,
+                    scissor.size.y,
                 );
 
                 ResolveWeightedOIT(passEncoder, target);
@@ -1634,7 +1684,7 @@ export class GPURenderer
     {
         let params = {
             target,
-            bind_group_camera: camera.bind_group,
+            camera,
             bind_group_fog: fog.bind_group,
             lights
         };
@@ -1689,6 +1739,12 @@ export class GPURenderer
         let commandEncoder = engine_ctx.device.createCommandEncoder();
         this._render_scene_simple(commandEncoder, scene, camera, target);
 
+        let scissor = { min_proj: new Vector2(-1,-1), max_proj: new Vector2(1,1), origin: new Vector2(0,0), size: new Vector2(target.width, target.height) };
+        if (camera.scissor!=null)
+        {
+            scissor = camera.scissor;
+        }        
+
         if (scene.fog!=null && scene.fog.density>0.0)
         {
             let colorAttachment =  {                            
@@ -1712,10 +1768,10 @@ export class GPURenderer
             );
         
             passEncoder.setScissorRect(
-                0,
-                0,
-                target.width,
-                target.height,
+                scissor.origin.x,
+                scissor.origin.y,
+                scissor.size.x,
+                scissor.size.y,
             );
             
             this._render_fog_simple(passEncoder, camera, scene.lights, scene.fog, target);
@@ -1731,7 +1787,72 @@ export class GPURenderer
 
     render(scene, camera, target)
     {
-        this._pre_render(scene);
+        this._pre_render(scene);        
+
+        camera.updateMatrixWorld(false);
+        
+        for (let reflector of scene.reflectors)
+        {
+            reflector.updateConstant();
+
+            let A = reflector.matrixWorld.clone();
+            let B = A.clone();
+            B.elements[8] = -B.elements[8];
+            B.elements[9] = -B.elements[9];
+            B.elements[10] = -B.elements[10];
+            A.invert();
+            B.multiply(A);
+
+            reflector.camera.position.copy(camera.position);
+            reflector.camera.quaternion.copy(camera.quaternion);
+            reflector.camera.scale.copy(camera.scale);
+            reflector.camera.applyMatrix4(B);
+
+            if (target.width!=reflector.target.width || target.height!=reflector.target.height)
+            {        
+                reflector.camera.fov = camera.fov;
+                reflector.camera.aspect = camera.aspect;
+                reflector.camera.near = camera.near;
+                reflector.camera.far = camera.far;
+                reflector.camera.updateProjectionMatrix();
+                reflector.target.update(target.width, target.height);
+                reflector.resized = true;
+            }            
+            
+            reflector.calc_scissor();
+            this._render_simple(scene, reflector.camera, reflector.target);     
+        }
+
+        let reflector = null;
+        scene.traverse((obj)=>{
+            if(obj!=null)
+            {
+                if (obj instanceof SimpleModel)
+                {                    
+                    if (reflector!=null && (obj.reflector!= reflector || reflector.resized))
+                    {                
+                        obj.set_reflector(reflector);
+                    }
+                }         
+                else if (obj instanceof GLTFModel)
+                {                    
+                    if (reflector!=null && (obj.reflector!= reflector || reflector.resized))
+                    {                
+                        obj.set_reflector(reflector);
+                    }
+                }               
+                else if (obj instanceof Reflector)
+                {
+                    reflector = obj;                 
+                }
+            }           
+        });
+
+        for (let reflector of scene.reflectors)
+        {
+            reflector.resized = false;        
+        }
+
         this._render(scene, camera, target);       
 
     }

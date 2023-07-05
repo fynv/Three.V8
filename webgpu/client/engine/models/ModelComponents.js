@@ -105,7 +105,7 @@ export class Primitive
         this.uuid = MathUtils.generateUUID();
     }
 
-    create_bind_group(model_constant, material_list, tex_list, lightmap = null)
+    create_bind_group(model_constant, material_list, tex_list, lightmap = null, reflector = null)
     {        
         let material = material_list[this.material_idx];
        
@@ -116,11 +116,14 @@ export class Primitive
 
         this.material_options = material.get_options(tex_list);
         this.has_lightmap = lightmap != null;
+        this.has_reflector = reflector != null;
         let options = {
             material: this.material_options,
             has_lightmap: this.has_lightmap,
+            has_reflector: this.has_reflector,
             has_envmap: this.envMap !=null
         };
+        
         let signature = JSON.stringify(options);
         if (!(signature in engine_ctx.cache.bindGroupLayouts.primitive))
         {
@@ -177,6 +180,39 @@ export class Primitive
                     }
                 });
                 binding++;
+            }
+
+            if (reflector!=null)
+            {
+                entries.push({
+                    binding,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture:{
+                        viewDimension: "2d"
+                    }
+                });
+                binding++;
+
+                entries.push({
+                    binding,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture:{
+                        viewDimension: "2d",
+                        multisampled: true,
+                        sampleType: "depth"
+                    }
+                });
+                binding++;
+
+                entries.push({
+                    binding,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer:{
+                        type: "uniform"
+                    }
+                });
+                binding++;
+
             }
 
             if (this.envMap!=null)
@@ -270,6 +306,29 @@ export class Primitive
             entries.push({
                 binding,
                 resource: lightmap.createView()
+            });
+            binding++;
+        }
+
+        if (reflector!=null)
+        {
+            entries.push({
+                binding,
+                resource: reflector.target.view_video
+            });
+            binding++;
+
+            entries.push({
+                binding,
+                resource: reflector.target.view_depth
+            });
+            binding++;
+
+            entries.push({
+                binding,
+                resource:{
+                    buffer: reflector.camera.constant
+                }
             });
             binding++;
         }

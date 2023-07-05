@@ -189,6 +189,7 @@ function GetPipelineDirectionalShadow(options)
         let prim_options = {
             material: options.material_options,
             has_lightmap: options.has_lightmap,
+            has_reflector: options.has_reflector,
             has_envmap: options.has_primtive_probe
         };
         let prim_signature = JSON.stringify(prim_options);
@@ -306,6 +307,7 @@ export function RenderDirectionalShadow(passEncoder, params)
     options.has_color = primitive.color_buf != null;
     options.force_cull = params.force_cull;
     options.has_lightmap = primitive.has_lightmap;
+    options.has_reflector = primitive.has_reflector;
 	options.material_options = primitive.material_options;
     options.has_primtive_probe = primitive.envMap!=null;
 

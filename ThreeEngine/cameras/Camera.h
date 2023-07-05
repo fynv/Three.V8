@@ -3,6 +3,15 @@
 #include "core/Object3D.h"
 #include "renderers/GLUtils.h"
 
+struct Scissor
+{
+	glm::vec2 min_proj = glm::vec2(-1.0f, -1.0f);
+	glm::vec2 max_proj = glm::vec2(1.0f, 1.0f);
+	glm::ivec2 origin = glm::ivec2(-1,-1);
+	glm::ivec2 size = glm::ivec2(-1, -1);
+};
+
+
 class Reflector;
 class Camera : public Object3D
 {
@@ -23,4 +32,6 @@ public:
 
 	GLBuffer m_constant;
 	void updateConstant();
+
+	Scissor m_scissor;
 };

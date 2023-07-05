@@ -203,7 +203,7 @@ inline void toViewAABB(const glm::mat4& MV, const glm::vec3& min_pos, const glm:
 	}
 }
 
-inline bool visible(const glm::mat4& MV, const glm::mat4& P, const glm::vec3& min_pos, const glm::vec3& max_pos)
+inline bool visible(const glm::mat4& MV, const glm::mat4& P, const glm::vec3& min_pos, const glm::vec3& max_pos, const Scissor& scissor = Scissor())
 {
 	glm::vec3 min_pos_view, max_pos_view;
 	toViewAABB(MV, min_pos, max_pos, min_pos_view, max_pos_view);
@@ -227,7 +227,7 @@ inline bool visible(const glm::mat4& MV, const glm::mat4& P, const glm::vec3& mi
 	glm::vec4 max_pos_proj = P * glm::vec4(max_pos_view.x, max_pos_view.y, min_pos_view.z, 1.0f);
 	max_pos_proj /= max_pos_proj.w;
 
-	return  max_pos_proj.x >= -1.0f && min_pos_proj.x <= 1.0f && max_pos_proj.y >= -1.0f && min_pos_proj.y <= 1.0f;
+	return  max_pos_proj.x >= scissor.min_proj.x && min_pos_proj.x <= scissor.max_proj.x && max_pos_proj.y >= scissor.min_proj.y && min_pos_proj.y <= scissor.max_proj.y;
 }
 
 void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, Pass pass)
@@ -458,7 +458,7 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 			for (size_t j = 0; j < mesh.primitives.size(); j++)
 			{
 				Primitive& primitive = mesh.primitives[j];
-				if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos)) continue;
+				if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos, p_camera->m_scissor)) continue;
 
 				int idx_list = primitive.material_idx;
 				offset_lists[idx_list].push_back((void*)(model->batch_map[i][j]));
@@ -540,7 +540,7 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 			for (size_t j = 0; j < mesh.primitives.size(); j++)
 			{
 				Primitive& primitive = mesh.primitives[j];
-				if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos)) continue;
+				if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos, p_camera->m_scissor)) continue;
 
 				const MeshStandardMaterial* material = material_lst[primitive.material_idx];
 				if (pass == Pass::Opaque)
@@ -1049,7 +1049,7 @@ void GLRenderer::render_model_simple(Camera* p_camera, const Lights& lights, con
 			for (size_t j = 0; j < mesh.primitives.size(); j++)
 			{
 				Primitive& primitive = mesh.primitives[j];
-				if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos)) continue;
+				if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos, p_camera->m_scissor)) continue;
 
 				int idx_list = primitive.material_idx;
 				offset_lists[idx_list].push_back((void*)(model->batch_map[i][j]));
@@ -1121,7 +1121,7 @@ void GLRenderer::render_model_simple(Camera* p_camera, const Lights& lights, con
 			for (size_t j = 0; j < mesh.primitives.size(); j++)
 			{
 				Primitive& primitive = mesh.primitives[j];
-				if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos)) continue;
+				if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos, p_camera->m_scissor)) continue;
 
 				const MeshStandardMaterial* material = material_lst[primitive.material_idx];
 				if (pass == Pass::Opaque)
@@ -2149,7 +2149,7 @@ void GLRenderer::render_depth_model(Camera* p_camera, GLTFModel* model)
 			for (size_t j = 0; j < mesh.primitives.size(); j++)
 			{
 				Primitive& primitive = mesh.primitives[j];
-				if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos)) continue;
+				if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos, p_camera->m_scissor)) continue;
 
 				int idx_list = primitive.material_idx;
 				offset_lists[idx_list].push_back((void*)(model->batch_map[i][j]));
@@ -2199,7 +2199,7 @@ void GLRenderer::render_depth_model(Camera* p_camera, GLTFModel* model)
 			for (size_t j = 0; j < mesh.primitives.size(); j++)
 			{
 				Primitive& primitive = mesh.primitives[j];
-				if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos)) continue;
+				if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos, p_camera->m_scissor)) continue;
 
 				const MeshStandardMaterial* material = material_lst[primitive.material_idx];
 				if (material->alphaMode != AlphaMode::Opaque) continue;
@@ -2378,7 +2378,7 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 	for (size_t i = 0; i < simple_models.size(); i++)
 	{
 		SimpleModel* model = simple_models[i];
-		if (!visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->geometry.min_pos, model->geometry.max_pos))
+		if (!visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->geometry.min_pos, model->geometry.max_pos, camera.m_scissor))
 		{
 			simple_models.erase(simple_models.begin() + i);
 			i--;
@@ -2400,7 +2400,7 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 	for (size_t i = 0; i < gltf_models.size(); i++)
 	{
 		GLTFModel* model = gltf_models[i];
-		if (!visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->m_min_pos, model->m_max_pos))
+		if (!visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->m_min_pos, model->m_max_pos, camera.m_scissor))
 		{
 			gltf_models.erase(gltf_models.begin() + i);
 			i--;
@@ -2425,8 +2425,17 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 
 	// render scene
 	target.bind_buffer();
-	glEnable(GL_FRAMEBUFFER_SRGB);
+	glEnable(GL_FRAMEBUFFER_SRGB);	
 	glViewport(0, 0, target.m_width, target.m_height);
+	if (camera.m_scissor.origin.x >= 0 && camera.m_scissor.origin.y >= 0)
+	{
+		glEnable(GL_SCISSOR_TEST);
+		glScissor(camera.m_scissor.origin.x, camera.m_scissor.origin.y, camera.m_scissor.size.x, camera.m_scissor.size.y);
+	}
+	else
+	{
+		glDisable(GL_SCISSOR_TEST);
+	}
 
 	while (scene.background != nullptr)
 	{
@@ -2548,7 +2557,7 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 				{
 					SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
 					if (model != nullptr &&
-						visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->geometry.min_pos, model->geometry.max_pos))
+						visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->geometry.min_pos, model->geometry.max_pos, camera.m_scissor))
 					{
 						update_model(model);
 						render_model(&camera, lights, fog, model, target, Pass::Opaque);
@@ -2705,7 +2714,7 @@ void GLRenderer::_render_scene_simple(Scene& scene, Camera& camera, GLRenderTarg
 	for (size_t i = 0; i < simple_models.size(); i++)
 	{
 		SimpleModel* model = simple_models[i];
-		if (!visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->geometry.min_pos, model->geometry.max_pos))
+		if (!visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->geometry.min_pos, model->geometry.max_pos, camera.m_scissor))
 		{
 			simple_models.erase(simple_models.begin() + i);
 			i--;
@@ -2727,7 +2736,7 @@ void GLRenderer::_render_scene_simple(Scene& scene, Camera& camera, GLRenderTarg
 	for (size_t i = 0; i < gltf_models.size(); i++)
 	{
 		GLTFModel* model = gltf_models[i];
-		if (!visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->m_min_pos, model->m_max_pos))
+		if (!visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->m_min_pos, model->m_max_pos, camera.m_scissor))
 		{
 			gltf_models.erase(gltf_models.begin() + i);
 			i--;
@@ -2754,6 +2763,15 @@ void GLRenderer::_render_scene_simple(Scene& scene, Camera& camera, GLRenderTarg
 	target.bind_buffer();
 	glEnable(GL_FRAMEBUFFER_SRGB);
 	glViewport(0, 0, target.m_width, target.m_height);
+	if (camera.m_scissor.origin.x >= 0 && camera.m_scissor.origin.y >= 0)
+	{
+		glEnable(GL_SCISSOR_TEST);
+		glScissor(camera.m_scissor.origin.x, camera.m_scissor.origin.y, camera.m_scissor.size.x, camera.m_scissor.size.y);
+	}
+	else
+	{
+		glDisable(GL_SCISSOR_TEST);
+	}
 
 	while (scene.background != nullptr)
 	{
@@ -3115,7 +3133,9 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 				reflector->m_camera.updateProjectionMatrix();
 				reflector->m_target.update_framebuffers(target.m_width, target.m_height);
 			}
-			this->_render_simple(scene, reflector->m_camera, reflector->m_target);			
+
+			reflector->calc_scissor();
+			this->_render_simple(scene, reflector->m_camera, reflector->m_target);
 		}
 
 	}

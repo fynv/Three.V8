@@ -18,6 +18,11 @@ struct Camera
 @group(0) @binding(0)
 var<uniform> uCamera: Camera;
 
+${condition(options.is_reflect,`
+@group(0) @binding(1)
+var<uniform> uMatrixReflector: mat4x4f;
+`)}
+
 struct VSOut 
 {
     @builtin(position) Position: vec4f,
@@ -154,6 +159,18 @@ ${condition(options.is_msaa,`
     let dis = length(pos_view.xyz);
 
     let dir = (uCamera.invViewMat * vec4(pos_view.xyz/dis, 0.0)).xyz;
+
+    var start = 0.0;
+${condition(options.is_reflect,`
+    let pos_refl_eye = uMatrixReflector * vec4(uCamera.eyePos, 1.0);
+    let dir_refl = uMatrixReflector * vec4(dir, 0.0);
+    if (dir_refl.z * pos_refl_eye.z>0) 
+    {
+        return vec4(0.0);
+    }
+    start = -pos_refl_eye.z/dir_refl.z;
+`)}
+
     var step = dis/f32(uFog.max_num_steps);
     if (step<uFog.min_step) 
     {
@@ -165,7 +182,7 @@ ${condition(options.is_msaa,`
     let delta = IGN(i32(coord_pix.x), i32(coord_pix.y));
 
     var col = vec3(0.0);
-    let start =  step * (delta - 0.5);
+    start +=  step * (delta - 0.5);
     for (var t = start; t<dis; t+= step)
     {
         let _step = min(step, dis - t);
@@ -242,6 +259,15 @@ fn fs_main(@builtin(position) coord_pix: vec4f, @location(0) vPosProj: vec2f) ->
 		    end = min(min(dis, max_dis.x), min(max_dis.y, max_dis.z));
         }
 
+${condition(options.is_reflect,`
+        let pos_refl_eye = uMatrixReflector * vec4(uCamera.eyePos, 1.0);
+        let dir_refl = uMatrixReflector * vec4(dir, 0.0);
+        if (dir_refl.z * pos_refl_eye.z>0) 
+        {
+            return vec4(0.0);
+        }
+        start = max(start, -pos_refl_eye.z/dir_refl.z);
+`)}
         var step = (end - start)/f32(uFog.max_num_steps);
         if (step<uFog.min_step) 
         {
@@ -294,12 +320,15 @@ function GetPipelineFogRayMarching(options)
 
     if (!(signature in engine_ctx.cache.pipelines.fog_ray_marching))
     {
+        let camera_options = { has_reflector: options.is_reflect };
+        let camera_signature =  JSON.stringify(camera_options);
+        
         let options2 = { msaa: options.is_msaa};
         let signature2 = JSON.stringify(options2);
         let options3 = { has_shadow: options.has_shadow};
         let signature3 = JSON.stringify(options3);
         let bindGroupLayouts = [
-            engine_ctx.cache.bindGroupLayouts.perspective_camera, 
+            engine_ctx.cache.bindGroupLayouts.perspective_camera[camera_signature], 
             engine_ctx.cache.bindGroupLayouts.fog, 
             engine_ctx.cache.bindGroupLayouts.depth[signature2], 
             engine_ctx.cache.bindGroupLayouts.fog_directional[signature3]
@@ -368,10 +397,11 @@ export function FogRayMarching(passEncoder, params)
         options.is_msaa  = params.target.msaa;
         options.view_format= params.target.view_format;
         options.has_shadow = light.shadow!=null;
+        options.is_reflect = params.camera.reflector!=null;
 
         let pipeline = GetPipelineFogRayMarching(options);
         passEncoder.setPipeline(pipeline);
-        passEncoder.setBindGroup(0, params.bind_group_camera);
+        passEncoder.setBindGroup(0, params.camera.bind_group);
         passEncoder.setBindGroup(1, params.bind_group_fog);
         passEncoder.setBindGroup(2, params.target.bind_group_depth);
         passEncoder.setBindGroup(3, params.lights.bind_group_fog_directional[i]);

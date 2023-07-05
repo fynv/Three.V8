@@ -24,6 +24,7 @@ export class GLTFModel extends Object3D
         this.skins_loaded = false;
         this.needUpdateSkinnedMeshes = false;
         this.lightmap = null;
+        this.reflector = null;
         this.animations = [];
         this.animation_dict = {};
         this.current_playing = [];
@@ -211,9 +212,22 @@ export class GLTFModel extends Object3D
         {       
             for (let prim of mesh.primitives)
             {
-                prim.create_bind_group(mesh.constant, this.materials, this.textures, this.lightmap);
+                prim.create_bind_group(mesh.constant, this.materials, this.textures, this.lightmap, this.reflector);
             }
         }
+    }
+
+    set_reflector(reflector)
+    {
+        this.reflector = reflector;
+        for (let mesh of this.meshes)
+        {       
+            for (let prim of mesh.primitives)
+            {
+                prim.create_bind_group(mesh.constant, this.materials, this.textures, this.lightmap, this.reflector);
+            }
+        }
+
     }
 
     setAnimationFrame(frame, no_pending = false)
