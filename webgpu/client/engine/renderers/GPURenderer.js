@@ -475,7 +475,7 @@ export class GPURenderer
                 if (prim.envMap == null)
                 {
                     prim.envMap = new EnvironmentMap();
-                    prim.create_bind_group(model.constant, [model.material], model.textures);
+                    prim.create_bind_group(model.constant, [model.material], model.textures, null, model.reflector);
                 }
                 let position = new Vector3();
                 position.addVectors(prim.min_pos, prim.max_pos);
@@ -505,7 +505,7 @@ export class GPURenderer
                         if (prim.envMap == null)
                         {
                             prim.envMap = new EnvironmentMap();
-                            prim.create_bind_group(mesh.constant, model.materials, model.textures, model.lightmap);
+                            prim.create_bind_group(mesh.constant, model.materials, model.textures, model.lightmap, null, model.reflector);
                         }
                         let position = new Vector3();
                         position.addVectors(prim.min_pos, prim.max_pos);
@@ -528,7 +528,7 @@ export class GPURenderer
                 if (prim.envMap == null)
                 {
                     prim.envMap = new EnvironmentMap();
-                    prim.create_bind_group(model.constant, [model.material], model.textures);
+                    prim.create_bind_group(model.constant, [model.material], model.textures, null, model.reflector);
                 }
                 let position = new Vector3();
                 position.addVectors(prim.min_pos, prim.max_pos);
@@ -557,7 +557,7 @@ export class GPURenderer
                         if (prim.envMap == null)
                         {
                             prim.envMap = new EnvironmentMap();
-                            prim.create_bind_group(mesh.constant, model.materials, model.textures, model.lightmap);
+                            prim.create_bind_group(mesh.constant, model.materials, model.textures, model.lightmap, null, model.reflector);
                         }
                         let position = new Vector3();
                         position.addVectors(prim.min_pos, prim.max_pos);
