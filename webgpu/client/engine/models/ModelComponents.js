@@ -197,8 +197,7 @@ export class Primitive
                     binding,
                     visibility: GPUShaderStage.FRAGMENT,
                     texture:{
-                        viewDimension: "2d",
-                        multisampled: true,
+                        viewDimension: "2d",                        
                         sampleType: "depth"
                     }
                 });
@@ -320,7 +319,7 @@ export class Primitive
 
             entries.push({
                 binding,
-                resource: reflector.target.view_depth
+                resource: reflector.view_depth_1x
             });
             binding++;
 

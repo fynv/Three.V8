@@ -4,6 +4,7 @@ import { GPURenderTarget } from "../renderers/GPURenderTarget.js"
 import { Vector2 } from "../math/Vector2.js";
 import { Vector3 } from "../math/Vector3.js";
 import { Vector4 } from "../math/Vector4.js";
+import { DepthDownsample, DepthDownsampleBundle} from "../renderers/routines/DepthDownsample.js"
 
 function toViewAABB(MV, min_pos, max_pos)
 {
@@ -83,6 +84,8 @@ export class Reflector extends Object3D
         this.height = 1.0;        
         this.constant = engine_ctx.createBuffer0(64, GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST);
         this.target = new GPURenderTarget(null, true);
+        this.tex_depth_1x = null;
+        this.view_depth_1x = null;
         this.resized = false;
         this.camera = new PerspectiveCameraEx(50, 1, 0.1, 2000, this);
     }
@@ -98,6 +101,59 @@ export class Reflector extends Object3D
             uniform[i] = mat_inv.elements[i];
         }        
         engine_ctx.queue.writeBuffer(this.constant, 0, uniform.buffer, uniform.byteOffset, uniform.byteLength);
+    }
+
+    updateTarget(width, height)
+    {
+        this.target.update(width, height);
+        this.tex_depth_1x = engine_ctx.device.createTexture({
+            size: [width, height],
+            dimension: "2d",
+            format: 'depth32float',
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+        });
+        this.view_depth_1x = this.tex_depth_1x.createView();
+        this.bundle_depth_downsample = DepthDownsampleBundle(this.target);
+    }
+
+    depthDownsample()
+    {
+        let commandEncoder = engine_ctx.device.createCommandEncoder();
+
+        let depthAttachment = {
+            view: this.view_depth_1x,
+            depthClearValue: 1,
+            depthLoadOp: 'clear',
+            depthStoreOp: 'store',
+        };
+
+        let renderPassDesc = {
+            colorAttachments: [],
+            depthStencilAttachment: depthAttachment
+        }; 
+        let passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
+
+        passEncoder.setViewport(
+            0,
+            0,
+            this.target.width,
+            this.target.height,
+            0,
+            1
+        );
+
+        passEncoder.setScissorRect(
+            this.camera.scissor.origin.x,
+            this.camera.scissor.origin.y,
+            this.camera.scissor.size.x,
+            this.camera.scissor.size.y,
+        );
+        
+        passEncoder.executeBundles([this.bundle_depth_downsample]);
+        passEncoder.end();
+
+        let cmdBuf = commandEncoder.finish();
+        engine_ctx.queue.submit([cmdBuf]);
     }
 
     calc_scissor()

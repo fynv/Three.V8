@@ -1815,12 +1815,14 @@ export class GPURenderer
                 reflector.camera.near = camera.near;
                 reflector.camera.far = camera.far;
                 reflector.camera.updateProjectionMatrix();
-                reflector.target.update(target.width, target.height);
+                reflector.updateTarget(target.width, target.height);
                 reflector.resized = true;
             }            
             
             reflector.calc_scissor();
             this._render_simple(scene, reflector.camera, reflector.target);     
+
+            reflector.depthDownsample();
         }
 
         let reflector = null;

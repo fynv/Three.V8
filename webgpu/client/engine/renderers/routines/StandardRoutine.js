@@ -387,8 +387,19 @@ var<uniform> uCameraReflector: Camera;
 
 fn getRadiance(world_pos: vec3f, reflectVec: vec3f, roughness: f32, irradiance: vec3f) -> vec3f
 {
-    let dir_view = uCameraReflector.viewMat * vec4(reflectVec, 0.0);
-    var proj = uCameraReflector.projMat * vec4(dir_view.xyz, 1.0);
+    let size_view = textureDimensions(uTexReflectorDepth, 0);   
+    let rows_view_proj = transpose(uCameraReflector.projMat * uCameraReflector.viewMat);
+    let dx = dot(rows_view_proj[0].xyz, reflectVec);
+    let dy = dot(rows_view_proj[1].xyz, reflectVec);
+    let dw = dot(rows_view_proj[3], vec4(world_pos, 1.0));
+    let dxdt = dx/dw * f32(size_view.x)*0.5;
+    let dydt = dy/dw * f32(size_view.y)*0.5;
+    let dldt = sqrt(dxdt*dxdt + dydt*dydt);
+
+    var t = 0.0;
+    var pos = world_pos + t*reflectVec;
+    var view_pos = uCameraReflector.viewMat * vec4(pos, 1.0);
+    var proj = uCameraReflector.projMat * view_pos;
     proj*= 1.0/proj.w;
 
     proj.x = max(proj.x, uCameraReflector.scissor.x);
@@ -396,8 +407,63 @@ fn getRadiance(world_pos: vec3f, reflectVec: vec3f, roughness: f32, irradiance: 
     proj.x = min(proj.x, uCameraReflector.scissor.z);
     proj.y = min(proj.y, uCameraReflector.scissor.w);
 
-    let uv = vec2((proj.x + 1.0)*0.5, (1.0 - proj.y)*0.5);
-    var rad = textureSampleLevel(uTexReflector, uSampler, uv, 0).xyz;
+    var uvz = vec3((proj.x + 1.0)*0.5, (1.0 - proj.y)*0.5, (1.0 - proj.z)*0.5);
+    var pix_pos = uvz.xy * vec2f(size_view);
+
+    if (dldt>0.001)
+    {
+        let step = 5.0/dldt; 
+        var old_t = t;
+        t+=step*jitter;
+
+        while(view_pos.z <0.0)
+        {            
+            pos = world_pos + t*reflectVec;
+            view_pos = uCameraReflector.viewMat * vec4(pos, 1.0);
+            proj = uCameraReflector.projMat * view_pos;
+            proj*= 1.0/proj.w;
+
+            proj.x = max(proj.x, uCameraReflector.scissor.x);
+            proj.y = max(proj.y, uCameraReflector.scissor.y);
+            proj.x = min(proj.x, uCameraReflector.scissor.z);
+            proj.y = min(proj.y, uCameraReflector.scissor.w);
+
+            let old_z = uvz.z;
+            uvz = vec3((proj.x + 1.0)*0.5, (1.0 - proj.y)*0.5, (proj.z + 1.0)*0.5);
+            
+            let depth = textureSampleLevel(uTexReflectorDepth, uSampler, uvz.xy, 0);
+            if (uvz.z>=depth)
+            {
+                let k = (uvz.z-depth)/(uvz.z - old_z);
+                t = old_t*k + t*(1.0-k);
+
+                pos = world_pos + t*reflectVec;
+                view_pos = uCameraReflector.viewMat * vec4(pos, 1.0);
+                proj = uCameraReflector.projMat * view_pos;
+                proj*= 1.0/proj.w;
+
+                proj.x = max(proj.x, uCameraReflector.scissor.x);
+                proj.y = max(proj.y, uCameraReflector.scissor.y);
+                proj.x = min(proj.x, uCameraReflector.scissor.z);
+                proj.y = min(proj.y, uCameraReflector.scissor.w);
+                uvz = vec3((proj.x + 1.0)*0.5, (1.0 - proj.y)*0.5, (proj.z + 1.0)*0.5);
+                break;
+            }
+
+            let old_pix_pos = pix_pos;
+            pix_pos = uvz.xy * vec2f(size_view);
+            let delta = length(pix_pos - old_pix_pos);
+            if (delta<1.0)
+            {
+                break;
+            }
+
+            old_t = t;
+            t+=step;
+        }
+    }
+    
+    var rad = textureSampleLevel(uTexReflector, uSampler, uvz.xy, 0).xyz;
     
     if (roughness > 0.053)
     {        
@@ -1036,9 +1102,9 @@ var<uniform> uFog: Fog;
 @fragment
 fn fs_main(input: FSIn) -> FSOut
 {
-    //jitter = IGN(i32(input.coord_pix.x), i32(input.coord_pix.y));
-    InitRandomSeed(u32(input.coord_pix.x), u32(input.coord_pix.y));
-    jitter = RandomFloat();
+    jitter = IGN(i32(input.coord_pix.x), i32(input.coord_pix.y));
+    //InitRandomSeed(u32(input.coord_pix.x), u32(input.coord_pix.y));
+    //jitter = RandomFloat();
 
     var output: FSOut;
 
