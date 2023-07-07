@@ -388,18 +388,21 @@ var<uniform> uCameraReflector: Camera;
 fn getRadiance(world_pos: vec3f, reflectVec: vec3f, roughness: f32, irradiance: vec3f) -> vec3f
 {
     let size_view = textureDimensions(uTexReflectorDepth, 0);   
-    let rows_view_proj = transpose(uCameraReflector.projMat * uCameraReflector.viewMat);
-    let dx = dot(rows_view_proj[0].xyz, reflectVec);
-    let dy = dot(rows_view_proj[1].xyz, reflectVec);
-    let dw = dot(rows_view_proj[3], vec4(world_pos, 1.0));
+    let view_origin = (uCameraReflector.viewMat * vec4(world_pos, 1.0)).xyz;
+    let view_dir = (uCameraReflector.viewMat * vec4(reflectVec, 0.0)).xyz;
+
+    let rows_proj = transpose(uCameraReflector.projMat);
+    let dx = dot(rows_proj[0].xyz, view_dir);
+    let dy = dot(rows_proj[1].xyz, view_dir);
+    let dw = dot(rows_proj[3], vec4(view_origin, 1.0));
     let dxdt = dx/dw * f32(size_view.x)*0.5;
     let dydt = dy/dw * f32(size_view.y)*0.5;
     let dldt = sqrt(dxdt*dxdt + dydt*dydt);
-
+        
     var t = 0.0;
-    var pos = world_pos + t*reflectVec;
-    var view_pos = uCameraReflector.viewMat * vec4(pos, 1.0);
-    var proj = uCameraReflector.projMat * view_pos;
+
+    var view_pos = view_origin + t*view_dir;    
+    var proj = uCameraReflector.projMat * vec4(view_pos, 1.0);
     proj*= 1.0/proj.w;
 
     proj.x = max(proj.x, uCameraReflector.scissor.x);
@@ -417,10 +420,9 @@ fn getRadiance(world_pos: vec3f, reflectVec: vec3f, roughness: f32, irradiance: 
         t+=step*jitter;
 
         while(view_pos.z <0.0)
-        {            
-            pos = world_pos + t*reflectVec;
-            view_pos = uCameraReflector.viewMat * vec4(pos, 1.0);
-            proj = uCameraReflector.projMat * view_pos;
+        {
+            view_pos = view_origin + t*view_dir;
+            proj = uCameraReflector.projMat * vec4(view_pos, 1.0);
             proj*= 1.0/proj.w;
 
             proj.x = max(proj.x, uCameraReflector.scissor.x);
@@ -437,9 +439,8 @@ fn getRadiance(world_pos: vec3f, reflectVec: vec3f, roughness: f32, irradiance: 
                 let k = (uvz.z-depth)/(uvz.z - old_z);
                 t = old_t*k + t*(1.0-k);
 
-                pos = world_pos + t*reflectVec;
-                view_pos = uCameraReflector.viewMat * vec4(pos, 1.0);
-                proj = uCameraReflector.projMat * view_pos;
+                view_pos = view_origin + t*view_dir;
+                proj = uCameraReflector.projMat * vec4(view_pos, 1.0);
                 proj*= 1.0/proj.w;
 
                 proj.x = max(proj.x, uCameraReflector.scissor.x);

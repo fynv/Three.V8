@@ -490,18 +490,21 @@ layout (location = LOCATION_TEX_REFLECTOR_DEPTH) uniform sampler2D uTexReflector
 vec3 getRadiance(in vec3 worldPos, in vec3 reflectVec, float roughness, in vec3 irradiance)
 {
 	ivec2 size_view = textureSize(uTexReflectorDepth, 0);
-	mat4 rows_view_proj = transpose(uReflProjMat * uReflViewMat);
-	float dx = dot(rows_view_proj[0].xyz, reflectVec);
-    float dy = dot(rows_view_proj[1].xyz, reflectVec);
-    float dw = dot(rows_view_proj[3], vec4(worldPos, 1.0));
+	vec3 view_origin = (uReflViewMat * vec4(worldPos, 1.0)).xyz;
+	vec3 view_dir = (uReflViewMat * vec4(reflectVec, 0.0)).xyz;
+
+	mat4 rows_proj = transpose(uReflProjMat);
+	float dx = dot(rows_proj[0].xyz, view_dir);
+    float dy = dot(rows_proj[1].xyz, view_dir);
+    float dw = dot(rows_proj[3], vec4(view_origin, 1.0));
 	float dxdt = dx/dw * float(size_view.x)*0.5;
     float dydt = dy/dw * float(size_view.y)*0.5;
     float dldt = sqrt(dxdt*dxdt + dydt*dydt);
-
+	
 	float t = 0.0;
-    vec3 pos = worldPos + t*reflectVec;
-    vec4 view_pos = uReflViewMat * vec4(pos, 1.0);
-    vec4 proj = uReflProjMat * view_pos;
+    
+    vec3 view_pos = view_origin + t*view_dir;
+    vec4 proj = uReflProjMat * vec4(view_pos, 1.0);
     proj*= 1.0/proj.w;
 
 	proj.xy = max(proj.xy, uReflScissor.xy);
@@ -518,9 +521,8 @@ vec3 getRadiance(in vec3 worldPos, in vec3 reflectVec, float roughness, in vec3 
 
 		while(view_pos.z <0.0)
         {  
-			pos = worldPos + t*reflectVec;
-			view_pos = uReflViewMat * vec4(pos, 1.0);
-			proj = uReflProjMat * view_pos;
+			view_pos = view_origin + t*view_dir;
+			proj = uReflProjMat * vec4(view_pos, 1.0);
 			proj*= 1.0/proj.w;
 		
 			proj.xy = max(proj.xy, uReflScissor.xy);
@@ -535,9 +537,8 @@ vec3 getRadiance(in vec3 worldPos, in vec3 reflectVec, float roughness, in vec3 
                 float k = (uvz.z-depth)/(uvz.z - old_z);
                 t = old_t*k + t*(1.0-k);
 
-                pos = worldPos + t*reflectVec;
-                view_pos = uReflViewMat * vec4(pos, 1.0);
-				proj = uReflProjMat * view_pos;
+				view_pos = view_origin + t*view_dir;
+				proj = uReflProjMat * vec4(view_pos, 1.0);
                 proj*= 1.0/proj.w;
 
                 proj.xy = max(proj.xy, uReflScissor.xy);
