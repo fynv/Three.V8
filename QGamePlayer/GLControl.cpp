@@ -6,12 +6,8 @@
 
 #include <unordered_map>
 
-GLControl::GLControl(QWidget* parent)
+GLControl::GLControl(QWidget* parent) : QOpenGLWidget(parent)
 {		
-	auto surfaceFormat = QSurfaceFormat::defaultFormat();
-	surfaceFormat.setColorSpace(QSurfaceFormat::sRGBColorSpace);
-	this->setFormat(surfaceFormat);
-	this->setTextureFormat(GL_SRGB8_ALPHA8);
 	this->setFocusPolicy(Qt::WheelFocus);
 	this->setAttribute(Qt::WA_InputMethodEnabled, true);
 	m_timer.setSingleShot(true);

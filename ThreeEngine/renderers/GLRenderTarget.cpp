@@ -165,6 +165,10 @@ void GLRenderTarget::resolve_msaa()
 			fbo = m_fbo_default;
 		}		
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
+		if (fbo == m_fbo_default)
+		{
+			glDisable(GL_FRAMEBUFFER_SRGB);
+		}
 		glBlitFramebuffer(0, 0, m_width, m_height, 0, 0, m_width, m_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
 	}
@@ -173,6 +177,7 @@ void GLRenderTarget::resolve_msaa()
 void GLRenderTarget::blit_buffer(int width_wnd, int height_wnd, int margin)
 {
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo_default);
+	glDisable(GL_FRAMEBUFFER_SRGB);
 
 	glViewport(0, 0, width_wnd, height_wnd);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
