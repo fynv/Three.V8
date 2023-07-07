@@ -135,6 +135,11 @@ float RandomFloat(inout uint seed)
 	return (float(RandomInt(seed) & 0x00FFFFFFu) / float(0x01000000));
 }
 
+float IGN(int pixelX, int pixelY)
+{
+	return fract(52.9829189 * fract(0.06711056*float(pixelX) + 0.00583715*float(pixelY)));
+}
+
 uint seed;
 float jitter;
 
@@ -484,14 +489,79 @@ layout (location = LOCATION_TEX_REFLECTOR_DEPTH) uniform sampler2D uTexReflector
 
 vec3 getRadiance(in vec3 worldPos, in vec3 reflectVec, float roughness, in vec3 irradiance)
 {
-	vec4 dir_view = uReflViewMat * vec4(reflectVec, 0.0);
-	vec4 proj = uReflProjMat * vec4(dir_view.xyz, 1.0);
-	proj*= 1.0/proj.w;
+	ivec2 size_view = textureSize(uTexReflectorDepth, 0);
+	mat4 rows_view_proj = transpose(uReflProjMat * uReflViewMat);
+	float dx = dot(rows_view_proj[0].xyz, reflectVec);
+    float dy = dot(rows_view_proj[1].xyz, reflectVec);
+    float dw = dot(rows_view_proj[3], vec4(worldPos, 1.0));
+	float dxdt = dx/dw * float(size_view.x)*0.5;
+    float dydt = dy/dw * float(size_view.y)*0.5;
+    float dldt = sqrt(dxdt*dxdt + dydt*dydt);
+
+	float t = 0.0;
+    vec3 pos = worldPos + t*reflectVec;
+    vec4 view_pos = uReflViewMat * vec4(pos, 1.0);
+    vec4 proj = uReflProjMat * view_pos;
+    proj*= 1.0/proj.w;
+
 	proj.xy = max(proj.xy, uReflScissor.xy);
 	proj.xy = min(proj.xy, uReflScissor.zw);
 
-	vec2 uv = vec2((proj.x + 1.0)*0.5, (proj.y + 1.0)*0.5);
-	vec3 rad = textureLod(uTexReflector, uv, 0.0).xyz;
+	vec3 uvz = (proj.xyz + 1.0)*0.5;
+	vec2 pix_pos = uvz.xy * vec2(size_view);
+
+	if (dldt>0.001)
+    {
+		float step = 5.0/dldt;
+		float old_t = t;
+		t += step*jitter;
+
+		while(view_pos.z <0.0)
+        {  
+			pos = worldPos + t*reflectVec;
+			view_pos = uReflViewMat * vec4(pos, 1.0);
+			proj = uReflProjMat * view_pos;
+			proj*= 1.0/proj.w;
+		
+			proj.xy = max(proj.xy, uReflScissor.xy);
+			proj.xy = min(proj.xy, uReflScissor.zw);
+
+			float old_z = uvz.z;
+			uvz = (proj.xyz + 1.0)*0.5;
+
+			float depth = textureLod(uTexReflectorDepth, uvz.xy, 0.0).x;
+			if (uvz.z>=depth)
+            {
+                float k = (uvz.z-depth)/(uvz.z - old_z);
+                t = old_t*k + t*(1.0-k);
+
+                pos = worldPos + t*reflectVec;
+                view_pos = uReflViewMat * vec4(pos, 1.0);
+				proj = uReflProjMat * view_pos;
+                proj*= 1.0/proj.w;
+
+                proj.xy = max(proj.xy, uReflScissor.xy);
+				proj.xy = min(proj.xy, uReflScissor.zw);
+
+                uvz = (proj.xyz + 1.0)*0.5;
+                break;
+            }
+		
+			vec2 old_pix_pos = pix_pos;
+			pix_pos = uvz.xy * vec2(size_view);
+
+			float delta = length(pix_pos - old_pix_pos);
+			if (delta<1.0)
+			{
+				break;
+			}
+
+			old_t = t;
+			t+=step;
+		}
+	}
+
+	vec3 rad = textureLod(uTexReflector, uvz.xy, 0.0).xyz;
 
 	if (roughness > 0.053)
 	{
@@ -1010,8 +1080,9 @@ layout (location = 1) out float out1;
 
 void main()
 {	
-	seed = InitRandomSeed(uint(gl_FragCoord.x), uint(gl_FragCoord.y)); 
-	jitter = RandomFloat(seed);
+	jitter = IGN(int(gl_FragCoord.x), int(gl_FragCoord.y));
+	//seed = InitRandomSeed(uint(gl_FragCoord.x), uint(gl_FragCoord.y)); 
+	//jitter = RandomFloat(seed);
 
 	vec4 base_color = uColor;
 #if HAS_COLOR
@@ -2282,7 +2353,7 @@ void StandardRoutine::_render_common(const RenderParams& params)
 		texture_idx++;
 
 		glActiveTexture(GL_TEXTURE0 + texture_idx);
-		glBindTexture(GL_TEXTURE_2D, params.reflector->m_target.m_tex_depth->tex_id);
+		glBindTexture(GL_TEXTURE_2D, params.reflector->m_tex_depth_1x->tex_id);
 		glUniform1i(m_bindings.location_tex_reflector_depth, texture_idx);
 		texture_idx++;
 	}
@@ -2332,6 +2403,7 @@ void StandardRoutine::_render_common(const RenderParams& params)
 		glUniform1i(m_bindings.location_tex_ssao, texture_idx);
 		texture_idx++;
 	}
+
 }
 
 void StandardRoutine::render(const RenderParams& params)

@@ -4,14 +4,16 @@
 Reflector::Reflector()
 	: m_constant(sizeof(glm::mat4), GL_UNIFORM_BUFFER)
 	, m_target(false, true)
-	, m_camera(50.0f, 1.0f, 0.1f, 2000.0f, this)
+	, m_tex_depth_1x(new GLTexture2D)
+	, m_camera(50.0f, 1.0f, 0.1f, 2000.0f, this)	
 {
-
+	glGenFramebuffers(1, &m_fbo_depth_1x);
 
 }
 
 Reflector::~Reflector()
 {
+	glDeleteFramebuffers(1, &m_fbo_depth_1x);
 
 }
 
@@ -21,6 +23,26 @@ void Reflector::updateConstant()
 	m_constant.upload(&mat_inv);
 }
 
+void Reflector::updateTarget(int width, int height)
+{
+	m_target.update_framebuffers(width, height);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_depth_1x);
+	glBindTexture(GL_TEXTURE_2D, m_tex_depth_1x->tex_id);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, width, height, 0, GL_RED, GL_FLOAT, nullptr);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_tex_depth_1x->tex_id, 0);
+}
+
+void Reflector::depthDownsample()
+{
+	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_depth_1x);
+	m_depth_downsampler.render(m_target.m_tex_depth->tex_id);
+}
 
 inline void toViewAABB(const glm::mat4& MV, const glm::vec3& min_pos, const glm::vec3& max_pos, glm::vec3& min_pos_out, glm::vec3& max_pos_out)
 {

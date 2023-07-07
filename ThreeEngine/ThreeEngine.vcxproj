@@ -220,6 +220,7 @@
     <ClCompile Include="renderers\routines\DecompressLightmap.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="renderers\routines\DepthDownsample.cpp" />
     <ClCompile Include="renderers\routines\DepthOnly.cpp" />
     <ClCompile Include="renderers\routines\DirectionalShadowCast.cpp" />
     <ClCompile Include="renderers\routines\DrawFog.cpp" />
@@ -359,6 +360,7 @@
     <ClInclude Include="renderers\routines\CompressLightmap.h" />
     <ClInclude Include="renderers\routines\CopyDepth.h" />
     <ClInclude Include="renderers\routines\DecompressLightmap.h" />
+    <ClInclude Include="renderers\routines\DepthDownsample.h" />
     <ClInclude Include="renderers\routines\DepthOnly.h" />
     <ClInclude Include="renderers\routines\DirectionalShadowCast.h" />
     <ClInclude Include="renderers\routines\DrawFog.h" />

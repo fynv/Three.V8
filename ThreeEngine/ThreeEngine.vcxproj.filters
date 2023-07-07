@@ -504,6 +504,9 @@
     <ClCompile Include="cameras\Reflector.cpp">
       <Filter>Source Files\cameras</Filter>
     </ClCompile>
+    <ClCompile Include="renderers\routines\DepthDownsample.cpp">
+      <Filter>Source Files\renderers\routines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -925,6 +928,9 @@
     </ClInclude>
     <ClInclude Include="cameras\Reflector.h">
       <Filter>Header Files\cameras</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\routines\DepthDownsample.h">
+      <Filter>Header Files\renderers\routines</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

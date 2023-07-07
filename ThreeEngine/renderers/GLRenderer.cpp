@@ -3052,6 +3052,7 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 #endif
 
 	}
+
 	_pre_render(scene);
 
 	PerspectiveCamera* p_cam = (PerspectiveCamera*)(&camera);
@@ -3131,15 +3132,17 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 				reflector->m_camera.z_near = p_cam->z_near;
 				reflector->m_camera.z_far = p_cam->z_far;
 				reflector->m_camera.updateProjectionMatrix();
-				reflector->m_target.update_framebuffers(target.m_width, target.m_height);
+				reflector->updateTarget(target.m_width, target.m_height);
 			}
 
-			reflector->calc_scissor();
-			this->_render_simple(scene, reflector->m_camera, reflector->m_target);
+			reflector->calc_scissor();			
+			this->_render_simple(scene, reflector->m_camera, reflector->m_target);			
+			reflector->depthDownsample();			
 		}
 
 	}
-	_render(scene, camera, target, true);
+
+	_render(scene, camera, target, true);	
 }
 
 void GLRenderer::render_picking(Scene& scene, Camera& camera, GLPickingTarget& target)
