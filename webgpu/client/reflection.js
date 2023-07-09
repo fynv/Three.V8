@@ -14,6 +14,7 @@ import { DirectionalLight } from "./engine/lights/DirectionalLight.js"
 import { EnvironmentMapCreator} from "./engine/lights/EnvironmentMapCreator.js"
 import { Reflector } from "./engine/cameras/Reflector.js"
 import { Fog } from "./engine/scenes/Fog.js"
+import { GLTFLoader } from "./engine/loaders/GLTFLoader.js"
 
 export async function test()
 {
@@ -120,8 +121,12 @@ export async function test()
     ground.name = "ground";
     ground.createPlane(10.0, 10.0);    
     ground.metalness = 0.9;
-    ground.roughness = 0.1;    
-    reflector.add(ground);  
+    ground.roughness = 0.3;
+
+    /*let model_loader = new GLTFLoader();
+    let ground = model_loader.loadModelFromFile("./assets/models/surface_0.3.glb");*/
+    
+    reflector.add(ground);
 
     let directional_light = new DirectionalLight();
     directional_light.intensity = 4.0;

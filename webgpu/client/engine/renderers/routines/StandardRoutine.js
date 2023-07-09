@@ -385,11 +385,13 @@ var uTexReflectorDepth: texture_depth_2d;
 @group(1) @binding(${binding_reflector + 2})
 var<uniform> uCameraReflector: Camera;
 
-fn getRadiance(world_pos: vec3f, reflectVec: vec3f, roughness: f32, irradiance: vec3f) -> vec3f
+fn getRadiance(world_pos: vec3f, viewDir: vec3f, norm: vec3f, f0: vec3f, f90: f32, roughness: f32) -> vec3f
 {
+    var reflectVec = reflect(-viewDir, norm);
+
     let size_view = textureDimensions(uTexReflectorDepth, 0);   
     let view_origin = (uCameraReflector.viewMat * vec4(world_pos, 1.0)).xyz;
-    let view_dir = (uCameraReflector.viewMat * vec4(reflectVec, 0.0)).xyz;
+    var view_dir = (uCameraReflector.viewMat * vec4(reflectVec, 0.0)).xyz;
 
     let rows_proj = transpose(uCameraReflector.projMat);
     let dx = dot(rows_proj[0].xyz, view_dir);
@@ -463,23 +465,80 @@ fn getRadiance(world_pos: vec3f, reflectVec: vec3f, roughness: f32, irradiance: 
             t+=step;
         }
     }
-    
-    var rad = textureSampleLevel(uTexReflector, uSampler, uvz.xy, 0).xyz;
-    
-    if (roughness > 0.053)
-    {        
-        let lum1 = luminance(rad);
-        if (lum1>0.0)
-        {
-            var rad2 = irradiance * RECIPROCAL_PI;
-            let lum2 = luminance(rad2);
-            let r2 = roughness*roughness;
-            let r4 = r2*r2;
-            let gloss = log(2.0/r4 - 1.0)/log(2.0)/18.0;
-            rad *= gloss + lum2/lum1 * (1.0-gloss);
-        }
+
+    let depth = textureSampleLevel(uTexReflectorDepth, uSampler, uvz.xy, 0);
+    proj.z = depth*2.0 - 1.0;
+
+    let _view_pos = uCameraReflector.invProjMat * proj;
+	view_pos = _view_pos.xyz / _view_pos.w;
+	t = length(view_pos - view_origin);	
+
+    var up = vec3(1.0, 0.0, 0.0);
+    if (norm.y<norm.x)
+	{
+		if (norm.z<norm.y)
+		{
+			up = vec3(0.0, 0.0, 1.0);
+		}
+		else
+		{
+			up = vec3(0.0, 1.0, 0.0);
+		}
+	}
+	else if (norm.z < norm.x)
+	{
+		up = vec3(0.0, 0.0, 1.0);
+	}
+
+    let axis_x = normalize(cross(up, norm));
+	let axis_y = cross(norm, axis_x);
+
+    let alpha = roughness * roughness;
+	let alpha2 = alpha*alpha;
+
+    let count_samples = i32(alpha2/(1.0 + alpha2) * 2.0 * 64.0) + 1;
+
+    var acc_weight = 0.0;
+	var acc_col = vec3(0.0);
+
+    for (var i=0; i<count_samples; i++)
+	{
+        let r = RandomFloat();
+		let theta = acos(sqrt((1.0-r)/(1.0-(1.0- alpha2)*r)));
+		let phi = RandomFloat() * 2.0 * PI;
+
+        let z = cos(theta);
+		let xy = sin(theta);	
+
+		let H = xy * cos(phi) * axis_x + xy * sin(phi) * axis_y + z * norm;
+
+        reflectVec = reflect(-viewDir, H);
+        view_dir = (uCameraReflector.viewMat * vec4(reflectVec, 0.0)).xyz;
+
+        view_pos = view_origin + t*view_dir;
+        proj = uCameraReflector.projMat * vec4(view_pos, 1.0);
+        proj*= 1.0/proj.w;
+
+        proj.x = max(proj.x, uCameraReflector.scissor.x);
+        proj.y = max(proj.y, uCameraReflector.scissor.y);
+        proj.x = min(proj.x, uCameraReflector.scissor.z);
+        proj.y = min(proj.y, uCameraReflector.scissor.w);
+        
+        uvz = vec3((proj.x + 1.0)*0.5, (1.0 - proj.y)*0.5, (proj.z + 1.0)*0.5);
+
+        let col = textureSampleLevel(uTexReflector, uSampler, uvz.xy, 0).xyz;
+
+        let dotVH = dot(viewDir, H);
+		let dotNL = dot(norm, reflectVec);				
+		let dotNH = dot(norm, H); 
+
+        let weight = abs(dotVH) / (dotNL * dotNH);
+		acc_weight += weight;
+		acc_col += weight * col;
+
     }
-    return rad;
+    
+    return acc_col/acc_weight;	
 }
 
 `)}
@@ -1104,7 +1163,7 @@ var<uniform> uFog: Fog;
 fn fs_main(input: FSIn) -> FSOut
 {
     jitter = IGN(i32(input.coord_pix.x), i32(input.coord_pix.y));
-    //InitRandomSeed(u32(input.coord_pix.x), u32(input.coord_pix.y));
+    InitRandomSeed(u32(input.coord_pix.x), u32(input.coord_pix.y));
     //jitter = RandomFloat();
 
     var output: FSOut;
@@ -1265,7 +1324,11 @@ ${condition(options.has_lightmap,`
         let light_color = textureSampleLevel(uTexLightmap, uSampler, input.atlasUV, 0).xyz;
         diffuse += material.diffuseColor * light_color;
 
-${condition(lights_options.has_reflection_map || options.has_reflector,`
+${condition(options.has_reflector,`        
+        let radiance = getRadiance(input.worldPos, viewDir, norm, material.specularColor, material.specularF90, material.roughness);
+        specular += material.specularColor * radiance;
+`,`
+${condition(lights_options.has_reflection_map,`
         var reflectVec = reflect(-viewDir, norm);
         reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );	
         let radiance = getRadiance(input.worldPos, reflectVec, material.roughness,  light_color * PI);
@@ -1273,18 +1336,24 @@ ${condition(lights_options.has_reflection_map || options.has_reflector,`
 `,`
         specular += material.specularColor * light_color;
 `)}
+`)}
+
     }
 `,condition(has_indirect_light, `
     {
         let irradiance = getIrradiance(input.worldPos, norm);
         var radiance = vec3(0.0);
 
-${condition(lights_options.has_reflection_map || options.has_reflector,` 
+${condition(options.has_reflector,`        
+        radiance = getRadiance(input.worldPos, viewDir, norm, material.specularColor, material.specularF90, material.roughness);
+`,`
+${condition(lights_options.has_reflection_map,`
         var reflectVec = reflect(-viewDir, norm);	
         reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );	
         radiance = getRadiance(input.worldPos, reflectVec, material.roughness, irradiance);
 `,`
         radiance = irradiance * RECIPROCAL_PI;
+`)}
 `)}
         diffuse += material.diffuseColor * irradiance * RECIPROCAL_PI;
         specular +=  material.specularColor * radiance;

@@ -487,8 +487,10 @@ layout (std140, binding = BINDING_REFLECTOR_CAMERA) uniform ReflectorCamera
 layout (location = LOCATION_TEX_REFLECTOR) uniform sampler2D uTexReflector;
 layout (location = LOCATION_TEX_REFLECTOR_DEPTH) uniform sampler2D uTexReflectorDepth;
 
-vec3 getRadiance(in vec3 worldPos, in vec3 reflectVec, float roughness, in vec3 irradiance)
+vec3 getRadiance(in vec3 worldPos, in vec3 viewDir, in vec3 norm, const in vec3 f0, const in float f90, float roughness)
 {
+	vec3 reflectVec = reflect(-viewDir, norm);
+
 	ivec2 size_view = textureSize(uTexReflectorDepth, 0);
 	vec3 view_origin = (uReflViewMat * vec4(worldPos, 1.0)).xyz;
 	vec3 view_dir = (uReflViewMat * vec4(reflectVec, 0.0)).xyz;
@@ -562,22 +564,80 @@ vec3 getRadiance(in vec3 worldPos, in vec3 reflectVec, float roughness, in vec3 
 		}
 	}
 
-	vec3 rad = textureLod(uTexReflector, uvz.xy, 0.0).xyz;
+	float depth = textureLod(uTexReflectorDepth, uvz.xy, 0.0).x;
+	proj.z = depth*2.0 - 1.0;
+	
+	vec4 _view_pos = uReflInvProjMat * proj;
+	view_pos = _view_pos.xyz / _view_pos.w;
+	t = length(view_pos - view_origin);	
 
-	if (roughness > 0.053)
+	vec3 up = vec3(1.0, 0.0, 0.0);
+	if (norm.y<norm.x)
 	{
-		vec3 rad2 = irradiance * RECIPROCAL_PI;
-		float lum1 = luminance(rad);
-		if (lum1>0.0)
+		if (norm.z<norm.y)
 		{
-			float lum2 = luminance(rad2);			
-			float r2 = roughness*roughness;
-			float r4 = r2*r2;
-			float gloss = log(2.0/r4 - 1.0)/log(2.0)/18.0;
-			rad *= gloss + lum2/lum1 * (1.0-gloss);
+			up = vec3(0.0, 0.0, 1.0);
+		}
+		else
+		{
+			up = vec3(0.0, 1.0, 0.0);
 		}
 	}
-	return rad;
+	else if (norm.z < norm.x)
+	{
+		up = vec3(0.0, 0.0, 1.0);
+	}
+
+	vec3 axis_x = normalize(cross(up, norm));
+	vec3 axis_y = cross(norm, axis_x);
+
+	float alpha = roughness * roughness;
+	float alpha2 = alpha*alpha;
+
+	int count_samples = int(alpha2/(1.0 + alpha2) * 2.0 * 64.0) + 1;
+
+	float acc_weight = 0.0;
+	vec3 acc_col = vec3(0.0);
+
+	for (int i=0; i<count_samples; i++)
+	{
+		float r = RandomFloat(seed);
+		float theta = acos(sqrt((1.0-r)/(1.0-(1.0- alpha2)*r)));
+		float phi = RandomFloat(seed) * 2.0 * PI;
+
+		float z = cos(theta);
+		float xy = sin(theta);	
+
+		vec3 H = xy * cos(phi) * axis_x + xy * sin(phi) * axis_y + z * norm;
+
+		reflectVec = reflect(-viewDir, H);
+		view_dir = (uReflViewMat * vec4(reflectVec, 0.0)).xyz;
+
+		view_pos = view_origin + t*view_dir;
+		proj = uReflProjMat * vec4(view_pos, 1.0);
+		proj*= 1.0/proj.w;
+		
+		proj.xy = max(proj.xy, uReflScissor.xy);
+		proj.xy = min(proj.xy, uReflScissor.zw);
+			
+		uvz = (proj.xyz + 1.0)*0.5;
+
+		vec3 col = textureLod(uTexReflector, uvz.xy, 0.0).xyz;
+
+		float dotVH = dot(viewDir, H);
+		float dotNL = dot(norm, reflectVec);		
+		//float dotNV = dot(norm, viewDir);
+		float dotNH = dot(norm, H);
+
+		/*vec3 F = F_Schlick(f0, f90, saturate(dotVH));
+		float V = V_GGX_SmithCorrelated(alpha, saturate(dotNL), saturate(dotNV));
+		col *= F*V;*/
+		
+		float weight = abs(dotVH) / (dotNL * dotNH);
+		acc_weight += weight;
+		acc_col += weight * col;
+	}
+	return acc_col/acc_weight;	
 }
 #endif
 
@@ -1082,7 +1142,7 @@ layout (location = 1) out float out1;
 void main()
 {	
 	jitter = IGN(int(gl_FragCoord.x), int(gl_FragCoord.y));
-	//seed = InitRandomSeed(uint(gl_FragCoord.x), uint(gl_FragCoord.y)); 
+	seed = InitRandomSeed(uint(gl_FragCoord.x), uint(gl_FragCoord.y)); 
 	//jitter = RandomFloat(seed);
 
 	vec4 base_color = uColor;
@@ -1290,18 +1350,21 @@ void main()
 
 	if (has_specular)
 	{
-#if HAS_REFLECTION_MAP	|| HAS_REFLECTOR
-#if HAS_REFLECTION_DISTANCE && !HAS_REFLECTOR
+#if HAS_REFLECTOR		
+		vec3 radiance = getRadiance(vWorldPos, viewDir, norm, material.specularColor, material.specularF90, material.roughness);
+		specular +=  material.specularColor * radiance;
+#elif HAS_REFLECTION_MAP
+#if HAS_REFLECTION_DISTANCE
 		vec3 reflectVec = getReflectionDir(-viewDir, norm);
 #else	
 		vec3 reflectVec = reflect(-viewDir, norm);	
 #endif // HAS_REFLECTION_DISTANCE
-		reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );			
+		reflectVec = normalize( mix( reflectVec, norm, material.roughness * material.roughness) );
 		vec3 radiance = getRadiance(vWorldPos, reflectVec, material.roughness, light_color * PI);
 		specular +=  material.specularColor * radiance;
 #else
 		specular += material.specularColor * light_color;
-#endif // HAS_REFLECTION_MAP
+#endif 
 	}
 	
 #elif HAS_INDIRECT_LIGHT
@@ -1311,9 +1374,11 @@ void main()
 
 		if (has_specular)
 		{
-#if HAS_REFLECTION_MAP || HAS_REFLECTOR
+#if HAS_REFLECTOR			
+			radiance = getRadiance(vWorldPos, viewDir, norm, material.specularColor, material.specularF90, material.roughness);	
+#elif HAS_REFLECTION_MAP
 
-#if HAS_REFLECTION_DISTANCE && !HAS_REFLECTOR
+#if HAS_REFLECTION_DISTANCE
 			vec3 reflectVec = getReflectionDir(-viewDir, norm);
 #else
 			vec3 reflectVec = reflect(-viewDir, norm);		
@@ -1323,7 +1388,7 @@ void main()
 
 #else
 			radiance = irradiance * RECIPROCAL_PI;
-#endif  // HAS_REFLECTION_MAP
+#endif
 		}
 
 #if USE_SSAO && IS_OPAQUE
