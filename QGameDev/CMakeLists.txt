@@ -102,6 +102,8 @@ DirectionalLightTuner.ui
 DirectionalLightTuner.cpp
 SceneTuner.ui
 SceneTuner.cpp
+ReflectorTuner.ui
+ReflectorTuner.cpp
 resources/resources.qrc
 )
 
@@ -151,6 +153,7 @@ SphereTuner.h
 ModelTuner.h
 DirectionalLightTuner.h
 SceneTuner.h
+ReflectorTuner.h
 )
 
 set (INCLUDE_DIR

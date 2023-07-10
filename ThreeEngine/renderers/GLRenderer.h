@@ -52,6 +52,7 @@ class ProbeGrid;
 class ProbeGridWidget;
 class LODProbeGrid;
 class LODProbeGridWidget;
+class Reflector;
 
 class VolumeIsosurfaceModel;
 
@@ -120,6 +121,7 @@ private:
 	void render_widget(Camera* p_camera, DirectionalLight* light);
 	void render_widget(Camera* p_camera, ProbeGridWidget* widget);
 	void render_widget(Camera* p_camera, LODProbeGridWidget* widget);
+	void render_widget(Camera* p_camera, Reflector* reflector);
 
 	void render_primitive_simple(const SimpleRoutine::RenderParams& params, Pass pass);
 	void render_primitives_simple(const SimpleRoutine::RenderParams& params, Pass pass, const std::vector<void*>& offset_lst, const std::vector<int>& count_lst);  // batched

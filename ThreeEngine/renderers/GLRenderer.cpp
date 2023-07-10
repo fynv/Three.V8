@@ -876,6 +876,37 @@ void GLRenderer::render_widget(Camera* p_camera, LODProbeGridWidget* widget)
 
 }
 
+void GLRenderer::render_widget(Camera* p_camera, Reflector* reflector)
+{
+	glm::mat4 mat_proj = p_camera->projectionMatrix;
+	glm::mat4 mat_camera = p_camera->matrixWorldInverse;
+	glm::mat4 mat_model = reflector->matrixWorld;
+	glm::mat4 model_view = mat_camera * mat_model;
+	glMatrixLoadfEXT(GL_PROJECTION, (float*)&mat_proj);
+	glMatrixLoadfEXT(GL_MODELVIEW, (float*)&model_view);
+
+	glEnable(GL_DEPTH_TEST);
+
+	glLineWidth(2.0f);
+	glColor3f(0.0f, 0.0f, 1.0f);
+
+	glBegin(GL_LINES);
+
+	glVertex3f(-reflector->width * 0.5f, -reflector->height * 0.5f, 0.0f);
+	glVertex3f(reflector->width * 0.5f, -reflector->height * 0.5f, 0.0f);
+
+	glVertex3f(-reflector->width * 0.5f, reflector->height * 0.5f, 0.0f);
+	glVertex3f(reflector->width * 0.5f, reflector->height * 0.5f, 0.0f);
+
+	glVertex3f(-reflector->width * 0.5f, -reflector->height * 0.5f, 0.0f);
+	glVertex3f(-reflector->width * 0.5f, reflector->height * 0.5f, 0.0f);
+
+	glVertex3f(reflector->width * 0.5f, -reflector->height * 0.5f, 0.0f);
+	glVertex3f(reflector->width * 0.5f, reflector->height * 0.5f, 0.0f);
+
+	glEnd();
+}
+
 void GLRenderer::render_primitive_simple(const SimpleRoutine::RenderParams& params, Pass pass)
 {
 	const MeshStandardMaterial* material = params.material_list[params.primitive->material_idx];
@@ -2585,6 +2616,14 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 					if (widget != nullptr)
 					{
 						render_widget(&camera, widget);
+						break;
+					}
+				}
+				{
+					Reflector* reflector = dynamic_cast<Reflector*>(obj);
+					if (reflector != nullptr)
+					{
+						render_widget(&camera, reflector);
 						break;
 					}
 				}

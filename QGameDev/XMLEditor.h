@@ -117,6 +117,7 @@ private slots:
 	void btn_create_sphere_Click();
 	void btn_create_model_Click();
 	void btn_create_directional_light_Click();
+	void btn_create_reflector();
 
 	void tuner_update(QJsonObject tuning);
 	void tuner_generate(QJsonObject tuning);

@@ -1307,13 +1307,39 @@ const directional_light = {
     }
 }
 
+
+const reflector = {
+    create: (doc, props, mode, parent) => {
+        let width = 1.0;
+        let height = 1.0;
+        if (props.hasOwnProperty('size'))
+        {
+            let size = props.size.split(',');
+            width = parseFloat(size[0]);
+            height = parseFloat(size[1]);
+        }
+                
+        const reflector = new Reflector();
+        reflector.width = width;
+        reflector.height = height;
+
+        if (parent != null) {
+            parent.add(reflector);
+        }
+        else {
+            doc.scene.add(reflector);
+        }
+        return reflector;
+    }
+} 
+
 class BackgroundDocument extends BackgroundScene
 {
     constructor(near, far)
     {
         super(null, near, far);
         
-        this.Tags = { scene, sky, env_light, group, plane, box, sphere, model, directional_light };
+        this.Tags = { scene, sky, env_light, group, plane, box, sphere, model, directional_light, reflector };
         this.reset();
     }
     
@@ -1443,7 +1469,7 @@ export class Document
         this.view = view;
         this.width = view.clientWidth;
         this.height = view.clientHeight;
-        this.Tags = { scene, camera, fog, sky, env_light, control, group, plane, box, sphere, model, avatar, character, directional_light };
+        this.Tags = { scene, camera, fog, sky, env_light, control, group, plane, box, sphere, model, avatar, character, directional_light, reflector };
         this.reset();
     }
     

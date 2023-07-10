@@ -141,7 +141,7 @@ export class Reflector extends Object3D
             0,
             1
         );
-
+        
         passEncoder.setScissorRect(
             this.camera.scissor.origin.x,
             this.camera.scissor.origin.y,
@@ -162,12 +162,12 @@ export class Reflector extends Object3D
         let size = new Vector2(0,0);
 
         let min_pos = new Vector3(-this.width*0.5, -this.height*0.5, 0.0);
-        let max_pos = new Vector3(this.width*0.5, this.height*0.5, 0.0);
+        let max_pos = new Vector3(this.width*0.5, this.height*0.5, 0.0);        
 
         let MV = this.camera.matrixWorldInverse.clone();
         MV.multiply(this.matrixWorld);
 
-        let {min_pos_view, max_pos_view }=  toViewAABB(MV, min_pos, max_pos);
+        let {min_pos_view, max_pos_view }=  toViewAABB(MV, min_pos, max_pos);        
 
         let invP = this.camera.projectionMatrixInverse;
         let view_far = new Vector4(0,0,1,1);
@@ -189,10 +189,10 @@ export class Reflector extends Object3D
 
         if (min_pos_view.z > max_pos_view.z) return {origin, size};
 
-        let P = this.camera.projectionMatrix;
+        let P = this.camera.projectionMatrix;                
 
-        let min_pos_proj = new Vector4(min_pos_view.x, min_pos_view.y, min_pos_view.z, 1.0);
-        min_pos_proj.applyMatrix4(P);
+        let min_pos_proj = new Vector4(min_pos_view.x, min_pos_view.y, min_pos_view.z, 1.0);                
+        min_pos_proj.applyMatrix4(P);        
         min_pos_proj.multiplyScalar(1.0/min_pos_proj.w);
 
         let max_pos_proj = new Vector4(max_pos_view.x, max_pos_view.y, min_pos_view.z, 1.0);

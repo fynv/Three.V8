@@ -2653,13 +2653,58 @@ const directional_light = {
     }
 }
 
+const reflector = {
+    create: (doc, props, mode, parent) => {
+        let width = 1.0;
+        let height = 1.0;
+        if (props.hasOwnProperty('size'))
+        {
+            let size = props.size.split(',');
+            width = parseFloat(size[0]);
+            height = parseFloat(size[1]);
+        }
+                
+        const reflector = new Reflector();
+        reflector.width = width;
+        reflector.height = height;
+
+        if (parent != null) {
+            parent.add(reflector);
+        }
+        else {
+            doc.scene.add(reflector);
+        }
+        doc.scene.addWidget(reflector);
+        return reflector;
+    },
+    remove: (doc, obj) => {
+        doc.scene.removeWidget(obj);
+    },
+    
+    tuning: (doc, obj, input) => {
+        let node = doc.internal_index[obj.uuid].xml_node;
+        let props = node.attributes;
+        if ("size" in input)
+        {
+            props.size = input.size;
+            let size = input.size.split(','); 
+            let width = parseFloat(size[0]);
+            let height = parseFloat(size[1]);
+            obj.width = width;
+            obj.height = height;
+        }
+        tuning_object3d(doc, obj, input);
+        return "";
+    }
+} 
+
 class BackgroundDocument extends BackgroundScene
 {
     constructor(near, far)
     {
         super(null, near, far);
         
-        this.Tags = { scene, sky, env_light, group, plane, box, sphere, model, directional_light };
+        this.Tags = { scene, sky, env_light, group, plane, box, sphere, model, directional_light, reflector };
         this.reset();
     }
     
@@ -2793,7 +2838,7 @@ export class Document
         this.view = view;
         this.width = view.clientWidth;
         this.height = view.clientHeight;
-        this.Tags = { scene, camera, fog, sky, env_light, control, group, plane, box, sphere, model, avatar, directional_light };
+        this.Tags = { scene, camera, fog, sky, env_light, control, group, plane, box, sphere, model, avatar, directional_light, reflector };
         this.picked_key = "";
         this.reset();
     }

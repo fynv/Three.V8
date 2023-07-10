@@ -18,6 +18,7 @@
 #include "ModelTuner.h"
 #include "DirectionalLightTuner.h"
 #include "SceneTuner.h"
+#include "ReflectorTuner.h"
 
 XMLEditor::XMLEditor(QWidget* parent, QString file_path, QString resource_root)
 	: Editor(parent)
@@ -56,6 +57,7 @@ XMLEditor::XMLEditor(QWidget* parent, QString file_path, QString resource_root)
 	connect(m_ui.btn_create_sphere, SIGNAL(clicked()), this, SLOT(btn_create_sphere_Click()));
 	connect(m_ui.btn_create_model, SIGNAL(clicked()), this, SLOT(btn_create_model_Click()));
 	connect(m_ui.btn_create_directional_light, SIGNAL(clicked()), this, SLOT(btn_create_directional_light_Click()));
+	connect(m_ui.btn_create_reflector, SIGNAL(clicked()), this, SLOT(btn_create_reflector()));
 
 	connect(m_ui.webView, SIGNAL(navigationCompleted()), this, SLOT(OnNavigationCompleted()));
 	QString local_path = QCoreApplication::applicationDirPath();
@@ -614,6 +616,11 @@ void XMLEditor::update_index_item(QTreeWidgetItem* item, const QJsonObject& obj)
 			icon_name = "directional_light.png";
 			tooltip = tr("Directional light");
 		}
+		else if (tagName == "reflector")
+		{
+			icon_name = "reflector.png";
+			tooltip = tr("Reflector");
+		}
 
 		QTreeWidgetItem* subitem = new QTreeWidgetItem(item);
 		subitem->setText(0, name);
@@ -722,7 +729,7 @@ std::string XMLEditor::object_picked(const char* key)
 		tuner = nullptr;
 	}
 
-	static QSet<QString> tags3d = { "scene", "group", "plane", "box", "sphere", "model", "avatar", "directional_light" };
+	static QSet<QString> tags3d = { "scene", "group", "plane", "box", "sphere", "model", "avatar", "directional_light", "reflector"};
 
 	m_ui.grp_scene_objs->setEnabled(false);
 	m_ui.grp_3d_objs->setEnabled(false);
@@ -777,6 +784,10 @@ std::string XMLEditor::object_picked(const char* key)
 		else if (tag == "directional_light")
 		{
 			tuner = new DirectionalLightTuner(m_ui.property_area, picked_obj);
+		}
+		else if (tag == "reflector")
+		{
+			tuner = new ReflectorTuner(m_ui.property_area, picked_obj);
 		}
 
 		if (tuner != nullptr)
@@ -998,4 +1009,9 @@ void XMLEditor::btn_create_model_Click()
 void XMLEditor::btn_create_directional_light_Click()
 {
 	req_create_obj3d("directional_light");
+}
+
+void XMLEditor::btn_create_reflector()
+{
+	req_create_obj3d("reflector");
 }

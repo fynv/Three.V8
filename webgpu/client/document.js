@@ -21,6 +21,7 @@ import { LightmapLoader } from "./engine/loaders/LightmapLoader.js"
 import { BoundingVolumeHierarchy } from "./engine/core/BoundingVolumeHierarchy.js"
 import { AnimationMixer } from "./engine/models/AnimationMixer.js"
 import { Fog } from "./engine/scenes/Fog.js"
+import { Reflector } from "./engine/cameras/Reflector.js"
 
 function string_to_boolean(string) {
     switch (string.toLowerCase().trim()) {
@@ -1173,6 +1174,32 @@ const directional_light = {
 };
 
 
+const reflector = {
+    create: (doc, props, parent) => {
+        let width = 1.0;
+        let height = 1.0;
+        if (props.hasOwnProperty('size'))
+        {
+            let size = props.size.split(',');
+            width = parseFloat(size[0]);
+            height = parseFloat(size[1]);
+        }
+                
+        const reflector = new Reflector();
+        reflector.width = width;
+        reflector.height = height;
+
+        if (parent != null) {
+            parent.add(reflector);
+        }
+        else {
+            doc.scene.add(reflector);
+        }
+        return reflector;
+    }
+};
+
+
 class BackgroundDocument extends BackgroundScene
 {
     constructor(doc, near, far)
@@ -1191,7 +1218,7 @@ class BackgroundDocument extends BackgroundScene
         this.hdrImageLoader = this.main_doc.hdrImageLoader;
         this.model_loader = this.main_doc.model_loader;    
         
-        this.Tags = { scene, sky, env_light, group, plane, box, sphere, model, directional_light};
+        this.Tags = { scene, sky, env_light, group, plane, box, sphere, model, directional_light, reflector};
         this.reset();
     }
 
@@ -1320,7 +1347,7 @@ export class Document
     {
         this.canvas_ctx = canvas_ctx;
         this.canvas = canvas_ctx.canvas;        
-        this.resized = false;
+        this.resized = true;
 
         const size_changed = ()=>{
             this.canvas.width = this.canvas.clientWidth;
@@ -1336,7 +1363,7 @@ export class Document
         this.model_loader = new GLTFLoader();
 
         this.render_target = new GPURenderTarget(canvas_ctx, true);
-        this.Tags = { scene, camera, control, fog, sky, env_light, group, plane, box, sphere, model, avatar, character, directional_light};
+        this.Tags = { scene, camera, control, fog, sky, env_light, group, plane, box, sphere, model, avatar, character, directional_light, reflector};
         this.reset();
     }
 

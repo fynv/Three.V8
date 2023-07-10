@@ -21,5 +21,6 @@
     <file>images/target.png</file>
     <file>images/xml.png</file>
     <file>images/html.png</file>
+    <file>images/reflector.png</file>
   </qresource>
 </RCC>
