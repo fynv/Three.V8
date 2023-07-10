@@ -509,8 +509,7 @@ vec3 getRadiance(in vec3 worldPos, in vec3 viewDir, in vec3 norm, const in vec3 
     vec4 proj = uReflProjMat * vec4(view_pos, 1.0);
     proj*= 1.0/proj.w;
 
-	proj.xy = max(proj.xy, uReflScissor.xy);
-	proj.xy = min(proj.xy, uReflScissor.zw);
+	proj.xy = clamp(proj.xy, uReflScissor.xy, uReflScissor.zw);
 
 	vec3 uvz = (proj.xyz + 1.0)*0.5;
 	vec2 pix_pos = uvz.xy * vec2(size_view);
@@ -527,8 +526,7 @@ vec3 getRadiance(in vec3 worldPos, in vec3 viewDir, in vec3 norm, const in vec3 
 			proj = uReflProjMat * vec4(view_pos, 1.0);
 			proj*= 1.0/proj.w;
 		
-			proj.xy = max(proj.xy, uReflScissor.xy);
-			proj.xy = min(proj.xy, uReflScissor.zw);
+			proj.xy = clamp(proj.xy, uReflScissor.xy, uReflScissor.zw);
 
 			float old_z = uvz.z;
 			uvz = (proj.xyz + 1.0)*0.5;
@@ -543,8 +541,7 @@ vec3 getRadiance(in vec3 worldPos, in vec3 viewDir, in vec3 norm, const in vec3 
 				proj = uReflProjMat * vec4(view_pos, 1.0);
                 proj*= 1.0/proj.w;
 
-                proj.xy = max(proj.xy, uReflScissor.xy);
-				proj.xy = min(proj.xy, uReflScissor.zw);
+                proj.xy = clamp(proj.xy, uReflScissor.xy, uReflScissor.zw);
 
                 uvz = (proj.xyz + 1.0)*0.5;
                 break;
@@ -617,8 +614,7 @@ vec3 getRadiance(in vec3 worldPos, in vec3 viewDir, in vec3 norm, const in vec3 
 		proj = uReflProjMat * vec4(view_pos, 1.0);
 		proj*= 1.0/proj.w;
 		
-		proj.xy = max(proj.xy, uReflScissor.xy);
-		proj.xy = min(proj.xy, uReflScissor.zw);
+		proj.xy = clamp(proj.xy, uReflScissor.xy, uReflScissor.zw);
 			
 		uvz = (proj.xyz + 1.0)*0.5;
 
