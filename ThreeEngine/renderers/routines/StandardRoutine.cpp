@@ -651,7 +651,7 @@ vec3 getRadiance(in vec3 worldPos, in vec3 viewDir, in vec3 norm, const in vec3 
 
 		vec4 _r_proj = uReflProjMat * vec4(r_view, 0.0, view_pos.z, 1.0);
 		float r_pix = _r_proj.x/_r_proj.w * pixels_unit;
-		float lod = clamp(log(r_pix)/log(2.0), 0.0, 7.0);		
+		float lod = clamp(log2(r_pix), 0.0, 7.0);		
 			
 		uvz = (proj.xyz + 1.0)*0.5;
 
