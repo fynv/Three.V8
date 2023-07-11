@@ -31,6 +31,7 @@ public:
 	Reflector* reflector = nullptr;
 
 	GLBuffer m_constant;
+	GLBuffer m_constant_scissor;
 	void updateConstant();
 
 	Scissor m_scissor;

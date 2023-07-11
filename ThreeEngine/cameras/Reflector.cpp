@@ -36,12 +36,15 @@ void Reflector::updateTarget(int width, int height)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_tex_depth_1x->tex_id, 0);
-}
 
-void Reflector::depthDownsample()
-{
-	glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_depth_1x);
-	m_depth_downsampler.render(m_target.m_tex_depth->tex_id);
+	m_tex_mipmapped = std::unique_ptr<GLTexture2D>(new GLTexture2D);
+	glBindTexture(GL_TEXTURE_2D, m_tex_mipmapped->tex_id);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);	
+	glTexStorage2D(GL_TEXTURE_2D, 8, GL_RGBA16F, width, height);
+
 }
 
 inline void toViewAABB(const glm::mat4& MV, const glm::vec3& min_pos, const glm::vec3& max_pos, glm::vec3& min_pos_out, glm::vec3& max_pos_out)

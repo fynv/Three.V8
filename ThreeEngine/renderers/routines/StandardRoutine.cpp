@@ -560,13 +560,45 @@ vec3 getRadiance(in vec3 worldPos, in vec3 viewDir, in vec3 norm, const in vec3 
 			t+=step;
 		}
 	}
-
+	
 	float depth = textureLod(uTexReflectorDepth, uvz.xy, 0.0).x;
 	proj.z = depth*2.0 - 1.0;
-	
+		
 	vec4 _view_pos = uReflInvProjMat * proj;
 	view_pos = _view_pos.xyz / _view_pos.w;
-	t = length(view_pos - view_origin);	
+	t = length(view_pos - view_origin);		
+	
+	float alpha = roughness * roughness;
+	float alpha2 = alpha*alpha;
+	float s = sqrt(alpha2/(1.0 + alpha2));
+	float one_minus_c = 1.0 - sqrt(1.0/(1.0 + alpha2));
+	int count_samples = int(one_minus_c/(1.0-sqrt(0.5)) * 64.0)+1;
+
+	float r_view0 = t*s*2.0;
+	float acc_t = 0.0;
+
+	for (int i=0; i<count_samples; i++)
+	{
+		float d = sqrt((float(i)+0.5)/float(count_samples)) * r_view0;
+		float theta = float(i) * 2.4 + jitter * 2.0 * PI;
+
+		vec3 view_pos2 = view_pos + vec3(d*cos(theta), d*sin(theta), 0.0);
+		proj = uReflProjMat * vec4(view_pos2, 1.0);
+        proj*= 1.0/proj.w;
+
+        proj.xy = clamp(proj.xy, uReflScissor.xy, uReflScissor.zw);
+
+        uvz = (proj.xyz + 1.0)*0.5;
+		
+		depth = textureLod(uTexReflectorDepth, uvz.xy, 0.0).x;
+		proj.z = depth*2.0 - 1.0;
+		
+		_view_pos = uReflInvProjMat * proj;
+		view_pos2 = _view_pos.xyz / _view_pos.w;
+		acc_t += length(view_pos2 - view_origin);	
+	}
+
+	t = acc_t/float(count_samples);
 
 	vec3 up = vec3(1.0, 0.0, 0.0);
 	if (norm.y<norm.x)
@@ -588,22 +620,22 @@ vec3 getRadiance(in vec3 worldPos, in vec3 viewDir, in vec3 norm, const in vec3 
 	vec3 axis_x = normalize(cross(up, norm));
 	vec3 axis_y = cross(norm, axis_x);
 
-	float alpha = roughness * roughness;
-	float alpha2 = alpha*alpha;
-
-	int count_samples = int(alpha2/(1.0 + alpha2) * 2.0 * 64.0) + 1;
+	float PHI = sqrt(5.0) * 0.5 + 0.5;	
+	
+	float r_view = t*sqrt(one_minus_c/float(count_samples))*2.0;
+	float pixels_unit = float(size_view.x) / 2.0;
 
 	float acc_weight = 0.0;
 	vec3 acc_col = vec3(0.0);
 
 	for (int i=0; i<count_samples; i++)
 	{
-		float r = RandomFloat(seed);
-		float theta = acos(sqrt((1.0-r)/(1.0-(1.0- alpha2)*r)));
-		float phi = RandomFloat(seed) * 2.0 * PI;
+		float z = 1.0 - one_minus_c * (float(i)+0.5)/float(count_samples);
+		float xy = sqrt(1.0 - z*z);
 
-		float z = cos(theta);
-		float xy = sin(theta);	
+		float m = float(i)*(PHI - 1.0);
+        float frac_m = m - floor(m);
+        float phi = 2.0 * PI * (jitter + frac_m);
 
 		vec3 H = xy * cos(phi) * axis_x + xy * sin(phi) * axis_y + z * norm;
 
@@ -611,25 +643,24 @@ vec3 getRadiance(in vec3 worldPos, in vec3 viewDir, in vec3 norm, const in vec3 
 		view_dir = (uReflViewMat * vec4(reflectVec, 0.0)).xyz;
 
 		view_pos = view_origin + t*view_dir;
+
 		proj = uReflProjMat * vec4(view_pos, 1.0);
 		proj*= 1.0/proj.w;
 		
 		proj.xy = clamp(proj.xy, uReflScissor.xy, uReflScissor.zw);
+
+		vec4 _r_proj = uReflProjMat * vec4(r_view, 0.0, view_pos.z, 1.0);
+		float r_pix = _r_proj.x/_r_proj.w * pixels_unit;
+		float lod = clamp(log(r_pix)/log(2.0), 0.0, 7.0);		
 			
 		uvz = (proj.xyz + 1.0)*0.5;
 
-		vec3 col = textureLod(uTexReflector, uvz.xy, 0.0).xyz;
+		vec3 col = textureLod(uTexReflector, uvz.xy, lod).xyz;
 
-		float dotVH = dot(viewDir, H);
-		float dotNL = dot(norm, reflectVec);		
-		//float dotNV = dot(norm, viewDir);
 		float dotNH = dot(norm, H);
-
-		/*vec3 F = F_Schlick(f0, f90, saturate(dotVH));
-		float V = V_GGX_SmithCorrelated(alpha, saturate(dotNL), saturate(dotNV));
-		col *= F*V;*/
+		float denom = pow2( clamp(dotNH, 0.0, 1.0) ) * ( alpha2 - 1.0 ) + 1.0;
 		
-		float weight = abs(dotVH) / (dotNL * dotNH);
+		float weight = 1.0 / pow2( denom );
 		acc_weight += weight;
 		acc_col += weight * col;
 	}
@@ -2410,7 +2441,7 @@ void StandardRoutine::_render_common(const RenderParams& params)
 	if (m_options.has_reflector)
 	{
 		glActiveTexture(GL_TEXTURE0 + texture_idx);
-		glBindTexture(GL_TEXTURE_2D, params.reflector->m_target.m_tex_video->tex_id);
+		glBindTexture(GL_TEXTURE_2D, params.reflector->m_tex_mipmapped->tex_id);
 		glUniform1i(m_bindings.location_tex_reflector, texture_idx);
 		texture_idx++;
 

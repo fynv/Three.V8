@@ -29,6 +29,9 @@
 #include "renderers/routines/DepthOnly.h"
 #include "renderers/routines/SSAO.h"
 
+#include "renderers/routines/DepthDownsample.h"
+#include "renderers/routines/ReflectionCopy.h"
+
 #include "renderers/routines/SceneToVolume.h"
 
 #include "renderers/routines/RasterizeAtlas.h"
@@ -192,6 +195,9 @@ private:
 
 	std::unique_ptr<EnvironmentMapCreator> EnvCreator;
 	std::unique_ptr<ReflectionDistanceCreator> ReflDisCreator;
+
+	std::unique_ptr<DepthDownsample> DepthDownsampler;
+	std::unique_ptr<ReflectionCopy> ReflectionCopier;
 
 	std::unique_ptr<SceneToVolume> SceneVolumeConvert;
 	void scene_to_volume_primitive(const SceneToVolume::RenderParams& params);

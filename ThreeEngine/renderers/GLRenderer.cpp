@@ -3175,8 +3175,25 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 			}
 
 			reflector->calc_scissor();			
-			this->_render_simple(scene, reflector->m_camera, reflector->m_target);			
-			reflector->depthDownsample();			
+			this->_render_simple(scene, reflector->m_camera, reflector->m_target);		
+
+			if (DepthDownsampler == nullptr)
+			{
+				DepthDownsampler = std::unique_ptr<DepthDownsample>(new DepthDownsample);
+			}
+
+			glBindFramebuffer(GL_FRAMEBUFFER, reflector->m_fbo_depth_1x);
+			DepthDownsampler->render(reflector->m_target.m_tex_depth->tex_id);
+
+			if (ReflectionCopier == nullptr)
+			{
+				ReflectionCopier = std::unique_ptr<ReflectionCopy>(new ReflectionCopy);
+			}
+			ReflectionCopier->copy(reflector->m_tex_mipmapped->tex_id, reflector->m_target.m_tex_video->tex_id, target.m_width, target.m_height, &reflector->m_camera);
+			glBindTexture(GL_TEXTURE_2D, reflector->m_tex_mipmapped->tex_id);
+			glGenerateMipmap(GL_TEXTURE_2D);
+			glBindTexture(GL_TEXTURE_2D, 0);
+
 		}
 
 	}

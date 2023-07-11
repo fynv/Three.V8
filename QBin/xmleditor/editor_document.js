@@ -2366,7 +2366,6 @@ const model = {
         let props = node.attributes;
         if (input.hasOwnProperty('src'))
         {
-            doc.remove(obj);
             props.src = input.src;
             let obj_new = model.create(doc, props, "local", obj.parent);
             obj_new.uuid = key;
@@ -2398,6 +2397,8 @@ const model = {
             obj_new.setToonShading(16, 5.0, new Vector3(1.0, 1.0, 0.2));
             
             doc.internal_index[key].obj = obj_new;
+            
+            doc.remove(obj);
         }
         else
         {

@@ -233,6 +233,7 @@
     <ClCompile Include="renderers\routines\MorphUpdate.cpp" />
     <ClCompile Include="renderers\routines\Picking.cpp" />
     <ClCompile Include="renderers\routines\RasterizeAtlas.cpp" />
+    <ClCompile Include="renderers\routines\ReflectionCopy.cpp" />
     <ClCompile Include="renderers\routines\SceneToVolume.cpp" />
     <ClCompile Include="renderers\routines\SimpleFogRayMarching.cpp" />
     <ClCompile Include="renderers\routines\SimpleFogRayMarchingEnv.cpp" />
@@ -373,6 +374,7 @@
     <ClInclude Include="renderers\routines\MorphUpdate.h" />
     <ClInclude Include="renderers\routines\Picking.h" />
     <ClInclude Include="renderers\routines\RasterizeAtlas.h" />
+    <ClInclude Include="renderers\routines\ReflectionCopy.h" />
     <ClInclude Include="renderers\routines\SceneToVolume.h" />
     <ClInclude Include="renderers\routines\SimpleFogRayMarching.h" />
     <ClInclude Include="renderers\routines\SimpleFogRayMarchingEnv.h" />

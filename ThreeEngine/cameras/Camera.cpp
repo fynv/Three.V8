@@ -16,6 +16,7 @@ Camera::Camera()
 	, projectionMatrix(glm::identity<glm::mat4>())
 	, projectionMatrixInverse(glm::identity<glm::mat4>())
 	, m_constant(sizeof(CameraConst), GL_UNIFORM_BUFFER)
+	, m_constant_scissor(sizeof(glm::ivec4), GL_UNIFORM_BUFFER)
 {
 
 }
@@ -67,4 +68,7 @@ void Camera::updateConstant()
 	c.EyePos = matrixWorld[3];
 	c.Scissor = glm::vec4(m_scissor.min_proj, m_scissor.max_proj);
 	m_constant.upload(&c);
+
+	glm::ivec4 c_scissor = glm::ivec4(m_scissor.origin, m_scissor.size);
+	m_constant_scissor.upload(&c_scissor);
 }
