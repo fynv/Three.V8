@@ -622,7 +622,7 @@ vec3 getRadiance(in vec3 worldPos, in vec3 viewDir, in vec3 norm, const in vec3 
 
 	float PHI = sqrt(5.0) * 0.5 + 0.5;	
 	
-	float r_view = t*sqrt(one_minus_c/float(count_samples))*2.0;
+	float r_view = t*sqrt(one_minus_c/float(count_samples)*2.0)*2.0;
 	float pixels_unit = float(size_view.x) / 2.0;
 
 	float acc_weight = 0.0;

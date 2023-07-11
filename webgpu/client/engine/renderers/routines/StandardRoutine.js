@@ -519,7 +519,7 @@ fn getRadiance(world_pos: vec3f, viewDir: vec3f, norm: vec3f, f0: vec3f, f90: f3
     
     let PHI = sqrt(5.0) * 0.5 + 0.5;
 
-    let r_view = t*sqrt(one_minus_c/f32(count_samples))*2.0;
+    let r_view = t*sqrt(one_minus_c/f32(count_samples)*2.0)*2.0;
 	let pixels_unit = f32(size_view.x) / 2.0;
 
     var acc_weight = 0.0;
