@@ -313,7 +313,7 @@ export class Primitive
         {
             entries.push({
                 binding,
-                resource: reflector.target.view_video
+                resource: reflector.view_mipmapped
             });
             binding++;
 

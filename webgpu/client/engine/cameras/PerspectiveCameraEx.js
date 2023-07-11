@@ -9,6 +9,7 @@ export class PerspectiveCameraEx extends PerspectiveCamera
 
         const const_size = 4*16 * 4 + 4 * 2 * 4;
         this.constant = engine_ctx.createBuffer0(const_size, GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST);
+        this.constant_scissor = engine_ctx.createBuffer0(16, GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST);
 
         let options = { has_reflector: reflector!=null};
         let signature = JSON.stringify(options);
@@ -110,5 +111,16 @@ export class PerspectiveCameraEx extends PerspectiveCamera
         }
         
         engine_ctx.queue.writeBuffer(this.constant, 0, uniform.buffer, uniform.byteOffset, uniform.byteLength);
+
+        if( this.scissor!=null)
+        {
+            const uniform_scissor = new Int32Array(4);
+            uniform_scissor[0] = this.scissor.origin.x;
+            uniform_scissor[1] = this.scissor.origin.y;
+            uniform_scissor[2] = this.scissor.size.x;
+            uniform_scissor[3] = this.scissor.size.y;
+
+            engine_ctx.queue.writeBuffer(this.constant_scissor, 0, uniform_scissor.buffer, uniform_scissor.byteOffset, uniform_scissor.byteLength);
+        }
     }
 }

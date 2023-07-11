@@ -460,12 +460,42 @@ fn getRadiance(world_pos: vec3f, viewDir: vec3f, norm: vec3f, f0: vec3f, f90: f3
         }
     }
 
-    let depth = textureSampleLevel(uTexReflectorDepth, uSampler, uvz.xy, 0);
+    var depth = textureSampleLevel(uTexReflectorDepth, uSampler, uvz.xy, 0);
     proj.z = depth*2.0 - 1.0;
 
-    let _view_pos = uCameraReflector.invProjMat * proj;
+    var _view_pos = uCameraReflector.invProjMat * proj;
 	view_pos = _view_pos.xyz / _view_pos.w;
 	t = length(view_pos - view_origin);	
+
+    let alpha = roughness * roughness;
+	let alpha2 = alpha*alpha;
+    let s = sqrt(alpha2/(1.0 + alpha2));
+    let one_minus_c = 1.0 - sqrt(1.0/(1.0 + alpha2));
+    let count_samples = i32(one_minus_c/(1.0-sqrt(0.5)) * 64.0)+1;
+
+    let r_view0 = t*s*2.0;
+    var acc_t = 0.0;
+	for (var i=0; i<count_samples; i++)
+	{
+		let d = sqrt((f32(i)+0.5)/f32(count_samples)) * r_view0;
+		let theta = f32(i) * 2.4 + jitter * 2.0 * PI;
+
+		var view_pos2 = view_pos + vec3(d*cos(theta), d*sin(theta), 0.0);
+		proj = uCameraReflector.projMat * vec4(view_pos2, 1.0);
+        proj*= 1.0/proj.w;
+
+        proj.x = clamp(proj.x, uCameraReflector.scissor.x, uCameraReflector.scissor.z);
+        proj.y = clamp(proj.y, uCameraReflector.scissor.y, uCameraReflector.scissor.w);
+        uvz = vec3((proj.x + 1.0)*0.5, (1.0 - proj.y)*0.5, (proj.z + 1.0)*0.5);
+		
+		depth = textureSampleLevel(uTexReflectorDepth, uSampler, uvz.xy, 0);
+		proj.z = depth*2.0 - 1.0;
+		
+		_view_pos = uCameraReflector.invProjMat * proj;
+		view_pos2 = _view_pos.xyz / _view_pos.w;
+		acc_t += length(view_pos2 - view_origin);	
+	}
+	t = acc_t/f32(count_samples);
 
     var up = vec3(1.0, 0.0, 0.0);
     if (norm.y<norm.x)
@@ -485,25 +515,25 @@ fn getRadiance(world_pos: vec3f, viewDir: vec3f, norm: vec3f, f0: vec3f, f90: f3
 	}
 
     let axis_x = normalize(cross(up, norm));
-	let axis_y = cross(norm, axis_x);
+	let axis_y = cross(norm, axis_x);    
+    
+    let PHI = sqrt(5.0) * 0.5 + 0.5;
 
-    let alpha = roughness * roughness;
-	let alpha2 = alpha*alpha;
-
-    let count_samples = i32(alpha2/(1.0 + alpha2) * 2.0 * 64.0) + 1;
+    let r_view = t*sqrt(one_minus_c/f32(count_samples))*2.0;
+	let pixels_unit = f32(size_view.x) / 2.0;
 
     var acc_weight = 0.0;
 	var acc_col = vec3(0.0);
 
     for (var i=0; i<count_samples; i++)
 	{
-        let r = RandomFloat();
-		let theta = acos(sqrt((1.0-r)/(1.0-(1.0- alpha2)*r)));
-		let phi = RandomFloat() * 2.0 * PI;
+        let z = 1.0 - one_minus_c * (f32(i)+0.5)/f32(count_samples);
+        let xy = sqrt(1.0 - z*z);
 
-        let z = cos(theta);
-		let xy = sin(theta);	
-
+        let m = f32(i)*(PHI - 1.0);
+        let frac_m = m - floor(m);
+        let phi = 2.0 * PI * (jitter + frac_m);
+        
 		let H = xy * cos(phi) * axis_x + xy * sin(phi) * axis_y + z * norm;
 
         reflectVec = reflect(-viewDir, H);
@@ -515,16 +545,19 @@ fn getRadiance(world_pos: vec3f, viewDir: vec3f, norm: vec3f, f0: vec3f, f90: f3
 
         proj.x = clamp(proj.x, uCameraReflector.scissor.x, uCameraReflector.scissor.z);
         proj.y = clamp(proj.y, uCameraReflector.scissor.y, uCameraReflector.scissor.w);
+
+        let _r_proj = uCameraReflector.projMat * vec4(r_view, 0.0, view_pos.z, 1.0);
+		let r_pix = _r_proj.x/_r_proj.w * pixels_unit;
+		let lod = clamp(log2(r_pix), 0.0, 7.0);
         
         uvz = vec3((proj.x + 1.0)*0.5, (1.0 - proj.y)*0.5, (proj.z + 1.0)*0.5);
 
-        let col = textureSampleLevel(uTexReflector, uSampler, uvz.xy, 0).xyz;
+        let col = textureSampleLevel(uTexReflector, uSampler, uvz.xy, lod).xyz;
 
-        let dotVH = dot(viewDir, H);
-		let dotNL = dot(norm, reflectVec);				
-		let dotNH = dot(norm, H); 
+		let dotNH = dot(norm, H);        
+	    let denom = pow2( clamp(dotNH, 0.0, 1.0) ) * ( alpha2 - 1.0 ) + 1.0;
 
-        let weight = abs(dotVH) / (dotNL * dotNH);
+        let weight = 1.0 / pow2( denom );
 		acc_weight += weight;
 		acc_col += weight * col;
 

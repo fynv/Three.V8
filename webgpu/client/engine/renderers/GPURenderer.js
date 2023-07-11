@@ -1822,7 +1822,12 @@ export class GPURenderer
             reflector.calc_scissor();
             this._render_simple(scene, reflector.camera, reflector.target);     
 
-            reflector.depthDownsample();
+            let commandEncoder = engine_ctx.device.createCommandEncoder();        
+            reflector.depthDownsample(commandEncoder);
+            reflector.copyReflection(commandEncoder);
+            reflector.createMipmaps(commandEncoder);
+            let cmdBuf = commandEncoder.finish();
+            engine_ctx.queue.submit([cmdBuf]);
         }
 
         let reflector = null;

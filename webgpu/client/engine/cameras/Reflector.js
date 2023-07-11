@@ -5,6 +5,8 @@ import { Vector2 } from "../math/Vector2.js";
 import { Vector3 } from "../math/Vector3.js";
 import { Vector4 } from "../math/Vector4.js";
 import { DepthDownsample, DepthDownsampleBundle} from "../renderers/routines/DepthDownsample.js"
+import { ReflecionCopy } from "../renderers/routines/ReflectionCopy.js"
+import { ReflecionMipmaps } from "../renderers/routines/ReflectionMipmaps.js"
 
 function toViewAABB(MV, min_pos, max_pos)
 {
@@ -86,8 +88,16 @@ export class Reflector extends Object3D
         this.target = new GPURenderTarget(null, true);
         this.tex_depth_1x = null;
         this.view_depth_1x = null;
+        this.tex_mipmapped = null;
+        this.view_mipmapped = null;
         this.resized = false;
         this.camera = new PerspectiveCameraEx(50, 1, 0.1, 2000, this);
+
+        this.sampler = engine_ctx.device.createSampler({
+            magFilter: 'linear',
+            minFilter: 'linear',                        
+        });
+
     }
 
     updateConstant()
@@ -106,6 +116,7 @@ export class Reflector extends Object3D
     updateTarget(width, height)
     {
         this.target.update(width, height);
+        
         this.tex_depth_1x = engine_ctx.device.createTexture({
             size: [width, height],
             dimension: "2d",
@@ -114,12 +125,135 @@ export class Reflector extends Object3D
         });
         this.view_depth_1x = this.tex_depth_1x.createView();
         this.bundle_depth_downsample = DepthDownsampleBundle(this.target);
+
+        this.tex_mipmapped = engine_ctx.device.createTexture({
+            size: [width, height],
+            dimension: "2d",
+            format: 'rgba16float',
+            mipLevelCount: 8,
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING 
+        });
+
+        this.view_mipmapped = this.tex_mipmapped.createView();
+        this.view_mipmaps = []
+        for (let i=0; i<8; i++)
+        {
+            this.view_mipmaps.push(this.tex_mipmapped.createView({
+                dimension: '2d',
+                baseMipLevel: i,
+                mipLevelCount: 1
+            }));
+        }
+
+        if (!("reflecion_copy" in engine_ctx.cache.bindGroupLayouts))
+        {
+            engine_ctx.cache.bindGroupLayouts.reflecion_copy = engine_ctx.device.createBindGroupLayout({ 
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.COMPUTE,
+                        buffer:{
+                            type: "uniform"
+                        }
+                    },
+                    {
+                        binding: 1,
+                        visibility: GPUShaderStage.COMPUTE,
+                        texture:{
+                            viewDimension: "2d"
+                        }
+                    },
+                    {
+                        binding: 2,
+                        visibility: GPUShaderStage.COMPUTE,
+                        storageTexture: {
+                            viewDimension: "2d",
+                            format: "rgba16float"
+                        }
+                    }
+            ]});
+        }
+
+        {
+            let bindGroupLayout = engine_ctx.cache.bindGroupLayouts.reflecion_copy;
+            this.bind_group_copy = engine_ctx.device.createBindGroup({
+                layout: bindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource:{
+                            buffer: this.camera.constant_scissor
+                        }
+                    },
+                    {
+                        binding: 1,
+                        resource: this.target.view_video
+                    },
+                    {
+                        binding: 2,
+                        resource: this.view_mipmaps[0]
+                    }
+                ]
+            });
+        }
+
+        if (!("reflecion_mipmaps" in engine_ctx.cache.bindGroupLayouts))
+        {
+            engine_ctx.cache.bindGroupLayouts.reflecion_mipmaps = engine_ctx.device.createBindGroupLayout({ 
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.COMPUTE,
+                        sampler:{}
+                    },
+                    {
+                        binding: 1,
+                        visibility: GPUShaderStage.COMPUTE,
+                        texture:{
+                            viewDimension: "2d"
+                        }
+                    },
+                    {
+                        binding: 2,
+                        visibility: GPUShaderStage.COMPUTE,
+                        storageTexture: {
+                            viewDimension: "2d",
+                            format: "rgba16float"
+                        }
+                    }
+            ]});
+        }
+
+        {
+            let bindGroupLayout = engine_ctx.cache.bindGroupLayouts.reflecion_mipmaps;
+            this.bind_group_mipmaps = [];
+            for (let i=0; i<7; i++)
+            {
+                let bind_group =  engine_ctx.device.createBindGroup({
+                    layout: bindGroupLayout,
+                    entries: [
+                        {
+                            binding: 0,
+                            resource: this.sampler
+                        },
+                        {
+                            binding: 1,
+                            resource: this.view_mipmaps[i]
+                        },
+                        {
+                            binding: 2,
+                            resource: this.view_mipmaps[i+1]
+                        }
+                    ]
+                });
+                this.bind_group_mipmaps.push(bind_group);
+            }
+
+        }
     }
 
-    depthDownsample()
+    depthDownsample(commandEncoder)
     {
-        let commandEncoder = engine_ctx.device.createCommandEncoder();
-
         let depthAttachment = {
             view: this.view_depth_1x,
             depthClearValue: 1,
@@ -150,10 +284,30 @@ export class Reflector extends Object3D
         );
         
         passEncoder.executeBundles([this.bundle_depth_downsample]);
-        passEncoder.end();
+        passEncoder.end();        
+    }
 
-        let cmdBuf = commandEncoder.finish();
-        engine_ctx.queue.submit([cmdBuf]);
+    copyReflection(commandEncoder)
+    {
+        const passEncoder = commandEncoder.beginComputePass();
+        ReflecionCopy(passEncoder, this.target.width, this.target.height, this.bind_group_copy);                    
+        passEncoder.end();
+    }
+
+    createMipmaps(commandEncoder)
+    {
+        const passEncoder = commandEncoder.beginComputePass();
+
+        let width = this.target.width;
+        let height =  this.target.height;
+
+        for (let i =0; i<7; i++)
+        {
+            if (width > 1) width = Math.floor(width/2);
+            if (height > 1) height = Math.floor(height/2);
+            ReflecionMipmaps(passEncoder, width, height, this.bind_group_mipmaps[i]);
+        }
+        passEncoder.end();
     }
 
     calc_scissor()
