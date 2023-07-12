@@ -1636,16 +1636,13 @@ void GLRenderer::_pre_render(Scene& scene)
 	scene.clear_lists();
 
 	auto* p_scene = &scene;
-	Reflector* reflector = nullptr;
-	Reflector** p_reflector = &reflector;
-	scene.traverse([p_scene, p_reflector](Object3D* obj) {
+	scene.traverse([p_scene](Object3D* obj) {
 		do
 		{
 			{
 				SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
 				if (model)
-				{
-					model->reflector = *p_reflector;
+				{					
 					p_scene->simple_models.push_back(model);
 					break;
 				}
@@ -1654,7 +1651,6 @@ void GLRenderer::_pre_render(Scene& scene)
 				GLTFModel* model = dynamic_cast<GLTFModel*>(obj);
 				if (model)
 				{
-					model->reflector = *p_reflector;
 					p_scene->gltf_models.push_back(model);
 					break;
 				}
@@ -1679,8 +1675,7 @@ void GLRenderer::_pre_render(Scene& scene)
 			{
 				Reflector* reflector = dynamic_cast<Reflector*>(obj);
 				if (reflector)
-				{
-					*p_reflector = reflector;
+				{					
 					p_scene->reflectors.push_back(reflector);
 					break;
 				}
@@ -1689,6 +1684,32 @@ void GLRenderer::_pre_render(Scene& scene)
 
 		obj->updateWorldMatrix(false, false);
 	});
+
+	for (size_t i = 0; i < scene.reflectors.size(); i++)
+	{
+		Reflector* p_reflector = scene.reflectors[i];
+		p_reflector->traverse([p_reflector](Object3D* obj) {
+			do
+			{
+				{
+					SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
+					if (model)
+					{
+						model->reflector = p_reflector;
+						break;
+					}
+				}
+				{
+					GLTFModel* model = dynamic_cast<GLTFModel*>(obj);
+					if (model)
+					{
+						model->reflector = p_reflector;
+						break;
+					}
+				}
+			} while (false);
+		});
+	}
 
 	// update models
 	for (size_t i = 0; i < scene.simple_models.size(); i++)

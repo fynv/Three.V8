@@ -1817,7 +1817,25 @@ export class GPURenderer
                 reflector.camera.updateProjectionMatrix();
                 reflector.updateTarget(target.width, target.height);
                 reflector.resized = true;
-            }            
+            }
+                        
+            reflector.traverse((obj)=>{
+                if (obj instanceof SimpleModel)
+                {                    
+                    if (obj.reflector!= reflector || reflector.resized)
+                    {                
+                        obj.set_reflector(reflector);
+                    }
+                }         
+                else if (obj instanceof GLTFModel)
+                {                    
+                    if (obj.reflector!= reflector || reflector.resized)
+                    {                
+                        obj.set_reflector(reflector);
+                    }
+                }       
+            });
+            reflector.resized = false;
             
             reflector.calc_scissor();
             this._render_simple(scene, reflector.camera, reflector.target);     
@@ -1828,36 +1846,6 @@ export class GPURenderer
             reflector.createMipmaps(commandEncoder);
             let cmdBuf = commandEncoder.finish();
             engine_ctx.queue.submit([cmdBuf]);
-        }
-
-        let reflector = null;
-        scene.traverse((obj)=>{
-            if(obj!=null)
-            {
-                if (obj instanceof SimpleModel)
-                {                    
-                    if (reflector!=null && (obj.reflector!= reflector || reflector.resized))
-                    {                
-                        obj.set_reflector(reflector);
-                    }
-                }         
-                else if (obj instanceof GLTFModel)
-                {                    
-                    if (reflector!=null && (obj.reflector!= reflector || reflector.resized))
-                    {                
-                        obj.set_reflector(reflector);
-                    }
-                }               
-                else if (obj instanceof Reflector)
-                {
-                    reflector = obj;                 
-                }
-            }           
-        });
-
-        for (let reflector of scene.reflectors)
-        {
-            reflector.resized = false;        
         }
 
         this._render(scene, camera, target);       
