@@ -17,6 +17,7 @@
   - [Plane/Box/Sphere Items](#planeboxsphere-items)
   - [Model Item](#model-item)
   - [Directional Light Item](#directional-light-item)
+  - [Reflector Item](#reflector-item)
   - [Scene Item](#scene-item)
 
 ![](scene_editor.jpg)
@@ -204,6 +205,14 @@ Clicking "Auto Detect" will set a shadowed area that covers the whole scene.
 The "Radius" option is for soft-shadowing. 
 
 The "Bias" option offsets the shadow-map value a little to reduce artifacts at double-sided faces. When the "Force Cull" option is checked, all surfaces are treated as single sided when casting shadow.
+
+## Reflector Item
+
+A reflector captures a reflection image by rendering from a virtual camera located at the other side of the reflector plane. The refelection image is then used by the children of the reflector for image based specular.
+
+![](reflector.jpg)
+
+The "size" option defines the size of the reflector plane. Only the reflection within the reflector plane will be captured.
 
 ## Scene Item
 

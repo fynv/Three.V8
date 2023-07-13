@@ -1265,6 +1265,7 @@ pre[class*="language-"] {
 <li><a href="#planeboxsphere-items">Plane/Box/Sphere Items</a></li>
 <li><a href="#model-item">Model Item</a></li>
 <li><a href="#directional-light-item">Directional Light Item</a></li>
+<li><a href="#reflector-item">Reflector Item</a></li>
 <li><a href="#scene-item">Scene Item</a></li>
 </ul>
 </li>
@@ -1368,6 +1369,10 @@ For each of them, the transformation properties come first, followed by geometry
 <p>Clicking "Auto Detect" will set a shadowed area that covers the whole scene.</p>
 <p>The "Radius" option is for soft-shadowing. </p>
 <p>The "Bias" option offsets the shadow-map value a little to reduce artifacts at double-sided faces. When the "Force Cull" option is checked, all surfaces are treated as single sided when casting shadow.</p>
+<h2 class="atx" id="reflector-item">Reflector Item</h2>
+<p>A reflector captures a reflection image by rendering from a virtual camera located at the other side of the reflector plane. The refelection image is then used by the children of the reflector for image based specular.</p>
+<p><img alt="" src="reflector.jpg"></p>
+<p>The "size" option defines the size of the reflector plane. Only the reflection within the reflector plane will be captured.</p>
 <h2 class="atx" id="scene-item">Scene Item</h2>
 <p>The root item of the scene. When it is selected, options and operations that applies to the whole scene will be shown. Currently, it is only used for lightmap baking, which involves the lightmap attached to all models within the scene.</p>
 <p><img alt="" src="scene.jpg"></p>
