@@ -23,6 +23,7 @@ The user script APIs consist of
 | [Object3D](Object3D.html)                                 | Base class of all 3D objects visible to user script.         |
 | [Camera](Camera.html)                                     | Base class for cameras.                                      |
 | [PerspectiveCamera](PerspectiveCamera.html)               | Perspective camera                                           |
+| [Reflector](Reflector.html)                               | Planar reflector.                                            |
 | [Backround](Background.html)                              | Abstract class for all backgrounds                           |
 | [ColorBackground](ColorBackground.html)                   | A background that has a monotone color.                      |
 | [CubeBackground](CubeBackground.html)                     | A background using a CubeMap.                                |
