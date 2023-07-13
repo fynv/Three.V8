@@ -17,11 +17,25 @@ fn main(@builtin(global_invocation_id) id : vec3<u32>)
         return;
     }
 
+    let pixel_size = vec2(1.0, 1.0)/vec2f(size);
+
     let uv = (vec2f(id.xy) + 0.5)/vec2f(size);
-    let color = textureSampleLevel(uTexSrc, uSampler, uv, 0);
+    var color = vec3(0.0);
+
+    color += 0.0625 * textureSampleLevel(uTexSrc, uSampler, uv + vec2(-pixel_size.x, -pixel_size.y), 0).xyz;
+    color += 0.125 * textureSampleLevel(uTexSrc, uSampler, uv + vec2(0.0, -pixel_size.y), 0).xyz;
+    color += 0.0625 * textureSampleLevel(uTexSrc, uSampler, uv + vec2(pixel_size.x, -pixel_size.y), 0).xyz;
+    
+    color += 0.125 * textureSampleLevel(uTexSrc, uSampler, uv + vec2(-pixel_size.x, 0.0), 0).xyz;
+    color += 0.25 * textureSampleLevel(uTexSrc, uSampler, uv, 0).xyz;
+    color += 0.125 * textureSampleLevel(uTexSrc, uSampler, uv + vec2(pixel_size.x, 0.0), 0).xyz;
+
+    color += 0.0625 * textureSampleLevel(uTexSrc, uSampler, uv + vec2(-pixel_size.x, pixel_size.y), 0).xyz;
+    color += 0.125 * textureSampleLevel(uTexSrc, uSampler, uv + vec2(0.0, pixel_size.y), 0).xyz;
+    color += 0.0625 * textureSampleLevel(uTexSrc, uSampler, uv + vec2(pixel_size.x, pixel_size.y), 0).xyz;
 
     let coord = vec2i(id.xy);
-    textureStore(uTexDst, coord, color);
+    textureStore(uTexDst, coord, vec4(color, 1.0));
 }
 `;
 

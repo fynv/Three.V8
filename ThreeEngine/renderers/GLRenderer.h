@@ -31,6 +31,7 @@
 
 #include "renderers/routines/DepthDownsample.h"
 #include "renderers/routines/ReflectionCopy.h"
+#include "renderers/routines/ReflectionMipmaps.h"
 
 #include "renderers/routines/SceneToVolume.h"
 
@@ -198,6 +199,7 @@ private:
 
 	std::unique_ptr<DepthDownsample> DepthDownsampler;
 	std::unique_ptr<ReflectionCopy> ReflectionCopier;
+	std::unique_ptr<ReflectionMipmaps> ReflectionMipmapper;
 
 	std::unique_ptr<SceneToVolume> SceneVolumeConvert;
 	void scene_to_volume_primitive(const SceneToVolume::RenderParams& params);

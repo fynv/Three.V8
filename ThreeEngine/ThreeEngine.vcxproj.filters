@@ -510,6 +510,9 @@
     <ClCompile Include="renderers\routines\ReflectionCopy.cpp">
       <Filter>Source Files\renderers\routines</Filter>
     </ClCompile>
+    <ClCompile Include="renderers\routines\ReflectionMipmaps.cpp">
+      <Filter>Source Files\renderers\routines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -936,6 +939,9 @@
       <Filter>Header Files\renderers\routines</Filter>
     </ClInclude>
     <ClInclude Include="renderers\routines\ReflectionCopy.h">
+      <Filter>Header Files\renderers\routines</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\routines\ReflectionMipmaps.h">
       <Filter>Header Files\renderers\routines</Filter>
     </ClInclude>
   </ItemGroup>

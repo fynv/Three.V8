@@ -3211,9 +3211,20 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 				ReflectionCopier = std::unique_ptr<ReflectionCopy>(new ReflectionCopy);
 			}
 			ReflectionCopier->copy(reflector->m_tex_mipmapped->tex_id, reflector->m_target.m_tex_video->tex_id, target.m_width, target.m_height, &reflector->m_camera);
-			glBindTexture(GL_TEXTURE_2D, reflector->m_tex_mipmapped->tex_id);
-			glGenerateMipmap(GL_TEXTURE_2D);
-			glBindTexture(GL_TEXTURE_2D, 0);
+			
+			if (ReflectionMipmapper == nullptr)
+			{
+				ReflectionMipmapper = std::unique_ptr<ReflectionMipmaps>(new ReflectionMipmaps);
+			}
+
+			int width = target.m_width;
+			int height = target.m_height;
+			for (int i = 0; i < 7; i++)
+			{
+				if (width > 1) width /= 2;
+				if (height > 1) height /= 2;
+				ReflectionMipmapper->downsample(reflector->m_tex_mipmapped->tex_id, i, width, height);
+			}			
 
 		}
 
