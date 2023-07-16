@@ -28,6 +28,7 @@ struct GeometrySet
 	Attribute bitangent_buf;
 };
 
+class Reflector;
 class Primitive
 {
 public:
@@ -63,6 +64,7 @@ public:
 	Attribute lightmap_uv_buf;
 
 	std::unique_ptr<EnvironmentMap> envMap;
+	Reflector* reflector = nullptr;
 };
 
 class HDRImage;

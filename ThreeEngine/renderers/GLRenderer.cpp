@@ -363,7 +363,12 @@ void GLRenderer::render_primitives(const StandardRoutine::RenderParams& params, 
 
 void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog* fog, SimpleModel* model, GLRenderTarget& target, Pass pass)
 {	
-	if (p_camera->reflector != nullptr && model->reflector == p_camera->reflector) return;
+	Reflector* reflector = model->reflector;
+	if (reflector == nullptr)
+	{
+		reflector = model->geometry.reflector;
+	}
+	if (p_camera->reflector != nullptr && reflector == p_camera->reflector) return;
 	
 	const GLTexture2D* tex = &model->texture;
 	if (model->repl_texture != nullptr)
@@ -393,7 +398,7 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 	params.camera = p_camera;
 	params.constant_model = &model->m_constant;
 	params.primitive = &model->geometry;
-	params.reflector = model->reflector;
+	params.reflector = reflector;
 	params.lights = &lights;
 	params.tex_lightmap = nullptr;
 
@@ -440,7 +445,23 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 	for (size_t i = 0; i < material_lst.size(); i++)
 		material_lst[i] = model->m_materials[i].get();
 
-	if (model->batched_mesh != nullptr)
+	bool has_reflector = false;
+	for (size_t i = 0; i < model->m_meshs.size(); i++)
+	{
+		Mesh& mesh = model->m_meshs[i];
+		for (size_t j = 0; j < mesh.primitives.size(); j++)
+		{
+			Primitive& primitive = mesh.primitives[j];
+			if (primitive.reflector != nullptr)
+			{
+				has_reflector = true;
+				break;
+			}
+		}
+		if (has_reflector) break;
+	}
+
+	if (model->batched_mesh != nullptr && !has_reflector)
 	{
 		std::vector<std::vector<void*>> offset_lists(material_lst.size());
 		std::vector<std::vector<int>> count_lists(material_lst.size());
@@ -540,6 +561,14 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 			for (size_t j = 0; j < mesh.primitives.size(); j++)
 			{
 				Primitive& primitive = mesh.primitives[j];
+				
+				Reflector* reflector = model->reflector;
+				if (reflector == nullptr)
+				{
+					reflector = primitive.reflector;
+				}
+				if (p_camera->reflector != nullptr && reflector == p_camera->reflector) continue;
+
 				if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos, p_camera->m_scissor)) continue;
 
 				const MeshStandardMaterial* material = material_lst[primitive.material_idx];
@@ -561,7 +590,7 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 				params.camera = p_camera;
 				params.constant_model = mesh.model_constant.get();
 				params.primitive = &primitive;
-				params.reflector = model->reflector;
+				params.reflector = reflector;
 				params.lights = &lights;
 				params.tex_lightmap = nullptr;
 				if (model->lightmap != nullptr)
@@ -999,8 +1028,13 @@ void GLRenderer::render_primitives_simple(const SimpleRoutine::RenderParams& par
 
 void GLRenderer::render_model_simple(Camera* p_camera, const Lights& lights, const Fog* fog, SimpleModel* model, Pass pass)
 {
-	if (p_camera->reflector != nullptr && model->reflector == p_camera->reflector) return;
-
+	Reflector* reflector = model->reflector;
+	if (reflector == nullptr)
+	{
+		reflector = model->geometry.reflector;
+	}
+	if (p_camera->reflector != nullptr && reflector == p_camera->reflector) return;
+	
 	const GLTexture2D* tex = &model->texture;
 	if (model->repl_texture != nullptr)
 	{
@@ -1043,7 +1077,6 @@ void GLRenderer::render_model_simple(Camera* p_camera, const Lights& lights, con
 {
 	if (p_camera->reflector != nullptr && model->reflector == p_camera->reflector) return;
 
-
 	std::vector<const GLTexture2D*> tex_lst(model->m_textures.size());
 	for (size_t i = 0; i < tex_lst.size(); i++)
 	{
@@ -1062,7 +1095,23 @@ void GLRenderer::render_model_simple(Camera* p_camera, const Lights& lights, con
 	for (size_t i = 0; i < material_lst.size(); i++)
 		material_lst[i] = model->m_materials[i].get();
 
-	if (model->batched_mesh != nullptr)
+	bool has_reflector = false;
+	for (size_t i = 0; i < model->m_meshs.size(); i++)
+	{
+		Mesh& mesh = model->m_meshs[i];
+		for (size_t j = 0; j < mesh.primitives.size(); j++)
+		{
+			Primitive& primitive = mesh.primitives[j];
+			if (primitive.reflector != nullptr)
+			{
+				has_reflector = true;
+				break;
+			}
+		}
+		if (has_reflector) break;
+	}
+
+	if (model->batched_mesh != nullptr && !has_reflector)
 	{
 		std::vector<std::vector<void*>> offset_lists(material_lst.size());
 		std::vector<std::vector<int>> count_lists(material_lst.size());
@@ -1152,6 +1201,14 @@ void GLRenderer::render_model_simple(Camera* p_camera, const Lights& lights, con
 			for (size_t j = 0; j < mesh.primitives.size(); j++)
 			{
 				Primitive& primitive = mesh.primitives[j];
+
+				Reflector* reflector = model->reflector;
+				if (reflector == nullptr)
+				{
+					reflector = primitive.reflector;
+				}
+				if (p_camera->reflector != nullptr && reflector == p_camera->reflector) continue;
+
 				if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos, p_camera->m_scissor)) continue;
 
 				const MeshStandardMaterial* material = material_lst[primitive.material_idx];
@@ -1709,6 +1766,29 @@ void GLRenderer::_pre_render(Scene& scene)
 				}
 			} while (false);
 		});
+
+		size_t num_refs = p_reflector->m_prim_refs.size();
+		for (size_t j = 0; j < num_refs; j++)
+		{
+			auto ref = p_reflector->m_prim_refs[j];
+			do
+			{
+				{
+					SimpleModel* model = dynamic_cast<SimpleModel*>(ref.model);
+					if (model)
+					{
+						model->geometry.reflector = p_reflector;
+					}
+				}
+				{
+					GLTFModel* model = dynamic_cast<GLTFModel*>(ref.model);
+					if (model)
+					{
+						model->m_meshs[ref.mesh_id].primitives[ref.prim_id].reflector = p_reflector;						
+					}
+				}
+			} while (false);
+		}
 	}
 
 	// update models

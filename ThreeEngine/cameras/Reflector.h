@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include "core/Object3D.h"
 #include "cameras/PerspectiveCamera.h"
 #include "renderers/GLRenderTarget.h"
@@ -27,6 +28,16 @@ public:
 	void updateTarget(int width, int height);
 
 	void calc_scissor();
+
+	struct PrimitiveReference
+	{
+		Object3D* model;
+		int mesh_id = 0;
+		int prim_id = 0;
+	};
+
+	std::vector<PrimitiveReference> m_prim_refs;
+
 };
 
 
