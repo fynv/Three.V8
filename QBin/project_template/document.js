@@ -1322,6 +1322,31 @@ const reflector = {
         const reflector = new Reflector();
         reflector.width = width;
         reflector.height = height;
+        
+        if (props.hasOwnProperty('prim_refs'))
+        {
+            let arr_prim_refs = JSON.parse(props.prim_refs);
+            for (let obj_prim_ref of arr_prim_refs)
+            {
+                let name = obj_prim_ref.name;
+                let mesh_id = 0;
+                if ('mesh_id' in obj_prim_ref)
+                {
+                    mesh_id = obj_prim_ref.mesh_id;
+                }
+                let prim_id = 0;
+                if ('prim_id' in obj_prim_ref)
+                {
+                    prim_id = obj_prim_ref.prim_id;
+                }
+                
+                let model = doc.scene.getObjectByName(name);
+                if (model!=null)
+                {
+                    reflector.addPrimitiveReference(model, mesh_id, prim_id);
+                }
+            }
+        }
 
         if (parent != null) {
             parent.add(reflector);

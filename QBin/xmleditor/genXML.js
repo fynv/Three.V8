@@ -1,4 +1,4 @@
-﻿function genNode(node, level)
+function genNode(node, level)
 {
     let code = "";
     for(let i=0;i<level;i++) code+="\t";
@@ -16,7 +16,7 @@
     for(let att in attributes)
     {
         let value = attributes[att];
-        code+=` ${att}=\"${value}\"`;
+        code+=` ${att}=\'${value}\'`;
     }
     
     let children = node.children;
@@ -50,7 +50,7 @@ export function genXML(nodes)
         if (top.tagName =="?xml")
         {
            let version = top.attributes.version;
-           xml += `<?xml version=\"${version}\"?>\n`;
+           xml += `<?xml version=\'${version}\'?>\n`;
         }
         else
         {

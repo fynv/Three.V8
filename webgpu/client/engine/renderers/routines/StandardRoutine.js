@@ -498,9 +498,9 @@ fn getRadiance(world_pos: vec3f, viewDir: vec3f, norm: vec3f, f0: vec3f, f90: f3
 	t = acc_t/f32(count_samples);
 
     var up = vec3(1.0, 0.0, 0.0);
-    if (norm.y<norm.x)
+    if (abs(norm.y)<abs(norm.x))
 	{
-		if (norm.z<norm.y)
+		if (abs(norm.z)<abs(norm.y))
 		{
 			up = vec3(0.0, 0.0, 1.0);
 		}
@@ -509,7 +509,7 @@ fn getRadiance(world_pos: vec3f, viewDir: vec3f, norm: vec3f, f0: vec3f, f90: f3
 			up = vec3(0.0, 1.0, 0.0);
 		}
 	}
-	else if (norm.z < norm.x)
+	else if (abs(norm.z) < abs(norm.x))
 	{
 		up = vec3(0.0, 0.0, 1.0);
 	}

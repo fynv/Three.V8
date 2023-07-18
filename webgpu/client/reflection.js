@@ -121,7 +121,7 @@ export async function test()
     ground.name = "ground";
     ground.createPlane(10.0, 10.0);    
     ground.metalness = 0.9;
-    ground.roughness = 0.3;
+    ground.roughness = 0.2;
 
     /*let model_loader = new GLTFLoader();
     let ground = model_loader.loadModelFromFile("./assets/models/surface_0.3.glb");*/

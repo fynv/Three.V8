@@ -2668,6 +2668,31 @@ const reflector = {
         const reflector = new Reflector();
         reflector.width = width;
         reflector.height = height;
+        
+        if (props.hasOwnProperty('prim_refs'))
+        {
+            let arr_prim_refs = JSON.parse(props.prim_refs);
+            for (let obj_prim_ref of arr_prim_refs)
+            {
+                let name = obj_prim_ref.name;
+                let mesh_id = 0;
+                if ('mesh_id' in obj_prim_ref)
+                {
+                    mesh_id = obj_prim_ref.mesh_id;
+                }
+                let prim_id = 0;
+                if ('prim_id' in obj_prim_ref)
+                {
+                    prim_id = obj_prim_ref.prim_id;
+                }
+                
+                let model = doc.scene.getObjectByName(name);
+                if (model!=null)
+                {
+                    reflector.addPrimitiveReference(model, mesh_id, prim_id);
+                }
+            }
+        }
 
         if (parent != null) {
             parent.add(reflector);
@@ -2693,6 +2718,33 @@ const reflector = {
             let height = parseFloat(size[1]);
             obj.width = width;
             obj.height = height;
+        }
+        if ('prim_refs' in input)
+        {
+            props.prim_refs = input.prim_refs;
+            obj.clearPrimitiveReferences();
+            
+            let arr_prim_refs = JSON.parse(input.prim_refs);
+            for (let obj_prim_ref of arr_prim_refs)
+            {
+                let name = obj_prim_ref.name;
+                let mesh_id = 0;
+                if ('mesh_id' in obj_prim_ref)
+                {
+                    mesh_id = obj_prim_ref.mesh_id;
+                }
+                let prim_id = 0;
+                if ('prim_id' in obj_prim_ref)
+                {
+                    prim_id = obj_prim_ref.prim_id;
+                }
+                
+                let model = doc.scene.getObjectByName(name);
+                if (model!=null)
+                {
+                    obj.addPrimitiveReference(model, mesh_id, prim_id);
+                }
+            }
         }
         tuning_object3d(doc, obj, input);
         return "";
@@ -3244,6 +3296,37 @@ export class Document
         gamePlayer.message("object_removed", key);
         
         this.pick_obj("");
+    }
+    
+    req_add_ref_prim()
+    {
+        gamePlayer.picking = true;
+        this.controls.enabled = false;
+        const prim_picking_pointerdown = (event)=>{
+            let x = event.clientX;
+            let y = event.clientY;
+            let intersect = gamePlayer.pickObject(x,y);
+            if (intersect!=null)
+            {
+                let key = intersect.uuid;
+                if (key != "")
+                {
+                    let obj = this.internal_index[key].obj;
+                    let name = obj.name;
+                    if (name && name!="")
+                    {
+                        let mesh_id = intersect.mesh_id;
+                        let prim_id = intersect.prim_id;
+                        gamePlayer.message("add_ref_prim", JSON.stringify({name, mesh_id, prim_id}));
+                    }
+                }
+            }
+            gamePlayer.picking = false;
+            this.controls.enabled = true;
+            view.removeEventListener("pointerdown", prim_picking_pointerdown);
+        };
+        view.addEventListener("pointerdown", prim_picking_pointerdown);
+        
     }
 }
 

@@ -719,6 +719,12 @@ void XMLEditor::tuner_initialize()
 	}
 }
 
+void XMLEditor::add_prim_ref()
+{
+	m_ui.glControl->makeCurrent();
+	m_game_player->SendMessageToUser("add_prim_ref", "");
+}
+
 std::string XMLEditor::object_picked(const char* key)
 {
 	picked_key = key;
@@ -788,6 +794,7 @@ std::string XMLEditor::object_picked(const char* key)
 		else if (tag == "reflector")
 		{
 			tuner = new ReflectorTuner(m_ui.property_area, picked_obj);
+			connect(tuner, SIGNAL(add_ref_prim()), this, SLOT(add_prim_ref()));
 		}
 
 		if (tuner != nullptr)
@@ -851,6 +858,15 @@ std::string XMLEditor::object_removed(const char* key)
 	return "";
 }
 
+void XMLEditor::prim_ref_picked(const char* json_prim_ref)
+{
+	ReflectorTuner* refl_tuner = dynamic_cast<ReflectorTuner*>(tuner);
+	if (refl_tuner != nullptr)
+	{
+		refl_tuner->prim_ref_picked(json_prim_ref);
+	}
+}
+
 std::string XMLEditor::user_message_callback(void* ptr, const char* name, const char* msg)
 {
 	XMLEditor* self = (XMLEditor*)ptr;
@@ -870,6 +886,10 @@ std::string XMLEditor::user_message_callback(void* ptr, const char* name, const 
 	else if (s_name == "object_removed")
 	{
 		return self->object_removed(msg);
+	}
+	else if (s_name == "add_ref_prim")
+	{
+		self->prim_ref_picked(msg);
 	}
 	return "";
 }

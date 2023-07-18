@@ -1740,56 +1740,7 @@ void GLRenderer::_pre_render(Scene& scene)
 		} while (false);
 
 		obj->updateWorldMatrix(false, false);
-	});
-
-	for (size_t i = 0; i < scene.reflectors.size(); i++)
-	{
-		Reflector* p_reflector = scene.reflectors[i];
-		p_reflector->traverse([p_reflector](Object3D* obj) {
-			do
-			{
-				{
-					SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
-					if (model)
-					{
-						model->reflector = p_reflector;
-						break;
-					}
-				}
-				{
-					GLTFModel* model = dynamic_cast<GLTFModel*>(obj);
-					if (model)
-					{
-						model->reflector = p_reflector;
-						break;
-					}
-				}
-			} while (false);
-		});
-
-		size_t num_refs = p_reflector->m_prim_refs.size();
-		for (size_t j = 0; j < num_refs; j++)
-		{
-			auto ref = p_reflector->m_prim_refs[j];
-			do
-			{
-				{
-					SimpleModel* model = dynamic_cast<SimpleModel*>(ref.model);
-					if (model)
-					{
-						model->geometry.reflector = p_reflector;
-					}
-				}
-				{
-					GLTFModel* model = dynamic_cast<GLTFModel*>(ref.model);
-					if (model)
-					{
-						model->m_meshs[ref.mesh_id].primitives[ref.prim_id].reflector = p_reflector;						
-					}
-				}
-			} while (false);
-		}
-	}
+	});	
 
 	// update models
 	for (size_t i = 0; i < scene.simple_models.size(); i++)
@@ -3275,6 +3226,51 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 				reflector->updateTarget(target.m_width, target.m_height);
 			}
 
+			reflector->traverse([reflector](Object3D* obj) {
+				do
+				{
+					{
+						SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
+						if (model)
+						{
+							model->reflector = reflector;
+							break;
+						}
+					}
+					{
+						GLTFModel* model = dynamic_cast<GLTFModel*>(obj);
+						if (model)
+						{
+							model->reflector = reflector;
+							break;
+						}
+					}
+				} while (false);
+			});
+
+			size_t num_refs = reflector->m_prim_refs.size();
+			for (size_t j = 0; j < num_refs; j++)
+			{
+				auto ref = reflector->m_prim_refs[j];
+				do
+				{
+					{
+						SimpleModel* model = dynamic_cast<SimpleModel*>(ref.model);
+						if (model)
+						{
+							model->geometry.reflector = reflector;
+						}
+					}
+					{
+						GLTFModel* model = dynamic_cast<GLTFModel*>(ref.model);
+						if (model)
+						{
+							model->m_meshs[ref.mesh_id].primitives[ref.prim_id].reflector = reflector;
+						}
+					}
+				} while (false);
+			}
+
 			reflector->calc_scissor();			
 			this->_render_simple(scene, reflector->m_camera, reflector->m_target);		
 
@@ -3304,7 +3300,7 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 				if (width > 1) width /= 2;
 				if (height > 1) height /= 2;
 				ReflectionMipmapper->downsample(reflector->m_tex_mipmapped->tex_id, i, width, height);
-			}			
+			}	
 
 		}
 

@@ -74,6 +74,7 @@ export class Primitive
 
         this.is_geometry_ready = false;
         this.geometry_resolvers = [];
+        this.reflector = null;
         
     }
 

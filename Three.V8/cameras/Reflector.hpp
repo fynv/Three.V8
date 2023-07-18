@@ -20,6 +20,7 @@ private:
 
 	static void GetPrimitiveReferences(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 	static void AddPrimitiveReference(const v8::FunctionCallbackInfo<v8::Value>& info);
+	static void ClearPrimitiveReferences(const v8::FunctionCallbackInfo<v8::Value>& info);
 
 };
 
@@ -30,6 +31,7 @@ v8::Local<v8::FunctionTemplate> WrapperReflector::create_template(v8::Isolate* i
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "height").ToLocalChecked(), GetHeight, SetHeight);
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "prim_refs").ToLocalChecked(), GetPrimitiveReferences, 0);
 	templ->InstanceTemplate()->Set(isolate, "addPrimitiveReference", v8::FunctionTemplate::New(isolate, AddPrimitiveReference));
+	templ->InstanceTemplate()->Set(isolate, "clearPrimitiveReferences", v8::FunctionTemplate::New(isolate, ClearPrimitiveReferences));
 	return templ;
 }
 
@@ -103,7 +105,36 @@ void WrapperReflector::AddPrimitiveReference(const v8::FunctionCallbackInfo<v8::
 	self->m_prim_refs.push_back({ object,mesh_id,prim_id });
 
 	v8::Local<v8::Object> holder = info.Holder();
-	v8::Local<v8::Object> holder_object = info[0].As<v8::Object>();
+	v8::Local<v8::Object> prim_ref = v8::Object::New(lctx.isolate);	
+	lctx.set_property(prim_ref, "model", info[0]);
+	if (info.Length() > 1)
+	{
+		lctx.set_property(prim_ref, "mesh_id", info[1]);
+		if (info.Length() > 2)
+		{
+			lctx.set_property(prim_ref, "prim_id", info[2]);
+		}
+	}	
 	v8::Local<v8::Array> prim_refs = lctx.get_property(holder, "prim_refs").As<v8::Array>();
-	prim_refs->Set(lctx.context, prim_refs->Length(), holder_object);
+	prim_refs->Set(lctx.context, prim_refs->Length(), prim_ref);
 }
+
+void WrapperReflector::ClearPrimitiveReferences(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	Reflector* self = lctx.self<Reflector>();
+	self->m_prim_refs.clear();
+
+	v8::Local<v8::Object> holder = info.Holder();
+	v8::Local<v8::Array> prim_refs = lctx.get_property(holder, "prim_refs").As<v8::Array>();
+
+	for (unsigned i = 0; i < prim_refs->Length(); i++)
+	{
+		v8::Local<v8::Object> obj_i = prim_refs->Get(lctx.context, i).ToLocalChecked().As<v8::Object>();		
+		prim_refs->Delete(lctx.context, i);
+	}
+	lctx.set_property(prim_refs, "length", lctx.num_to_jnum(0));
+	info.GetReturnValue().Set(holder);
+
+}
+

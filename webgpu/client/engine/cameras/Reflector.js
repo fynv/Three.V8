@@ -98,6 +98,8 @@ export class Reflector extends Object3D
             minFilter: 'linear',                        
         });
 
+        this.prim_refs = [];
+
     }
 
     updateConstant()
@@ -341,7 +343,11 @@ export class Reflector extends Object3D
             max_pos_view.z = view_near.z;
         }
 
-        if (min_pos_view.z > max_pos_view.z) return {origin, size};
+        if (min_pos_view.z > max_pos_view.z) 
+        {
+            this.camera.scissor= {min_proj: new Vector2(-1,-1), max_proj: new Vector2(1,1), origin, size};
+            return;
+        }
 
         let P = this.camera.projectionMatrix;                
 

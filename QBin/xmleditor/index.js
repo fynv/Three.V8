@@ -67,13 +67,19 @@ function remove(key)
     return "";
 }
 
+function add_prim_ref()
+{
+    doc.req_add_ref_prim();
+    return "";
+}
+
 function init(width, height)
 {
     renderer = new GLRenderer();
     doc = new Document(view);
     clock = new Clock();
     
-    message_map = { isModified, setXML, getXML, picking, pick_obj, tuning, initialize, generate, create, remove};
+    message_map = { isModified, setXML, getXML, picking, pick_obj, tuning, initialize, generate, create, remove, add_prim_ref};
 }
 
 function render(width, height, size_changed)

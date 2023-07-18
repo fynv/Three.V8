@@ -601,9 +601,9 @@ vec3 getRadiance(in vec3 worldPos, in vec3 viewDir, in vec3 norm, const in vec3 
 	t = acc_t/float(count_samples);
 
 	vec3 up = vec3(1.0, 0.0, 0.0);
-	if (norm.y<norm.x)
+	if (abs(norm.y)<abs(norm.x))
 	{
-		if (norm.z<norm.y)
+		if (abs(norm.z)<abs(norm.y))
 		{
 			up = vec3(0.0, 0.0, 1.0);
 		}
@@ -612,7 +612,7 @@ vec3 getRadiance(in vec3 worldPos, in vec3 viewDir, in vec3 norm, const in vec3 
 			up = vec3(0.0, 1.0, 0.0);
 		}
 	}
-	else if (norm.z < norm.x)
+	else if (abs(norm.z) < abs(norm.x))
 	{
 		up = vec3(0.0, 0.0, 1.0);
 	}

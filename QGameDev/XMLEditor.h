@@ -81,6 +81,7 @@ private:
 	std::string object_picked(const char* key);
 	std::string object_created(const char* json_str);
 	std::string object_removed(const char* key);
+	void prim_ref_picked(const char* json_prim_ref);
 	static std::string user_message_callback(void* ptr, const char* name, const char* msg);
 
 	void req_create_scene_obj(QString tag);
@@ -122,6 +123,7 @@ private slots:
 	void tuner_update(QJsonObject tuning);
 	void tuner_generate(QJsonObject tuning);
 	void tuner_initialize();
+	void add_prim_ref();
 
 
 };

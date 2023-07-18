@@ -1,7 +1,9 @@
-<?xml version="1.0"?>
+<?xml version='1.0'?>
 <document>
 	<scene>
-		<model src="assets/models/fireplace_room_atlas.glb" lightmap="assets/textures/lightmap.csv"/>
-		<env_light type="cube" probe_position="1.5, 1, -1" path="assets/textures" posx="fireplace_env_face0.jpg" negx="fireplace_env_face1.jpg" posy="fireplace_env_face2.jpg" negy="fireplace_env_face3.jpg" posz="fireplace_env_face4.jpg" negz="fireplace_env_face5.jpg"/>
+		<model src='assets/models/fireplace_room_atlas.glb' lightmap='assets/textures/lightmap.csv' name='house'/>
+		<env_light type='cube' probe_position='1.5, 1, -1' path='assets/textures' posx='fireplace_env_face0.jpg' negx='fireplace_env_face1.jpg' posy='fireplace_env_face2.jpg' negy='fireplace_env_face3.jpg' posz='fireplace_env_face4.jpg' negz='fireplace_env_face5.jpg'/>
+		<reflector position='1.9, 1.6, -0.03' size='1, 1.5' prim_refs='[{"mesh_id":0,"name":"house","prim_id":15}]'/>
+		<reflector rotation='90, 0, 0' position='1.9, 0.02, 0' size='1.4, 0.8' prim_refs='[{"mesh_id":0,"name":"house","prim_id":16}]'/>
 	</scene>
 </document>

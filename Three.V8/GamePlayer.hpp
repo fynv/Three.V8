@@ -2,6 +2,8 @@
 
 #include "WrapperUtils.hpp"
 #include "GamePlayer.h"
+#include "models/SimpleModel.h"
+#include "models/GLTFModel.h"
 
 class WrapperGamePlayer
 {
@@ -125,6 +127,32 @@ void WrapperGamePlayer::PickObject(const v8::FunctionCallbackInfo<v8::Value>& in
 		v8::Local<v8::String> uuid = lctx.str_to_jstr(idxInfo.obj->uuid.c_str());
 		lctx.set_property(ret, "name", name);
 		lctx.set_property(ret, "uuid", uuid);
+
+		if (idxInfo.primitive_idx==0)
+		{
+			lctx.set_property(ret, "mesh_id", lctx.num_to_jnum(0));
+			lctx.set_property(ret, "prim_id", lctx.num_to_jnum(0));
+		}
+		else
+		{
+			GLTFModel* model = (GLTFModel*)idxInfo.obj;
+			int prim_idx = 0;
+			for (size_t i = 0; i < model->m_meshs.size(); i++)
+			{
+				Mesh& mesh = model->m_meshs[i];
+				for (size_t j = 0; j < mesh.primitives.size(); j++, prim_idx++)
+				{
+					if (prim_idx == idxInfo.primitive_idx)
+					{
+						lctx.set_property(ret, "mesh_id", lctx.num_to_jnum(i));
+						lctx.set_property(ret, "prim_id", lctx.num_to_jnum(j));
+						break;
+					}
+				}
+				if (prim_idx == idxInfo.primitive_idx) break;
+			}
+		}
+	
 		info.GetReturnValue().Set(ret);
 	}
 	else

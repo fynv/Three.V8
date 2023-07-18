@@ -654,7 +654,12 @@ export class GPURenderer
 
     _render_simple_model(passEncoder, model, camera, lights, target, pass)
     {
-        if (camera.reflector!=null && model.reflector == camera.reflector) return;
+        let reflector = model.reflector;
+        if (reflector == null)
+        {
+            reflector = model.geometry.reflector;
+        }
+        if (camera.reflector!=null && reflector == camera.reflector) return;
 
         if (model.geometry.uuid == 0) return;
         let material = model.material;
@@ -718,6 +723,14 @@ export class GPURenderer
             for (let primitive of mesh.primitives)
             {
                 if (primitive.uuid == 0) continue;
+
+                let reflector = model.reflector;
+                if (reflector == null)
+                {
+                    reflector = primitive.reflector;
+                }
+                if (camera.reflector!=null && reflector == camera.reflector) continue;
+
                 if (!visible(MV, camera.projectionMatrix, primitive.min_pos, primitive.max_pos, scissor)) continue;
 
                 let idx_material = primitive.material_idx;
@@ -1220,7 +1233,12 @@ export class GPURenderer
 
     _render_simple_model_simple(passEncoder, model, camera, lights, target, pass)
     {
-        if (camera.reflector!=null && model.reflector == camera.reflector) return;
+        let reflector = model.reflector;
+        if (reflector == null)
+        {
+            reflector = model.geometry.reflector;
+        }
+        if (camera.reflector!=null && reflector == camera.reflector) return;
 
         if (model.geometry.uuid == 0) return;
         let material = model.material;
@@ -1283,6 +1301,14 @@ export class GPURenderer
             for (let primitive of mesh.primitives)
             {
                 if (primitive.uuid == 0) continue;
+
+                let reflector = model.reflector;
+                if (reflector == null)
+                {
+                    reflector = primitive.reflector;
+                }
+                if (camera.reflector!=null && reflector == camera.reflector) continue;
+                
                 if (!visible(MV, camera.projectionMatrix, primitive.min_pos, primitive.max_pos, scissor)) continue;
 
                 let idx_material = primitive.material_idx;
@@ -1835,6 +1861,39 @@ export class GPURenderer
                     }
                 }       
             });
+
+            for (let ref of reflector.prim_refs)
+            {
+                if (ref.model instanceof SimpleModel && ref.model.geometry.is_geometry_ready)
+                {
+                    if (ref.model.geometry.reflector!= reflector || reflector.resized)
+                    {
+                        ref.model.geometry.reflector = reflector;
+                        ref.model.geometry.create_bind_group(ref.model.constant, [ref.model.material], ref.model.textures, null, reflector);
+                    }
+
+                }
+                else if (ref.model instanceof GLTFModel)
+                {
+                    if (ref.mesh_id<ref.model.meshes.length)
+                    {
+                        let mesh = ref.model.meshes[ref.mesh_id];
+                        if (ref.prim_id < mesh.primitives.length)
+                        {
+                            let prim = mesh.primitives[ref.prim_id];
+                            if (prim.is_geometry_ready)
+                            {
+                                if (prim.reflector!=reflector || reflector.resized)
+                                {                                   
+                                    prim.reflector = reflector;
+                                    prim.create_bind_group(mesh.constant, ref.model.materials, ref.model.textures, ref.model.lightmap, reflector);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             reflector.resized = false;
             
             reflector.calc_scissor();
