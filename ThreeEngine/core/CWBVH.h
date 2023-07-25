@@ -31,7 +31,7 @@ class Primitive;
 class CWBVH
 {
 public:
-	CWBVH(const Primitive* primitive, const glm::mat4& model_matrix);
+	CWBVH(const Primitive* primitive);
 	~CWBVH();
 	
 	Vec4TextureBuffer m_tex_bvh8;

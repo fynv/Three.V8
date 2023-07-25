@@ -22,7 +22,7 @@ void BVHRenderer::check_bvh(SimpleModel* model)
 {
 	if (model->geometry.cwbvh == nullptr)
 	{
-		model->geometry.cwbvh = std::unique_ptr<CWBVH>(new CWBVH(&model->geometry, model->matrixWorld));
+		model->geometry.cwbvh = std::unique_ptr<CWBVH>(new CWBVH(&model->geometry));
 	}
 }
 
@@ -36,20 +36,14 @@ void BVHRenderer::check_bvh(GLTFModel* model)
 	//for (size_t i = 0; i < model->m_meshs.size(); i++)
 	{
 		//Mesh& mesh = model->m_meshs[i];
-		Mesh& mesh = *model->batched_mesh;
-		glm::mat4 matrix = model->matrixWorld;
-		if (mesh.node_id >= 0 && mesh.skin_id < 0)
-		{
-			Node& node = model->m_nodes[mesh.node_id];
-			matrix *= node.g_trans;
-		}
+		Mesh& mesh = *model->batched_mesh;	
 
 		for (size_t j = 0; j < mesh.primitives.size(); j++)
 		{
 			Primitive& primitive = mesh.primitives[j];
 			if (primitive.cwbvh == nullptr)
 			{
-				primitive.cwbvh = std::unique_ptr<CWBVH>(new CWBVH(&primitive, matrix));
+				primitive.cwbvh = std::unique_ptr<CWBVH>(new CWBVH(&primitive));
 			}
 		}
 	}	
@@ -232,6 +226,7 @@ void BVHRenderer::render_depth_model(Camera* p_camera, SimpleModel* model, BVHRe
 
 	BVHDepthOnly::RenderParams params;
 	params.material_list = &material;
+	params.constant_model = &model->m_constant;
 	params.primitive = &model->geometry;
 	params.target = &target;
 	params.constant_camera = &p_camera->m_constant;
@@ -259,6 +254,7 @@ void BVHRenderer::render_depth_model(Camera* p_camera, GLTFModel* model, BVHRend
 
 			BVHDepthOnly::RenderParams params;
 			params.material_list = material_lst.data();
+			params.constant_model = mesh.model_constant.get();
 			params.primitive = &primitive;
 			params.target = &target;
 			params.constant_camera = &p_camera->m_constant;
@@ -554,6 +550,7 @@ void BVHRenderer::render_probe_depth_model(ProbeRayList& prl, SimpleModel* model
 
 	BVHDepthOnly::RenderParams params;
 	params.material_list = &material;
+	params.constant_model = &model->m_constant;
 	params.primitive = &model->geometry;
 	params.target = &target;
 	params.prl = &prl;
@@ -580,6 +577,7 @@ void BVHRenderer::render_probe_depth_model(ProbeRayList& prl, GLTFModel* model, 
 
 			BVHDepthOnly::RenderParams params;
 			params.material_list = material_lst.data();
+			params.constant_model = mesh.model_constant.get();
 			params.primitive = &primitive;
 			params.target = &target;
 			params.prl = &prl;
@@ -1131,6 +1129,7 @@ void BVHRenderer::render_lightmap_depth_model(LightmapRayList& lmrl, SimpleModel
 
 	BVHDepthOnly::RenderParams params;
 	params.material_list = &material;
+	params.constant_model = &model->m_constant;
 	params.primitive = &model->geometry;
 	params.target = &target;
 	params.lmrl = &lmrl;
@@ -1157,6 +1156,7 @@ void BVHRenderer::render_lightmap_depth_model(LightmapRayList& lmrl, GLTFModel* 
 
 			BVHDepthOnly::RenderParams params;
 			params.material_list = material_lst.data();
+			params.constant_model = mesh.model_constant.get();
 			params.primitive = &primitive;
 			params.target = &target;
 			params.lmrl = &lmrl;

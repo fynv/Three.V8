@@ -271,6 +271,12 @@ void intersect()
 	}
 }
 
+layout (std140, binding = 1) uniform Model
+{
+	mat4 uModelMat;
+	mat4 uNormalMat;
+};
+
 layout (binding=0, r32f) uniform image2D uDepth;
 layout(local_size_x = 32, local_size_y = 2) in;
 
@@ -299,7 +305,7 @@ void render()
 }
 
 #if TO_CAMERA
-layout (std140, binding = 1) uniform Camera
+layout (std140, binding = 2) uniform Camera
 {
 	mat4 uProjMat;
 	mat4 uViewMat;	
@@ -319,28 +325,34 @@ void main()
 	vec4 clip1 = vec4((vec2(screen) + 0.5)/vec2(size)*2.0-1.0, 1.0, 1.0);
 	vec4 view0 = uInvProjMat * clip0; view0 /= view0.w;
 	vec4 view1 = uInvProjMat * clip1; view1 /= view1.w;
-	vec3 world0 = vec3(uInvViewMat*view0);
-	vec3 world1 = vec3(uInvViewMat*view1);	
-	vec3 dir = normalize(world0 - uEyePos);
+	vec4 world0 = uInvViewMat*view0;
+	vec4 world1 = uInvViewMat*view1;	
+
+	mat4 invModel = inverse(uModelMat);
+	vec3 model0 = vec3(invModel*world0);
+	vec3 model1 = vec3(invModel*world1);
+	vec3 model_eye = vec3(invModel*vec4(uEyePos,1.0));
+
+	vec3 dir = normalize(model0 - model_eye);
 
 	g_id_io = id;
-	g_origin = uEyePos;
+	g_origin = model_eye;
 	g_dir = dir;
-	g_tmin = length(world0 - uEyePos);
-	g_tmax = length(world1 - uEyePos);
+	g_tmin = length(model0 - model_eye);
+	g_tmax = length(model1 - model_eye);
 	
 	render();
 }
 #elif TO_PROBES
 
-layout (std140, binding = 1) uniform ProbeRayList
+layout (std140, binding = 2) uniform ProbeRayList
 {
 	mat4 uPRLRotation;
 	int uRPLNumProbes;
 	int uPRLNumDirections;	
 };
 
-layout (std430, binding = 2) buffer ProbePositions
+layout (std430, binding = 3) buffer ProbePositions
 {
 	vec4 uProbePos[];
 };
@@ -365,11 +377,14 @@ void main()
 	int probe_id = group_id.y;
 	int ray_id = local_id.x + local_id.y*32 + group_id.x * 64;	
 	g_id_io = ivec2(ray_id, probe_id);
-	g_origin = uProbePos[probe_id].xyz;
 
+	vec4 origin_world = vec4(uProbePos[probe_id].xyz, 1.0);
 	vec3 sf = sphericalFibonacci(ray_id, uPRLNumDirections);
-	vec4 dir = uPRLRotation * vec4(sf, 0.0);
-	g_dir = dir.xyz;
+	vec4 dir_world = uPRLRotation * vec4(sf, 0.0);
+
+	mat4 invModel = inverse(uModelMat);
+	g_origin = vec3(invModel*origin_world);	
+	g_dir = vec3(invModel*dir_world);	
 
 	g_tmin = 0.0;	
 	g_tmax = 3.402823466e+38;
@@ -377,7 +392,7 @@ void main()
 	render();
 }
 #elif TO_LIGHTMAP
-layout (std140, binding = 1) uniform LightmapRayList
+layout (std140, binding = 2) uniform LightmapRayList
 {
 	int uTexelBegin;
 	int uTexelEnd;
@@ -451,11 +466,16 @@ void main()
 	if (idx_texel_in >= uTexelEnd) return;
 
 	int idx_ray = g_id_io.x % uNumRays;
+
 	ivec2 texel_coord = ivec2(texelFetch(uValidList, idx_texel_in).xy);	
-	g_origin = texelFetch(uTexPosition, texel_coord, 0).xyz;
+	vec4 origin_world = vec4(texelFetch(uTexPosition, texel_coord, 0).xyz, 1.0);
 	vec3 norm = texelFetch(uTexNormal, texel_coord, 0).xyz;
 	uint seed = InitRandomSeed(uJitter, idx_texel_out * uNumRays +  idx_ray);
-	g_dir = RandomDiffuse(seed, norm);	
+	vec4 dir_world = vec4(RandomDiffuse(seed, norm), 0.0);
+
+	mat4 invModel = inverse(uModelMat);
+	g_origin = vec3(invModel*origin_world);	
+	g_dir = vec3(invModel*dir_world);
 
 	g_tmin = 0.001;	
 	g_tmax = 3.402823466e+38;
@@ -544,27 +564,28 @@ void BVHDepthOnly::render(const RenderParams& params)
 	glUniform1i(2, 2);
 	
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, material.constant_material.m_id);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.constant_model->m_id);
 
 	glBindImageTexture(0, target->m_tex_depth->tex_id, 0, GL_TRUE, 0, GL_READ_WRITE, GL_R32F);
 
 	if (m_target_mode == 0)
 	{
-		glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.constant_camera->m_id);		
+		glBindBufferBase(GL_UNIFORM_BUFFER, 2, params.constant_camera->m_id);		
 
 		glm::ivec2 blocks = { (width + 31) / 32, (height + 1) / 2 };
 		glDispatchCompute(blocks.x, blocks.y, 1);
 	}
 	else if (m_target_mode == 1)
 	{
-		glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.prl->m_constant.m_id);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, params.prl->buf_positions->m_id);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 2, params.prl->m_constant.m_id);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, params.prl->buf_positions->m_id);
 
 		glm::ivec2 blocks = { (width + 63) / 64, height };
 		glDispatchCompute(blocks.x, blocks.y, 1);
 	}
 	else if (m_target_mode == 2)
 	{
-		glBindBufferBase(GL_UNIFORM_BUFFER, 1, params.lmrl->m_constant.m_id);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 2, params.lmrl->m_constant.m_id);
 
 		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, params.lmrl->source->m_tex_position->tex_id);

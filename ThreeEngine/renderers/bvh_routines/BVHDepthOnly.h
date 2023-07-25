@@ -19,6 +19,7 @@ public:
 	struct RenderParams
 	{
 		const MeshStandardMaterial** material_list;
+		const GLBuffer* constant_model;
 		const Primitive* primitive;
 		const BVHRenderTarget* target;
 		const GLBuffer* constant_camera;

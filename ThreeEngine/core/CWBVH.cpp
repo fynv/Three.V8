@@ -65,7 +65,7 @@ inline void get_indices(void* indices, int type_indices, int face_id, unsigned& 
 	}
 }
 
-CWBVH::CWBVH(const Primitive* primitive, const glm::mat4& model_matrix)
+CWBVH::CWBVH(const Primitive* primitive)
 {	
 	std::vector<flex_bvh::Triangle> triangles;
 
@@ -81,10 +81,6 @@ CWBVH::CWBVH(const Primitive* primitive, const glm::mat4& model_matrix)
 			v1 = primitive->cpu_pos->data()[i1];
 			v2 = primitive->cpu_pos->data()[i2];
 
-			v0 = model_matrix * v0;
-			v1 = model_matrix * v1;
-			v2 = model_matrix * v2;
-
 			triangles.emplace_back(flex_bvh::Triangle(v0, v1, v2));
 		}
 	}
@@ -96,10 +92,6 @@ CWBVH::CWBVH(const Primitive* primitive, const glm::mat4& model_matrix)
 			v0 = primitive->cpu_pos->data()[i * 3];
 			v1 = primitive->cpu_pos->data()[i * 3 + 1];
 			v2 = primitive->cpu_pos->data()[i * 3 + 2];
-
-			v0 = model_matrix * v0;
-			v1 = model_matrix * v1;
-			v2 = model_matrix * v2;
 
 			triangles.emplace_back(flex_bvh::Triangle(v0, v1, v2));
 		}
