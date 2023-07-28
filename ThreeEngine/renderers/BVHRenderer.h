@@ -14,6 +14,7 @@
 #include "renderers/bvh_routines/IrradianceUpdate.h"
 #include "renderers/bvh_routines/LightmapUpdate.h"
 #include "renderers/bvh_routines/LightmapFilter.h"
+#include "renderers/bvh_routines/UpdateTriangles.h"
 
 class Scene;
 class Fog;
@@ -31,6 +32,8 @@ class Lightmap;
 class LightmapRenderTarget;
 class LightmapRayList;
 
+class CWBVH;
+
 class BVHRenderer
 {
 public:
@@ -47,6 +50,8 @@ public:
 	void render_lightmap(Scene& scene, LightmapRayList& lmrl, BVHRenderTarget& target);
 	void update_lightmap(const BVHRenderTarget& source, const LightmapRayList& lmrl, const Lightmap& lightmap, int id_start_texel, float mix_rate = 1.0f);
 	void filter_lightmap(const LightmapRenderTarget& atlas, const Lightmap& lightmap, const glm::mat4& model_mat);
+
+	void update_triangles(const Primitive& prim, CWBVH* cwbvh);
 
 private:
 	std::unique_ptr<CompWeightedOIT> oit_resolver;
@@ -138,5 +143,7 @@ private:
 
 	std::unique_ptr<LightmapUpdate> LightmapUpdater;
 	std::unique_ptr<LightmapFilter> LightmapFiltering;
+
+	std::unique_ptr<UpdateTriangles> TriangleUpdater[2];
 };
 

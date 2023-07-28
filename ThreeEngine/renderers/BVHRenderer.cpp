@@ -22,7 +22,7 @@ void BVHRenderer::check_bvh(SimpleModel* model)
 {
 	if (model->geometry.cwbvh == nullptr)
 	{
-		model->geometry.cwbvh = std::unique_ptr<CWBVH>(new CWBVH(&model->geometry));
+		model->geometry.cwbvh = std::unique_ptr<CWBVH>(new CWBVH(&model->geometry, this));
 	}
 }
 
@@ -43,7 +43,7 @@ void BVHRenderer::check_bvh(GLTFModel* model)
 			Primitive& primitive = mesh.primitives[j];
 			if (primitive.cwbvh == nullptr)
 			{
-				primitive.cwbvh = std::unique_ptr<CWBVH>(new CWBVH(&primitive));
+				primitive.cwbvh = std::unique_ptr<CWBVH>(new CWBVH(&primitive, this));
 			}
 		}
 	}	
@@ -1642,3 +1642,20 @@ void BVHRenderer::filter_lightmap(const LightmapRenderTarget& atlas, const Light
 		}
 	}
 }
+
+void BVHRenderer::update_triangles(const Primitive& prim, CWBVH* cwbvh)
+{
+	bool has_indices = prim.index_buf != nullptr;
+	int idx_updator = has_indices ? 1 : 0;
+	if (TriangleUpdater[idx_updator] == nullptr)
+	{
+		TriangleUpdater[idx_updator] = std::unique_ptr<UpdateTriangles>(new UpdateTriangles(has_indices));
+	}
+
+	int geo_id = int(prim.geometry.size() - 1);
+	
+	TriangleUpdater[idx_updator]->update(
+		prim.num_face, cwbvh->m_tex_indices.buf.get(), cwbvh->m_tex_triangles.buf.get(),
+		prim.geometry[geo_id].pos_buf.get(), prim.index_buf->tex_id);
+}
+

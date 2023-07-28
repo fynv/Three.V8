@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 #include <glm.hpp>
 #include "renderers/GLUtils.h"
 
@@ -28,13 +29,17 @@ public:
 };
 
 class Primitive;
+class BVHRenderer;
 class CWBVH
 {
 public:
-	CWBVH(const Primitive* primitive);
+	CWBVH(const Primitive* primitive, BVHRenderer* renderer);
 	~CWBVH();
 	
+	BVHRenderer* m_renderer;
 	Vec4TextureBuffer m_tex_bvh8;
 	Vec4TextureBuffer m_tex_triangles;
 	Int32TextureBuffer m_tex_indices;
+
+	std::vector<std::unique_ptr<GLBuffer>> m_buf_level_indices;
 };

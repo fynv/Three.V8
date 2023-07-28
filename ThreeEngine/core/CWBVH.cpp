@@ -3,6 +3,7 @@
 #include "models/ModelComponents.h"
 #include "BVH.h"
 #include "BVH8Converter.h"
+#include "renderers/BVHRenderer.h"
 
 Int32TextureBuffer::Int32TextureBuffer()
 {
@@ -65,7 +66,7 @@ inline void get_indices(void* indices, int type_indices, int face_id, unsigned& 
 	}
 }
 
-CWBVH::CWBVH(const Primitive* primitive)
+CWBVH::CWBVH(const Primitive* primitive, BVHRenderer* renderer) : m_renderer(renderer)
 {	
 	std::vector<flex_bvh::Triangle> triangles;
 
@@ -104,8 +105,14 @@ CWBVH::CWBVH(const Primitive* primitive)
 	flex_bvh::ConvertBVH2ToBVH8(bvh2, bvh8);
 
 	m_tex_bvh8.upload((glm::vec4*)bvh8.nodes.data(), bvh8.nodes.size() * 5);
+	m_tex_indices.upload(bvh8.indices.data(), bvh8.indices.size());
 
-	std::vector<glm::vec4> mapped_triangles(bvh8.indices.size() * 3);
+	m_tex_triangles.buf = std::unique_ptr<GLBuffer>(new GLBuffer(sizeof(glm::vec4) * bvh8.indices.size() * 3, GL_TEXTURE_BUFFER));	
+	glBindTexture(GL_TEXTURE_BUFFER, m_tex_triangles.tex_id);
+	glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, m_tex_triangles.buf->m_id);
+	m_renderer->update_triangles(*primitive, this);
+
+	/*std::vector<glm::vec4> mapped_triangles(bvh8.indices.size() * 3);
 	for (size_t i = 0; i < bvh8.indices.size(); i++)
 	{
 		int index = bvh8.indices[i];
@@ -115,8 +122,8 @@ CWBVH::CWBVH(const Primitive* primitive)
 		mapped_triangles[i * 3 + 2] = glm::vec4(tri.position_2 - tri.position_0, 0.0f);
 	}
 
-	m_tex_triangles.upload(mapped_triangles.data(), mapped_triangles.size());
-	m_tex_indices.upload(bvh8.indices.data(), bvh8.indices.size());
+	m_tex_triangles.upload(mapped_triangles.data(), mapped_triangles.size());*/
+	
 }
 
 CWBVH::~CWBVH()
