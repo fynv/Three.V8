@@ -124,6 +124,67 @@ CWBVH::CWBVH(const Primitive* primitive, BVHRenderer* renderer) : m_renderer(ren
 
 	m_tex_triangles.upload(mapped_triangles.data(), mapped_triangles.size());*/
 	
+	if (primitive->geometry.size() > 1)
+	{
+		size_t count = bvh8.nodes.size();
+		size_t sorted_count = 0;
+		std::vector<bool> sorted(count, false);
+
+		std::vector<std::vector<int>> index;
+
+		while (sorted_count < count)
+		{
+			std::vector<int> level;
+
+			for (size_t idx = 0; idx < bvh8.nodes.size(); idx++)
+			{
+				if (sorted[idx]) continue;
+
+				bool sortable = true;
+				int rel_id = 0;
+				flex_bvh::BVHNode8& node = bvh8.nodes[idx];
+				for (int i = 0; i < 8; i++)
+				{
+					flex_bvh::byte meta = node.meta[i];
+
+					bool is_inner = ((meta & (meta << 1)) & 0x10) != 0;
+					if (!is_inner) continue;
+
+					int base_index_child = node.base_index_child;
+					int child_idx = rel_id + base_index_child;
+					rel_id++;
+					if (!sorted[child_idx])
+					{
+						sortable = false;
+						break;
+					}
+				}
+
+				if (sortable)
+				{
+					sorted_count++;
+					sorted[idx] = true;
+					level.push_back(idx);
+				}
+			}
+
+			index.emplace_back(level);
+		}
+
+		m_level_num_indices.resize(index.size());
+		m_buf_level_indices.resize(index.size());
+
+		for (size_t i = 0; i < index.size(); i++)
+		{
+			m_level_num_indices[i] = (int)index[i].size();
+			m_buf_level_indices[i] = std::unique_ptr<GLBuffer>(new GLBuffer(sizeof(int)*index[i].size(), GL_SHADER_STORAGE_BUFFER));
+			m_buf_level_indices[i]->upload(index[i].data());
+		}
+
+	}
+
+	//renderer->update_aabbs(*primitive, this);
+	
 }
 
 CWBVH::~CWBVH()

@@ -202,6 +202,7 @@
     <ClCompile Include="renderers\bvh_routines\LightmapFilter.cpp" />
     <ClCompile Include="renderers\bvh_routines\LightmapUpdate.cpp" />
     <ClCompile Include="renderers\bvh_routines\PrimitiveBatch.cpp" />
+    <ClCompile Include="renderers\bvh_routines\UpdateAABBs.cpp" />
     <ClCompile Include="renderers\bvh_routines\UpdateTriangles.cpp" />
     <ClCompile Include="renderers\bvh_routines\VisibilityUpdate.cpp" />
     <ClCompile Include="renderers\CubeRenderTarget.cpp" />
@@ -349,6 +350,7 @@
     <ClInclude Include="renderers\bvh_routines\LightmapFilter.h" />
     <ClInclude Include="renderers\bvh_routines\LightmapUpdate.h" />
     <ClInclude Include="renderers\bvh_routines\PrimitiveBatch.h" />
+    <ClInclude Include="renderers\bvh_routines\UpdateAABBs.h" />
     <ClInclude Include="renderers\bvh_routines\UpdateTriangles.h" />
     <ClInclude Include="renderers\bvh_routines\VisibilityUpdate.h" />
     <ClInclude Include="renderers\CubeRenderTarget.h" />

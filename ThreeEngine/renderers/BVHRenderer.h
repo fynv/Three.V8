@@ -15,6 +15,7 @@
 #include "renderers/bvh_routines/LightmapUpdate.h"
 #include "renderers/bvh_routines/LightmapFilter.h"
 #include "renderers/bvh_routines/UpdateTriangles.h"
+#include "renderers/bvh_routines/UpdateAABBs.h"
 
 class Scene;
 class Fog;
@@ -52,6 +53,7 @@ public:
 	void filter_lightmap(const LightmapRenderTarget& atlas, const Lightmap& lightmap, const glm::mat4& model_mat);
 
 	void update_triangles(const Primitive& prim, CWBVH* cwbvh);
+	void update_aabbs(const Primitive& prim, CWBVH* cwbvh);
 
 private:
 	std::unique_ptr<CompWeightedOIT> oit_resolver;
@@ -145,5 +147,7 @@ private:
 	std::unique_ptr<LightmapFilter> LightmapFiltering;
 
 	std::unique_ptr<UpdateTriangles> TriangleUpdater[2];
+	std::unique_ptr<UpdateAABBs> AABBUpdater[2];
+
 };
 

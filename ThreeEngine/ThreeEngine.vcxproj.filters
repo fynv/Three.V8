@@ -516,6 +516,9 @@
     <ClCompile Include="renderers\bvh_routines\UpdateTriangles.cpp">
       <Filter>Source Files\renderers\bvh_routines</Filter>
     </ClCompile>
+    <ClCompile Include="renderers\bvh_routines\UpdateAABBs.cpp">
+      <Filter>Source Files\renderers\bvh_routines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -948,6 +951,9 @@
       <Filter>Header Files\renderers\routines</Filter>
     </ClInclude>
     <ClInclude Include="renderers\bvh_routines\UpdateTriangles.h">
+      <Filter>Header Files\renderers\bvh_routines</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\bvh_routines\UpdateAABBs.h">
       <Filter>Header Files\renderers\bvh_routines</Filter>
     </ClInclude>
   </ItemGroup>

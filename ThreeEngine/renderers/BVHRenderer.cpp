@@ -42,7 +42,7 @@ void BVHRenderer::check_bvh(GLTFModel* model)
 		{
 			Primitive& primitive = mesh.primitives[j];
 			if (primitive.cwbvh == nullptr)
-			{
+			{				
 				primitive.cwbvh = std::unique_ptr<CWBVH>(new CWBVH(&primitive, this));
 			}
 		}
@@ -1659,3 +1659,22 @@ void BVHRenderer::update_triangles(const Primitive& prim, CWBVH* cwbvh)
 		prim.geometry[geo_id].pos_buf.get(), prim.index_buf->tex_id);
 }
 
+void BVHRenderer::update_aabbs(const Primitive& prim, CWBVH* cwbvh)
+{
+	bool has_indices = prim.index_buf != nullptr;
+	int idx_updator = has_indices ? 1 : 0;
+	if (AABBUpdater[idx_updator] == nullptr)
+	{
+		AABBUpdater[idx_updator] = std::unique_ptr<UpdateAABBs>(new UpdateAABBs(has_indices));
+	}
+
+	int geo_id = int(prim.geometry.size() - 1);
+
+	for (size_t i = 0; i < cwbvh->m_buf_level_indices.size(); i++)	
+	{
+		int num_indices = cwbvh->m_level_num_indices[i];
+		AABBUpdater[idx_updator]->update(
+			num_indices, cwbvh->m_tex_indices.buf.get(), cwbvh->m_tex_bvh8.buf.get(),
+			cwbvh->m_buf_level_indices[i].get(), prim.geometry[geo_id].pos_buf.get(), prim.index_buf->tex_id);
+	}
+}

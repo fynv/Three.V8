@@ -41,5 +41,6 @@ public:
 	Vec4TextureBuffer m_tex_triangles;
 	Int32TextureBuffer m_tex_indices;
 
+	std::vector<int> m_level_num_indices;
 	std::vector<std::unique_ptr<GLBuffer>> m_buf_level_indices;
 };
