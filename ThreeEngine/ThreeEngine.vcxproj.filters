@@ -519,6 +519,12 @@
     <ClCompile Include="renderers\bvh_routines\UpdateAABBs.cpp">
       <Filter>Source Files\renderers\bvh_routines</Filter>
     </ClCompile>
+    <ClCompile Include="renderers\ReflectionRenderTarget.cpp">
+      <Filter>Source Files\renderers</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\routines\NormalAndDepth.cpp">
+      <Filter>Source Files\renderers\routines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -955,6 +961,12 @@
     </ClInclude>
     <ClInclude Include="renderers\bvh_routines\UpdateAABBs.h">
       <Filter>Header Files\renderers\bvh_routines</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\ReflectionRenderTarget.h">
+      <Filter>Header Files\renderers</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\routines\NormalAndDepth.h">
+      <Filter>Header Files\renderers\routines</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

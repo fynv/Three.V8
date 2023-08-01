@@ -2298,6 +2298,161 @@ void GLRenderer::render_depth_model(Camera* p_camera, GLTFModel* model)
 	}
 }
 
+void GLRenderer::render_normal_depth_primitive(const NormalAndDepth::RenderParams& params)
+{
+	const MeshStandardMaterial* material = params.material_list[params.primitive->material_idx];
+	bool has_normal_map = material->tex_idx_normalMap >= 0;
+	int idx_renderer = has_normal_map ? 1 : 0;
+
+	if (NormalDepthRenderer[idx_renderer] == nullptr)
+	{
+		NormalDepthRenderer[idx_renderer] = std::unique_ptr<NormalAndDepth>(new NormalAndDepth(has_normal_map));
+	}
+	NormalDepthRenderer[idx_renderer]->render(params);
+}
+
+void GLRenderer::render_normal_depth_primitives(const NormalAndDepth::RenderParams& params, const std::vector<void*>& offset_lst, const std::vector<int>& count_lst)
+{
+	const MeshStandardMaterial* material = params.material_list[params.primitive->material_idx];
+	bool has_normal_map = material->tex_idx_normalMap >= 0;
+	int idx_renderer = has_normal_map ? 1 : 0;
+
+	if (NormalDepthRenderer[idx_renderer] == nullptr)
+	{
+		NormalDepthRenderer[idx_renderer] = std::unique_ptr<NormalAndDepth>(new NormalAndDepth(has_normal_map));
+	}
+	NormalDepthRenderer[idx_renderer]->render_batched(params, offset_lst, count_lst);
+}
+
+void GLRenderer::render_normal_depth_model(Camera* p_camera, SimpleModel* model)
+{
+	const MeshStandardMaterial* material = &model->material;
+	if (material->alphaMode != AlphaMode::Opaque) return;
+
+	const GLTexture2D* tex = &model->texture;
+	if (model->repl_texture != nullptr)
+	{
+		tex = model->repl_texture;
+	}
+
+	NormalAndDepth::RenderParams params;
+	params.tex_list = &tex;
+	params.material_list = &material;
+	params.camera = p_camera;
+	params.constant_model = &model->m_constant;
+	params.primitive = &model->geometry;
+	render_normal_depth_primitive(params);
+
+}
+
+void GLRenderer::render_normal_depth_model(Camera* p_camera, GLTFModel* model)
+{
+	glm::mat4 view_matrix = p_camera->matrixWorldInverse;
+
+	std::vector<const GLTexture2D*> tex_lst(model->m_textures.size());
+	for (size_t i = 0; i < tex_lst.size(); i++)
+	{
+		auto iter = model->m_repl_textures.find(i);
+		if (iter != model->m_repl_textures.end())
+		{
+			tex_lst[i] = iter->second;
+		}
+		else
+		{
+			tex_lst[i] = model->m_textures[i].get();
+		}
+	}
+
+	std::vector<const MeshStandardMaterial*> material_lst(model->m_materials.size());
+	for (size_t i = 0; i < material_lst.size(); i++)
+		material_lst[i] = model->m_materials[i].get();
+
+	if (model->batched_mesh != nullptr)
+	{
+		std::vector<std::vector<void*>> offset_lists(material_lst.size());
+		std::vector<std::vector<int>> count_lists(material_lst.size());
+		for (size_t i = 0; i < model->m_meshs.size(); i++)
+		{
+			Mesh& mesh = model->m_meshs[i];
+			glm::mat4 matrix = model->matrixWorld;
+			if (mesh.node_id >= 0 && mesh.skin_id < 0)
+			{
+				Node& node = model->m_nodes[mesh.node_id];
+				matrix *= node.g_trans;
+			}
+			glm::mat4 MV = p_camera->matrixWorldInverse * matrix;
+
+			for (size_t j = 0; j < mesh.primitives.size(); j++)
+			{
+				Primitive& primitive = mesh.primitives[j];
+				if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos, p_camera->m_scissor)) continue;
+
+				int idx_list = primitive.material_idx;
+				offset_lists[idx_list].push_back((void*)(model->batch_map[i][j]));
+				count_lists[idx_list].push_back(primitive.num_face * 3);
+			}
+		}
+
+		{
+			Mesh& mesh = *model->batched_mesh;
+			for (size_t j = 0; j < mesh.primitives.size(); j++)
+			{
+				Primitive& primitive = mesh.primitives[j];
+				int idx_material = primitive.material_idx;
+
+				std::vector<void*>& material_offsets = offset_lists[idx_material];
+				std::vector<int>& material_counts = count_lists[idx_material];
+				if (material_offsets.size() < 1) continue;
+
+				const MeshStandardMaterial* material = material_lst[idx_material];
+				if (material->alphaMode != AlphaMode::Opaque) continue;
+
+				NormalAndDepth::RenderParams params;
+				params.tex_list = tex_lst.data();
+				params.material_list = material_lst.data();
+				params.camera = p_camera;
+				params.constant_model = mesh.model_constant.get();
+				params.primitive = &primitive;
+				render_normal_depth_primitives(params, material_offsets, material_counts);
+
+			}
+
+		}
+	}
+	else
+	{
+
+		for (size_t i = 0; i < model->m_meshs.size(); i++)
+		{
+			Mesh& mesh = model->m_meshs[i];
+			glm::mat4 matrix = model->matrixWorld;
+			if (mesh.node_id >= 0 && mesh.skin_id < 0)
+			{
+				Node& node = model->m_nodes[mesh.node_id];
+				matrix *= node.g_trans;
+			}
+			glm::mat4 MV = view_matrix * matrix;
+
+			for (size_t j = 0; j < mesh.primitives.size(); j++)
+			{
+				Primitive& primitive = mesh.primitives[j];
+				if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos, p_camera->m_scissor)) continue;
+
+				const MeshStandardMaterial* material = material_lst[primitive.material_idx];
+				if (material->alphaMode != AlphaMode::Opaque) continue;
+
+				NormalAndDepth::RenderParams params;
+				params.tex_list = tex_lst.data();
+				params.material_list = material_lst.data();
+				params.camera = p_camera;
+				params.constant_model = mesh.model_constant.get();
+				params.primitive = &primitive;
+				render_normal_depth_primitive(params);
+			}
+		}
+	}
+}
+
 void GLRenderer::probe_space_center(Scene& scene, Camera& camera, GLSpaceProbeTarget& target, int width, int height, glm::vec3& sum, float& sum_weight)
 {
 	if (width < 2 || height < 2) return;
@@ -2519,6 +2674,37 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 	{
 		glDisable(GL_SCISSOR_TEST);
 	}
+
+#if 0
+	{
+		glDepthMask(GL_TRUE);
+		glClearDepth(1.0f);
+		glClear(GL_DEPTH_BUFFER_BIT);
+
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		if (has_opaque)
+		{
+			glDisable(GL_BLEND);
+
+			for (size_t i = 0; i < simple_models.size(); i++)
+			{
+				SimpleModel* model = simple_models[i];
+				render_normal_depth_model(&camera, model);
+			}
+
+			for (size_t i = 0; i < gltf_models.size(); i++)
+			{
+				GLTFModel* model = gltf_models[i];
+				render_normal_depth_model(&camera, model);
+			}			
+		}
+		
+
+		return;
+	}
+#endif
 
 	while (scene.background != nullptr)
 	{

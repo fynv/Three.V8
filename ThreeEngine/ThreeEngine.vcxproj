@@ -215,6 +215,7 @@
     <ClCompile Include="renderers\LightmapRayList.cpp" />
     <ClCompile Include="renderers\LightmapRenderTarget.cpp" />
     <ClCompile Include="renderers\ProbeRenderTarget.cpp" />
+    <ClCompile Include="renderers\ReflectionRenderTarget.cpp" />
     <ClCompile Include="renderers\routines\CompressLightmap.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
@@ -233,6 +234,7 @@
     <ClCompile Include="renderers\routines\FogRayMarching.cpp" />
     <ClCompile Include="renderers\routines\FogRayMarchingEnv.cpp" />
     <ClCompile Include="renderers\routines\MorphUpdate.cpp" />
+    <ClCompile Include="renderers\routines\NormalAndDepth.cpp" />
     <ClCompile Include="renderers\routines\Picking.cpp" />
     <ClCompile Include="renderers\routines\RasterizeAtlas.cpp" />
     <ClCompile Include="renderers\routines\ReflectionCopy.cpp" />
@@ -363,6 +365,7 @@
     <ClInclude Include="renderers\LightmapRayList.h" />
     <ClInclude Include="renderers\LightmapRenderTarget.h" />
     <ClInclude Include="renderers\ProbeRenderTarget.h" />
+    <ClInclude Include="renderers\ReflectionRenderTarget.h" />
     <ClInclude Include="renderers\routines\CompressLightmap.h" />
     <ClInclude Include="renderers\routines\CopyDepth.h" />
     <ClInclude Include="renderers\routines\DecompressLightmap.h" />
@@ -377,6 +380,7 @@
     <ClInclude Include="renderers\routines\FogRayMarching.h" />
     <ClInclude Include="renderers\routines\FogRayMarchingEnv.h" />
     <ClInclude Include="renderers\routines\MorphUpdate.h" />
+    <ClInclude Include="renderers\routines\NormalAndDepth.h" />
     <ClInclude Include="renderers\routines\Picking.h" />
     <ClInclude Include="renderers\routines\RasterizeAtlas.h" />
     <ClInclude Include="renderers\routines\ReflectionCopy.h" />

@@ -9,13 +9,14 @@
 
 class Primitive;
 class Camera;
-class DepthOnly
+class NormalAndDepth
 {
 public:
-	DepthOnly();
+	NormalAndDepth(bool has_normal_map);
 
 	struct RenderParams
-	{		
+	{
+		const GLTexture2D** tex_list;
 		const MeshStandardMaterial** material_list;
 		const Camera* camera;
 		const GLBuffer* constant_model;
@@ -25,7 +26,8 @@ public:
 	void render(const RenderParams& params);
 	void render_batched(const RenderParams& params, const std::vector<void*>& offset_lst, const std::vector<int>& count_lst);
 
-private:	
+private:
+	bool m_has_normal_map;
 	std::unique_ptr<GLProgram> m_prog;
 
 };

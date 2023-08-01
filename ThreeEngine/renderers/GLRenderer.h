@@ -39,6 +39,8 @@
 //#include "renderers/routines/CompressLightmap.h"
 //#include "renderers/routines/DecompressLightmap.h"
 
+#include "renderers/routines/NormalAndDepth.h"
+
 #include "BVHRenderer.h"
 
 class Scene;
@@ -158,6 +160,12 @@ private:
 	void render_depth_primitives(const DepthOnly::RenderParams& params, const std::vector<void*>& offset_lst, const std::vector<int>& count_lst);  // batched
 	void render_depth_model(Camera* p_camera, SimpleModel* model);
 	void render_depth_model(Camera* p_camera, GLTFModel* model);	
+
+	std::unique_ptr<NormalAndDepth> NormalDepthRenderer[2];
+	void render_normal_depth_primitive(const NormalAndDepth::RenderParams& params);
+	void render_normal_depth_primitives(const NormalAndDepth::RenderParams& params, const std::vector<void*>& offset_lst, const std::vector<int>& count_lst);  // batched
+	void render_normal_depth_model(Camera* p_camera, SimpleModel* model);
+	void render_normal_depth_model(Camera* p_camera, GLTFModel* model);
 
 	void _pre_render(Scene& scene);
 	void probe_space_center(Scene& scene, Camera& camera, GLSpaceProbeTarget& target, int width, int height, glm::vec3& ave, float& sum_weight);
