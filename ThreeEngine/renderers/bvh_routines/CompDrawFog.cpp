@@ -2,6 +2,7 @@
 #include <GL/glew.h>
 #include "CompDrawFog.h"
 #include "renderers/BVHRenderTarget.h"
+#include "renderers/ReflectionRenderTarget.h"
 
 static std::string g_compute =
 R"(#version 430
@@ -105,6 +106,23 @@ void main()
 	g_id_io = ivec2(local_id.x + local_id.y * 8 + group_id.x * 64, group_id.y);
 	render();
 }
+#elif TO_REFLECTION
+
+layout (location = 1) uniform sampler2D uTexNormal;
+
+void main()
+{
+	ivec2 size = imageSize(uImgColor);
+	ivec2 id = ivec3(gl_GlobalInvocationID).xy;	
+	if (id.x>= size.x || id.y >=size.y) return;
+
+	vec4 norm_w = texelFetch(uTexNormal, id, 0);
+	if (norm_w.w>0.0)
+	{
+		g_id_io = id;
+		render();
+	}
+}
 #endif
 
 )";
@@ -154,6 +172,15 @@ CompDrawFog::CompDrawFog(const Options& options) : m_options(options)
 	else
 	{
 		defines += "#define TO_LIGHTMAP 0\n";
+	}
+
+	if (options.target_mode == 3)
+	{
+		defines += "#define TO_REFLECTION 1\n";
+	}
+	else
+	{
+		defines += "#define TO_REFLECTION 0\n";
 	}
 
 	if (options.has_environment_map)
@@ -234,6 +261,15 @@ void CompDrawFog::render(const RenderParams& params)
 	else if (m_options.target_mode == 2)
 	{
 		glm::ivec2 blocks = { (width + 63) / 64, height };
+		glDispatchCompute(blocks.x, blocks.y, 1);
+	}
+	else if (m_options.target_mode == 3)
+	{
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, params.normal_depth->m_tex_normal->tex_id);
+		glUniform1i(1, 1);
+
+		glm::ivec2 blocks = { (width + 7) / 8, (height + 7) / 8 };
 		glDispatchCompute(blocks.x, blocks.y, 1);
 	}
 

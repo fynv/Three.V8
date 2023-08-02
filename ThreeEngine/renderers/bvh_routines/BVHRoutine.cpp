@@ -5,6 +5,7 @@
 #include "renderers/BVHRenderTarget.h"
 #include "lights/ProbeRayList.h"
 #include "renderers/LightmapRayList.h"
+#include "renderers/ReflectionRenderTarget.h"
 
 static std::string g_compute_part0 =
 R"(#version 430
@@ -1027,7 +1028,7 @@ bool calc_shading()
 	}
 
 #if ALPHA_MASK
-	if (base_color.w == 0.0) return;
+	if (base_color.w == 0.0) return false;
 #endif
 
 	PhysicalMaterial material;
@@ -1359,6 +1360,55 @@ void main()
 	
 	render();
 }
+#elif TO_REFLECTION
+
+
+layout (std140, binding = BINDING_CAMERA) uniform Camera
+{
+	mat4 uProjMat;
+	mat4 uViewMat;	
+	mat4 uInvProjMat;
+	mat4 uInvViewMat;	
+	vec3 uEyePos;
+};
+
+layout (location = LOCATION_TEX_DEPTH) uniform sampler2D uDepthTex;
+layout (location = LOCATION_TEX_NORMAL) uniform sampler2D uTexNormal;
+
+void main()
+{
+	ivec2 size = imageSize(uImgDepth);
+	ivec2 id = ivec3(gl_GlobalInvocationID).xy;	
+	if (id.x>= size.x || id.y >=size.y) return;
+
+	ivec2 screen = ivec2(id.x, id.y);
+	float depth = texelFetch(uDepthTex, id, 0).x*2.0-1.0;
+
+	vec4 clip = vec4((vec2(screen) + 0.5)/vec2(size)*2.0-1.0, depth, 1.0);
+	vec4 view = uInvProjMat * clip; view /= view.w;
+	vec3 world = vec3(uInvViewMat*view);
+	vec3 dir_in = normalize(world - uEyePos);
+
+	vec4 norm_w = texelFetch(uTexNormal, id, 0);
+	if (norm_w.w>0.0)
+	{
+		vec3 norm = norm_w.xyz/norm_w.w;
+		vec3 dir_out = reflect(dir_in, norm);
+
+		mat4 invModel = inverse(uModelMat);
+		vec3 model_origin = vec3(invModel*vec4(world, 1.0));
+		vec3 model_dir = vec3(invModel*vec4(dir_out, 0.0));
+
+		g_id_io = id;
+		g_origin = model_origin;
+		g_dir = model_dir;
+		g_tmin = 0.001;
+		g_tmax = 3.402823466e+38;
+	
+		render();
+
+	}
+}
 #endif
 )";
 
@@ -1410,6 +1460,15 @@ void BVHRoutine::s_generate_shaders(const Options& options, Bindings& bindings, 
 		defines += "#define TO_LIGHTMAP 0\n";
 	}
 
+	if (options.target_mode == 3)
+	{
+		defines += "#define TO_REFLECTION 1\n";
+	}
+	else
+	{
+		defines += "#define TO_REFLECTION 0\n";
+	}
+
 	if (options.has_lightmap)
 	{
 		defines += "#define HAS_LIGHTMAP 1\n";
@@ -1418,6 +1477,7 @@ void BVHRoutine::s_generate_shaders(const Options& options, Bindings& bindings, 
 	{
 		defines += "#define HAS_LIGHTMAP 0\n";
 	}	
+
 
 	{
 		bindings.binding_material = 0;
@@ -1910,6 +1970,29 @@ void BVHRoutine::s_generate_shaders(const Options& options, Bindings& bindings, 
 			defines += line;
 		}
 	}
+	else if (options.target_mode == 3)
+	{
+		bindings.binding_camera = bindings.binding_fog + 1;
+		{
+			char line[64];
+			sprintf(line, "#define BINDING_CAMERA %d\n", bindings.binding_camera);
+			defines += line;
+		}
+
+		bindings.location_tex_depth = bindings.location_tex_visibility + 1;
+		bindings.location_tex_normal = bindings.location_tex_depth + 1;
+
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_TEX_DEPTH %d\n", bindings.location_tex_depth);
+			defines += line;
+		}
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_TEX_NORMAL %d\n", bindings.location_tex_normal);
+			defines += line;
+		}
+	}
 	replace(s_compute, "#DEFINES#", defines.c_str());
 }
 
@@ -2189,6 +2272,28 @@ void BVHRoutine::render(const RenderParams& params)
 		}
 
 		glm::ivec2 blocks = { (width + 63) / 64, height };
+		glDispatchCompute(blocks.x, blocks.y, 1);
+
+	}
+	else if (m_options.target_mode == 3)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, m_bindings.binding_camera, params.constant_camera->m_id);
+
+		{
+			glActiveTexture(GL_TEXTURE0 + texture_idx);
+			glBindTexture(GL_TEXTURE_2D, params.normal_depth->m_tex_depth->tex_id);
+			glUniform1i(m_bindings.location_tex_depth, texture_idx);
+			texture_idx++;
+		}
+
+		{
+			glActiveTexture(GL_TEXTURE0 + texture_idx);
+			glBindTexture(GL_TEXTURE_2D, params.normal_depth->m_tex_normal->tex_id);
+			glUniform1i(m_bindings.location_tex_normal, texture_idx);
+			texture_idx++;
+		}
+
+		glm::ivec2 blocks = { (width + 31) / 32, (height + 1) / 2 };
 		glDispatchCompute(blocks.x, blocks.y, 1);
 
 	}

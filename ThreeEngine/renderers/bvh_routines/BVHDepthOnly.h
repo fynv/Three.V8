@@ -10,6 +10,7 @@ class Primitive;
 class BVHRenderTarget;
 class ProbeRayList;
 class LightmapRayList;
+class ReflectionRenderTarget;
 
 class BVHDepthOnly
 {
@@ -25,6 +26,7 @@ public:
 		const GLBuffer* constant_camera;
 		const ProbeRayList* prl;
 		const LightmapRayList* lmrl;
+		const ReflectionRenderTarget* normal_depth;
 	};
 
 	void render(const RenderParams& params);

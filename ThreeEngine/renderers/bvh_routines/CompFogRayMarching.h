@@ -9,6 +9,7 @@ class Camera;
 class Fog;
 class ProbeRayList;
 class LightmapRayList;
+class ReflectionRenderTarget;
 
 class CompFogRayMarching
 {
@@ -27,6 +28,7 @@ public:
 		const Camera* camera;
 		const ProbeRayList* prl;
 		const LightmapRayList* lmrl;
+		const ReflectionRenderTarget* normal_depth;
 	};
 
 	void render(const RenderParams& params);

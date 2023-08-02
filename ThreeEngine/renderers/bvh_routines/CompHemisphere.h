@@ -6,6 +6,8 @@
 class BVHRenderTarget;
 class ProbeRayList;
 class LightmapRayList;
+class ReflectionRenderTarget;
+
 class CompHemisphere
 {
 public:
@@ -14,6 +16,8 @@ public:
 	void render(const GLBuffer* constant_camera, const GLBuffer* constant_hemisphere, const BVHRenderTarget* target);
 	void render(const ProbeRayList* prl, const GLBuffer* constant_hemisphere, const BVHRenderTarget* target);
 	void render(const LightmapRayList* lmrl, const GLBuffer* constant_hemisphere, const BVHRenderTarget* target);
+	void render(const GLBuffer* constant_camera, const ReflectionRenderTarget* normal_depth, const GLBuffer* constant_hemisphere, const BVHRenderTarget* target);
+
 
 private:
 	int m_target_mode;

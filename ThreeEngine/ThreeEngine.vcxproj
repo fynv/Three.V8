@@ -190,6 +190,7 @@
     <ClCompile Include="network\WSClient.cpp" />
     <ClCompile Include="renderers\BVHRenderer.cpp" />
     <ClCompile Include="renderers\BVHRenderTarget.cpp" />
+    <ClCompile Include="renderers\bvh_routines\CompColorBg.cpp" />
     <ClCompile Include="renderers\bvh_routines\CompDrawFog.cpp" />
     <ClCompile Include="renderers\bvh_routines\CompFogRayMarching.cpp" />
     <ClCompile Include="renderers\bvh_routines\CompFogRayMarchingEnv.cpp" />
@@ -340,6 +341,7 @@
     <ClInclude Include="network\WSClient.h" />
     <ClInclude Include="renderers\BVHRenderer.h" />
     <ClInclude Include="renderers\BVHRenderTarget.h" />
+    <ClInclude Include="renderers\bvh_routines\CompColorBg.h" />
     <ClInclude Include="renderers\bvh_routines\CompDrawFog.h" />
     <ClInclude Include="renderers\bvh_routines\CompFogRayMarching.h" />
     <ClInclude Include="renderers\bvh_routines\CompFogRayMarchingEnv.h" />

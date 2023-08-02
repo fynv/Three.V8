@@ -5,6 +5,7 @@
 #include "renderers/BVHRenderTarget.h"
 #include "lights/ProbeRayList.h"
 #include "renderers/LightmapRayList.h"
+#include "renderers/ReflectionRenderTarget.h"
 
 static std::string g_compute =
 R"(#version 430
@@ -178,6 +179,43 @@ void main()
 	render();	
 
 }
+#elif TO_REFLECTION
+
+layout (std140, binding = 1) uniform Camera
+{
+	mat4 uProjMat;
+	mat4 uViewMat;	
+	mat4 uInvProjMat;
+	mat4 uInvViewMat;	
+	vec3 uEyePos;
+};
+
+layout (location = 0) uniform sampler2D uTexNormal;
+
+void main()
+{
+	ivec2 size = imageSize(uOut);
+	ivec2 id = ivec3(gl_GlobalInvocationID).xy;	
+	if (id.x>= size.x || id.y >=size.y) return;
+
+	ivec2 screen = ivec2(id.x, id.y);
+	vec4 clip = vec4((vec2(screen) + 0.5)/vec2(size)*2.0-1.0, 0.0, 1.0);
+	vec4 view = uInvProjMat * clip; view /= view.w;
+	vec3 world = vec3(uInvViewMat*view);
+	vec3 dir_in = normalize(world - uEyePos);
+
+	vec4 norm_w = texelFetch(uTexNormal, id, 0);
+	if (norm_w.w>0.0)
+	{
+		vec3 norm = norm_w.xyz/norm_w.w;
+		vec3 dir_out = reflect(dir_in, norm);
+
+		g_id_io = id;
+		g_dir = dir_out;
+		render();
+	}
+}
+
 #endif
 
 )";
@@ -227,6 +265,15 @@ CompHemisphere::CompHemisphere(int target_mode) : m_target_mode(target_mode)
 	else
 	{
 		defines += "#define TO_LIGHTMAP 0\n";
+	}
+
+	if (target_mode == 3)
+	{
+		defines += "#define TO_REFLECTION 1\n";
+	}
+	else
+	{
+		defines += "#define TO_REFLECTION 0\n";
 	}
 
 	replace(s_compute, "#DEFINES#", defines.c_str());
@@ -304,3 +351,30 @@ void CompHemisphere::render(const LightmapRayList* lmrl, const GLBuffer* constan
 
 	glUseProgram(0);
 }
+
+void CompHemisphere::render(const GLBuffer* constant_camera, const ReflectionRenderTarget* normal_depth, const GLBuffer* constant_hemisphere, const BVHRenderTarget* target)
+{
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+	int width = target->m_width;
+	int height = target->m_height;
+
+	glUseProgram(m_prog->m_id);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 0, constant_hemisphere->m_id);
+
+	glBindImageTexture(0, target->m_tex_video->tex_id, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA16F);
+
+	glBindBufferBase(GL_UNIFORM_BUFFER, 1, constant_camera->m_id);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, normal_depth->m_tex_normal->tex_id);
+	glUniform1i(0, 0);
+
+	glm::ivec2 blocks = { (width + 7) / 8, (height + 7) / 8 };
+	glDispatchCompute(blocks.x, blocks.y, 1);
+
+	glUseProgram(0);
+
+
+}
+

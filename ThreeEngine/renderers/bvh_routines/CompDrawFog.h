@@ -5,6 +5,7 @@
 #include "renderers/GLUtils.h"
 
 class BVHRenderTarget;
+class ReflectionRenderTarget;
 class CompDrawFog
 {
 public:
@@ -26,6 +27,7 @@ public:
 		const GLBuffer* constant_fog;
 		const Lights* lights;
 		const BVHRenderTarget* target;		
+		const ReflectionRenderTarget* normal_depth;
 	};
 
 	void render(const RenderParams& params);

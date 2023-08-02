@@ -4,6 +4,7 @@
 #include "StandardRoutine.h"
 #include "cameras/Camera.h"
 #include "cameras/Reflector.h"
+#include "renderers/ReflectionRenderTarget.h"
 
 static std::string g_vertex =
 R"(#version 430
@@ -473,7 +474,20 @@ R"(
 layout (location = LOCATION_TEX_LIGHTMAP) uniform sampler2D uTexLightmap;
 #endif 
 
-#if HAS_REFLECTOR
+#if BVH_REFLECT
+
+layout (location = LOCATION_TEX_BVH_REFL_NORMAL) uniform sampler2D uTexBVHReflNorm;
+layout (location = LOCATION_TEX_BVH_REFL) uniform sampler2D uTexBVHRefl;
+
+vec3 getRadiance(in vec3 worldPos, in vec3 viewDir, in vec3 norm, const in vec3 f0, const in float f90, float roughness)
+{
+	ivec2 coord = ivec2(gl_FragCoord.xy);	
+	return texelFetch(uTexBVHRefl, coord, 0).xyz;
+}
+
+#endif
+
+#if HAS_REFLECTOR && !BVH_REFLECT
 layout (std140, binding = BINDING_REFLECTOR_CAMERA) uniform ReflectorCamera
 {
 	mat4 uReflProjMat;
@@ -691,7 +705,7 @@ vec3 shGetIrradianceAt( in vec3 normal, in vec4 shCoefficients[ 9 ] )
 
 	return result;
 }
-#if HAS_REFLECTION_MAP && !HAS_REFLECTOR
+#if HAS_REFLECTION_MAP && !HAS_REFLECTOR && !BVH_REFLECT
 
 layout (location = LOCATION_TEX_REFLECTION_MAP) uniform samplerCube uReflectionMap;
 
@@ -1127,7 +1141,7 @@ vec3 getIrradiance(in vec3 normal)
 #endif
 
 
-#if HAS_REFLECTION_MAP && !HAS_REFLECTOR
+#if HAS_REFLECTION_MAP && !HAS_REFLECTOR && !BVH_REFLECT
 vec3 getRadiance(in vec3 worldPos, in vec3 reflectVec, float roughness, in vec3 irradiance)
 {
 	vec3 rad = getReflRadiance(reflectVec, roughness);
@@ -1377,7 +1391,7 @@ void main()
 
 	if (has_specular)
 	{
-#if HAS_REFLECTOR		
+#if BVH_REFLECT || HAS_REFLECTOR
 		vec3 radiance = getRadiance(vWorldPos, viewDir, norm, material.specularColor, material.specularF90, material.roughness);
 		specular +=  material.specularColor * radiance;
 #elif HAS_REFLECTION_MAP
@@ -1401,7 +1415,7 @@ void main()
 
 		if (has_specular)
 		{
-#if HAS_REFLECTOR			
+#if BVH_REFLECT || HAS_REFLECTOR			
 			radiance = getRadiance(vWorldPos, viewDir, norm, material.specularColor, material.specularF90, material.roughness);	
 #elif HAS_REFLECTION_MAP
 
@@ -2024,6 +2038,31 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 		bindings.location_tex_reflector_depth = bindings.location_tex_reflection_distance;
 	}
 
+	if (options.bvh_reflect)
+	{
+		defines += "#define BVH_REFLECT 1\n";
+		bindings.location_tex_bvh_refl_normal = bindings.location_tex_reflector_depth + 1;
+		bindings.location_tex_bvh_refl = bindings.location_tex_reflector_depth + 2;
+
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_TEX_BVH_REFL_NORMAL %d\n", bindings.location_tex_bvh_refl_normal);
+			defines += line;
+		}
+		{
+			char line[64];
+			sprintf(line, "#define LOCATION_TEX_BVH_REFL %d\n", bindings.location_tex_bvh_refl);
+			defines += line;
+		}
+
+	}
+	else
+	{
+		defines += "#define BVH_REFLECT 0\n";
+		bindings.location_tex_bvh_refl_normal = bindings.location_tex_reflector_depth;
+		bindings.location_tex_bvh_refl = bindings.location_tex_reflector_depth;
+	}
+
 	if (options.has_environment_map)
 	{
 		defines += "#define HAS_ENVIRONMENT_MAP 1\n";
@@ -2112,7 +2151,7 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 
 	if (options.has_probe_grid || options.has_lod_probe_grid)
 	{
-		bindings.location_tex_irradiance = bindings.location_tex_reflector_depth + 1;
+		bindings.location_tex_irradiance = bindings.location_tex_bvh_refl + 1;
 		bindings.location_tex_visibility = bindings.location_tex_irradiance + 1;
 		{
 			char line[64];
@@ -2127,8 +2166,8 @@ void StandardRoutine::s_generate_shaders(const Options& options, Bindings& bindi
 	}
 	else
 	{
-		bindings.location_tex_irradiance = bindings.location_tex_reflector_depth;
-		bindings.location_tex_visibility = bindings.location_tex_reflector_depth;
+		bindings.location_tex_irradiance = bindings.location_tex_bvh_refl;
+		bindings.location_tex_visibility = bindings.location_tex_bvh_refl;
 	}
 
 	if (options.has_ambient_light)
@@ -2449,6 +2488,20 @@ void StandardRoutine::_render_common(const RenderParams& params)
 		glBindTexture(GL_TEXTURE_2D, params.reflector->m_tex_depth_1x->tex_id);
 		glUniform1i(m_bindings.location_tex_reflector_depth, texture_idx);
 		texture_idx++;
+	}
+
+	if (m_options.bvh_reflect)
+	{
+		glActiveTexture(GL_TEXTURE0 + texture_idx);
+		glBindTexture(GL_TEXTURE_2D, params.normal_depth->m_tex_normal->tex_id);
+		glUniform1i(m_bindings.location_tex_bvh_refl_normal, texture_idx);
+		texture_idx++;
+
+		glActiveTexture(GL_TEXTURE0 + texture_idx);
+		glBindTexture(GL_TEXTURE_2D, params.tex_bvh_reflect->tex_id);
+		glUniform1i(m_bindings.location_tex_bvh_refl, texture_idx);
+		texture_idx++;
+
 	}
 
 	if (m_options.has_probe_grid)

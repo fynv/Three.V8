@@ -525,6 +525,9 @@
     <ClCompile Include="renderers\routines\NormalAndDepth.cpp">
       <Filter>Source Files\renderers\routines</Filter>
     </ClCompile>
+    <ClCompile Include="renderers\bvh_routines\CompColorBg.cpp">
+      <Filter>Source Files\renderers\bvh_routines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -967,6 +970,9 @@
     </ClInclude>
     <ClInclude Include="renderers\routines\NormalAndDepth.h">
       <Filter>Header Files\renderers\routines</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\bvh_routines\CompColorBg.h">
+      <Filter>Header Files\renderers\bvh_routines</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

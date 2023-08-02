@@ -9,6 +9,7 @@
 class Primitive;
 class Camera;
 class Reflector;
+class ReflectionRenderTarget;
 class StandardRoutine
 {
 public:	
@@ -23,6 +24,7 @@ public:
 		bool has_lightmap = false;
 		bool has_reflector = false;
 		bool is_reflect = false;
+		bool bvh_reflect = false;
 		bool specular_glossiness = false;
 		bool has_color = false;
 		bool has_color_texture = false;		
@@ -57,6 +59,8 @@ public:
 		const GLBuffer* constant_model;
 		const Primitive* primitive;
 		const Reflector* reflector;
+		const ReflectionRenderTarget* normal_depth;
+		const GLTexture2D* tex_bvh_reflect;
 		const Lights* lights;
 		const GLTexture2D* tex_lightmap;
 		const GLBuffer* constant_fog;
@@ -107,6 +111,8 @@ private:
 		int binding_reflector_camera;
 		int location_tex_reflector;
 		int location_tex_reflector_depth;
+		int location_tex_bvh_refl_normal;
+		int location_tex_bvh_refl;
 		int binding_environment_map;
 		int binding_probe_grid;		
 		int location_tex_irradiance;

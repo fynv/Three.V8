@@ -6,6 +6,7 @@
 #include "CompFogRayMarching.h"
 #include "lights/ProbeRayList.h"
 #include "renderers/LightmapRayList.h"
+#include "renderers/ReflectionRenderTarget.h"
 
 static std::string g_compute =
 R"(#version 430
@@ -228,6 +229,47 @@ void main()
 	g_dir = RandomDiffuse(seed, norm);	
 
 	render();
+}
+#elif TO_REFLECTION
+
+layout (std140, binding = 2) uniform Camera
+{
+	mat4 uProjMat;
+	mat4 uViewMat;	
+	mat4 uInvProjMat;
+	mat4 uInvViewMat;	
+	vec3 uEyePos;
+};
+
+layout (location = 1) uniform sampler2D uDepthTex2;
+layout (location = 2) uniform sampler2D uTexNormal;
+
+void main()
+{
+	ivec2 size = imageSize(uImgColor);
+	ivec2 id = ivec3(gl_GlobalInvocationID).xy;	
+	if (id.x>= size.x || id.y >=size.y) return;
+
+	ivec2 screen = ivec2(id.x, id.y);
+	float depth = texelFetch(uDepthTex2, id, 0).x*2.0-1.0;
+	
+	vec4 clip = vec4((vec2(screen) + 0.5)/vec2(size)*2.0-1.0, depth, 1.0);
+	vec4 view = uInvProjMat * clip; view /= view.w;
+	vec3 world = vec3(uInvViewMat*view);
+	vec3 dir_in = normalize(world - uEyePos);
+
+	vec4 norm_w = texelFetch(uTexNormal, id, 0);
+	if (norm_w.w>0.0)
+	{
+		vec3 norm = norm_w.xyz/norm_w.w;
+		vec3 dir_out = reflect(dir_in, norm);
+
+		g_id_io = id;
+		g_origin = world;
+		g_dir = dir_out;
+		
+		render();
+	}
 }
 #endif
 )";
@@ -525,6 +567,47 @@ void main()
 
 	render();
 }
+#elif TO_REFLECTION
+
+layout (std140, binding = 3) uniform Camera
+{
+	mat4 uProjMat;
+	mat4 uViewMat;	
+	mat4 uInvProjMat;
+	mat4 uInvViewMat;	
+	vec3 uEyePos;
+};
+
+layout (location = 2) uniform sampler2D uDepthTex2;
+layout (location = 3) uniform sampler2D uTexNormal;
+
+void main()
+{
+	ivec2 size = imageSize(uImgColor);
+	ivec2 id = ivec3(gl_GlobalInvocationID).xy;	
+	if (id.x>= size.x || id.y >=size.y) return;
+
+	ivec2 screen = ivec2(id.x, id.y);
+	float depth = texelFetch(uDepthTex2, id, 0).x*2.0-1.0;
+	
+	vec4 clip = vec4((vec2(screen) + 0.5)/vec2(size)*2.0-1.0, depth, 1.0);
+	vec4 view = uInvProjMat * clip; view /= view.w;
+	vec3 world = vec3(uInvViewMat*view);
+	vec3 dir_in = normalize(world - uEyePos);
+
+	vec4 norm_w = texelFetch(uTexNormal, id, 0);
+	if (norm_w.w>0.0)
+	{
+		vec3 norm = norm_w.xyz/norm_w.w;
+		vec3 dir_out = reflect(dir_in, norm);
+
+		g_id_io = id;
+		g_origin = world;
+		g_dir = dir_out;
+		
+		render();
+	}
+}
 #endif
 
 )";
@@ -572,6 +655,15 @@ CompFogRayMarching::CompFogRayMarching(int target_mode) : m_target_mode(target_m
 	else
 	{
 		defines += "#define TO_LIGHTMAP 0\n";
+	}
+
+	if (target_mode == 3)
+	{
+		defines += "#define TO_REFLECTION 1\n";
+	}
+	else
+	{
+		defines += "#define TO_REFLECTION 0\n";
 	}
 
 	{
@@ -648,6 +740,21 @@ void CompFogRayMarching::_render_no_shadow(const RenderParams& params)
 		glm::ivec2 blocks = { (width + 63) / 64, height };
 		glDispatchCompute(blocks.x, blocks.y, 1);
 	}
+	else if (m_target_mode == 3)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, 2, params.camera->m_constant.m_id);
+
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, params.normal_depth->m_tex_depth->tex_id);
+		glUniform1i(1, 1);
+
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, params.normal_depth->m_tex_normal->tex_id);
+		glUniform1i(2, 2);
+
+		glm::ivec2 blocks = { (width + 7) / 8, (height + 7) / 8 };
+		glDispatchCompute(blocks.x, blocks.y, 1);
+	}
 
 	glUseProgram(0);
 }
@@ -711,6 +818,21 @@ void CompFogRayMarching::_render_shadowed(const RenderParams& params)
 		}
 
 		glm::ivec2 blocks = { (width + 63) / 64, height };
+		glDispatchCompute(blocks.x, blocks.y, 1);
+	}
+	else if (m_target_mode == 3)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, 3, params.camera->m_constant.m_id);		
+
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, params.normal_depth->m_tex_depth->tex_id);
+		glUniform1i(2, 2);
+
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, params.normal_depth->m_tex_normal->tex_id);
+		glUniform1i(3, 3);
+
+		glm::ivec2 blocks = { (width + 7) / 8, (height + 7) / 8 };
 		glDispatchCompute(blocks.x, blocks.y, 1);
 	}
 

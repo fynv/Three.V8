@@ -11,6 +11,8 @@ class Primitive;
 class BVHRenderTarget;
 class ProbeRayList;
 class LightmapRayList;
+class ReflectionRenderTarget;
+
 class BVHRoutine
 {
 public:
@@ -59,6 +61,7 @@ public:
 		const GLBuffer* constant_camera;
 		const ProbeRayList* prl;
 		const LightmapRayList* lmrl;
+		const ReflectionRenderTarget* normal_depth;
 	};
 
 	void render(const RenderParams& params);
@@ -104,6 +107,8 @@ private:
 		int location_tex_lightmap_pos;
 		int location_tex_lightmap_norm;
 		int location_tex_lightmap_valid_list;
+		int location_tex_depth;
+		int location_tex_normal;
 
 	};
 

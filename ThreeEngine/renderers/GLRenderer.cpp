@@ -1,5 +1,6 @@
 #include <GL/glew.h>
 #include <gtc/random.hpp>
+#include <gtx/hash.hpp>
 #include "crc64/crc64.h"
 #include "GLUtils.h"
 #include "GLRenderer.h"
@@ -28,6 +29,7 @@
 #include "lights/ProbeRayList.h"
 #include "LightmapRayList.h"
 #include "cameras/Reflector.h"
+#include "ReflectionRenderTarget.h"
 
 //#include <gtx/string_cast.hpp>
 
@@ -61,7 +63,9 @@ void GLRenderer::update_model(SimpleModel* model)
 }
 
 void GLRenderer::update_model(GLTFModel* model)
-{
+{	
+	std::unordered_set<glm::ivec2> updated;
+
 	for (size_t i = 0; i < model->m_meshs.size(); i++)
 	{
 		Mesh& mesh = model->m_meshs[i];
@@ -87,6 +91,8 @@ void GLRenderer::update_model(GLTFModel* model)
 					&primitive
 				};
 				morpher->update(params);
+
+				updated.insert({ i, j });
 			}
 			mesh.needUpdateMorphTargets = false;
 		}
@@ -127,11 +133,32 @@ void GLRenderer::update_model(GLTFModel* model)
 						&primitive
 					};
 					skinner->update(params);
+
+					updated.insert({ i, j });
 				}
 			}
 		}
 		model->needUpdateSkinnedMeshes = false;
 	}	
+
+	if (m_bvh_reflection)
+	{
+		auto iter = updated.begin();
+		while (iter != updated.end())
+		{
+			int i = iter->x;
+			int j = iter->y;
+			Mesh& mesh = model->m_meshs[i];
+			Primitive& primitive = mesh.primitives[j];
+			if (primitive.cwbvh != nullptr)
+			{
+				bvh_renderer.update_triangles(primitive, primitive.cwbvh.get());
+				bvh_renderer.update_aabbs(primitive, primitive.cwbvh.get());
+			}
+
+			iter++;
+		}
+	}
 
 	model->updateMeshConstants();
 }
@@ -294,17 +321,36 @@ void GLRenderer::render_primitive(const StandardRoutine::RenderParams& params, P
 		options.has_hemisphere_light = lights->hemisphere_light != nullptr;
 		options.use_ssao = m_use_ssao;
 	}
-	options.has_reflector = params.reflector != nullptr;
-	options.is_reflect = params.camera->reflector != nullptr;
-	options.has_reflection_map = lights->reflection_map != nullptr;
-	if (options.has_reflection_map)
+
+	if (m_bvh_reflection)
 	{
-		if (lights->reflection_map->tex_id_dis != (unsigned)(-1))
+		options.bvh_reflect = true;
+		options.has_reflector = false;
+		options.has_reflection_map = false;
+	}
+	else
+	{
+		options.bvh_reflect = false;
+		if (params.reflector != nullptr)
 		{
-			options.has_reflection_distance = true;
+			options.has_reflector = true;
+			options.has_reflection_map = false;
+		}
+		else
+		{
+			options.has_reflector = false;
+			options.has_reflection_map = lights->reflection_map != nullptr;
+			if (options.has_reflection_map)
+			{
+				if (lights->reflection_map->tex_id_dis != (unsigned)(-1))
+				{
+					options.has_reflection_distance = true;
+				}
+			}
 		}
 	}
 
+	options.is_reflect = params.camera->reflector != nullptr;
 	options.has_fog = params.constant_fog != nullptr;	
 	options.tone_shading = material->tone_shading;
 	StandardRoutine* routine = get_routine(options);
@@ -344,16 +390,35 @@ void GLRenderer::render_primitives(const StandardRoutine::RenderParams& params, 
 		options.has_hemisphere_light = lights->hemisphere_light != nullptr;
 		options.use_ssao = m_use_ssao;
 	}
-	options.has_reflector = params.reflector != nullptr;
-	options.is_reflect = params.camera->reflector != nullptr;
-	options.has_reflection_map = lights->reflection_map != nullptr;
-	if (options.has_reflection_map)
+
+	if (m_bvh_reflection)
 	{
-		if (lights->reflection_map->tex_id_dis != (unsigned)(-1))
+		options.bvh_reflect = true;
+		options.has_reflector = false;
+		options.has_reflection_map = false;
+	}
+	else
+	{
+		options.bvh_reflect = false;
+		if (params.reflector != nullptr)
 		{
-			options.has_reflection_distance = true;
+			options.has_reflector = true;
+			options.has_reflection_map = false;
+		}
+		else
+		{
+			options.has_reflector = false;
+			options.has_reflection_map = lights->reflection_map != nullptr;
+			if (options.has_reflection_map)
+			{
+				if (lights->reflection_map->tex_id_dis != (unsigned)(-1))
+				{
+					options.has_reflection_distance = true;
+				}
+			}
 		}
 	}
+	options.is_reflect = params.camera->reflector != nullptr;	
 	options.has_fog = params.constant_fog != nullptr;	
 	options.tone_shading = material->tone_shading;
 	StandardRoutine* routine = get_routine(options);
@@ -399,6 +464,13 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 	params.constant_model = &model->m_constant;
 	params.primitive = &model->geometry;
 	params.reflector = reflector;
+
+	if (m_bvh_reflection)
+	{
+		params.normal_depth = reflection_target.get();
+		params.tex_bvh_reflect = reflection_bvh_target->m_tex_video.get();
+	}
+
 	params.lights = &lights;
 	params.tex_lightmap = nullptr;
 
@@ -515,6 +587,11 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 				params.constant_model = mesh.model_constant.get();
 				params.primitive = &primitive;
 				params.reflector = model->reflector;
+				if (m_bvh_reflection)
+				{
+					params.normal_depth = reflection_target.get();
+					params.tex_bvh_reflect = reflection_bvh_target->m_tex_video.get();
+				}
 				params.lights = &lights;
 				params.tex_lightmap = nullptr;
 				if (model->lightmap != nullptr)
@@ -591,6 +668,11 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 				params.constant_model = mesh.model_constant.get();
 				params.primitive = &primitive;
 				params.reflector = reflector;
+				if (m_bvh_reflection)
+				{
+					params.normal_depth = reflection_target.get();
+					params.tex_bvh_reflect = reflection_bvh_target->m_tex_video.get();
+				}
 				params.lights = &lights;
 				params.tex_lightmap = nullptr;
 				if (model->lightmap != nullptr)
@@ -2661,27 +2743,23 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 		}
 	}
 
-	// render scene
-	target.bind_buffer();
-	glEnable(GL_FRAMEBUFFER_SRGB);	
-	glViewport(0, 0, target.m_width, target.m_height);
-	if (camera.m_scissor.origin.x >= 0 && camera.m_scissor.origin.y >= 0)
+	if (m_bvh_reflection)
 	{
-		glEnable(GL_SCISSOR_TEST);
-		glScissor(camera.m_scissor.origin.x, camera.m_scissor.origin.y, camera.m_scissor.size.x, camera.m_scissor.size.y);
-	}
-	else
-	{
-		glDisable(GL_SCISSOR_TEST);
-	}
+		if (reflection_target == nullptr)
+		{
+			reflection_target = std::unique_ptr<ReflectionRenderTarget>(new ReflectionRenderTarget);
+		}
+		reflection_target->update_framebuffer(target.m_width, target.m_height);
+		glBindFramebuffer(GL_FRAMEBUFFER, reflection_target->m_fbo);
 
-#if 0
-	{
+		glViewport(0, 0, target.m_width, target.m_height);
+		glDisable(GL_SCISSOR_TEST);
+
 		glDepthMask(GL_TRUE);
 		glClearDepth(1.0f);
 		glClear(GL_DEPTH_BUFFER_BIT);
 
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		if (has_opaque)
@@ -2698,13 +2776,31 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 			{
 				GLTFModel* model = gltf_models[i];
 				render_normal_depth_model(&camera, model);
-			}			
+			}
 		}
-		
 
-		return;
+		if (reflection_bvh_target == nullptr)
+		{
+			reflection_bvh_target = std::unique_ptr<BVHRenderTarget>(new BVHRenderTarget);
+		}
+		reflection_bvh_target->update(target.m_width, target.m_height);
+
+		bvh_renderer.render_reflection(scene, camera, *reflection_target, *reflection_bvh_target);	
 	}
-#endif
+
+	// render scene
+	target.bind_buffer();
+	glEnable(GL_FRAMEBUFFER_SRGB);
+	glViewport(0, 0, target.m_width, target.m_height);
+	if (camera.m_scissor.origin.x >= 0 && camera.m_scissor.origin.y >= 0)
+	{
+		glEnable(GL_SCISSOR_TEST);
+		glScissor(camera.m_scissor.origin.x, camera.m_scissor.origin.y, camera.m_scissor.size.x, camera.m_scissor.size.y);
+	}
+	else
+	{
+		glDisable(GL_SCISSOR_TEST);
+	}
 
 	while (scene.background != nullptr)
 	{
@@ -3334,162 +3430,164 @@ void GLRenderer::render(Scene& scene, Camera& camera, GLRenderTarget& target)
 
 	PerspectiveCamera* p_cam = (PerspectiveCamera*)(&camera);
 
-	if (scene.indirectLight != nullptr && scene.indirectLight->dynamic_map)
+	if (!m_bvh_reflection)
 	{
-		IndirectLight* light = scene.indirectLight;		
 
-		camera.updateMatrixWorld(false);
-		glm::vec3 cam_pos = camera.getWorldPosition();
-		float delta = glm::length(cam_pos - light->camera_position);
-		if (delta > 0.0f)
+		if (scene.indirectLight != nullptr && scene.indirectLight->dynamic_map)
 		{
-			light->camera_position = cam_pos;
+			IndirectLight* light = scene.indirectLight;
+
+			camera.updateMatrixWorld(false);
+			glm::vec3 cam_pos = camera.getWorldPosition();
+			float delta = glm::length(cam_pos - light->camera_position);
+			if (delta > 0.0f)
+			{
+				light->camera_position = cam_pos;
 
 #if REFLECTION_RAY_MARCHING
-			light->probe_position = cam_pos;
+				light->probe_position = cam_pos;
 
 #else
-			//glm::vec3 pos = probe_space_center_cube(scene, camera.getWorldPosition(), p_cam->z_near, p_cam->z_far, *light);
+				//glm::vec3 pos = probe_space_center_cube(scene, camera.getWorldPosition(), p_cam->z_near, p_cam->z_far, *light);
 
-			glm::vec3 sum = glm::vec3(0.0f);
-			float sum_weight = 0.0f;
-			probe_space_center(scene, camera, *light->probe_target, target.m_width, target.m_height, sum, sum_weight);
-			glm::vec3 pos = sum / sum_weight;
+				glm::vec3 sum = glm::vec3(0.0f);
+				float sum_weight = 0.0f;
+				probe_space_center(scene, camera, *light->probe_target, target.m_width, target.m_height, sum, sum_weight);
+				glm::vec3 pos = sum / sum_weight;
 
-			pos.x = 0.5f * pos.x + 0.5f * cam_pos.x;
-			pos.y = cam_pos.y;
-			//pos.y = 0.5f * pos.y + 0.5f * cam_pos.y;
-			pos.z = 0.5f * pos.z + 0.5f * cam_pos.z;
-			//light->probe_position = 0.8f * light->probe_position + 0.2f * pos;
-			light->probe_position = pos;
+				pos.x = 0.5f * pos.x + 0.5f * cam_pos.x;
+				pos.y = cam_pos.y;
+				//pos.y = 0.5f * pos.y + 0.5f * cam_pos.y;
+				pos.z = 0.5f * pos.z + 0.5f * cam_pos.z;
+				//light->probe_position = 0.8f * light->probe_position + 0.2f * pos;
+				light->probe_position = pos;
 #endif			
 
-			_render_cube(scene, *light->cube_target, light->probe_position, p_cam->z_near, p_cam->z_far);
+				_render_cube(scene, *light->cube_target, light->probe_position, p_cam->z_near, p_cam->z_far);
 
-			if (EnvCreator == nullptr)
-			{
-				EnvCreator = std::unique_ptr<EnvironmentMapCreator>(new EnvironmentMapCreator);
-			}
+				if (EnvCreator == nullptr)
+				{
+					EnvCreator = std::unique_ptr<EnvironmentMapCreator>(new EnvironmentMapCreator);
+				}
 
-			EnvCreator->CreateReflection(*light->reflection, light->cube_target->m_cube_map.get());
+				EnvCreator->CreateReflection(*light->reflection, light->cube_target->m_cube_map.get());
 
 #if REFLECTION_RAY_MARCHING
-			if (ReflDisCreator == nullptr)
-			{
-				ReflDisCreator = std::unique_ptr<ReflectionDistanceCreator>(new ReflectionDistanceCreator);
-			}
-			ReflDisCreator->Create(light->cube_target.get(), light->reflection.get(), p_cam->z_near, p_cam->z_far);
+				if (ReflDisCreator == nullptr)
+				{
+					ReflDisCreator = std::unique_ptr<ReflectionDistanceCreator>(new ReflectionDistanceCreator);
+				}
+				ReflDisCreator->Create(light->cube_target.get(), light->reflection.get(), p_cam->z_near, p_cam->z_far);
 #endif
-		}	
-	}
-	else
-	{
-		camera.updateMatrixWorld(false);
-
-		for (size_t i = 0; i < scene.reflectors.size(); i++)
-		{
-			Reflector* reflector = scene.reflectors[i];
-			reflector->updateConstant();
-
-			glm::mat4 A = reflector->matrixWorld;
-			glm::mat4 B = A;			
-			B[2] = -B[2];			
-			A = glm::inverse(A);
-			B *= A;
-
-			reflector->m_camera.position = p_cam->position;
-			reflector->m_camera.quaternion = p_cam->quaternion;
-			reflector->m_camera.scale = p_cam->scale;
-			reflector->m_camera.applyMatrix4(B);
-
-			if (target.m_width != reflector->m_target.m_width || target.m_height != reflector->m_target.m_height)
-			{
-				reflector->m_camera.fov = p_cam->fov;
-				reflector->m_camera.aspect = p_cam->aspect;
-				reflector->m_camera.z_near = p_cam->z_near;
-				reflector->m_camera.z_far = p_cam->z_far;
-				reflector->m_camera.updateProjectionMatrix();
-				reflector->updateTarget(target.m_width, target.m_height);
 			}
-
-			reflector->traverse([reflector](Object3D* obj) {
-				do
-				{
-					{
-						SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
-						if (model)
-						{
-							model->reflector = reflector;
-							break;
-						}
-					}
-					{
-						GLTFModel* model = dynamic_cast<GLTFModel*>(obj);
-						if (model)
-						{
-							model->reflector = reflector;
-							break;
-						}
-					}
-				} while (false);
-			});
-
-			size_t num_refs = reflector->m_prim_refs.size();
-			for (size_t j = 0; j < num_refs; j++)
-			{
-				auto ref = reflector->m_prim_refs[j];
-				do
-				{
-					{
-						SimpleModel* model = dynamic_cast<SimpleModel*>(ref.model);
-						if (model)
-						{
-							model->geometry.reflector = reflector;
-						}
-					}
-					{
-						GLTFModel* model = dynamic_cast<GLTFModel*>(ref.model);
-						if (model)
-						{
-							model->m_meshs[ref.mesh_id].primitives[ref.prim_id].reflector = reflector;
-						}
-					}
-				} while (false);
-			}
-
-			reflector->calc_scissor();			
-			this->_render_simple(scene, reflector->m_camera, reflector->m_target);		
-
-			if (DepthDownsampler == nullptr)
-			{
-				DepthDownsampler = std::unique_ptr<DepthDownsample>(new DepthDownsample);
-			}
-
-			glBindFramebuffer(GL_FRAMEBUFFER, reflector->m_fbo_depth_1x);
-			DepthDownsampler->render(reflector->m_target.m_tex_depth->tex_id);
-
-			if (ReflectionCopier == nullptr)
-			{
-				ReflectionCopier = std::unique_ptr<ReflectionCopy>(new ReflectionCopy);
-			}
-			ReflectionCopier->copy(reflector->m_tex_mipmapped->tex_id, reflector->m_target.m_tex_video->tex_id, target.m_width, target.m_height, &reflector->m_camera);
-			
-			if (ReflectionMipmapper == nullptr)
-			{
-				ReflectionMipmapper = std::unique_ptr<ReflectionMipmaps>(new ReflectionMipmaps);
-			}
-
-			int width = target.m_width;
-			int height = target.m_height;
-			for (int i = 0; i < 7; i++)
-			{
-				if (width > 1) width /= 2;
-				if (height > 1) height /= 2;
-				ReflectionMipmapper->downsample(reflector->m_tex_mipmapped->tex_id, i, width, height);
-			}	
-
 		}
+		else
+		{
+			camera.updateMatrixWorld(false);
 
+			for (size_t i = 0; i < scene.reflectors.size(); i++)
+			{
+				Reflector* reflector = scene.reflectors[i];
+				reflector->updateConstant();
+
+				glm::mat4 A = reflector->matrixWorld;
+				glm::mat4 B = A;
+				B[2] = -B[2];
+				A = glm::inverse(A);
+				B *= A;
+
+				reflector->m_camera.position = p_cam->position;
+				reflector->m_camera.quaternion = p_cam->quaternion;
+				reflector->m_camera.scale = p_cam->scale;
+				reflector->m_camera.applyMatrix4(B);
+
+				if (target.m_width != reflector->m_target.m_width || target.m_height != reflector->m_target.m_height)
+				{
+					reflector->m_camera.fov = p_cam->fov;
+					reflector->m_camera.aspect = p_cam->aspect;
+					reflector->m_camera.z_near = p_cam->z_near;
+					reflector->m_camera.z_far = p_cam->z_far;
+					reflector->m_camera.updateProjectionMatrix();
+					reflector->updateTarget(target.m_width, target.m_height);
+				}
+
+				reflector->traverse([reflector](Object3D* obj) {
+					do
+					{
+						{
+							SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
+							if (model)
+							{
+								model->reflector = reflector;
+								break;
+							}
+						}
+						{
+							GLTFModel* model = dynamic_cast<GLTFModel*>(obj);
+							if (model)
+							{
+								model->reflector = reflector;
+								break;
+							}
+						}
+					} while (false);
+					});
+
+				size_t num_refs = reflector->m_prim_refs.size();
+				for (size_t j = 0; j < num_refs; j++)
+				{
+					auto ref = reflector->m_prim_refs[j];
+					do
+					{
+						{
+							SimpleModel* model = dynamic_cast<SimpleModel*>(ref.model);
+							if (model)
+							{
+								model->geometry.reflector = reflector;
+							}
+						}
+						{
+							GLTFModel* model = dynamic_cast<GLTFModel*>(ref.model);
+							if (model)
+							{
+								model->m_meshs[ref.mesh_id].primitives[ref.prim_id].reflector = reflector;
+							}
+						}
+					} while (false);
+				}
+
+				reflector->calc_scissor();
+				this->_render_simple(scene, reflector->m_camera, reflector->m_target);
+
+				if (DepthDownsampler == nullptr)
+				{
+					DepthDownsampler = std::unique_ptr<DepthDownsample>(new DepthDownsample);
+				}
+
+				glBindFramebuffer(GL_FRAMEBUFFER, reflector->m_fbo_depth_1x);
+				DepthDownsampler->render(reflector->m_target.m_tex_depth->tex_id);
+
+				if (ReflectionCopier == nullptr)
+				{
+					ReflectionCopier = std::unique_ptr<ReflectionCopy>(new ReflectionCopy);
+				}
+				ReflectionCopier->copy(reflector->m_tex_mipmapped->tex_id, reflector->m_target.m_tex_video->tex_id, target.m_width, target.m_height, &reflector->m_camera);
+
+				if (ReflectionMipmapper == nullptr)
+				{
+					ReflectionMipmapper = std::unique_ptr<ReflectionMipmaps>(new ReflectionMipmaps);
+				}
+
+				int width = target.m_width;
+				int height = target.m_height;
+				for (int i = 0; i < 7; i++)
+				{
+					if (width > 1) width /= 2;
+					if (height > 1) height /= 2;
+					ReflectionMipmapper->downsample(reflector->m_tex_mipmapped->tex_id, i, width, height);
+				}
+			}
+		}
 	}
 
 	_render(scene, camera, target, true);	

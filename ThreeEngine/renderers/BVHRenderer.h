@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include "renderers/bvh_routines/BVHRoutine.h"
 #include "renderers/bvh_routines/BVHDepthOnly.h"
+#include "renderers/bvh_routines/CompColorBg.h"
 #include "renderers/bvh_routines/CompSkyBox.h"
 #include "renderers/bvh_routines/CompHemisphere.h"
 #include "renderers/bvh_routines/CompWeightedOIT.h"
@@ -33,6 +34,8 @@ class Lightmap;
 class LightmapRenderTarget;
 class LightmapRayList;
 
+class ReflectionRenderTarget;
+
 class CWBVH;
 
 class BVHRenderer
@@ -51,6 +54,8 @@ public:
 	void render_lightmap(Scene& scene, LightmapRayList& lmrl, BVHRenderTarget& target);
 	void update_lightmap(const BVHRenderTarget& source, const LightmapRayList& lmrl, const Lightmap& lightmap, int id_start_texel, float mix_rate = 1.0f);
 	void filter_lightmap(const LightmapRenderTarget& atlas, const Lightmap& lightmap, const glm::mat4& model_mat);
+
+	void render_reflection(Scene& scene, Camera& camera, ReflectionRenderTarget& normal_depth, BVHRenderTarget& target);
 
 	void update_triangles(const Primitive& prim, CWBVH* cwbvh);
 	void update_aabbs(const Primitive& prim, CWBVH* cwbvh);
@@ -145,6 +150,33 @@ private:
 
 	std::unique_ptr<LightmapUpdate> LightmapUpdater;
 	std::unique_ptr<LightmapFilter> LightmapFiltering;
+
+	///////////// Render Reflection ////////////////
+	std::unique_ptr<CompColorBg> ReflectionColorDraw;
+	std::unique_ptr<CompSkyBox> ReflectionSkyBoxDraw;
+	std::unique_ptr<CompHemisphere> ReflectionHemisphereDraw;
+
+	std::unique_ptr<BVHDepthOnly> ReflectionDepthRenderer;
+	void render_reflection_depth_primitive(const BVHDepthOnly::RenderParams& params);
+	void render_reflection_depth_model(Camera* p_camera, ReflectionRenderTarget* normal_depth, SimpleModel* model, BVHRenderTarget& target);
+	void render_reflection_depth_model(Camera* p_camera, ReflectionRenderTarget* normal_depth, GLTFModel* model, BVHRenderTarget& target);
+
+	std::unordered_map<uint64_t, std::unique_ptr<BVHRoutine>> reflection_routine_map;
+	BVHRoutine* get_reflection_routine(const BVHRoutine::Options& options);
+
+	void render_reflection_primitive(const BVHRoutine::RenderParams& params, Pass pass);
+	void render_reflection_model(Camera* p_camera, ReflectionRenderTarget* normal_depth, const Lights& lights, const Fog* fog, SimpleModel* model, Pass pass, BVHRenderTarget& target);
+	void render_reflection_model(Camera* p_camera, ReflectionRenderTarget* normal_depth, const Lights& lights, const Fog* fog, GLTFModel* model, Pass pass, BVHRenderTarget& target);
+
+	std::unordered_map<uint64_t, std::unique_ptr<CompDrawFog>> reflection_fog_draw_map;
+	std::unique_ptr<CompFogRayMarching> reflection_fog_ray_march;
+	std::unordered_map<uint64_t, std::unique_ptr<CompFogRayMarchingEnv>> reflection_fog_ray_march_map;
+
+	void _render_reflection_fog(const Camera& camera, ReflectionRenderTarget& normal_depth, const Lights& lights, const Fog& fog, BVHRenderTarget& target);
+	void _render_reflection_fog_rm(const Camera& camera, ReflectionRenderTarget& normal_depth, DirectionalLight& light, const Fog& fog, BVHRenderTarget& target);
+	void _render_reflection_fog_rm_env(const Camera& camera, ReflectionRenderTarget& normal_depth, const Lights& lights, const Fog& fog, BVHRenderTarget& target);
+
+	///////////// BVH Update ////////////////
 
 	std::unique_ptr<UpdateTriangles> TriangleUpdater[2];
 	std::unique_ptr<UpdateAABBs> AABBUpdater[2];

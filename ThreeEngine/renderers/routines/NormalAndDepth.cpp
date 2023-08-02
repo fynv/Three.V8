@@ -118,7 +118,8 @@ void main()
 	}
 #endif	
 
-	out0 = vec4((norm + 1.0)*0.5, 1.0);	
+	//out0 = vec4((norm + 1.0)*0.5, 1.0);	
+	out0 = vec4(norm, 1.0);	
 }
 )";
 

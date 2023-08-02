@@ -61,6 +61,8 @@ class LODProbeGridWidget;
 class Reflector;
 
 class VolumeIsosurfaceModel;
+class ReflectionRenderTarget;
+class BVHRenderTarget;
 
 class GLRenderer
 {
@@ -221,5 +223,9 @@ private:
 //	std::unique_ptr<DecompressLightmap> lightmap_decompressor[2];
 
 	BVHRenderer bvh_renderer;		
+
+	bool m_bvh_reflection = false;
+	std::unique_ptr<ReflectionRenderTarget> reflection_target;
+	std::unique_ptr<BVHRenderTarget> reflection_bvh_target;
 };
 
