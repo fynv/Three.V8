@@ -410,7 +410,7 @@ fn getRadiance(world_pos: vec3f, viewDir: vec3f, norm: vec3f, f0: vec3f, f90: f3
     proj.x = clamp(proj.x, uCameraReflector.scissor.x, uCameraReflector.scissor.z);
     proj.y = clamp(proj.y, uCameraReflector.scissor.y, uCameraReflector.scissor.w);
 
-    var uvz = vec3((proj.x + 1.0)*0.5, (1.0 - proj.y)*0.5, (1.0 - proj.z)*0.5);
+    var uvz = vec3((proj.x + 1.0)*0.5, (1.0 - proj.y)*0.5, (proj.z + 1.0)*0.5);
     var pix_pos = uvz.xy * vec2f(size_view);
 
     if (dldt>0.001)
