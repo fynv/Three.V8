@@ -43,6 +43,8 @@
 
 #include "BVHRenderer.h"
 
+#include "renderers/routines/render_height.h"
+
 class Scene;
 class Fog;
 class Camera;
@@ -52,6 +54,7 @@ class GLSpaceProbeTarget;
 class CubeRenderTarget;
 class SimpleModel;
 class GLTFModel;
+class GLTFModelInstance;
 class DirectionalLight;
 class DirectionalLightShadow;
 class ProbeGrid;
@@ -63,6 +66,8 @@ class Reflector;
 class VolumeIsosurfaceModel;
 class ReflectionRenderTarget;
 class BVHRenderTarget;
+
+class HeightField;
 
 class GLRenderer
 {
@@ -95,11 +100,14 @@ public:
 //	bool compressLightmap(Scene& scene, GLTFModel* model);
 //	bool decompressLightmap(Scene& scene, GLTFModel* model);
 
+	void create_height(Scene& scene, const glm::vec3& pos_min, const glm::vec3 pos_max, int width, int height, HeightField* hf);
+
 private:
 	std::unique_ptr<WeightedOIT> oit_resolvers[2];
 
 	void update_model(SimpleModel* model);
 	void update_model(GLTFModel* model);
+	void update_model(GLTFModelInstance* model);
 	
 	void update_model(VolumeIsosurfaceModel* model);
 
@@ -125,6 +133,7 @@ private:
 	void render_primitives(const StandardRoutine::RenderParams& params, Pass pass, const std::vector<void*>& offset_lst, const std::vector<int>& count_lst); // batched
 	void render_model(Camera* p_camera, const Lights& lights, const Fog* fog, SimpleModel* model, GLRenderTarget& target, Pass pass);
 	void render_model(Camera* p_camera, const Lights& lights, const Fog* fog, GLTFModel* model, GLRenderTarget& target, Pass pass);
+	void render_model(Camera* p_camera, const Lights& lights, const Fog* fog, GLTFModelInstance* model, GLRenderTarget& target, Pass pass);
 	void render_model(Camera* p_camera, const Lights& lights, const Fog* fog, VolumeIsosurfaceModel* model, GLRenderTarget& target, Pass pass);
 	void render_widget(Camera* p_camera, DirectionalLight* light);
 	void render_widget(Camera* p_camera, ProbeGridWidget* widget);
@@ -135,6 +144,7 @@ private:
 	void render_primitives_simple(const SimpleRoutine::RenderParams& params, Pass pass, const std::vector<void*>& offset_lst, const std::vector<int>& count_lst);  // batched
 	void render_model_simple(Camera* p_camera, const Lights& lights, const Fog* fog, SimpleModel* model, Pass pass);
 	void render_model_simple(Camera* p_camera, const Lights& lights, const Fog* fog, GLTFModel* model, Pass pass);
+	void render_model_simple(Camera* p_camera, const Lights& lights, const Fog* fog, GLTFModelInstance* model, Pass pass);
 
 	std::unique_ptr<MorphUpdate> morphers[4];
 	std::unique_ptr<SkinUpdate> skinners[2];
@@ -151,6 +161,7 @@ private:
 	void render_shadow_primitives(const DirectionalShadowCast::RenderParams& params, const std::vector<void*>& offset_lst, const std::vector<int>& count_lst);  // batched
 	void render_shadow_model(DirectionalLightShadow* shadow, SimpleModel* model);
 	void render_shadow_model(DirectionalLightShadow* shadow, GLTFModel* model);
+	void render_shadow_model(DirectionalLightShadow* shadow, GLTFModelInstance* model);
 	void render_shadow_model(DirectionalLightShadow* shadow, VolumeIsosurfaceModel* model);
 	
 
@@ -162,12 +173,14 @@ private:
 	void render_depth_primitives(const DepthOnly::RenderParams& params, const std::vector<void*>& offset_lst, const std::vector<int>& count_lst);  // batched
 	void render_depth_model(Camera* p_camera, SimpleModel* model);
 	void render_depth_model(Camera* p_camera, GLTFModel* model);	
+	void render_depth_model(Camera* p_camera, GLTFModelInstance* model);
 
 	std::unique_ptr<NormalAndDepth> NormalDepthRenderer[2];
 	void render_normal_depth_primitive(const NormalAndDepth::RenderParams& params);
 	void render_normal_depth_primitives(const NormalAndDepth::RenderParams& params, const std::vector<void*>& offset_lst, const std::vector<int>& count_lst);  // batched
 	void render_normal_depth_model(Camera* p_camera, SimpleModel* model);
 	void render_normal_depth_model(Camera* p_camera, GLTFModel* model);
+	void render_normal_depth_model(Camera* p_camera, GLTFModelInstance* model);
 
 	void _pre_render(Scene& scene);
 	void probe_space_center(Scene& scene, Camera& camera, GLSpaceProbeTarget& target, int width, int height, glm::vec3& ave, float& sum_weight);
@@ -227,5 +240,7 @@ private:
 	bool m_bvh_reflection = false;
 	std::unique_ptr<ReflectionRenderTarget> reflection_target;
 	std::unique_ptr<BVHRenderTarget> reflection_bvh_target;
+
+	std::unique_ptr<RenderHeight> m_render_height;
 };
 

@@ -19,6 +19,7 @@
 #include "models/ModelComponents.h"
 #include "models/SimpleModel.h"
 #include "models/GLTFModel.h"
+#include "models/GLTFModelInstance.h"
 #include "volume/VolumeIsosurfaceModel.h"
 #include "materials/MeshStandardMaterial.h"
 #include "lights/DirectionalLight.h"
@@ -30,6 +31,7 @@
 #include "LightmapRayList.h"
 #include "cameras/Reflector.h"
 #include "ReflectionRenderTarget.h"
+#include "models/HeightField.h"
 
 //#include <gtx/string_cast.hpp>
 
@@ -160,6 +162,11 @@ void GLRenderer::update_model(GLTFModel* model)
 		}
 	}
 
+	model->updateMeshConstants();
+}
+
+void GLRenderer::update_model(GLTFModelInstance* model)
+{
 	model->updateMeshConstants();
 }
 
@@ -738,6 +745,124 @@ void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog*
 
 		glEnd();
 	}
+}
+
+void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog* fog, GLTFModelInstance* model, GLRenderTarget& target, Pass pass)
+{
+	if (p_camera->reflector != nullptr && model->m_model->reflector == p_camera->reflector) return;
+
+	std::vector<const GLTexture2D*> tex_lst(model->m_model->m_textures.size());
+	for (size_t i = 0; i < tex_lst.size(); i++)
+	{
+		auto iter = model->m_model->m_repl_textures.find(i);
+		if (iter != model->m_model->m_repl_textures.end())
+		{
+			tex_lst[i] = iter->second;
+		}
+		else
+		{
+			tex_lst[i] = model->m_model->m_textures[i].get();
+		}
+	}
+
+	std::vector<const MeshStandardMaterial*> material_lst(model->m_model->m_materials.size());
+	for (size_t i = 0; i < material_lst.size(); i++)
+		material_lst[i] = model->m_model->m_materials[i].get();
+
+	bool has_reflector = false;
+	for (size_t i = 0; i < model->m_model->m_meshs.size(); i++)
+	{
+		Mesh& mesh = model->m_model->m_meshs[i];
+		for (size_t j = 0; j < mesh.primitives.size(); j++)
+		{
+			Primitive& primitive = mesh.primitives[j];
+			if (primitive.reflector != nullptr)
+			{
+				has_reflector = true;
+				break;
+			}
+		}
+		if (has_reflector) break;
+	}
+
+	
+	for (size_t i = 0; i < model->m_model->m_meshs.size(); i++)
+	{
+		Mesh& mesh = model->m_model->m_meshs[i];
+		glm::mat4 matrix = model->matrixWorld;
+		if (mesh.node_id >= 0 && mesh.skin_id < 0)
+		{
+			GLTFModelInstance::NodeInfo& info = model->m_node_info[mesh.node_id];
+			matrix *= info.g_trans;
+		}
+		glm::mat4 MV = p_camera->matrixWorldInverse * matrix;
+
+		for (size_t j = 0; j < mesh.primitives.size(); j++)
+		{
+			Primitive& primitive = mesh.primitives[j];
+
+			Reflector* reflector = model->m_model->reflector;
+			if (reflector == nullptr)
+			{
+				reflector = primitive.reflector;
+			}
+			if (p_camera->reflector != nullptr && reflector == p_camera->reflector) continue;
+
+			if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos, p_camera->m_scissor)) continue;
+
+			const MeshStandardMaterial* material = material_lst[primitive.material_idx];
+			if (pass == Pass::Opaque)
+			{
+				if (material->alphaMode == AlphaMode::Blend) continue;
+			}
+			else if (pass == Pass::Alpha || pass == Pass::Highlight)
+			{
+				if (material->alphaMode != AlphaMode::Blend) continue;
+			}
+			if (material->tone_shading > 0 && primitive.wire_ind_buf == nullptr)
+			{
+				primitive.compute_wires();
+			}
+			StandardRoutine::RenderParams params;
+			params.tex_list = tex_lst.data();
+			params.material_list = material_lst.data();
+			params.camera = p_camera;
+			params.constant_model = model->m_mesh_constants[i].get();
+			params.primitive = &primitive;
+			params.reflector = reflector;
+			if (m_bvh_reflection)
+			{
+				params.normal_depth = reflection_target.get();
+				params.tex_bvh_reflect = reflection_bvh_target->m_tex_video.get();
+			}
+			params.lights = &lights;
+			params.tex_lightmap = nullptr;
+			if (model->m_model->lightmap != nullptr)
+			{
+				params.tex_lightmap = model->m_model->lightmap->lightmap.get();
+			}
+
+			if (fog != nullptr)
+			{
+				params.constant_fog = &fog->m_constant;
+			}
+			else
+			{
+				params.constant_fog = nullptr;
+			}
+
+			if (m_use_ssao)
+			{
+				params.tex_ao = target.m_ssao_buffers->m_tex_aoz.get();
+			}
+			else
+			{
+				params.tex_ao = nullptr;
+			}
+			render_primitive(params, pass);
+		}
+	}
+	
 }
 
 void GLRenderer::render_model(Camera* p_camera, const Lights& lights, const Fog* fog, VolumeIsosurfaceModel* model, GLRenderTarget& target, Pass pass)
@@ -1332,6 +1457,104 @@ void GLRenderer::render_model_simple(Camera* p_camera, const Lights& lights, con
 }
 
 
+void GLRenderer::render_model_simple(Camera* p_camera, const Lights& lights, const Fog* fog, GLTFModelInstance* model, Pass pass)
+{
+	if (p_camera->reflector != nullptr && model->m_model->reflector == p_camera->reflector) return;
+
+	std::vector<const GLTexture2D*> tex_lst(model->m_model->m_textures.size());
+	for (size_t i = 0; i < tex_lst.size(); i++)
+	{
+		auto iter = model->m_model->m_repl_textures.find(i);
+		if (iter != model->m_model->m_repl_textures.end())
+		{
+			tex_lst[i] = iter->second;
+		}
+		else
+		{
+			tex_lst[i] = model->m_model->m_textures[i].get();
+		}
+	}
+
+	std::vector<const MeshStandardMaterial*> material_lst(model->m_model->m_materials.size());
+	for (size_t i = 0; i < material_lst.size(); i++)
+		material_lst[i] = model->m_model->m_materials[i].get();
+
+	bool has_reflector = false;
+	for (size_t i = 0; i < model->m_model->m_meshs.size(); i++)
+	{
+		Mesh& mesh = model->m_model->m_meshs[i];
+		for (size_t j = 0; j < mesh.primitives.size(); j++)
+		{
+			Primitive& primitive = mesh.primitives[j];
+			if (primitive.reflector != nullptr)
+			{
+				has_reflector = true;
+				break;
+			}
+		}
+		if (has_reflector) break;
+	}
+
+
+	for (size_t i = 0; i < model->m_model->m_meshs.size(); i++)
+	{
+		Mesh& mesh = model->m_model->m_meshs[i];
+		glm::mat4 matrix = model->matrixWorld;
+		if (mesh.node_id >= 0 && mesh.skin_id < 0)
+		{
+			GLTFModelInstance::NodeInfo& info = model->m_node_info[mesh.node_id];
+			matrix *= info.g_trans;
+		}
+		glm::mat4 MV = p_camera->matrixWorldInverse * matrix;
+
+		for (size_t j = 0; j < mesh.primitives.size(); j++)
+		{
+			Primitive& primitive = mesh.primitives[j];
+
+			Reflector* reflector = model->m_model->reflector;
+			if (reflector == nullptr)
+			{
+				reflector = primitive.reflector;
+			}
+			if (p_camera->reflector != nullptr && reflector == p_camera->reflector) continue;
+
+			if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos, p_camera->m_scissor)) continue;
+
+			const MeshStandardMaterial* material = material_lst[primitive.material_idx];
+			if (pass == Pass::Opaque)
+			{
+				if (material->alphaMode == AlphaMode::Blend) continue;
+			}
+			else if (pass == Pass::Alpha || pass == Pass::Highlight)
+			{
+				if (material->alphaMode != AlphaMode::Blend) continue;
+			}
+
+			SimpleRoutine::RenderParams params;
+			params.tex_list = tex_lst.data();
+			params.material_list = material_lst.data();
+			params.camera = p_camera;
+			params.constant_model = model->m_mesh_constants[i].get();
+			params.primitive = &primitive;
+			params.lights = &lights;
+			params.tex_lightmap = nullptr;
+			if (model->m_model->lightmap != nullptr)
+			{
+				params.tex_lightmap = model->m_model->lightmap->lightmap.get();
+			}
+
+			if (fog != nullptr)
+			{
+				params.constant_fog = &fog->m_constant;
+			}
+			else
+			{
+				params.constant_fog = nullptr;
+			}
+			render_primitive_simple(params, pass);
+		}
+	}
+}
 
 DirectionalShadowCast* GLRenderer::get_shadow_caster(const DirectionalShadowCast::Options& options)
 {
@@ -1493,6 +1716,59 @@ void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, GLTFModel* 
 				params.primitive = &primitive;
 				render_shadow_primitive(params);
 			}
+		}
+	}
+}
+
+void GLRenderer::render_shadow_model(DirectionalLightShadow* shadow, GLTFModelInstance* model)
+{
+	glm::mat4 view_matrix = glm::inverse(shadow->m_light->matrixWorld);
+
+	std::vector<const GLTexture2D*> tex_lst(model->m_model->m_textures.size());
+	for (size_t i = 0; i < tex_lst.size(); i++)
+	{
+		auto iter = model->m_model->m_repl_textures.find(i);
+		if (iter != model->m_model->m_repl_textures.end())
+		{
+			tex_lst[i] = iter->second;
+		}
+		else
+		{
+			tex_lst[i] = model->m_model->m_textures[i].get();
+		}
+	}
+
+	std::vector<const MeshStandardMaterial*> material_lst(model->m_model->m_materials.size());
+	for (size_t i = 0; i < material_lst.size(); i++)
+		material_lst[i] = model->m_model->m_materials[i].get();
+
+	
+	for (size_t i = 0; i < model->m_model->m_meshs.size(); i++)
+	{
+		Mesh& mesh = model->m_model->m_meshs[i];
+		glm::mat4 matrix = model->matrixWorld;
+		if (mesh.node_id >= 0 && mesh.skin_id < 0)
+		{
+			GLTFModelInstance::NodeInfo& info = model->m_node_info[mesh.node_id];
+			matrix *= info.g_trans;
+		}
+		glm::mat4 MV = view_matrix * matrix;
+
+		for (size_t j = 0; j < mesh.primitives.size(); j++)
+		{
+			Primitive& primitive = mesh.primitives[j];
+			if (!visible(MV, shadow->m_light_proj_matrix, primitive.min_pos, primitive.max_pos)) continue;
+
+			const MeshStandardMaterial* material = material_lst[primitive.material_idx];
+
+			DirectionalShadowCast::RenderParams params;
+			params.force_cull = shadow->m_force_cull;
+			params.tex_list = tex_lst.data();
+			params.material_list = material_lst.data();
+			params.constant_shadow = &shadow->constant_shadow;
+			params.constant_model = model->m_mesh_constants[i].get();
+			params.primitive = &primitive;
+			render_shadow_primitive(params);
 		}
 	}
 }
@@ -1795,6 +2071,14 @@ void GLRenderer::_pre_render(Scene& scene)
 				}
 			}
 			{
+				GLTFModelInstance* model = dynamic_cast<GLTFModelInstance*>(obj);
+				if (model)
+				{
+					p_scene->gltf_model_instances.push_back(model);
+					break;
+				}
+			}
+			{
 				VolumeIsosurfaceModel* model = dynamic_cast<VolumeIsosurfaceModel*>(obj);
 				if (model)
 				{
@@ -1834,6 +2118,12 @@ void GLRenderer::_pre_render(Scene& scene)
 	for (size_t i = 0; i < scene.gltf_models.size(); i++)
 	{
 		GLTFModel* model = scene.gltf_models[i];
+		update_model(model);
+	}
+
+	for (size_t i = 0; i < scene.gltf_model_instances.size(); i++)
+	{
+		GLTFModelInstance* model = scene.gltf_model_instances[i];
 		update_model(model);
 	}
 
@@ -2012,6 +2302,12 @@ void GLRenderer::_pre_render(Scene& scene)
 				{
 					render_shadow_model(light->shadow.get(), model);
 				}
+			}
+
+			for (size_t j = 0; j < scene.gltf_model_instances.size(); j++)
+			{
+				GLTFModelInstance* model = scene.gltf_model_instances[j];
+				render_shadow_model(light->shadow.get(), model);
 			}
 
 
@@ -2380,6 +2676,44 @@ void GLRenderer::render_depth_model(Camera* p_camera, GLTFModel* model)
 	}
 }
 
+void GLRenderer::render_depth_model(Camera* p_camera, GLTFModelInstance* model)
+{
+	glm::mat4 view_matrix = p_camera->matrixWorldInverse;
+
+	std::vector<const MeshStandardMaterial*> material_lst(model->m_model->m_materials.size());
+	for (size_t i = 0; i < material_lst.size(); i++)
+		material_lst[i] = model->m_model->m_materials[i].get();
+
+	for (size_t i = 0; i < model->m_model->m_meshs.size(); i++)
+	{
+		Mesh& mesh = model->m_model->m_meshs[i];
+		glm::mat4 matrix = model->matrixWorld;
+		if (mesh.node_id >= 0 && mesh.skin_id < 0)
+		{
+			GLTFModelInstance::NodeInfo& info = model->m_node_info[mesh.node_id];
+			matrix *= info.g_trans;
+		}
+		glm::mat4 MV = view_matrix * matrix;
+
+		for (size_t j = 0; j < mesh.primitives.size(); j++)
+		{
+			Primitive& primitive = mesh.primitives[j];
+			if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos, p_camera->m_scissor)) continue;
+
+			const MeshStandardMaterial* material = material_lst[primitive.material_idx];
+			if (material->alphaMode != AlphaMode::Opaque) continue;
+
+			DepthOnly::RenderParams params;
+			params.material_list = material_lst.data();
+			params.camera = p_camera;
+			params.constant_model = model->m_mesh_constants[i].get();
+			params.primitive = &primitive;
+			render_depth_primitive(params);
+		}
+	}
+}
+
+
 void GLRenderer::render_normal_depth_primitive(const NormalAndDepth::RenderParams& params)
 {
 	const MeshStandardMaterial* material = params.material_list[params.primitive->material_idx];
@@ -2503,7 +2837,6 @@ void GLRenderer::render_normal_depth_model(Camera* p_camera, GLTFModel* model)
 	}
 	else
 	{
-
 		for (size_t i = 0; i < model->m_meshs.size(); i++)
 		{
 			Mesh& mesh = model->m_meshs[i];
@@ -2531,6 +2864,58 @@ void GLRenderer::render_normal_depth_model(Camera* p_camera, GLTFModel* model)
 				params.primitive = &primitive;
 				render_normal_depth_primitive(params);
 			}
+		}
+	}
+}
+
+void GLRenderer::render_normal_depth_model(Camera* p_camera, GLTFModelInstance* model)
+{
+	glm::mat4 view_matrix = p_camera->matrixWorldInverse;
+
+	std::vector<const GLTexture2D*> tex_lst(model->m_model->m_textures.size());
+	for (size_t i = 0; i < tex_lst.size(); i++)
+	{
+		auto iter = model->m_model->m_repl_textures.find(i);
+		if (iter != model->m_model->m_repl_textures.end())
+		{
+			tex_lst[i] = iter->second;
+		}
+		else
+		{
+			tex_lst[i] = model->m_model->m_textures[i].get();
+		}
+	}
+
+	std::vector<const MeshStandardMaterial*> material_lst(model->m_model->m_materials.size());
+	for (size_t i = 0; i < material_lst.size(); i++)
+		material_lst[i] = model->m_model->m_materials[i].get();
+
+	for (size_t i = 0; i < model->m_model->m_meshs.size(); i++)
+	{
+		Mesh& mesh = model->m_model->m_meshs[i];
+		glm::mat4 matrix = model->matrixWorld;
+		if (mesh.node_id >= 0 && mesh.skin_id < 0)
+		{
+			GLTFModelInstance::NodeInfo& info = model->m_node_info[mesh.node_id];
+			matrix *= info.g_trans;
+		}
+		glm::mat4 MV = view_matrix * matrix;
+
+		for (size_t j = 0; j < mesh.primitives.size(); j++)
+		{
+			Primitive& primitive = mesh.primitives[j];
+			if (!visible(MV, p_camera->projectionMatrix, primitive.min_pos, primitive.max_pos, p_camera->m_scissor)) continue;
+
+			const MeshStandardMaterial* material = material_lst[primitive.material_idx];
+			if (material->alphaMode != AlphaMode::Opaque) continue;
+
+			NormalAndDepth::RenderParams params;
+			params.tex_list = tex_lst.data();
+			params.material_list = material_lst.data();
+			params.camera = p_camera;
+			params.constant_model = model->m_mesh_constants[i].get();
+			params.primitive = &primitive;
+			render_normal_depth_primitive(params);
 		}
 	}
 }
@@ -2691,6 +3076,7 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 
 	std::vector<SimpleModel*> simple_models = scene.simple_models;
 	std::vector<GLTFModel*> gltf_models = scene.gltf_models;	
+	std::vector<GLTFModelInstance*> gltf_model_instances = scene.gltf_model_instances;
 
 	bool has_alpha = false;
 	bool has_opaque = false;
@@ -2743,6 +3129,32 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 		}
 	}
 
+	for (size_t i = 0; i < gltf_model_instances.size(); i++)
+	{
+		GLTFModelInstance* model = gltf_model_instances[i];
+		if (!visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->m_min_pos, model->m_max_pos, camera.m_scissor))
+		{
+			gltf_model_instances.erase(gltf_model_instances.begin() + i);
+			i--;
+		}
+		else
+		{
+			size_t num_materials = model->m_model->m_materials.size();
+			for (size_t i = 0; i < num_materials; i++)
+			{
+				const MeshStandardMaterial* material = model->m_model->m_materials[i].get();
+				if (material->alphaMode == AlphaMode::Blend)
+				{
+					has_alpha = true;
+				}
+				else
+				{
+					has_opaque = true;
+				}
+			}
+		}
+	}
+
 	if (m_bvh_reflection)
 	{
 		if (reflection_target == nullptr)
@@ -2775,6 +3187,12 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 			for (size_t i = 0; i < gltf_models.size(); i++)
 			{
 				GLTFModel* model = gltf_models[i];
+				render_normal_depth_model(&camera, model);
+			}
+
+			for (size_t i = 0; i < gltf_model_instances.size(); i++)
+			{
+				GLTFModelInstance* model = gltf_model_instances[i];
 				render_normal_depth_model(&camera, model);
 			}
 		}
@@ -2842,9 +3260,49 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 			BackgroundScene* bg = dynamic_cast<BackgroundScene*>(scene.background);
 			PerspectiveCamera* ref_cam =  dynamic_cast<PerspectiveCamera*>(&camera);
 			if (bg != nullptr && bg->scene!=nullptr &&  ref_cam != nullptr)
-			{
+			{	
 				BackgroundScene::Camera cam(bg, ref_cam);
 				_render_scene(*bg->scene, cam, target);
+
+				for (size_t i = 0; i < bg->scene->simple_models.size(); i++)
+				{
+					SimpleModel* model = bg->scene->simple_models[i];
+					if (visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->geometry.min_pos, model->geometry.max_pos, camera.m_scissor))
+					{
+						simple_models.push_back(model);
+						const MeshStandardMaterial* material = &model->material;
+						if (material->alphaMode == AlphaMode::Blend)
+						{
+							has_alpha = true;
+						}
+						else
+						{
+							has_opaque = true;
+						}
+					}
+				}
+
+				for (size_t i = 0; i < bg->scene->gltf_models.size(); i++)
+				{
+					GLTFModel* model = bg->scene->gltf_models[i];
+					if (visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->m_min_pos, model->m_max_pos, camera.m_scissor))
+					{
+						gltf_models.push_back(model);
+						size_t num_materials = model->m_materials.size();
+						for (size_t i = 0; i < num_materials; i++)
+						{
+							const MeshStandardMaterial* material = model->m_materials[i].get();
+							if (material->alphaMode == AlphaMode::Blend)
+							{
+								has_alpha = true;
+							}
+							else
+							{
+								has_opaque = true;
+							}
+						}
+					}
+				}
 			}
 			
 		}
@@ -2880,6 +3338,12 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 			GLTFModel* model = gltf_models[i];
 			render_depth_model(&camera, model);
 		}
+
+		for (size_t i = 0; i < gltf_model_instances.size(); i++)
+		{
+			GLTFModelInstance* model = gltf_model_instances[i];
+			render_depth_model(&camera, model);
+		}
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 	}	
 
@@ -2901,6 +3365,12 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 		for (size_t i = 0; i < gltf_models.size(); i++)
 		{
 			GLTFModel* model = gltf_models[i];
+			render_model(&camera, lights, fog, model, target, Pass::Opaque);
+		}
+
+		for (size_t i = 0; i < gltf_model_instances.size(); i++)
+		{
+			GLTFModelInstance* model = gltf_model_instances[i];
 			render_model(&camera, lights, fog, model, target, Pass::Opaque);
 		}
 
@@ -2985,6 +3455,12 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 			render_model(&camera, lights, fog, model, target, Pass::Highlight);
 		}
 
+		for (size_t i = 0; i < gltf_model_instances.size(); i++)
+		{
+			GLTFModelInstance* model = gltf_model_instances[i];
+			render_model(&camera, lights, fog, model, target, Pass::Highlight);
+		}
+
 		target.update_oit_buffers();
 		if (!target.msaa())
 		{
@@ -3012,6 +3488,12 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 		for (size_t i = 0; i < gltf_models.size(); i++)
 		{
 			GLTFModel* model = gltf_models[i];
+			render_model(&camera, lights, fog, model, target, Pass::Alpha);
+		}
+
+		for (size_t i = 0; i < gltf_model_instances.size(); i++)
+		{
+			GLTFModelInstance* model = gltf_model_instances[i];
 			render_model(&camera, lights, fog, model, target, Pass::Alpha);
 		}
 
@@ -3080,6 +3562,7 @@ void GLRenderer::_render_scene_simple(Scene& scene, Camera& camera, GLRenderTarg
 
 	std::vector<SimpleModel*> simple_models = scene.simple_models;
 	std::vector<GLTFModel*> gltf_models = scene.gltf_models;
+	std::vector<GLTFModelInstance*> gltf_model_instances = scene.gltf_model_instances;
 
 	bool has_alpha = false;
 	bool has_opaque = false;
@@ -3120,6 +3603,32 @@ void GLRenderer::_render_scene_simple(Scene& scene, Camera& camera, GLRenderTarg
 			for (size_t i = 0; i < num_materials; i++)
 			{
 				const MeshStandardMaterial* material = model->m_materials[i].get();
+				if (material->alphaMode == AlphaMode::Blend)
+				{
+					has_alpha = true;
+				}
+				else
+				{
+					has_opaque = true;
+				}
+			}
+		}
+	}
+
+	for (size_t i = 0; i < gltf_model_instances.size(); i++)
+	{
+		GLTFModelInstance* model = gltf_model_instances[i];
+		if (!visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->m_min_pos, model->m_max_pos, camera.m_scissor))
+		{
+			gltf_model_instances.erase(gltf_model_instances.begin() + i);
+			i--;
+		}
+		else
+		{
+			size_t num_materials = model->m_model->m_materials.size();
+			for (size_t i = 0; i < num_materials; i++)
+			{
+				const MeshStandardMaterial* material = model->m_model->m_materials[i].get();
 				if (material->alphaMode == AlphaMode::Blend)
 				{
 					has_alpha = true;
@@ -3189,6 +3698,46 @@ void GLRenderer::_render_scene_simple(Scene& scene, Camera& camera, GLRenderTarg
 			{
 				BackgroundScene::Camera cam(bg, ref_cam);
 				_render_scene_simple(*bg->scene, cam, target);
+
+				for (size_t i = 0; i < bg->scene->simple_models.size(); i++)
+				{
+					SimpleModel* model = bg->scene->simple_models[i];
+					if (visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->geometry.min_pos, model->geometry.max_pos, camera.m_scissor))
+					{
+						simple_models.push_back(model);
+						const MeshStandardMaterial* material = &model->material;
+						if (material->alphaMode == AlphaMode::Blend)
+						{
+							has_alpha = true;
+						}
+						else
+						{
+							has_opaque = true;
+						}
+					}
+				}
+
+				for (size_t i = 0; i < bg->scene->gltf_models.size(); i++)
+				{
+					GLTFModel* model = bg->scene->gltf_models[i];
+					if (visible(camera.matrixWorldInverse * model->matrixWorld, camera.projectionMatrix, model->m_min_pos, model->m_max_pos, camera.m_scissor))
+					{
+						gltf_models.push_back(model);
+						size_t num_materials = model->m_materials.size();
+						for (size_t i = 0; i < num_materials; i++)
+						{
+							const MeshStandardMaterial* material = model->m_materials[i].get();
+							if (material->alphaMode == AlphaMode::Blend)
+							{
+								has_alpha = true;
+							}
+							else
+							{
+								has_opaque = true;
+							}
+						}
+					}
+				}
 			}
 
 		}
@@ -3223,6 +3772,13 @@ void GLRenderer::_render_scene_simple(Scene& scene, Camera& camera, GLRenderTarg
 			GLTFModel* model = gltf_models[i];
 			render_depth_model(&camera, model);
 		}
+
+		for (size_t i = 0; i < gltf_model_instances.size(); i++)
+		{
+			GLTFModelInstance* model = gltf_model_instances[i];
+			render_depth_model(&camera, model);
+		}
+
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
 	}	
@@ -3241,6 +3797,12 @@ void GLRenderer::_render_scene_simple(Scene& scene, Camera& camera, GLRenderTarg
 			GLTFModel* model = gltf_models[i];
 			render_model_simple(&camera, lights, fog, model, Pass::Opaque);
 		}		
+
+		for (size_t i = 0; i < gltf_model_instances.size(); i++)
+		{
+			GLTFModelInstance* model = gltf_model_instances[i];
+			render_model_simple(&camera, lights, fog, model, Pass::Opaque);
+		}
 	}
 
 	glDepthMask(GL_FALSE);
@@ -3259,6 +3821,12 @@ void GLRenderer::_render_scene_simple(Scene& scene, Camera& camera, GLRenderTarg
 		for (size_t i = 0; i < gltf_models.size(); i++)
 		{
 			GLTFModel* model = gltf_models[i];
+			render_model_simple(&camera, lights, fog, model, Pass::Highlight);
+		}
+
+		for (size_t i = 0; i < gltf_model_instances.size(); i++)
+		{
+			GLTFModelInstance* model = gltf_model_instances[i];
 			render_model_simple(&camera, lights, fog, model, Pass::Highlight);
 		}
 
@@ -3289,6 +3857,12 @@ void GLRenderer::_render_scene_simple(Scene& scene, Camera& camera, GLRenderTarg
 		for (size_t i = 0; i < gltf_models.size(); i++)
 		{
 			GLTFModel* model = gltf_models[i];
+			render_model_simple(&camera, lights, fog, model, Pass::Alpha);
+		}
+
+		for (size_t i = 0; i < gltf_model_instances.size(); i++)
+		{
+			GLTFModelInstance* model = gltf_model_instances[i];
 			render_model_simple(&camera, lights, fog, model, Pass::Alpha);
 		}
 
@@ -4154,3 +4728,166 @@ bool GLRenderer::decompressLightmap(Scene& scene, GLTFModel* model)
 	return true;
 }
 #endif
+
+void GLRenderer::create_height(Scene& scene, const glm::vec3& pos_min, const glm::vec3 pos_max, int width, int height, HeightField* hf)
+{
+	if (m_render_height == nullptr)
+	{
+		m_render_height = std::unique_ptr<RenderHeight>(new RenderHeight);
+	}
+
+	scene.clear_lists();
+	auto* p_scene = &scene;
+	scene.traverse([p_scene](Object3D* obj) {
+		do
+		{
+			{
+				SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
+				if (model)
+				{
+					p_scene->simple_models.push_back(model);
+					break;
+				}
+			}
+			{
+				GLTFModel* model = dynamic_cast<GLTFModel*>(obj);
+				if (model)
+				{
+					p_scene->gltf_models.push_back(model);
+					break;
+				}
+			}
+		} while (false);
+
+		obj->updateWorldMatrix(false, false);
+		});
+
+	// update models
+	glBindFramebuffer(GL_FRAMEBUFFER, hf->m_fbo);
+	glViewport(0, 0, hf->m_width, hf->m_height);
+
+	glDepthMask(GL_TRUE);
+	glClearDepth(0.0f);
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	for (size_t i = 0; i < scene.simple_models.size(); i++)
+	{
+		SimpleModel* model = scene.simple_models[i];
+		model->updateConstant();
+	}
+
+	for (size_t i = 0; i < scene.gltf_models.size(); i++)
+	{
+		GLTFModel* model = scene.gltf_models[i];
+		model->updateMeshConstants();
+	}
+
+	for (size_t i = 0; i < scene.simple_models.size(); i++)
+	{
+		SimpleModel* model = scene.simple_models[i];
+
+		RenderHeight::RenderParams params;
+		params.constant_height = &hf->m_constant;
+		params.constant_model = &model->m_constant;
+		params.primitive = &model->geometry;
+		m_render_height->render(params);
+	}
+
+	for (size_t i = 0; i < scene.gltf_models.size(); i++)
+	{
+		GLTFModel* model = scene.gltf_models[i];
+		for (size_t i = 0; i < model->m_meshs.size(); i++)
+		{
+			Mesh& mesh = model->m_meshs[i];
+			for (size_t j = 0; j < mesh.primitives.size(); j++)
+			{
+				Primitive& primitive = mesh.primitives[j];
+
+				RenderHeight::RenderParams params;
+				params.constant_height = &hf->m_constant;
+				params.constant_model = mesh.model_constant.get();
+				params.primitive = &primitive;
+				m_render_height->render(params);
+			}
+		}
+	}
+
+	if (scene.background != nullptr)
+	{
+		BackgroundScene* bg = dynamic_cast<BackgroundScene*>(scene.background);
+		if (bg != nullptr && bg->scene != nullptr)
+		{
+			bg->scene->clear_lists();
+			auto* p_scene = bg->scene;
+			bg->scene->traverse([p_scene](Object3D* obj) {
+				do
+				{
+					{
+						SimpleModel* model = dynamic_cast<SimpleModel*>(obj);
+						if (model)
+						{
+							p_scene->simple_models.push_back(model);
+							break;
+						}
+					}
+					{
+						GLTFModel* model = dynamic_cast<GLTFModel*>(obj);
+						if (model)
+						{
+							p_scene->gltf_models.push_back(model);
+							break;
+						}
+					}
+				} while (false);
+
+				obj->updateWorldMatrix(false, false);
+				});
+
+			for (size_t i = 0; i < bg->scene->simple_models.size(); i++)
+			{
+				SimpleModel* model = bg->scene->simple_models[i];
+				model->updateConstant();
+			}
+
+			for (size_t i = 0; i < bg->scene->gltf_models.size(); i++)
+			{
+				GLTFModel* model = bg->scene->gltf_models[i];
+				model->updateMeshConstants();
+			}
+
+
+			for (size_t i = 0; i < bg->scene->simple_models.size(); i++)
+			{
+				SimpleModel* model = bg->scene->simple_models[i];
+
+				RenderHeight::RenderParams params;
+				params.constant_height = &hf->m_constant;
+				params.constant_model = &model->m_constant;
+				params.primitive = &model->geometry;
+				m_render_height->render(params);
+			}
+
+			for (size_t i = 0; i < bg->scene->gltf_models.size(); i++)
+			{
+				GLTFModel* model = bg->scene->gltf_models[i];
+				for (size_t i = 0; i < model->m_meshs.size(); i++)
+				{
+					Mesh& mesh = model->m_meshs[i];
+					for (size_t j = 0; j < mesh.primitives.size(); j++)
+					{
+						Primitive& primitive = mesh.primitives[j];
+
+						RenderHeight::RenderParams params;
+						params.constant_height = &hf->m_constant;
+						params.constant_model = mesh.model_constant.get();
+						params.primitive = &primitive;
+						m_render_height->render(params);
+					}
+				}
+			}
+		}
+	}
+
+	hf->toCPU();
+
+}

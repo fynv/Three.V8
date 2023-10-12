@@ -10,6 +10,7 @@ class EnvironmentMap;
 class Fog;
 class SimpleModel;
 class GLTFModel;
+class GLTFModelInstance;
 class VolumeIsosurfaceModel;
 class DirectionalLight;
 class Reflector;
@@ -24,6 +25,7 @@ public:
 	// pre-render
 	std::vector<SimpleModel*> simple_models;
 	std::vector<GLTFModel*> gltf_models;
+	std::vector<GLTFModelInstance*> gltf_model_instances;
 	std::vector<VolumeIsosurfaceModel*> volume_isosurface_models;
 	std::vector<DirectionalLight*> directional_lights;		
 	std::vector<Reflector*> reflectors;
@@ -32,6 +34,7 @@ public:
 	{
 		simple_models.clear();
 		gltf_models.clear();
+		gltf_model_instances.clear();
 		volume_isosurface_models.clear();
 		directional_lights.clear();
 		reflectors.clear();

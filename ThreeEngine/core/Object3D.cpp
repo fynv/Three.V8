@@ -261,7 +261,13 @@ glm::vec3 Object3D::getWorldPosition()
 glm::quat Object3D::getWorldQuaternion()
 {
 	this->updateWorldMatrix(true, false);
-	return matrixWorld;
+	glm::vec3 scale;
+	glm::quat rot;
+	glm::vec3 trans;
+	glm::vec3 skew;
+	glm::vec4 persp;
+	glm::decompose(this->matrixWorld, scale, rot, trans, skew, persp);
+	return rot;
 }
 
 glm::vec3 Object3D::getWorldScale()

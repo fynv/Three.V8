@@ -184,6 +184,8 @@
     <ClCompile Include="models\AnimationMixer.cpp" />
     <ClCompile Include="models\GeometryCreator.cpp" />
     <ClCompile Include="models\GLTFModel.cpp" />
+    <ClCompile Include="models\GLTFModelInstance.cpp" />
+    <ClCompile Include="models\HeightField.cpp" />
     <ClCompile Include="models\ModelComponents.cpp" />
     <ClCompile Include="models\SimpleModel.cpp" />
     <ClCompile Include="network\HttpClient.cpp" />
@@ -240,6 +242,7 @@
     <ClCompile Include="renderers\routines\RasterizeAtlas.cpp" />
     <ClCompile Include="renderers\routines\ReflectionCopy.cpp" />
     <ClCompile Include="renderers\routines\ReflectionMipmaps.cpp" />
+    <ClCompile Include="renderers\routines\render_height.cpp" />
     <ClCompile Include="renderers\routines\SceneToVolume.cpp" />
     <ClCompile Include="renderers\routines\SimpleFogRayMarching.cpp" />
     <ClCompile Include="renderers\routines\SimpleFogRayMarchingEnv.cpp" />
@@ -334,6 +337,8 @@
     <ClInclude Include="models\AnimationMixer.h" />
     <ClInclude Include="models\GeometryCreator.h" />
     <ClInclude Include="models\GLTFModel.h" />
+    <ClInclude Include="models\GLTFModelInstance.h" />
+    <ClInclude Include="models\HeightField.h" />
     <ClInclude Include="models\ModelComponents.h" />
     <ClInclude Include="models\SimpleModel.h" />
     <ClInclude Include="network\HttpClient.h" />
@@ -387,6 +392,7 @@
     <ClInclude Include="renderers\routines\RasterizeAtlas.h" />
     <ClInclude Include="renderers\routines\ReflectionCopy.h" />
     <ClInclude Include="renderers\routines\ReflectionMipmaps.h" />
+    <ClInclude Include="renderers\routines\render_height.h" />
     <ClInclude Include="renderers\routines\SceneToVolume.h" />
     <ClInclude Include="renderers\routines\SimpleFogRayMarching.h" />
     <ClInclude Include="renderers\routines\SimpleFogRayMarchingEnv.h" />

@@ -528,6 +528,15 @@
     <ClCompile Include="renderers\bvh_routines\CompColorBg.cpp">
       <Filter>Source Files\renderers\bvh_routines</Filter>
     </ClCompile>
+    <ClCompile Include="models\GLTFModelInstance.cpp">
+      <Filter>Source Files\models</Filter>
+    </ClCompile>
+    <ClCompile Include="models\HeightField.cpp">
+      <Filter>Source Files\models</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\routines\render_height.cpp">
+      <Filter>Source Files\renderers\routines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -973,6 +982,15 @@
     </ClInclude>
     <ClInclude Include="renderers\bvh_routines\CompColorBg.h">
       <Filter>Header Files\renderers\bvh_routines</Filter>
+    </ClInclude>
+    <ClInclude Include="models\GLTFModelInstance.h">
+      <Filter>Header Files\models</Filter>
+    </ClInclude>
+    <ClInclude Include="models\HeightField.h">
+      <Filter>Header Files\models</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\routines\render_height.h">
+      <Filter>Header Files\renderers\routines</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
