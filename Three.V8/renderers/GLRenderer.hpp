@@ -34,6 +34,8 @@ private:
 	static void SetUseSSAO(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info);
 	
 	static void RenderTexture(const v8::FunctionCallbackInfo<v8::Value>& info);
+
+	static void CreateHeight(const v8::FunctionCallbackInfo<v8::Value>& info);
 };
 
 v8::Local<v8::FunctionTemplate> WrapperGLRenderer::create_template(v8::Isolate* isolate, v8::FunctionCallback constructor)
@@ -54,6 +56,8 @@ v8::Local<v8::FunctionTemplate> WrapperGLRenderer::create_template(v8::Isolate* 
 	templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, "useSSAO").ToLocalChecked(), GetUseSSAO, SetUseSSAO);
 	
 	templ->InstanceTemplate()->Set(isolate, "renderTexture", v8::FunctionTemplate::New(isolate, RenderTexture));
+
+	templ->InstanceTemplate()->Set(isolate, "createHeight", v8::FunctionTemplate::New(isolate, CreateHeight));
 
 	return templ;
 }
@@ -381,5 +385,22 @@ void WrapperGLRenderer::RenderTexture(const v8::FunctionCallbackInfo<v8::Value>&
 	}
 	
 	self->renderTexture(tex, x, y, width, height, *target, flipY, alpha);
+}
+
+void WrapperGLRenderer::CreateHeight(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	GLRenderer* self = lctx.self<GLRenderer>();
+
+	Scene* scene = lctx.jobj_to_obj<Scene>(info[0]);
+	v8::Local<v8::Object> global = lctx.context->Global();
+	v8::Local<v8::Function> ctor = lctx.get_property(global, "HeightField").As<v8::Function>();
+	v8::Local<v8::Value> argv[4] = { info[1], info[2], info[3], info[4] };
+	v8::Local<v8::Object> holder = ctor->CallAsConstructor(lctx.context, 4, argv).ToLocalChecked().As<v8::Object>();
+	HeightField* height = lctx.jobj_to_obj<HeightField>(holder);
+
+	self->create_height(*scene, height);
+
+	info.GetReturnValue().Set(holder);
 }
 

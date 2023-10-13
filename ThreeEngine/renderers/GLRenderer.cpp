@@ -4729,7 +4729,7 @@ bool GLRenderer::decompressLightmap(Scene& scene, GLTFModel* model)
 }
 #endif
 
-void GLRenderer::create_height(Scene& scene, const glm::vec3& pos_min, const glm::vec3 pos_max, int width, int height, HeightField* hf)
+void GLRenderer::create_height(Scene& scene, HeightField* hf)
 {
 	if (m_render_height == nullptr)
 	{

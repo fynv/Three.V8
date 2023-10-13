@@ -108,6 +108,8 @@ V8VM::~V8VM()
 #include "volume/VolumeIsosurfaceModel.hpp"
 #include "volume/VolumeDataLoader.hpp"
 
+#include "models/HeightField.hpp"
+
 #include "utils/Text.hpp"
 
 GlobalDefinitions GameContext::s_globals =
@@ -182,6 +184,9 @@ GlobalDefinitions GameContext::s_globals =
 		{ "VolumeIsosurfaceModel", WrapperVolumeIsosurfaceModel::New, WrapperVolumeIsosurfaceModel::create_template},
 
 		{ "WSClient", WrapperWSClient::New, WrapperWSClient::create_template},
+
+		{ "HeightField", WrapperHeightField::New, WrapperHeightField::create_template},
+
 	},
 	{
 		{ "fileLoader", WrapperFileLoader::create_template },

@@ -273,6 +273,9 @@
     <ClInclude Include="cameras\Reflector.hpp">
       <Filter>Header Files\cameras</Filter>
     </ClInclude>
+    <ClInclude Include="models\HeightField.hpp">
+      <Filter>Header Files\models</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="binding.cpp">

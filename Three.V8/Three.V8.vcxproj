@@ -171,6 +171,7 @@
     <ClInclude Include="loaders\ProbeGridLoader.hpp" />
     <ClInclude Include="models\AnimationMixer.hpp" />
     <ClInclude Include="models\GLTFModel.hpp" />
+    <ClInclude Include="models\HeightField.hpp" />
     <ClInclude Include="models\SimpleModel.hpp" />
     <ClInclude Include="multimedia\AVCPlayer.hpp" />
     <ClInclude Include="multimedia\AVCRecorder.hpp" />

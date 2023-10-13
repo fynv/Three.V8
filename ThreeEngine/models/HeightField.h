@@ -27,4 +27,6 @@ public:
 	// bilinear
 	float GetHeight(float x, float z);
 
+	void saveFile(const char* filename);
+
 };

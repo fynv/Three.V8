@@ -100,7 +100,7 @@ public:
 //	bool compressLightmap(Scene& scene, GLTFModel* model);
 //	bool decompressLightmap(Scene& scene, GLTFModel* model);
 
-	void create_height(Scene& scene, const glm::vec3& pos_min, const glm::vec3 pos_max, int width, int height, HeightField* hf);
+	void create_height(Scene& scene, HeightField* hf);
 
 private:
 	std::unique_ptr<WeightedOIT> oit_resolvers[2];

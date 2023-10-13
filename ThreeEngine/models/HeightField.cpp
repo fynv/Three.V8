@@ -73,3 +73,34 @@ float HeightField::GetHeight(float x, float z)
 
 	return h * (m_pos_max.y - m_pos_min.y) + m_pos_min.y;
 }
+
+#include "stb_image_write.h"
+
+void HeightField::saveFile(const char* filename)
+{
+	std::vector<unsigned char> buf(m_width * m_height);
+	for (int i = 0; i < m_width * m_height; i++)
+	{
+		buf[i] = (unsigned char)(m_cpu_depth[i] * 255.0f);
+	}
+
+	std::vector<unsigned char> jpg_buf;
+	stbi_write_jpg_to_func([](void* context, void* data, int size)
+	{
+		std::vector<unsigned char>* buf = (std::vector<unsigned char>*)context;
+		size_t offset = buf->size();
+		buf->resize(offset + size);
+		memcpy(buf->data() + offset, data, size);
+	}, &jpg_buf, m_width, m_height, 1, buf.data(), 80);
+
+	int bin_size = (int)jpg_buf.size();
+
+	FILE* fp = fopen(filename, "wb");
+	fwrite(&m_pos_min, sizeof(glm::vec3), 1, fp);
+	fwrite(&m_pos_max, sizeof(glm::vec3), 1, fp);
+	fwrite(&m_width, sizeof(int), 1, fp);
+	fwrite(&m_height, sizeof(int), 1, fp);
+	fwrite(&bin_size, sizeof(int), 1, fp);
+	fwrite(jpg_buf.data(), 1, bin_size, fp);
+	fclose(fp);
+}
