@@ -29,6 +29,26 @@ inline void get_indices(void* indices, int type_indices, int face_id, unsigned& 
 	}
 }
 
+void BoundingVolumeHierarchy::BLAS::_build_bvh()
+{
+	auto [bboxes, centers] = bvh::compute_bounding_boxes_and_centers(m_triangles.data(), m_triangles.size());
+	m_bounding_box = bvh::compute_bounding_boxes_union(bboxes.get(), m_triangles.size());
+
+	m_bvh = std::unique_ptr<bvh::Bvh<float>>(new bvh::Bvh<float>);
+	bvh::SweepSahBuilder<bvh::Bvh<float>> builder(*m_bvh);
+	builder.build(m_bounding_box, bboxes.get(), centers.get(), m_triangles.size());
+
+	m_intersector[0] = std::unique_ptr<IntersectorType>(new IntersectorType(*m_bvh, m_triangles.data()));
+	m_intersector[0]->culling = 0;
+	m_intersector[1] = std::unique_ptr<IntersectorType>(new IntersectorType(*m_bvh, m_triangles.data()));
+	m_intersector[1]->culling = 1;
+	m_intersector[2] = std::unique_ptr<IntersectorType>(new IntersectorType(*m_bvh, m_triangles.data()));
+	m_intersector[2]->culling = 2;
+	m_traverser = std::unique_ptr<TraversorType>(new TraversorType(*m_bvh));
+	m_collision_traverser = std::unique_ptr<TraversorType2>(new TraversorType2(*m_bvh));
+
+}
+
 BoundingVolumeHierarchy::BLAS::BLAS(const Primitive* primitive, const glm::mat4& model_matrix)
 {
 	if (primitive->index_buf != nullptr)
@@ -76,26 +96,28 @@ BoundingVolumeHierarchy::BLAS::BLAS(const Primitive* primitive, const glm::mat4&
 			));
 		}
 	}
+	_build_bvh();
+}
 
-	auto [bboxes, centers] = bvh::compute_bounding_boxes_and_centers(m_triangles.data(), m_triangles.size());
-	m_bounding_box = bvh::compute_bounding_boxes_union(bboxes.get(), m_triangles.size());
-
-	m_bvh = std::unique_ptr<bvh::Bvh<float>>(new bvh::Bvh<float>);
-	bvh::SweepSahBuilder<bvh::Bvh<float>> builder(*m_bvh);
-	builder.build(m_bounding_box, bboxes.get(), centers.get(), m_triangles.size());
-
-	m_intersector[0] = std::unique_ptr<IntersectorType>(new IntersectorType(*m_bvh, m_triangles.data()));
-	m_intersector[0]->culling = 0;
-	m_intersector[1] = std::unique_ptr<IntersectorType>(new IntersectorType(*m_bvh, m_triangles.data()));
-	m_intersector[1]->culling = 1;
-	m_intersector[2] = std::unique_ptr<IntersectorType>(new IntersectorType(*m_bvh, m_triangles.data()));
-	m_intersector[2]->culling = 2;
-	m_traverser = std::unique_ptr<TraversorType>(new TraversorType(*m_bvh));
+BoundingVolumeHierarchy::BLAS::BLAS(FILE* fp)
+{
+	int count;
+	fread(&count, 4, 1, fp);
+	m_triangles.resize(count);
+	fread(m_triangles.data(), sizeof(PrimitiveType), m_triangles.size(), fp);
+	_build_bvh();
 }
 
 BoundingVolumeHierarchy::BLAS::~BLAS()
 {
 
+}
+
+void BoundingVolumeHierarchy::BLAS::serialize(FILE* fp)
+{
+	int count = (int)m_triangles.size();
+	fwrite(&count, 4, 1, fp);
+	fwrite(m_triangles.data(), sizeof(PrimitiveType), m_triangles.size(), fp);
 }
 
 bvh::Vector3<float> BoundingVolumeHierarchy::BLAS::center() const
@@ -123,6 +145,24 @@ std::optional<BoundingVolumeHierarchy::BLAS::Intersection> BoundingVolumeHierarc
 	}
 	return std::nullopt;		
 }
+
+std::optional<BoundingVolumeHierarchy::BLAS::Intersection> BoundingVolumeHierarchy::BLAS::collide(const bvh::Sphere<float>& sphere) const
+{
+	auto hit = m_collision_traverser->traverse(sphere, *m_intersector[0]);
+	if (hit.has_value())
+	{
+		auto intersection = hit->intersection;
+		Intersection ret;
+		ret.triangle_index = hit->primitive_index;
+		ret.t = intersection.t;
+		ret.u = intersection.u;
+		ret.v = intersection.v;
+		return std::make_optional<Intersection>(ret);
+	}
+	return std::nullopt;
+
+}
+
 
 union Signature
 {
@@ -293,10 +333,11 @@ void BoundingVolumeHierarchy::_build_bvh()
 	m_intersector[2] = std::unique_ptr<IntersectorType>(new IntersectorType(*m_bvh, m_primitives.data()));
 	m_intersector[2]->culling = 2;
 	m_traverser = std::unique_ptr<TraversorType>(new TraversorType(*m_bvh));
+	m_collision_traverser = std::unique_ptr<TraversorType2>(new TraversorType2(*m_bvh));
 }
 
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(const std::vector<Object3D*>& objects) 
-{
+{	
 	std::unordered_set<Object3D*> object_set;
 	std::unordered_set<Object3D*>* p_objects = &object_set;
 
@@ -336,8 +377,36 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(const std::vector<Object3D*>& o
 	_build_bvh();
 }
 
+BoundingVolumeHierarchy::BoundingVolumeHierarchy(FILE* fp)
+{
+	static Object3D s_dummy;
+
+	int count;
+	fread(&count, 4, 1, fp);
+	for (int i = 0; i < count; i++)
+	{
+		m_primitives.emplace_back(BLAS(fp));
+		m_primitive_map.push_back({&s_dummy, i});
+
+		Signature s = { s_dummy.id, i };
+		m_primitive_index_map[s.key] = i;
+	}
+	_build_bvh();
+}
+
 BoundingVolumeHierarchy::~BoundingVolumeHierarchy()
 {
+
+}
+
+void BoundingVolumeHierarchy::serialize(FILE* fp)
+{
+	int count = (int)m_primitives.size();
+	fwrite(&count, 4, 1, fp);
+	for (int i = 0; i < count; i++)
+	{
+		m_primitives[i].serialize(fp);
+	}
 
 }
 
@@ -434,3 +503,47 @@ std::optional<BoundingVolumeHierarchy::Intersection> BoundingVolumeHierarchy::in
 	}	
 	return std::nullopt;	
 }
+
+std::optional<BoundingVolumeHierarchy::Intersection> BoundingVolumeHierarchy::collide(const bvh::Sphere<float>& sphere) const
+{
+	auto hit = m_collision_traverser->traverse(sphere, *m_intersector[0]);
+	if (hit.has_value())
+	{
+		auto intersection = hit->intersection;
+		const PrimitiveInfo& info = m_primitive_map[hit->primitive_index];
+		Intersection ret;
+		ret.object = info.obj;
+		ret.primitive_index = info.primitive_idx;
+		ret.triangle_index = intersection.triangle_index;
+		ret.t = intersection.t;
+		ret.u = intersection.u;
+		ret.v = intersection.v;
+		return std::make_optional<Intersection>(ret);
+	}
+	return std::nullopt;
+
+}
+
+glm::vec3 BoundingVolumeHierarchy::BLAS::get_intersection_pos(const Intersection& intersection) const
+{
+	const PrimitiveType& tri = m_triangles[intersection.triangle_index];
+	auto p = tri.p0 + tri.e1 * intersection.u + tri.e2 * intersection.v;
+	return glm::vec3(p[0], p[1], p[2]);
+}
+
+glm::vec3 BoundingVolumeHierarchy::get_intersection_pos(const Intersection& intersection) const
+{	
+	Signature s = { intersection.object->id, intersection.primitive_index };
+	int idx = m_primitive_index_map.at(s.key);
+
+	const BLAS& blas = m_primitives[idx];
+	BLAS::Intersection b_intersection;
+	b_intersection.triangle_index = intersection.triangle_index;
+	b_intersection.t = intersection.t;
+	b_intersection.u = intersection.u;
+	b_intersection.v = intersection.v;
+	return blas.get_intersection_pos(b_intersection);
+
+}
+
+

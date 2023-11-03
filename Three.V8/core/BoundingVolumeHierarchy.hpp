@@ -17,6 +17,8 @@ private:
 	static void Update(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void Remove(const v8::FunctionCallbackInfo<v8::Value>& info);
 	static void Intersect(const v8::FunctionCallbackInfo<v8::Value>& info);
+	static void Collide(const v8::FunctionCallbackInfo<v8::Value>& info);
+	static void SaveFile(const v8::FunctionCallbackInfo<v8::Value>& info);
 	
 #if ENABLE_TEST
 	static void Test(const v8::FunctionCallbackInfo<v8::Value>& info);
@@ -32,6 +34,8 @@ v8::Local<v8::FunctionTemplate> WrappeBoundingVolumeHierarchy::create_template(v
 	templ->InstanceTemplate()->Set(isolate, "update", v8::FunctionTemplate::New(isolate, Update));
 	templ->InstanceTemplate()->Set(isolate, "remove", v8::FunctionTemplate::New(isolate, Remove));
 	templ->InstanceTemplate()->Set(isolate, "intersect", v8::FunctionTemplate::New(isolate, Intersect));
+	templ->InstanceTemplate()->Set(isolate, "collide", v8::FunctionTemplate::New(isolate, Collide));
+	templ->InstanceTemplate()->Set(isolate, "saveFile", v8::FunctionTemplate::New(isolate, SaveFile));
 
 #if ENABLE_TEST
 	templ->InstanceTemplate()->Set(isolate, "test", v8::FunctionTemplate::New(isolate, Test));
@@ -49,20 +53,33 @@ void WrappeBoundingVolumeHierarchy::dtor(void* ptr, GameContext* ctx)
 void WrappeBoundingVolumeHierarchy::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
 	LocalContext lctx(info);
-	v8::Local<v8::Array> objects = info[0].As<v8::Array>();
-	unsigned num_objects = objects->Length();
 
-	std::vector<Object3D*> p_objs(num_objects);
-
-	for (unsigned i = 0; i < num_objects; i++)
+	if (info[0]->IsArray())
 	{
-		v8::Local<v8::Value> holder = objects->Get(lctx.context, i).ToLocalChecked();
-		p_objs[i] = lctx.jobj_to_obj<Object3D>(holder);
-	}
+		v8::Local<v8::Array> objects = info[0].As<v8::Array>();
+		unsigned num_objects = objects->Length();
 
-	BoundingVolumeHierarchy* self = new BoundingVolumeHierarchy(p_objs);
-	info.This()->SetAlignedPointerInInternalField(0, self);	
-	lctx.ctx()->regiter_object(info.This(), dtor);
+		std::vector<Object3D*> p_objs(num_objects);
+
+		for (unsigned i = 0; i < num_objects; i++)
+		{
+			v8::Local<v8::Value> holder = objects->Get(lctx.context, i).ToLocalChecked();
+			p_objs[i] = lctx.jobj_to_obj<Object3D>(holder);
+		}
+
+		BoundingVolumeHierarchy* self = new BoundingVolumeHierarchy(p_objs);
+		info.This()->SetAlignedPointerInInternalField(0, self);
+		lctx.ctx()->regiter_object(info.This(), dtor);
+	}
+	else if (info[0]->IsString())
+	{
+		std::string fn = lctx.jstr_to_str(info[0]);
+		FILE* fp = fopen(fn.c_str(), "rb");
+		BoundingVolumeHierarchy* self = new BoundingVolumeHierarchy(fp);
+		fclose(fp);
+		info.This()->SetAlignedPointerInInternalField(0, self);
+		lctx.ctx()->regiter_object(info.This(), dtor);
+	}
 }
 
 void WrappeBoundingVolumeHierarchy::Update(const v8::FunctionCallbackInfo<v8::Value>& info)
@@ -187,4 +204,57 @@ void WrappeBoundingVolumeHierarchy::Test(const v8::FunctionCallbackInfo<v8::Valu
 
 }
 #endif 
+
+
+void WrappeBoundingVolumeHierarchy::Collide(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	BoundingVolumeHierarchy* self = lctx.self<BoundingVolumeHierarchy>();
+
+	v8::Local<v8::Object> ray = info[0].As<v8::Object>();
+	v8::Local<v8::Value> jorigin = lctx.get_property(ray, "origin");
+	v8::Local<v8::Value> jradius = lctx.get_property(ray, "radius");
+	glm::vec3 origin;
+	float radius;
+
+	lctx.jvec3_to_vec3(jorigin, origin);
+	lctx.jnum_to_num(jradius, radius);
+	
+	bvh::Sphere<float> sphere = {
+		bvh::Vector3<float>(origin.x, origin.y, origin.z),
+		radius
+	};
+
+	auto intersection = self->collide(sphere);
+
+	if (intersection.has_value())
+	{
+		v8::Local<v8::Object> ret = v8::Object::New(lctx.isolate);
+		v8::Local<v8::String> name = lctx.str_to_jstr(intersection->object->name.c_str());
+		v8::Local<v8::String> uuid = lctx.str_to_jstr(intersection->object->uuid.c_str());
+		lctx.set_property(ret, "name", name);
+		lctx.set_property(ret, "uuid", uuid);
+		lctx.set_property(ret, "distance", lctx.num_to_jnum(intersection->distance()));
+		v8::Local<v8::Object> pos = v8::Object::New(lctx.isolate);
+		lctx.vec3_to_jvec3(self->get_intersection_pos(*intersection), pos);
+		lctx.set_property(ret, "position", pos);
+		info.GetReturnValue().Set(ret);
+	}
+	else
+	{
+		info.GetReturnValue().SetNull();
+	}
+
+}
+
+void WrappeBoundingVolumeHierarchy::SaveFile(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	BoundingVolumeHierarchy* self = lctx.self<BoundingVolumeHierarchy>();
+	std::string fn = lctx.jstr_to_str(info[0]);
+	FILE* fp = fopen(fn.c_str(), "wb");
+	self->serialize(fp);
+	fclose(fp);
+}
+
 

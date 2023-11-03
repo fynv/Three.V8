@@ -12,8 +12,9 @@ public:
 	virtual ~SceneTuner();	
 
 private slots:	
+	void btn_bake_Click();
 	void btn_generate_Click();
-	void btn_bake_Click();	
+	void btn_save_Click();
 
 signals:
 	void generate(QJsonObject tuning);

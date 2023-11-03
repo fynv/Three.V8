@@ -671,7 +671,11 @@ const scene = {
         return doc.scene;
     },
     generate: (doc, obj, input) =>{
-        if (input.type=="heightmap")
+        if (input.type == "lightmap")
+        {
+            generate_lightmap(doc, input);
+        }
+        else if (input.type=="heightmap")
         {
             let bb = obj.getBoundingBox();
             let path = input.path;
@@ -680,9 +684,15 @@ const scene = {
             let heightmap = doc.renderer.createHeight(obj, bb.minPos, bb.maxPos, width, height);
             heightmap.saveFile(path);
         }
-        else if (input.type == "lightmap")
+        else if (input.type=="bvh")
         {
-            generate_lightmap(doc, input);
+            let path = input.path;
+            let lst_obj = [];
+            doc.scene.traverse((obj)=>{
+                lst_obj.push(obj);
+            });
+            let bvh = new BoundingVolumeHierarchy(lst_obj);
+            bvh.saveFile(path);
         }
     }
 }

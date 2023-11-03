@@ -45,7 +45,7 @@ void HeightField::toCPU()
 	/*std::vector<unsigned char> buf(m_width * m_height);
 	for (int i = 0; i < m_width * m_height; i++)
 	{
-		buf[i] = (unsigned char)(m_cpu_depth[i] * 255.0f);
+		buf[i] = (unsigned char)(m_cpu_depth[i] * 255.0f + 0.5f);
 	}
 	FILE* fp = fopen("dmp.raw", "wb");
 	fwrite(buf.data(), 1, m_width * m_height, fp);
@@ -81,7 +81,7 @@ void HeightField::saveFile(const char* filename)
 	std::vector<unsigned char> buf(m_width * m_height);
 	for (int i = 0; i < m_width * m_height; i++)
 	{
-		buf[i] = (unsigned char)(m_cpu_depth[i] * 255.0f);
+		buf[i] = (unsigned char)(m_cpu_depth[i] * 255.0f + 0.5f);
 	}
 
 	std::vector<unsigned char> jpg_buf;
