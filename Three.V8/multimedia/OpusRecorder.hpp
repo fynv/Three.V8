@@ -46,9 +46,9 @@ void WrapperOpusRecorder::dtor(void* ptr, GameContext* ctx)
 		if (data != nullptr)
 		{
 			delete data;
+			self->SetCallback(nullptr, nullptr);
 		}
-	}	
-	ctx->remove_opus_recorder(self);
+	}		
 	delete self;
 }
 
@@ -65,8 +65,7 @@ void WrapperOpusRecorder::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 
 	OpusRecorder* self = new OpusRecorder(id_device);
 	info.This()->SetAlignedPointerInInternalField(0, self);
-	lctx.ctx()->regiter_object(info.This(), dtor);
-	lctx.ctx()->add_opus_recorder(self);
+	lctx.ctx()->regiter_object(info.This(), dtor);	
 }
 
 

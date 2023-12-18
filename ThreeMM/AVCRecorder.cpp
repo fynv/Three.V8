@@ -3,10 +3,9 @@
 
 #include <thread>
 #include <vector>
-#include <queue>
 #include "utils/Image.h"
 #include "utils/Utils.h"
-#include "utils/Semaphore.h"
+#include "utils/AsyncCallbacks.h"
 #include "AVCRecorder.h"
 #include "MMCamera.h"
 
@@ -21,51 +20,6 @@ extern "C"
 #include <libswscale/swscale.h>
 }
 
-template<typename T>
-class ConcurrentQueue
-{
-public:
-	ConcurrentQueue()
-	{
-	}
-
-	~ConcurrentQueue()
-	{
-	}
-
-	size_t Size()
-	{
-		return m_queue.size();
-	}
-
-	T Front()
-	{
-		return m_queue.front();
-	}
-
-	void Push(T packet)
-	{
-		m_mutex.lock();
-		m_queue.push(packet);
-		m_mutex.unlock();
-		m_semaphore_out.notify();
-	}
-
-	T Pop()
-	{
-		m_semaphore_out.wait();
-		m_mutex.lock();
-		T ret = m_queue.front();
-		m_queue.pop();
-		m_mutex.unlock();
-		return ret;
-	}
-
-private:
-	std::queue<T> m_queue;
-	std::mutex m_mutex;
-	Semaphore m_semaphore_out;
-};
 
 static const AVCodecID video_codec_id = AV_CODEC_ID_H264;
 static const AVPixelFormat pix_fmt = AV_PIX_FMT_NV12;
@@ -214,10 +168,14 @@ public:
 
 		m_start_time = time_micro_sec();
 		m_thread_encode = (std::unique_ptr<std::thread>)(new std::thread(thread_encode, this));
+
+		AsyncCallbacks::AddSubQueue(&m_async_queue);
 	}
 
 	~Internal()
 	{
+		AsyncCallbacks::RemoveSubQueue(&m_async_queue);
+
 		m_running = false;
 		m_thread_encode->join();
 
@@ -230,7 +188,10 @@ public:
 		avformat_close_input(&m_p_fmt_ctx);
 	}
 
-	ConcurrentQueue<std::vector<uint8_t>> m_pkt_queue;
+	PacketCallback callback = nullptr;
+	void* callback_data = nullptr;
+
+	
 
 private:
 	int m_width_in, m_height_in;
@@ -249,6 +210,29 @@ private:
 	int64_t m_next_pts = 0;
 
 	struct SwsContext* m_sws_ctx = nullptr;
+
+	class PacketCallable : public Callable
+	{
+	public:
+		Internal* self;
+		std::vector<uint8_t> packet;
+
+		PacketCallable(Internal* self, const std::vector<uint8_t>& packet)
+			: self(self), packet(packet)
+		{
+
+		}
+
+		void call() override
+		{
+			if (self->callback != nullptr)
+			{
+				self->callback(packet.data(), packet.size(), self->callback_data);
+			}
+		}
+	};
+
+	AsyncQueue m_async_queue;
 
 	static void thread_encode(Internal* self)
 	{
@@ -295,7 +279,8 @@ private:
 					std::vector<uint8_t> packet(pkt.size+1);
 					packet[0] = pkt.flags & 1;
 					memcpy(packet.data() + 1, pkt.data, pkt.size);
-					self->m_pkt_queue.Push(packet);
+
+					self->m_async_queue.Add(new PacketCallable(self, packet));
 
 					av_packet_unref(&pkt);
 				}
@@ -329,25 +314,11 @@ AVCRecorder::~AVCRecorder()
 
 void AVCRecorder::SetCallback(PacketCallback callback, void* callback_data)
 {
-	this->callback = callback;
-	this->callback_data = callback_data;
+	m_internal->callback = callback;
+	m_internal->callback_data = callback_data;
 }
 
 void* AVCRecorder::GetCallbackData()
 {
-	return callback_data;
+	return  m_internal->callback_data;
 }
-
-void AVCRecorder::CheckPending()
-{
-	while (m_internal->m_pkt_queue.Size() > 0)
-	{
-		std::vector<uint8_t> pkt = m_internal->m_pkt_queue.Pop();
-		if (callback != nullptr)
-		{
-			callback(pkt.data(), pkt.size(), callback_data);
-		}
-	}
-}
-
-

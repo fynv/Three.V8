@@ -2,6 +2,7 @@
 #include <string>
 #include <filesystem>
 #include <gui/UIManager.h>
+#include <utils/AsyncCallbacks.h>
 #include "GamePlayer.h"
 
 #define ENABLE_MSAA 1
@@ -57,7 +58,7 @@ void GamePlayer::LoadScript(const char* dir, const char* filename)
 void GamePlayer::UnloadScript()
 {
 	if (m_context != nullptr)
-	{
+	{		
 		v8::Isolate* isolate = m_v8vm.m_isolate;
 		v8::HandleScope handle_scope(isolate);
 		v8::Context::Scope context_scope(m_context->m_context.Get(isolate));
@@ -72,11 +73,8 @@ void GamePlayer::UnloadScript()
 
 void GamePlayer::Idle()
 {
-	if (m_context != nullptr)
-	{
-		m_context->CheckPendings();		
-		v8::platform::PumpMessageLoop(m_v8vm.m_platform.get(), m_v8vm.m_isolate);		
-	}
+	AsyncCallbacks::CheckPendings();
+	v8::platform::PumpMessageLoop(m_v8vm.m_platform.get(), m_v8vm.m_isolate);
 }
 
 void GamePlayer::Draw(int width, int height)

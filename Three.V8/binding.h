@@ -50,9 +50,6 @@ struct GlobalDefinitions
 
 class GamePlayer;
 class HttpClient;
-class WSClient;
-class OpusRecorder;
-class AVCRecorder;
 class UIManager;
 class GameContext
 {
@@ -76,26 +73,12 @@ public:
 	void regiter_object(v8::Local<v8::Object> obj, Dtor dtor);
 	void remove_object(void* ptr);
 
-	void add_ws_client(WSClient* client);
-	void remove_ws_client(WSClient* client);
-
-	void add_opus_recorder(OpusRecorder* rec);
-	void remove_opus_recorder(OpusRecorder* rec);
-
-	void add_avc_recorder(AVCRecorder* rec);
-	void remove_avc_recorder(AVCRecorder* rec);
-
-	void CheckPendings();
-
 	typedef void (*PrintCallback)(void* ptr, const char* str);
 	void SetPrintCallbacks(void* ptr,  PrintCallback print_callback, PrintCallback error_callback);
 
 private:
 	GamePlayer* m_gamePlayer;
-	std::unique_ptr<HttpClient> m_http;
-	std::unordered_set<WSClient*> m_ws_clients;
-	std::unordered_set<OpusRecorder*> m_opus_recorders;
-	std::unordered_set<AVCRecorder*> m_avc_recorders;
+	std::unique_ptr<HttpClient> m_http;	
 	std::unique_ptr<UIManager> m_ui_manager;
 	static GlobalDefinitions s_globals;
 	void _create_context();

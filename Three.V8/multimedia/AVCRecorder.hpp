@@ -46,9 +46,9 @@ void WrapperAVCRecorder::dtor(void* ptr, GameContext* ctx)
 		if (data != nullptr)
 		{
 			delete data;
+			self->SetCallback(nullptr, nullptr);
 		}
 	}
-	ctx->remove_avc_recorder(self);
 	delete self;
 }
 
@@ -66,7 +66,6 @@ void WrapperAVCRecorder::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 	AVCRecorder* self = new AVCRecorder(id_device);
 	info.This()->SetAlignedPointerInInternalField(0, self);
 	lctx.ctx()->regiter_object(info.This(), dtor);
-	lctx.ctx()->add_avc_recorder(self);
 }
 
 

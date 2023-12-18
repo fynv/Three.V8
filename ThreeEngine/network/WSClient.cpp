@@ -1,4 +1,3 @@
-#include <queue>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/ssl.hpp>
@@ -27,54 +26,75 @@ using namespace boost::urls;
 
 #include "root_certificates.hpp"
 
-#include "utils/Semaphore.h"
+#include "utils/ConcurrentQueue.h"
+#include "utils/AsyncCallbacks.h"
 
-template<typename T>
-class ConcurrentQueue
+class WSClient::Impl
 {
 public:
-	ConcurrentQueue() 
+	Impl()
 	{
+		AsyncCallbacks::AddSubQueue(&async_queue);
 	}
 
-	~ConcurrentQueue()
+	virtual ~Impl()
 	{
+		AsyncCallbacks::RemoveSubQueue(&async_queue);
 	}
 
-	size_t Size()
-	{
-		return m_queue.size();
-	}
+	virtual void Send(const void* data, size_t size, bool is_binary) = 0;
 
-	T Front()
-	{
-		return m_queue.front();
-	}
+	OpenCallback open_callback = nullptr;
+	void* open_callback_data = nullptr;
 
-	void Push(T packet)
-	{
-		m_mutex.lock();
-		m_queue.push(packet);
-		m_mutex.unlock();
-		m_semaphore_out.notify();
-	}
+	MessageCallback msg_callback = nullptr;
+	void* msg_callback_data = nullptr;
 
-	T Pop()
+	struct Msg
 	{
-		m_semaphore_out.wait();
-		m_mutex.lock();
-		T ret = m_queue.front();
-		m_queue.pop();
-		m_mutex.unlock();
-		return ret;
-	}
+		std::vector<char> data;
+		bool is_binary;
+	};
 
-private:
-	std::queue<T> m_queue;
-	std::mutex m_mutex;	
-	Semaphore m_semaphore_out;
+	class OpenCallable : public Callable
+	{
+	public:
+		Impl* impl;
+		OpenCallable(Impl* impl) : impl(impl)
+		{
+
+		}
+
+		void call() override
+		{
+			if (impl->open_callback != nullptr)
+			{
+				impl->open_callback(impl->open_callback_data);
+			}
+		}
+	};
+
+	class MessageCallable : public Callable
+	{
+	public:
+		Impl* impl;
+		Msg msg;
+		MessageCallable(Impl* impl, const Msg& msg) : impl(impl), msg(msg)
+		{
+
+
+		}
+		void call() override
+		{
+			if (impl->msg_callback != nullptr)
+			{
+				impl->msg_callback(msg.data.data(), msg.data.size(), msg.is_binary, impl->msg_callback_data);
+			}
+		}
+	};
+
+	AsyncQueue async_queue;
 };
-
 
 class WSClientImpl : public WSClient::Impl
 {
@@ -91,27 +111,7 @@ public:
 	{
 		m_running = false;
 		m_thread->join();
-	}
-
-	void CheckPending() override
-	{
-		if (m_connected)
-		{
-			m_connected = false;
-			if (open_callback != nullptr)
-			{
-				open_callback(open_callback_data);
-			}
-		}
-		while (m_user_read_queue.Size() > 0)
-		{
-			Msg msg = m_user_read_queue.Pop();
-			if (msg_callback != nullptr)
-			{				
-				msg_callback(msg.data.data(), msg.data.size(), msg.is_binary, msg_callback_data);
-			}
-		}		
-	}
+	}	
 
 	void Send(const void* data, size_t size, bool is_binary) override
 	{
@@ -129,19 +129,11 @@ private:
 
 	beast::flat_buffer m_buffer;
 	std::string m_host;
-
-	struct Msg
-	{
-		std::vector<char> data;
-		bool is_binary;
-	};
+	
 	std::queue<Msg> m_write_queue;
-
-	ConcurrentQueue<Msg> m_user_read_queue;
 	ConcurrentQueue<Msg> m_user_write_queue;
 
-	bool m_running = true;
-	bool m_connected = false;
+	bool m_running = true;	
 	std::unique_ptr<std::thread> m_thread;
 
 	static void on_create(WSClientImpl* self, std::string host, std::string port)
@@ -213,7 +205,7 @@ private:
 				std::placeholders::_1,
 				std::placeholders::_2));
 
-		m_connected = true;
+		async_queue.Add(new OpenCallable(this));
 	}
 
 	void on_read(boost::system::error_code ec,
@@ -225,7 +217,8 @@ private:
 		msg.data.resize(m_buffer.data().size());
 		memcpy(msg.data.data(), m_buffer.data().data(), m_buffer.data().size());
 		msg.is_binary = m_ws.got_binary();
-		m_user_read_queue.Push(msg);
+
+		async_queue.Add(new MessageCallable(this, msg));
 
 		m_buffer.clear();
 
@@ -281,26 +274,6 @@ public:
 		m_thread->join();
 	}
 
-	void CheckPending() override
-	{
-		if (m_connected)
-		{
-			m_connected = false;
-			if (open_callback != nullptr)
-			{
-				open_callback(open_callback_data);
-			}
-		}
-		while (m_user_read_queue.Size() > 0)
-		{
-			Msg msg = m_user_read_queue.Pop();
-			if (msg_callback != nullptr)
-			{
-				msg_callback(msg.data.data(), msg.data.size(), msg.is_binary, msg_callback_data);
-			}
-		}
-	}
-
 	void Send(const void* data, size_t size, bool is_binary) override
 	{
 		std::vector<char> msg_data(size);
@@ -321,18 +294,10 @@ private:
 	beast::flat_buffer m_buffer;
 	std::string m_host;
 
-	struct Msg
-	{
-		std::vector<char> data;
-		bool is_binary;
-	};
 	std::queue<Msg> m_write_queue;
-
-	ConcurrentQueue<Msg> m_user_read_queue;
 	ConcurrentQueue<Msg> m_user_write_queue;
 
-	bool m_running = true;
-	bool m_connected = false;
+	bool m_running = true;	
 	std::unique_ptr<std::thread> m_thread;
 
 	static void on_create(WSClientImpl_SSL* self, std::string host, std::string port)
@@ -414,7 +379,7 @@ private:
 				std::placeholders::_1,
 				std::placeholders::_2));
 
-		m_connected = true;
+		async_queue.Add(new OpenCallable(this));
 	}
 
 	void on_read(boost::system::error_code ec,
@@ -426,7 +391,8 @@ private:
 		msg.data.resize(m_buffer.data().size());
 		memcpy(msg.data.data(), m_buffer.data().data(), m_buffer.data().size());
 		msg.is_binary = m_ws.got_binary();
-		m_user_read_queue.Push(msg);
+
+		async_queue.Add(new MessageCallable(this, msg));
 
 		m_buffer.clear();
 
@@ -496,11 +462,6 @@ WSClient::~WSClient()
 {
 
 
-}
-
-void WSClient::CheckPending()
-{
-	m_impl->CheckPending();
 }
 
 void WSClient::Send(const void* data, size_t size, bool is_binary)

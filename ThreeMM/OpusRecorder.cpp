@@ -1,57 +1,9 @@
 #include <thread>
 #include <vector>
-#include <queue>
-#include "utils/Semaphore.h"
 #include "AudioBuffer.h"
 #include "AudioIO.h"
 #include "OpusRecorder.h"
-
-
-template<typename T>
-class ConcurrentQueue
-{
-public:
-	ConcurrentQueue()
-	{
-	}
-
-	~ConcurrentQueue()
-	{
-	}
-
-	size_t Size()
-	{
-		return m_queue.size();
-	}
-
-	T Front()
-	{
-		return m_queue.front();
-	}
-
-	void Push(T packet)
-	{
-		m_mutex.lock();
-		m_queue.push(packet);
-		m_mutex.unlock();
-		m_semaphore_out.notify();
-	}
-
-	T Pop()
-	{
-		m_semaphore_out.wait();
-		m_mutex.lock();
-		T ret = m_queue.front();
-		m_queue.pop();
-		m_mutex.unlock();
-		return ret;
-	}
-
-private:
-	std::queue<T> m_queue;
-	std::mutex m_mutex;
-	Semaphore m_semaphore_out;
-};
+#include "utils/AsyncCallbacks.h"
 
 class AudioRecorder
 {
@@ -147,10 +99,14 @@ public:
 
 		m_audio_recorder = (std::unique_ptr<AudioRecorder>)(new AudioRecorder(id_audio_device));
 		m_thread_record = (std::unique_ptr<std::thread>)(new std::thread(thread_record, this));
+
+		AsyncCallbacks::AddSubQueue(&m_async_queue);
 	}
 
 	~Internal()
 	{
+		AsyncCallbacks::RemoveSubQueue(&m_async_queue);
+
 		m_recording = false;
 		m_thread_record->join();
 		m_thread_record = nullptr;
@@ -164,7 +120,8 @@ public:
 
 	}
 
-	ConcurrentQueue<std::vector<uint8_t>> m_pkt_queue;
+	PacketCallback callback = nullptr;
+	void* callback_data = nullptr;
 
 private:
 	AVCodecContext* m_audio_enc;
@@ -180,6 +137,29 @@ private:
 
 	bool m_recording = true;
 	std::unique_ptr<std::thread> m_thread_record;
+
+	class PacketCallable : public Callable
+	{
+	public:
+		Internal* self;
+		std::vector<uint8_t> packet;
+
+		PacketCallable(Internal* self, const std::vector<uint8_t>& packet)
+			: self(self), packet(packet)
+		{
+
+		}
+
+		void call() override
+		{
+			if (self->callback != nullptr)
+			{
+				self->callback(packet.data(), packet.size(), self->callback_data);
+			}
+		}
+	};
+
+	AsyncQueue m_async_queue;
 
 	void update_audio()
 	{
@@ -229,7 +209,8 @@ private:
 
 			std::vector<uint8_t> packet(pkt.size);
 			memcpy(packet.data(), pkt.data, pkt.size);
-			m_pkt_queue.Push(packet);
+
+			m_async_queue.Add(new PacketCallable(this, packet));
 
 			av_packet_unref(&pkt);
 		}
@@ -268,23 +249,11 @@ OpusRecorder::~OpusRecorder()
 
 void OpusRecorder::SetCallback(PacketCallback callback, void* callback_data)
 {
-	this->callback = callback;
-	this->callback_data = callback_data;
+	m_internal->callback = callback;
+	m_internal->callback_data = callback_data;
 }
 
 void* OpusRecorder::GetCallbackData()
 {
-	return callback_data;
-}
-
-void OpusRecorder::CheckPending()
-{
-	while (m_internal->m_pkt_queue.Size() > 0)
-	{
-		std::vector<uint8_t> pkt = m_internal->m_pkt_queue.Pop();
-		if (callback != nullptr)
-		{
-			callback(pkt.data(), pkt.size(), callback_data);
-		}
-	}
+	return m_internal->callback_data;
 }

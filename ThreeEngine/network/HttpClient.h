@@ -17,7 +17,6 @@ using tcp = net::ip::tcp;           // from <boost/asio/ip/tcp.hpp>
 
 #include <string>
 #include <vector>
-#include <unordered_set>
 #include <unordered_map>
 
 // Get Async
@@ -34,8 +33,6 @@ class HttpClient
 public:
 	HttpClient();
 	~HttpClient();
-	
-	void CheckPendings();
 
 	bool Get(const char* url, std::vector<unsigned char>& data);
 	void GetAsync(const char* url, GetCallback callback, void* userData);
@@ -48,20 +45,10 @@ private:
 	tcp::resolver m_resolver;
 
 	// ssl
-	ssl::context m_ssl_ctx;
+	ssl::context m_ssl_ctx;	
 
 	// Get Async
-	struct PendingGet
-	{
-		std::string url;
-		GetCallback callback;
-		void* userData = nullptr;
-		std::thread* thread = nullptr;
-		bool finished = false;
-		GetResult result;
-
-	};
-	std::unordered_set<PendingGet*> m_pending_gets;
-	static void GetThread(HttpClient* self, PendingGet* get_data);
+	class GetData;
+	static void GetThread(HttpClient* self, GetData* get_data);
 
 };

@@ -53,6 +53,7 @@ void WrapperWSClient::dtor(void* ptr, GameContext* ctx)
 		if (data != nullptr)
 		{
 			delete data;
+			self->SetOpenCallback(nullptr, nullptr);
 		}
 	}
 	{
@@ -60,9 +61,9 @@ void WrapperWSClient::dtor(void* ptr, GameContext* ctx)
 		if (data != nullptr)
 		{
 			delete data;
+			self->SetMessageCallback(nullptr, nullptr);
 		}
-	}
-	ctx->remove_ws_client(self);
+	}	
 	delete self;
 }
 
@@ -74,8 +75,7 @@ void WrapperWSClient::New(const v8::FunctionCallbackInfo<v8::Value>& info)
 
 	WSClient* self = new WSClient(url.c_str());
 	info.This()->SetAlignedPointerInInternalField(0, self);
-	lctx.ctx()->regiter_object(info.This(), dtor);
-	lctx.ctx()->add_ws_client(self);
+	lctx.ctx()->regiter_object(info.This(), dtor);	
 }
 
 void WrapperWSClient::Send(const v8::FunctionCallbackInfo<v8::Value>& info)

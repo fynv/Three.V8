@@ -1,11 +1,29 @@
 #include <boost/url/src.hpp>
 using namespace boost::urls;
 
+#include "utils/AsyncCallbacks.h"
 #include "HttpClient.h"
 #include <iostream>
 #include <thread>
 
 #include "root_certificates.hpp"
+
+class HttpClient::GetData : public Callable
+{
+public:
+	std::string url;
+	GetCallback callback;
+	void* userData = nullptr;
+	std::thread* thread = nullptr;
+	GetResult result;
+
+	void call() override
+	{
+		thread->join();
+		delete thread;
+		callback(result, userData);
+	}
+};
 
 HttpClient::HttpClient()
 	: m_resolver(m_ioc)
@@ -17,48 +35,7 @@ HttpClient::HttpClient()
 
 HttpClient::~HttpClient()
 {
-	// Get
-	{
-		auto iter = m_pending_gets.begin();
-		while (iter != m_pending_gets.end())
-		{
-			PendingGet* get_data = *iter;
-			get_data->thread->join();
-			delete get_data->thread;
-			delete get_data;			
-			iter++;
-		}
-	}
-}
 
-
-void HttpClient::CheckPendings()
-{
-	// Get
-	{
-		std::vector<PendingGet*> remove_lst;
-
-		auto iter = m_pending_gets.begin();
-		while (iter != m_pending_gets.end())
-		{
-			PendingGet* get_data = *iter;
-			if (get_data->finished)
-			{
-				get_data->thread->join();
-				delete get_data->thread;
-				get_data->callback(get_data->result, get_data->userData);
-
-				remove_lst.push_back(get_data);
-			}
-			iter++;
-		}
-
-		for (size_t i = 0; i < remove_lst.size(); i++)
-		{
-			delete remove_lst[i];
-			m_pending_gets.erase(remove_lst[i]);
-		}
-	}
 }
 
 bool HttpClient::Get(const char* url, std::vector<unsigned char>& data)
@@ -170,20 +147,19 @@ bool HttpClient::Get(const char* url, std::vector<unsigned char>& data)
 	return false;
 }
 
-void HttpClient::GetThread(HttpClient* self, PendingGet* get_data)
+void HttpClient::GetThread(HttpClient* self, GetData* get_data)
 {
 	get_data->result.result = self->Get(get_data->url.c_str(), get_data->result.data);
-	get_data->finished = true;	
+	AsyncCallbacks::Add(get_data);
 }
 
 void HttpClient::GetAsync(const char* url, GetCallback callback, void* userData)
 {
-	PendingGet* get_data = new PendingGet;
+	GetData* get_data = new GetData;
 	get_data->url = url;
 	get_data->callback = callback;
 	get_data->userData = userData;
 	get_data->thread = new std::thread(GetThread, this, get_data);
-	m_pending_gets.insert(get_data);
 }
 
 bool HttpClient::GetHeaders(const char* url, std::unordered_map<std::string, std::string>& headers)

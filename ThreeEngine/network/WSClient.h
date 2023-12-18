@@ -11,20 +11,8 @@ public:
 	WSClient(const char* url);
 	~WSClient();
 
-	class Impl
-	{
-	public:
-		virtual void CheckPending() = 0;
-		virtual void Send(const void* data, size_t size, bool is_binary) = 0;
-
-		OpenCallback open_callback = nullptr;
-		void* open_callback_data = nullptr;
-
-		MessageCallback msg_callback = nullptr;
-		void* msg_callback_data = nullptr;
-	};
-
-	void CheckPending();
+	class Impl;
+	
 	void Send(const void* data, size_t size, bool is_binary);
 
 	void SetOpenCallback(OpenCallback open_callback, void* open_callback_data);
