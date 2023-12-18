@@ -97,8 +97,6 @@ public:
 	void serialize(FILE* fp);
 	
 private:
-	bool m_cull_front = false;
-
 	struct PrimitiveInfo
 	{
 		Object3D* obj;		

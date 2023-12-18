@@ -8,6 +8,7 @@
 #include "bvh/vector.hpp"
 #include "bvh/bounding_box.hpp"
 #include "bvh/ray.hpp"
+#include "bvh/sphere.hpp"
 
 namespace bvh {
 
@@ -124,6 +125,113 @@ struct Triangle {
             }
         }
 
+        return std::nullopt;
+    }
+
+    std::optional<Intersection> collide(const Sphere<Scalar>& sphere) const {
+
+        auto p1 = p0 + e1;
+        auto p2 = p0 + e2;
+        auto pos = sphere.origin;
+        Scalar t = FLT_MAX;
+        Scalar u = 0;
+        Scalar v = 0;
+        {
+            auto diff = pos - p0;
+            Scalar d = length(diff);
+            if (d < t)
+            {
+                t = d;
+            }
+        }
+        {
+            auto diff = pos - p1;
+            Scalar d = length(diff);
+            if (d < t)
+            {
+                t = d;
+                u = 1.0;
+            }
+        }
+        {
+            auto diff = pos - p2;
+            Scalar d = length(diff);
+            if (d < t)
+            {
+                t = d;
+                v = 1.0;
+            }
+        }
+        {
+            Scalar k = dot(pos - p0, e1) / dot(e1, e1);
+            if (k >= 0.0 && k < 1.0)
+            {
+                auto diff = pos - (p0 + e1 * k);
+                Scalar d = length(diff);
+                if (d < t)
+                {
+                    t = d;
+                    u = k;
+                }
+            }
+        }
+        {
+            Scalar k = dot(pos - p0, e2) / dot(e2, e2);
+            if (k >= 0.0 && k < 1.0)
+            {
+                auto diff = pos - (p0 + e2 * k);
+                Scalar d = length(diff);
+                if (d < t)
+                {
+                    t = d;
+                    v = k;
+                }
+            }
+        }
+        {
+            auto e = e2 - e1;
+            Scalar k = dot(pos - p1, e) / dot(e, e);
+            if (k >= 0.0 && k < 1.0)
+            {
+                auto diff = pos - (p1 + e * k);
+                Scalar d = length(diff);
+                if (d < t)
+                {
+                    t = d;
+                    u = 1.0 - k;
+                    v = k;
+                }
+            }
+        }
+        {
+            auto diff0 = pos - p0;
+            Scalar a11 = dot(e1, e1);
+            Scalar a22 = dot(e2, e2);
+            Scalar a12 = dot(e1, e2);
+            Scalar b1 = dot(diff0, e1);
+            Scalar b2 = dot(diff0, e2);
+            
+            Scalar delta = a11 * a22 - a12 * a12;
+            Scalar k1 = (b1 * a22 - b2 * a12) / delta;
+            Scalar k2 = (b2 * a11 - b1 * a12) / delta;
+
+            if (k1 >= 0.0 && k2 >= 0.0 && (k1 + k2) <= 1.0)
+            {
+                auto diff = pos - (p0 + k1 * e1 + k2 * e2);
+                Scalar d = length(diff);
+                if (d < t)
+                {
+                    t = d;
+                    u = k1;
+                    v = k2;
+                }
+            }
+        }
+
+        if (t <= sphere.radius)
+        {
+            return std::make_optional(Intersection{ t, u, v });
+        }
         return std::nullopt;
     }
 };

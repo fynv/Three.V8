@@ -4,6 +4,7 @@
 #include <optional>
 
 #include "bvh/ray.hpp"
+#include "bvh/sphere.hpp"
 
 namespace bvh {
 
@@ -50,6 +51,13 @@ struct ClosestPrimitiveIntersector : public PrimitiveIntersector<Bvh, Primitive,
         auto [p, i] = this->primitive_at(index);
         if (auto hit = p.intersect(ray, this->culling))
             return std::make_optional(Result { i, *hit });
+        return std::nullopt;
+    }
+
+    std::optional<Result> collide(size_t index, const Sphere<Scalar>& sphere) const {
+        auto [p, i] = this->primitive_at(index);
+        if (auto hit = p.collide(sphere))
+            return std::make_optional(Result{ i, *hit });
         return std::nullopt;
     }
 };
