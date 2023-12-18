@@ -57,6 +57,7 @@ void GamePlayer::LoadScript(const char* dir, const char* filename)
 
 void GamePlayer::UnloadScript()
 {
+	AsyncCallbacks::CheckPendings();
 	if (m_context != nullptr)
 	{		
 		v8::Isolate* isolate = m_v8vm.m_isolate;
