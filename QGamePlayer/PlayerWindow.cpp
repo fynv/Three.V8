@@ -5,6 +5,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QMouseEvent>
+#include <QWindow>
 #include "PlayerWindow.h"
 
 PlayerWindow::PlayerWindow(const char* path_proj, int idx)
@@ -155,18 +156,22 @@ void PlayerWindow::OnMouseDown(QMouseEvent* event)
 		button = 4;
 	}
 
+	QWindow* win = m_ui.glControl->windowHandle();
+	double ratio = win->devicePixelRatio();
+	QPointF pos = event->position();
+
 	MouseEventArgs args;
 	args.button = button;
 	args.clicks = 1;
 	args.delta = 0;
-	args.x = event->x();
-	args.y = event->y();
+	args.x = pos.x() * ratio;
+	args.y = pos.y() * ratio;
 	m_game_player->OnMouseDown(args.button, args.clicks, args.delta, args.x, args.y);
 
 	if (event->button() == Qt::MouseButton::LeftButton)
 	{
-		x_down = event->x();
-		y_down = event->y();
+		x_down = args.x;
+		y_down = args.y;
 		press_timer.start();
 	}
 }
@@ -198,12 +203,16 @@ void PlayerWindow::OnMouseUp(QMouseEvent* event)
 		button = 4;
 	}
 
+	QWindow* win = m_ui.glControl->windowHandle();
+	double ratio = win->devicePixelRatio();
+	QPointF pos = event->position();
+
 	MouseEventArgs args;
 	args.button = button;
 	args.clicks = 0;
 	args.delta = 0;
-	args.x = event->x();
-	args.y = event->y();
+	args.x = pos.x() * ratio;
+	args.y = pos.y() * ratio;
 	m_game_player->OnMouseUp(args.button, args.clicks, args.delta, args.x, args.y);
 
 	if (press_timer.isActive())
@@ -239,18 +248,22 @@ void PlayerWindow::OnMouseMove(QMouseEvent* event)
 		button = 4;
 	}
 
+	QWindow* win = m_ui.glControl->windowHandle();
+	double ratio = win->devicePixelRatio();
+	QPointF pos = event->position();
+
 	MouseEventArgs args;
 	args.button = button;
 	args.clicks = 0;
 	args.delta = 0;
-	args.x = event->x();
-	args.y = event->y();
+	args.x = pos.x() * ratio;
+	args.y = pos.y() * ratio;
 	m_game_player->OnMouseMove(args.button, args.clicks, args.delta, args.x, args.y);
 
 	if (press_timer.isActive())
 	{
-		int x = event->x();
-		int y = event->y();
+		int x = args.x;
+		int y = args.y;
 
 		int dx = x - x_down;
 		int dy = y - y_down;
@@ -267,12 +280,16 @@ void PlayerWindow::OnWheel(QWheelEvent* event)
 	if (m_game_player == nullptr) return;
 	m_ui.glControl->makeCurrent();
 
+	QWindow* win = m_ui.glControl->windowHandle();
+	double ratio = win->devicePixelRatio();
+	QPointF pos = event->position();
+
 	MouseEventArgs args;
 	args.button = -1;
 	args.clicks = 0;
 	args.delta = event->angleDelta().y();
-	args.x = qRound(event->position().x());
-	args.y = qRound(event->position().y());
+	args.x = pos.x() * ratio;
+	args.y = pos.y() * ratio;
 	m_game_player->OnMouseWheel(args.button, args.clicks, args.delta, args.x, args.y);
 }
 
