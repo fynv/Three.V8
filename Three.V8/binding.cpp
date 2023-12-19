@@ -24,7 +24,7 @@ V8VM::~V8VM()
 	m_isolate->Exit();
 	m_isolate->Dispose();
 	v8::V8::Dispose();
-	v8::V8::ShutdownPlatform();
+	v8::V8::DisposePlatform();
 	delete m_array_buffer_allocator;
 }
 

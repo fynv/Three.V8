@@ -6,6 +6,7 @@
 #include <cameras/PerspectiveCamera.h>
 #include <lights/DirectionalLight.h>
 #include <lights/HemisphereLight.h>
+#include <lights/EnvironmentMap.h>
 #include <backgrounds/Background.h>
 
 #include <models/SimpleModel.h>
@@ -26,8 +27,10 @@ private:
 	Scene m_scene;
 	PerspectiveCamera m_camera;
 	DirectionalLight m_directional_light;
-	HemisphereBackground m_bg;
-	HemisphereLight m_envLight;
+	//HemisphereBackground m_bg;
+	//HemisphereLight m_envLight;
+	CubeBackground m_bg;
+	EnvironmentMap m_envLight;
 
 	SimpleModel m_box;
 	SimpleModel m_sphere;

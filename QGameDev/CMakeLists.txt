@@ -164,7 +164,7 @@ set (INCLUDE_DIR
 ../thirdparty/glew/include
 ../thirdparty/glm/glm
 ../thirdparty/webview2/include
-../packages/v8-v143-x64.10.0.139.9/include
+../packages/v8-v143-x64.11.9.169.4/include
 )
 
 set (LINK_DIR
@@ -174,9 +174,9 @@ set (LINK_DIR
 ../thirdparty/portaudio/lib
 ../thirdparty/webp/lib
 ../thirdparty/webview2/lib
-../packages/zeroc.openssl.v143.1.1.1.2/build/native/lib/x64/Release
+../packages/zeroc.openssl.v143.1.1.1.3/build/native/lib/x64/Release
 ../packages/FFmpeg.Nightly.20200831.1.0/build/native/lib/x64
-../packages/v8-v143-x64.10.0.139.9/lib/Release
+../packages/v8-v143-x64.11.9.169.4/lib/Release
 )
 
 set (LINK_LIBS 
@@ -209,7 +209,9 @@ swscale.lib
 v8.dll.lib
 v8_libbase.dll.lib
 v8_libplatform.dll.lib
-zlib.dll.lib
+third_party_abseil-cpp_absl.dll.lib
+third_party_icu_icui18n.dll.lib
+third_party_zlib.dll.lib
 )
 
 set (DLLS_TO_COPY
@@ -227,7 +229,7 @@ set (DEFINES  ${DEFINES}
 include_directories(${INCLUDE_DIR})
 add_definitions(${DEFINES})
 add_executable (QGameDev ${SOURCES} ${HEADERS})
-set_property(TARGET QGameDev PROPERTY WIN32_EXECUTABLE true)
+set_property(TARGET QGameDev PROPERTY WIN32_EXECUTABLE false)
 
 target_link_directories(QGameDev PUBLIC ${LINK_DIR})
 target_link_libraries(QGameDev ${LINK_LIBS})

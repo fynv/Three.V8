@@ -47,7 +47,7 @@ set (INCLUDE_DIR
 ../thirdparty/glew/include
 ../thirdparty/glm/glm
 ../thirdparty/webview2/include
-../packages/v8-v143-x64.10.0.139.9/include
+../packages/v8-v143-x64.11.9.169.4/include
 )
 
 set (LINK_DIR
@@ -57,9 +57,9 @@ set (LINK_DIR
 ../thirdparty/portaudio/lib
 ../thirdparty/webp/lib
 ../thirdparty/webview2/lib
-../packages/zeroc.openssl.v143.1.1.1.2/build/native/lib/x64/Release
+../packages/zeroc.openssl.v143.1.1.1.3/build/native/lib/x64/Release
 ../packages/FFmpeg.Nightly.20200831.1.0/build/native/lib/x64
-../packages/v8-v143-x64.10.0.139.9/lib/Release
+../packages/v8-v143-x64.11.9.169.4/lib/Release
 )
 
 set (LINK_LIBS 
@@ -92,7 +92,9 @@ swscale.lib
 v8.dll.lib
 v8_libbase.dll.lib
 v8_libplatform.dll.lib
-zlib.dll.lib
+third_party_abseil-cpp_absl.dll.lib
+third_party_icu_icui18n.dll.lib
+third_party_zlib.dll.lib
 )
 
 set (DLLS_TO_COPY
@@ -109,13 +111,14 @@ ${QT_ROOT}/bin/Qt6OpenGLWidgets.dll
 ../packages/FFmpeg.Nightly.20200831.1.0/build/native/bin/x64/postproc-55.dll
 ../packages/FFmpeg.Nightly.20200831.1.0/build/native/bin/x64/swresample-3.dll
 ../packages/FFmpeg.Nightly.20200831.1.0/build/native/bin/x64/swscale-5.dll
-../packages/v8.redist-v143-x64.10.0.139.9/lib/Release/icudtl.dat
-../packages/v8.redist-v143-x64.10.0.139.9/lib/Release/icui18n.dll
-../packages/v8.redist-v143-x64.10.0.139.9/lib/Release/icuuc.dll
-../packages/v8.redist-v143-x64.10.0.139.9/lib/Release/v8.dll
-../packages/v8.redist-v143-x64.10.0.139.9/lib/Release/v8_libbase.dll
-../packages/v8.redist-v143-x64.10.0.139.9/lib/Release/v8_libplatform.dll
-../packages/v8.redist-v143-x64.10.0.139.9/lib/Release/zlib.dll
+../packages/v8.redist-v143-x64.11.9.169.4/lib/Release/icudtl.dat
+../packages/v8.redist-v143-x64.11.9.169.4/lib/Release/icuuc.dll
+../packages/v8.redist-v143-x64.11.9.169.4/lib/Release/v8.dll
+../packages/v8.redist-v143-x64.11.9.169.4/lib/Release/v8_libbase.dll
+../packages/v8.redist-v143-x64.11.9.169.4/lib/Release/v8_libplatform.dll
+../packages/v8.redist-v143-x64.11.9.169.4/lib/Release/third_party_abseil-cpp_absl.dll
+../packages/v8.redist-v143-x64.11.9.169.4/lib/Release/third_party_icu_icui18n.dll
+../packages/v8.redist-v143-x64.11.9.169.4/lib/Release/third_party_zlib.dll
 )
 
 

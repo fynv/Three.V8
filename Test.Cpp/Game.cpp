@@ -1,7 +1,10 @@
 #include <GL/glew.h>
 #include "Game.h"
 #include <models/GeometryCreator.h>
-#include <loaders/GLTFLoader.h>
+#include <loaders/ImageLoader.h>
+#include <lights/EnvironmentMapCreator.h>
+#include <utils/Cube2Octa.h>
+#include <stb_image_write.h>
 
 #define ENABLE_MSAA 1
 
@@ -24,13 +27,53 @@ Game::Game(int width, int height)
 	m_directional_light.setShadowProjection(-10.0f, 10.0f, -10.0f, 10.0f, 0.0f, 50.0f);
 	m_scene.add(&m_directional_light);
 
-	m_bg.skyColor = { 1.0f, 1.0f, 1.0f };
+	/*m_bg.skyColor = {1.0f, 1.0f, 1.0f};
 	m_bg.groundColor = { 0.02843f, 0.07819f, 0.0781f };
 	m_scene.background = &m_bg;
 
 	m_envLight.skyColor = { 1.0f, 1.0f, 1.0f };
 	m_envLight.groundColor = { 0.02843f, 0.07819f, 0.0781f };
+	m_scene.indirectLight = &m_envLight;*/
+
+	CubeImage image;
+	ImageLoader::LoadCubeFromFile(&image,
+		"../game/assets/textures/sky_cube_face0.jpg",
+		"../game/assets/textures/sky_cube_face1.jpg",
+		"../game/assets/textures/sky_cube_face2.jpg",
+		"../game/assets/textures/sky_cube_face3.jpg",
+		"../game/assets/textures/sky_cube_face4.jpg",
+		"../game/assets/textures/sky_cube_face5.jpg");
+
+	m_bg.cubemap.load_memory_rgba(image.images[0].width(), image.images[0].height(),
+		image.images[0].data(), image.images[1].data(), image.images[2].data(), image.images[3].data(), image.images[4].data(), image.images[5].data());
+	m_scene.background = &m_bg;
+
+	EnvironmentMapCreator creator;
+	creator.Create(&image, &m_envLight);
 	m_scene.indirectLight = &m_envLight;
+
+	{
+		int size = 1024;
+		GLTexture2D tex_out;		
+		glBindTexture(GL_TEXTURE_2D, tex_out.tex_id);
+		glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, size, size);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+
+
+		std::vector<uint8_t> rgba(size * size * 4);
+		Cube2Octa convert;
+		convert.convert(&m_bg.cubemap, &tex_out, size, size);
+		glBindTexture(GL_TEXTURE_2D, tex_out.tex_id);
+		glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data());
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		stbi_write_png("octa.png", size, size, 4, rgba.data(), size * 4);
+
+	}
+
 
 	m_box.name = "box";
 	GeometryCreator::CreateBox(&m_box.geometry, 2.0f, 2.0f, 2.0f);
