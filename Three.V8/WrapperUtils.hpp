@@ -35,6 +35,40 @@ public:
 
 	}
 
+	inline v8::Local<v8::Value> get_global(const char* path)
+	{
+		std::string s_path = path;
+		v8::Local<v8::Value> value = context->Global();
+
+		size_t start = 0;
+		size_t end = s_path.find('.', start);
+		if (end == std::string::npos)
+		{
+			end = s_path.length();
+		}
+		while (end>start)
+		{
+			std::string key = s_path.substr(start, end - start);
+			value = get_property(value.As<v8::Object>(), key.c_str());
+			if (end < s_path.length())
+			{
+				start = end + 1;
+				end = s_path.find('.', start);
+				if (end == std::string::npos)
+				{
+					end = s_path.length();
+				}
+			}
+			else
+			{
+				start = end;
+			}
+		}
+
+		return value;
+
+	}
+
 	inline GameContext* ctx()
 	{
 		v8::Local<v8::Object> global = context->Global();
@@ -44,8 +78,8 @@ public:
 
 	inline GamePlayer* player()
 	{
-		GameContext* _ctx = ctx();
-		return _ctx->GetGamePlayer();
+		v8::Local<v8::Value> value = get_global("gamePlayer");
+		return jobj_to_obj<GamePlayer>(value);
 	}
 
 	inline void* get_self()
@@ -67,8 +101,8 @@ public:
 
 	v8::Local<v8::Object> instantiate(const char* cls_name)
 	{
-		v8::Local<v8::Object> global = context->Global();
-		v8::Local<v8::Function> ctor = get_property(global, cls_name).As<v8::Function>();
+		v8::Local<v8::Value> value = get_global(cls_name);		
+		v8::Local<v8::Function> ctor = value.As<v8::Function>();
 		return ctor->CallAsConstructor(context, 0, nullptr).ToLocalChecked().As<v8::Object>();
 	}
 
@@ -658,14 +692,6 @@ public:
 	}
 };
 
-void GeneralDispose(const v8::FunctionCallbackInfo<v8::Value>& info)
-{
-	LocalContext lctx(info);
-	GameContext* ctx = lctx.ctx();
-	void* self = lctx.get_self();
-	ctx->remove_object(self);
-}
-
 inline std::vector<std::string> SplitWithCharacters(const std::string& str, int splitLength) 
 {
 	int NumSubstrings = str.length() / splitLength;
@@ -702,3 +728,4 @@ inline void string_to_color(const char* str, glm::u8vec4& color)
 	color.b = (uint8_t)stoi(colori[3], nullptr, 16);
 
 }
+

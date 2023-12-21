@@ -6,6 +6,7 @@
 #include <renderers/GLPickingTarget.h>
 #include <renderers/GLUIRenderer.h>
 #include "binding.h"
+#include "definitions.hpp"
 
 struct MsgHandler
 {
@@ -18,6 +19,8 @@ class GamePlayer
 public:
 	GamePlayer(const char* exec_path, int width, int height);
 	~GamePlayer();	
+
+	void AddModule(ModuleDefinition&& mod);
 
 	int width() const { return m_render_target.m_width; }
 	int height() const { return m_render_target.m_height; }
@@ -57,8 +60,6 @@ public:
 		return m_pick_target.get();
 	}
 
-	void SetPrintCallbacks(void* ptr, GameContext::PrintCallback print_callback, GameContext::PrintCallback error_callback);
-
 private:
 	static V8VM& s_get_vm(const char* exec_path);
 	V8VM& m_v8vm;
@@ -66,11 +67,8 @@ private:
 	GLRenderTarget m_render_target;
 	std::unique_ptr<GLPickingTarget> m_pick_target;
 	GLUIRenderer m_ui_renderer;
-	
-	void* m_print_callback_data = nullptr;
-	GameContext::PrintCallback m_print_callback = nullptr;
-	GameContext::PrintCallback m_error_callback = nullptr;
 
+	WorldDefinition m_world_definition;
 	std::unique_ptr<GameContext> m_context;
 
 	void* m_user_message_callback_data = nullptr;

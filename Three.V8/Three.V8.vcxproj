@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="..\packages\v8-v143-x64.11.9.169.4\build\native\v8-v143-x64.props" Condition="Exists('..\packages\v8-v143-x64.11.9.169.4\build\native\v8-v143-x64.props')" />
   <Import Project="..\packages\v8.redist-v143-x64.11.9.169.4\build\native\v8.redist-v143-x64.props" Condition="Exists('..\packages\v8.redist-v143-x64.11.9.169.4\build\native\v8.redist-v143-x64.props')" />
   <ItemGroup Label="ProjectConfigurations">
@@ -21,8 +21,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <VCProjectVersion>15.0</VCProjectVersion>
-    <ProjectGuid>{CCBE3960-DAD2-49AF-952F-A8A86D75F190}</ProjectGuid>
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{9123b047-fce7-4474-9826-c6bbbe4fe4c7}</ProjectGuid>
     <RootNamespace>ThreeV8</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
@@ -31,20 +32,20 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
-    <CharacterSet>MultiByte</CharacterSet>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>MultiByte</CharacterSet>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
-    <CharacterSet>MultiByte</CharacterSet>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
@@ -71,16 +72,54 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup />
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions> _CRT_SECURE_NO_WARNINGS; GLEW_STATIC=1; THREE_MM=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>.;../ThreeEngine;../thirdparty/glew/include;../thirdparty/glm/glm;../thirdparty/bvh/include;$(MSBuildThisFileDirectory)..\..\include;../ThreeMM;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
@@ -88,126 +127,163 @@
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
-      <SDLCheck>true</SDLCheck>
-      <ConformanceMode>true</ConformanceMode>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
-      <SDLCheck>true</SDLCheck>
-      <ConformanceMode>true</ConformanceMode>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <ConformanceMode>true</ConformanceMode>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="backgrounds\Background.hpp" />
-    <ClInclude Include="backgrounds\BackgroundScene.hpp" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="backgrounds\WrapperBackground.h" />
+    <ClInclude Include="backgrounds\WrapperBackgroundScene.h" />
     <ClInclude Include="binding.h" />
-    <ClInclude Include="cameras\Camera.hpp" />
-    <ClInclude Include="cameras\PerspectiveCamera.hpp" />
-    <ClInclude Include="cameras\Reflector.hpp" />
-    <ClInclude Include="core\BoundingVolumeHierarchy.hpp" />
-    <ClInclude Include="core\Object3D.hpp" />
+    <ClInclude Include="cameras\WrapperCamera.h" />
+    <ClInclude Include="cameras\WrapperPerspectiveCamera.h" />
+    <ClInclude Include="cameras\WrapperReflector.h" />
+    <ClInclude Include="core\WrapperBoundingVolumeHierarchy.h" />
+    <ClInclude Include="core\WrapperObject3D.h" />
+    <ClInclude Include="DefaultModule.h" />
+    <ClInclude Include="definitions.hpp" />
     <ClInclude Include="GamePlayer.h" />
-    <ClInclude Include="GamePlayer.hpp" />
-    <ClInclude Include="gui\UI3DViewer.hpp" />
-    <ClInclude Include="gui\UIArea.hpp" />
-    <ClInclude Include="gui\UIBlock.hpp" />
-    <ClInclude Include="gui\UIButton.hpp" />
-    <ClInclude Include="gui\UIDraggable.hpp" />
-    <ClInclude Include="gui\UIElement.hpp" />
-    <ClInclude Include="gui\UIImage.hpp" />
-    <ClInclude Include="gui\UILineEdit.hpp" />
-    <ClInclude Include="gui\UIManager.hpp" />
-    <ClInclude Include="gui\UIPanel.hpp" />
-    <ClInclude Include="gui\UIScrollViewer.hpp" />
-    <ClInclude Include="gui\UIText.hpp" />
-    <ClInclude Include="gui\UITextBlock.hpp" />
-    <ClInclude Include="lights\AmbientLight.hpp" />
-    <ClInclude Include="lights\DirectionalLight.hpp" />
-    <ClInclude Include="lights\EnvironmentMap.hpp" />
-    <ClInclude Include="lights\EnvironmentMapCreator.hpp" />
-    <ClInclude Include="lights\HemisphereLight.hpp" />
-    <ClInclude Include="lights\IndirectLight.hpp" />
-    <ClInclude Include="lights\Light.hpp" />
-    <ClInclude Include="lights\LODProbeGrid.hpp" />
-    <ClInclude Include="lights\LODProbeGridWidget.hpp" />
-    <ClInclude Include="lights\ProbeGrid.hpp" />
-    <ClInclude Include="lights\ProbeGridWidget.hpp" />
-    <ClInclude Include="loaders\DDSImageLoader.hpp" />
-    <ClInclude Include="loaders\FileLoader.hpp" />
-    <ClInclude Include="loaders\GLTFLoader.hpp" />
-    <ClInclude Include="loaders\HDRImageLoader.hpp" />
-    <ClInclude Include="loaders\ImageLoader.hpp" />
-    <ClInclude Include="loaders\LODProbeGridLoader.hpp" />
-    <ClInclude Include="loaders\ProbeGridLoader.hpp" />
-    <ClInclude Include="models\AnimationMixer.hpp" />
-    <ClInclude Include="models\GLTFModel.hpp" />
-    <ClInclude Include="models\HeightField.hpp" />
-    <ClInclude Include="models\SimpleModel.hpp" />
-    <ClInclude Include="multimedia\AVCPlayer.hpp" />
-    <ClInclude Include="multimedia\AVCRecorder.hpp" />
-    <ClInclude Include="multimedia\MMCamera.hpp" />
-    <ClInclude Include="multimedia\MMLazyVideo.hpp" />
-    <ClInclude Include="multimedia\MMAudio.hpp" />
-    <ClInclude Include="multimedia\MMVideo.hpp" />
-    <ClInclude Include="multimedia\OpusPlayer.hpp" />
-    <ClInclude Include="multimedia\OpusRecorder.hpp" />
-    <ClInclude Include="network\HttpClient.hpp" />
-    <ClInclude Include="network\WSClient.hpp" />
-    <ClInclude Include="renderers\CubeRenderTarget.hpp" />
-    <ClInclude Include="renderers\GLRenderer.hpp" />
-    <ClInclude Include="renderers\GLRenderTarget.hpp" />
-    <ClInclude Include="savers\FileSaver.hpp" />
-    <ClInclude Include="savers\HDRImageSaver.hpp" />
-    <ClInclude Include="savers\ImageSaver.hpp" />
-    <ClInclude Include="savers\LODProbeGridSaver.hpp" />
-    <ClInclude Include="savers\ProbeGridSaver.hpp" />
-    <ClInclude Include="scenes\Fog.hpp" />
-    <ClInclude Include="scenes\Scene.hpp" />
-    <ClInclude Include="utils\DDSImage.hpp" />
-    <ClInclude Include="utils\HDRImage.hpp" />
-    <ClInclude Include="utils\Image.hpp" />
-    <ClInclude Include="utils\Text.hpp" />
-    <ClInclude Include="volume\VolumeData.hpp" />
-    <ClInclude Include="volume\VolumeDataLoader.hpp" />
-    <ClInclude Include="volume\VolumeIsosurfaceModel.hpp" />
+    <ClInclude Include="gui\WrapperUI3DViewer.h" />
+    <ClInclude Include="gui\WrapperUIArea.h" />
+    <ClInclude Include="gui\WrapperUIBlock.h" />
+    <ClInclude Include="gui\WrapperUIButton.h" />
+    <ClInclude Include="gui\WrapperUIDraggable.h" />
+    <ClInclude Include="gui\WrapperUIElement.h" />
+    <ClInclude Include="gui\WrapperUIImage.h" />
+    <ClInclude Include="gui\WrapperUILineEdit.h" />
+    <ClInclude Include="gui\WrapperUIPanel.h" />
+    <ClInclude Include="gui\WrapperUIScrollViewer.h" />
+    <ClInclude Include="gui\WrapperUIText.h" />
+    <ClInclude Include="gui\WrapperUITextBlock.h" />
+    <ClInclude Include="lights\WrapperAmbientLight.h" />
+    <ClInclude Include="lights\WrapperDirectionalLight.h" />
+    <ClInclude Include="lights\WrapperEnvironmentMap.h" />
+    <ClInclude Include="lights\WrapperEnvironmentMapCreator.h" />
+    <ClInclude Include="lights\WrapperHemisphereLight.h" />
+    <ClInclude Include="lights\WrapperIndirectLight.h" />
+    <ClInclude Include="lights\WrapperLight.h" />
+    <ClInclude Include="lights\WrapperLODProbeGrid.h" />
+    <ClInclude Include="lights\WrapperLODProbeGridWidget.h" />
+    <ClInclude Include="lights\WrapperProbeGrid.h" />
+    <ClInclude Include="lights\WrapperProbeGridWidget.h" />
+    <ClInclude Include="loaders\WrapperDDSImageLoader.h" />
+    <ClInclude Include="loaders\WrapperGLTFLoader.h" />
+    <ClInclude Include="loaders\WrapperHDRImageLoader.h" />
+    <ClInclude Include="loaders\WrapperImageLoader.h" />
+    <ClInclude Include="loaders\WrapperLODProbeGridLoader.h" />
+    <ClInclude Include="loaders\WrapperProbeGridLoader.h" />
+    <ClInclude Include="models\WrapperAnimationMixer.h" />
+    <ClInclude Include="models\WrapperGLTFModel.h" />
+    <ClInclude Include="models\WrapperHeightField.h" />
+    <ClInclude Include="models\WrapperSimpleModel.h" />
+    <ClInclude Include="multimedia\WrapperAVCPlayer.h" />
+    <ClInclude Include="multimedia\WrapperAVCRecorder.h" />
+    <ClInclude Include="multimedia\WrapperMMAudio.h" />
+    <ClInclude Include="multimedia\WrapperMMCamera.h" />
+    <ClInclude Include="multimedia\WrapperMMLazyVideo.h" />
+    <ClInclude Include="multimedia\WrapperMMVideo.h" />
+    <ClInclude Include="multimedia\WrapperOpusPlayer.h" />
+    <ClInclude Include="multimedia\WrapperOpusRecorder.h" />
+    <ClInclude Include="network\WrapperHttpClient.h" />
+    <ClInclude Include="network\WrapperWSClient.h" />
+    <ClInclude Include="renderers\WrapperCubeRenderTarget.h" />
+    <ClInclude Include="renderers\WrapperGLRenderer.h" />
+    <ClInclude Include="renderers\WrapperGLRenderTarget.h" />
+    <ClInclude Include="savers\WrapperFileSaver.h" />
+    <ClInclude Include="savers\WrapperHDRImageSaver.h" />
+    <ClInclude Include="savers\WrapperImageSaver.h" />
+    <ClInclude Include="savers\WrapperLODProbeGridSaver.h" />
+    <ClInclude Include="savers\WrapperProbeGridSaver.h" />
+    <ClInclude Include="scenes\WrapperFog.h" />
+    <ClInclude Include="scenes\WrapperScene.h" />
+    <ClInclude Include="utils\WrapperDDSImage.h" />
+    <ClInclude Include="utils\WrapperHDRImage.h" />
+    <ClInclude Include="utils\WrapperImage.h" />
+    <ClInclude Include="utils\WrapperText.h" />
+    <ClInclude Include="volume\WrapperVolumeData.h" />
+    <ClInclude Include="volume\WrapperVolumeDataLoader.h" />
+    <ClInclude Include="volume\WrapperVolumeIsosurfaceModel.h" />
+    <ClInclude Include="WrapperGamePlayer.h" />
+    <ClInclude Include="gui\WrapperUIManager.h" />
+    <ClInclude Include="loaders\WrapperFileLoader.h" />
     <ClInclude Include="WrapperUtils.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="backgrounds\WrapperBackground.cpp" />
+    <ClCompile Include="backgrounds\WrapperBackgroundScene.cpp" />
     <ClCompile Include="binding.cpp" />
+    <ClCompile Include="cameras\WrapperCamera.cpp" />
+    <ClCompile Include="cameras\WrapperPerspectiveCamera.cpp" />
+    <ClCompile Include="cameras\WrapperReflector.cpp" />
+    <ClCompile Include="core\WrapperBoundingVolumeHierarchy.cpp" />
+    <ClCompile Include="core\WrapperObject3D.cpp" />
+    <ClCompile Include="DefaultModule.cpp" />
+    <ClCompile Include="gui\WrapperUI3DViewer.cpp" />
+    <ClCompile Include="gui\WrapperUIArea.cpp" />
+    <ClCompile Include="gui\WrapperUIBlock.cpp" />
+    <ClCompile Include="gui\WrapperUIButton.cpp" />
+    <ClCompile Include="gui\WrapperUIDraggable.cpp" />
+    <ClCompile Include="gui\WrapperUIElement.cpp" />
+    <ClCompile Include="gui\WrapperUIImage.cpp" />
+    <ClCompile Include="gui\WrapperUILineEdit.cpp" />
+    <ClCompile Include="gui\WrapperUIPanel.cpp" />
+    <ClCompile Include="gui\WrapperUIScrollViewer.cpp" />
+    <ClCompile Include="gui\WrapperUIText.cpp" />
+    <ClCompile Include="gui\WrapperUITextBlock.cpp" />
+    <ClCompile Include="lights\WrapperAmbientLight.cpp" />
+    <ClCompile Include="lights\WrapperDirectionalLight.cpp" />
+    <ClCompile Include="lights\WrapperEnvironmentMap.cpp" />
+    <ClCompile Include="lights\WrapperEnvironmentMapCreator.cpp" />
+    <ClCompile Include="lights\WrapperHemisphereLight.cpp" />
+    <ClCompile Include="lights\WrapperIndirectLight.cpp" />
+    <ClCompile Include="lights\WrapperLight.cpp" />
+    <ClCompile Include="lights\WrapperLODProbeGrid.cpp" />
+    <ClCompile Include="lights\WrapperLODProbeGridWidget.cpp" />
+    <ClCompile Include="lights\WrapperProbeGrid.cpp" />
+    <ClCompile Include="lights\WrapperProbeGridWidget.cpp" />
+    <ClCompile Include="loaders\WrapperDDSImageLoader.cpp" />
+    <ClCompile Include="loaders\WrapperGLTFLoader.cpp" />
+    <ClCompile Include="loaders\WrapperHDRImageLoader.cpp" />
+    <ClCompile Include="loaders\WrapperImageLoader.cpp" />
+    <ClCompile Include="loaders\WrapperLODProbeGridLoader.cpp" />
+    <ClCompile Include="loaders\WrapperProbeGridLoader.cpp" />
+    <ClCompile Include="models\WrapperAnimationMixer.cpp" />
+    <ClCompile Include="models\WrapperGLTFModel.cpp" />
+    <ClCompile Include="models\WrapperHeightField.cpp" />
+    <ClCompile Include="models\WrapperSimpleModel.cpp" />
+    <ClCompile Include="multimedia\WrapperAVCPlayer.cpp" />
+    <ClCompile Include="multimedia\WrapperAVCRecorder.cpp" />
+    <ClCompile Include="multimedia\WrapperMMAudio.cpp" />
+    <ClCompile Include="multimedia\WrapperMMCamera.cpp" />
+    <ClCompile Include="multimedia\WrapperMMLazyVideo.cpp" />
+    <ClCompile Include="multimedia\WrapperMMVideo.cpp" />
+    <ClCompile Include="multimedia\WrapperOpusPlayer.cpp" />
+    <ClCompile Include="multimedia\WrapperOpusRecorder.cpp" />
+    <ClCompile Include="network\WrapperHttpClient.cpp" />
+    <ClCompile Include="network\WrapperWSClient.cpp" />
+    <ClCompile Include="renderers\WrapperCubeRenderTarget.cpp" />
+    <ClCompile Include="renderers\WrapperGLRenderer.cpp" />
+    <ClCompile Include="renderers\WrapperGLRenderTarget.cpp" />
+    <ClCompile Include="savers\WrapperFileSaver.cpp" />
+    <ClCompile Include="savers\WrapperHDRImageSaver.cpp" />
+    <ClCompile Include="savers\WrapperImageSaver.cpp" />
+    <ClCompile Include="savers\WrapperLODProbeGridSaver.cpp" />
+    <ClCompile Include="savers\WrapperProbeGridSaver.cpp" />
+    <ClCompile Include="scenes\WrapperFog.cpp" />
+    <ClCompile Include="scenes\WrapperScene.cpp" />
+    <ClCompile Include="utils\WrapperDDSImage.cpp" />
+    <ClCompile Include="utils\WrapperHDRImage.cpp" />
+    <ClCompile Include="utils\WrapperImage.cpp" />
+    <ClCompile Include="utils\WrapperText.cpp" />
+    <ClCompile Include="volume\WrapperVolumeData.cpp" />
+    <ClCompile Include="volume\WrapperVolumeDataLoader.cpp" />
+    <ClCompile Include="volume\WrapperVolumeIsosurfaceModel.cpp" />
+    <ClCompile Include="WrapperGamePlayer.cpp" />
     <ClCompile Include="GamePlayer.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
+    <ClCompile Include="gui\WrapperUIManager.cpp" />
+    <ClCompile Include="loaders\WrapperFileLoader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ThreeEngine\ThreeEngine.vcxproj">

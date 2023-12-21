@@ -263,6 +263,7 @@
     <ClCompile Include="utils\DDSImage.cpp" />
     <ClCompile Include="utils\HDRImage.cpp" />
     <ClCompile Include="utils\Image.cpp" />
+    <ClCompile Include="utils\Logging.cpp" />
     <ClCompile Include="volume\routines\DrawIsosurface.cpp" />
     <ClCompile Include="volume\routines\InitiGridPartition.cpp" />
     <ClCompile Include="volume\routines\IsosurfaceDirectionalShadow.cpp" />
@@ -415,6 +416,7 @@
     <ClInclude Include="utils\DDSImage.h" />
     <ClInclude Include="utils\HDRImage.h" />
     <ClInclude Include="utils\Image.h" />
+    <ClInclude Include="utils\Logging.h" />
     <ClInclude Include="utils\Semaphore.h" />
     <ClInclude Include="utils\Utils.h" />
     <ClInclude Include="volume\GridPartition.h" />

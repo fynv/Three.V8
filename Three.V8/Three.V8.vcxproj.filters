@@ -3,277 +3,328 @@
   <ItemGroup>
     <Filter Include="Source Files">
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
     <Filter Include="Header Files">
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Header Files\core">
-      <UniqueIdentifier>{3625f829-255c-44ba-a16c-0152ccc68ad6}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\cameras">
-      <UniqueIdentifier>{418473b9-e1fb-4195-94ae-9610caa28d04}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\scenes">
-      <UniqueIdentifier>{e4817e5a-5a0c-4f11-babd-73cf54549be8}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\renderers">
-      <UniqueIdentifier>{0dd48f1c-a387-492a-bf49-84f511765586}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\backgrounds">
-      <UniqueIdentifier>{50a1a037-db8a-4ac9-9a25-38b9466f974a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\models">
-      <UniqueIdentifier>{6d55a7a6-5bed-4718-938e-4b9aa1fbcd9e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\utils">
-      <UniqueIdentifier>{8bd7890d-738f-476c-877c-e9c4d97c956d}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\loaders">
-      <UniqueIdentifier>{1542d9cc-7fea-47e2-baa7-80c096bee73e}</UniqueIdentifier>
+      <UniqueIdentifier>{eda61861-8be6-480f-a881-bd5a23fc500a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\lights">
-      <UniqueIdentifier>{4b909431-bbe2-4b48-abf0-551cd781942c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\network">
-      <UniqueIdentifier>{5e578ec3-e02b-41b1-86db-11e380e1605e}</UniqueIdentifier>
+    <Filter Include="Source Files\loaders">
+      <UniqueIdentifier>{f6390c96-b4e2-489a-b208-100a9d082c01}</UniqueIdentifier>
     </Filter>
     <Filter Include="Header Files\gui">
-      <UniqueIdentifier>{debe0751-5683-49a1-a6b0-bb98c72394c7}</UniqueIdentifier>
+      <UniqueIdentifier>{8d8eb548-17be-448e-9b58-92a123c45be9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\gui">
+      <UniqueIdentifier>{3ca43ba3-ddd7-4344-a1fa-4f05b9020195}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\network">
+      <UniqueIdentifier>{cbda160f-1f10-48c6-b3e0-e2fd529b5284}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\network">
+      <UniqueIdentifier>{8b9f6ba5-9d99-4768-ad2a-3711ebde21ed}</UniqueIdentifier>
     </Filter>
     <Filter Include="Header Files\savers">
-      <UniqueIdentifier>{c9dfb990-4516-487e-8425-013a8fc32b35}</UniqueIdentifier>
+      <UniqueIdentifier>{0651a47e-142e-4f5c-8fda-b375fb006957}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\multimedia">
-      <UniqueIdentifier>{59402ca3-1e45-4b01-a06b-b5d17912aad3}</UniqueIdentifier>
+    <Filter Include="Source Files\savers">
+      <UniqueIdentifier>{e46f6c1b-a5a0-48ed-aaeb-e0e3b01c7923}</UniqueIdentifier>
     </Filter>
     <Filter Include="Header Files\volume">
-      <UniqueIdentifier>{c7800e1b-60e2-411d-97f7-591644d8cccc}</UniqueIdentifier>
+      <UniqueIdentifier>{193c9a4a-adad-4642-b04e-4adfaabaa13a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\volume">
+      <UniqueIdentifier>{3ba6db48-743f-4649-bb18-0137ca7f5c22}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\utils">
+      <UniqueIdentifier>{487cf5ac-7e50-434a-a98b-100c3567e9db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\utils">
+      <UniqueIdentifier>{96ab2e8c-de4d-43bd-bc2a-957f0106a8db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\core">
+      <UniqueIdentifier>{8e8bbda2-b5c6-40fe-9097-1c65bbaef6a7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\core">
+      <UniqueIdentifier>{e5445832-ecb4-4103-bff7-07cf9dcd4e4d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\cameras">
+      <UniqueIdentifier>{be0f53d9-10f9-4ab0-a17d-6176c2623fc3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\cameras">
+      <UniqueIdentifier>{1e51d858-8000-4c9b-ac0b-f9caaf695479}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\backgrounds">
+      <UniqueIdentifier>{4cc77055-5fd2-4fa5-9ffe-211eca3e233e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\backgrounds">
+      <UniqueIdentifier>{60e0f71c-b6fa-40f0-a0a8-8f921fbfbc21}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\scene">
+      <UniqueIdentifier>{f7c4fe8d-9152-42fc-a53c-a847f846146a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\scene">
+      <UniqueIdentifier>{fe9c6fdc-7c73-4148-a733-96715b51e26a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\renderers">
+      <UniqueIdentifier>{6ad63c41-84a2-4852-9811-673451de24b6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\renderers">
+      <UniqueIdentifier>{169dd858-5bd6-4954-a06e-2903020ca8e7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\models">
+      <UniqueIdentifier>{8b1a67d5-a394-48c4-b0dc-0e723ddf0c29}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\models">
+      <UniqueIdentifier>{0bac12e0-dc84-487f-b924-db56701fcf6e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\lights">
+      <UniqueIdentifier>{fe413a53-cc79-4b31-af8b-06916744fcf6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\lights">
+      <UniqueIdentifier>{467ad761-3cac-476e-ba56-f7607d9c36da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\multimedia">
+      <UniqueIdentifier>{d45e3e66-aa34-4ba9-bcb8-3abae7202158}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\multimedia">
+      <UniqueIdentifier>{d4dcc198-0726-4a03-a43f-7ffa11b98c6c}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="binding.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="core\Object3D.hpp">
-      <Filter>Header Files\core</Filter>
-    </ClInclude>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
     <ClInclude Include="WrapperUtils.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="cameras\Camera.hpp">
-      <Filter>Header Files\cameras</Filter>
-    </ClInclude>
-    <ClInclude Include="cameras\PerspectiveCamera.hpp">
-      <Filter>Header Files\cameras</Filter>
-    </ClInclude>
-    <ClInclude Include="backgrounds\Background.hpp">
-      <Filter>Header Files\backgrounds</Filter>
-    </ClInclude>
-    <ClInclude Include="scenes\Scene.hpp">
-      <Filter>Header Files\scenes</Filter>
-    </ClInclude>
-    <ClInclude Include="renderers\GLRenderer.hpp">
-      <Filter>Header Files\renderers</Filter>
-    </ClInclude>
-    <ClInclude Include="models\SimpleModel.hpp">
-      <Filter>Header Files\models</Filter>
-    </ClInclude>
-    <ClInclude Include="utils\Image.hpp">
-      <Filter>Header Files\utils</Filter>
+    <ClInclude Include="binding.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="GamePlayer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="GamePlayer.hpp">
+    <ClInclude Include="definitions.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="loaders\ImageLoader.hpp">
+    <ClInclude Include="DefaultModule.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="loaders\WrapperFileLoader.h">
       <Filter>Header Files\loaders</Filter>
     </ClInclude>
-    <ClInclude Include="loaders\GLTFLoader.hpp">
+    <ClInclude Include="WrapperGamePlayer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gui\WrapperUIManager.h">
+      <Filter>Header Files\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="loaders\WrapperImageLoader.h">
       <Filter>Header Files\loaders</Filter>
     </ClInclude>
-    <ClInclude Include="models\GLTFModel.hpp">
-      <Filter>Header Files\models</Filter>
-    </ClInclude>
-    <ClInclude Include="loaders\FileLoader.hpp">
+    <ClInclude Include="loaders\WrapperHDRImageLoader.h">
       <Filter>Header Files\loaders</Filter>
     </ClInclude>
-    <ClInclude Include="lights\DirectionalLight.hpp">
-      <Filter>Header Files\lights</Filter>
+    <ClInclude Include="loaders\WrapperDDSImageLoader.h">
+      <Filter>Header Files\loaders</Filter>
     </ClInclude>
-    <ClInclude Include="lights\Light.hpp">
-      <Filter>Header Files\lights</Filter>
+    <ClInclude Include="loaders\WrapperGLTFLoader.h">
+      <Filter>Header Files\loaders</Filter>
     </ClInclude>
-    <ClInclude Include="lights\EnvironmentMap.hpp">
-      <Filter>Header Files\lights</Filter>
+    <ClInclude Include="loaders\WrapperProbeGridLoader.h">
+      <Filter>Header Files\loaders</Filter>
     </ClInclude>
-    <ClInclude Include="lights\EnvironmentMapCreator.hpp">
-      <Filter>Header Files\lights</Filter>
+    <ClInclude Include="network\WrapperHttpClient.h">
+      <Filter>Header Files\network</Filter>
     </ClInclude>
-    <ClInclude Include="lights\AmbientLight.hpp">
-      <Filter>Header Files\lights</Filter>
+    <ClInclude Include="loaders\WrapperLODProbeGridLoader.h">
+      <Filter>Header Files\loaders</Filter>
     </ClInclude>
-    <ClInclude Include="lights\HemisphereLight.hpp">
-      <Filter>Header Files\lights</Filter>
+    <ClInclude Include="savers\WrapperFileSaver.h">
+      <Filter>Header Files\savers</Filter>
     </ClInclude>
-    <ClInclude Include="core\BoundingVolumeHierarchy.hpp">
+    <ClInclude Include="savers\WrapperImageSaver.h">
+      <Filter>Header Files\savers</Filter>
+    </ClInclude>
+    <ClInclude Include="savers\WrapperHDRImageSaver.h">
+      <Filter>Header Files\savers</Filter>
+    </ClInclude>
+    <ClInclude Include="savers\WrapperProbeGridSaver.h">
+      <Filter>Header Files\savers</Filter>
+    </ClInclude>
+    <ClInclude Include="savers\WrapperLODProbeGridSaver.h">
+      <Filter>Header Files\savers</Filter>
+    </ClInclude>
+    <ClInclude Include="volume\WrapperVolumeDataLoader.h">
+      <Filter>Header Files\volume</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\WrapperText.h">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="core\WrapperObject3D.h">
       <Filter>Header Files\core</Filter>
     </ClInclude>
-    <ClInclude Include="lights\IndirectLight.hpp">
-      <Filter>Header Files\lights</Filter>
-    </ClInclude>
-    <ClInclude Include="network\HttpClient.hpp">
-      <Filter>Header Files\network</Filter>
-    </ClInclude>
-    <ClInclude Include="gui\UIArea.hpp">
-      <Filter>Header Files\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="gui\UIManager.hpp">
-      <Filter>Header Files\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="gui\UIElement.hpp">
-      <Filter>Header Files\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="gui\UIBlock.hpp">
-      <Filter>Header Files\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="gui\UIPanel.hpp">
-      <Filter>Header Files\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="gui\UIButton.hpp">
-      <Filter>Header Files\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="gui\UIText.hpp">
-      <Filter>Header Files\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="gui\UIImage.hpp">
-      <Filter>Header Files\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="gui\UIScrollViewer.hpp">
-      <Filter>Header Files\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="gui\UI3DViewer.hpp">
-      <Filter>Header Files\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="gui\UILineEdit.hpp">
-      <Filter>Header Files\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="gui\UITextBlock.hpp">
-      <Filter>Header Files\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="savers\ImageSaver.hpp">
-      <Filter>Header Files\savers</Filter>
-    </ClInclude>
-    <ClInclude Include="renderers\CubeRenderTarget.hpp">
-      <Filter>Header Files\renderers</Filter>
-    </ClInclude>
-    <ClInclude Include="renderers\GLRenderTarget.hpp">
-      <Filter>Header Files\renderers</Filter>
-    </ClInclude>
-    <ClInclude Include="scenes\Fog.hpp">
-      <Filter>Header Files\scenes</Filter>
-    </ClInclude>
-    <ClInclude Include="multimedia\MMCamera.hpp">
-      <Filter>Header Files\multimedia</Filter>
-    </ClInclude>
-    <ClInclude Include="multimedia\MMLazyVideo.hpp">
-      <Filter>Header Files\multimedia</Filter>
-    </ClInclude>
-    <ClInclude Include="multimedia\MMAudio.hpp">
-      <Filter>Header Files\multimedia</Filter>
-    </ClInclude>
-    <ClInclude Include="multimedia\MMVideo.hpp">
-      <Filter>Header Files\multimedia</Filter>
-    </ClInclude>
-    <ClInclude Include="gui\UIDraggable.hpp">
-      <Filter>Header Files\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="volume\VolumeData.hpp">
-      <Filter>Header Files\volume</Filter>
-    </ClInclude>
-    <ClInclude Include="volume\VolumeDataLoader.hpp">
-      <Filter>Header Files\volume</Filter>
-    </ClInclude>
-    <ClInclude Include="volume\VolumeIsosurfaceModel.hpp">
-      <Filter>Header Files\volume</Filter>
-    </ClInclude>
-    <ClInclude Include="network\WSClient.hpp">
-      <Filter>Header Files\network</Filter>
-    </ClInclude>
-    <ClInclude Include="utils\Text.hpp">
-      <Filter>Header Files\utils</Filter>
-    </ClInclude>
-    <ClInclude Include="models\AnimationMixer.hpp">
-      <Filter>Header Files\models</Filter>
-    </ClInclude>
-    <ClInclude Include="multimedia\OpusRecorder.hpp">
-      <Filter>Header Files\multimedia</Filter>
-    </ClInclude>
-    <ClInclude Include="multimedia\OpusPlayer.hpp">
-      <Filter>Header Files\multimedia</Filter>
-    </ClInclude>
-    <ClInclude Include="multimedia\AVCRecorder.hpp">
-      <Filter>Header Files\multimedia</Filter>
-    </ClInclude>
-    <ClInclude Include="multimedia\AVCPlayer.hpp">
-      <Filter>Header Files\multimedia</Filter>
-    </ClInclude>
-    <ClInclude Include="backgrounds\BackgroundScene.hpp">
-      <Filter>Header Files\backgrounds</Filter>
-    </ClInclude>
-    <ClInclude Include="lights\ProbeGrid.hpp">
-      <Filter>Header Files\lights</Filter>
-    </ClInclude>
-    <ClInclude Include="loaders\ProbeGridLoader.hpp">
-      <Filter>Header Files\loaders</Filter>
-    </ClInclude>
-    <ClInclude Include="savers\ProbeGridSaver.hpp">
-      <Filter>Header Files\savers</Filter>
-    </ClInclude>
-    <ClInclude Include="lights\ProbeGridWidget.hpp">
-      <Filter>Header Files\lights</Filter>
-    </ClInclude>
-    <ClInclude Include="savers\FileSaver.hpp">
-      <Filter>Header Files\savers</Filter>
-    </ClInclude>
-    <ClInclude Include="lights\LODProbeGrid.hpp">
-      <Filter>Header Files\lights</Filter>
-    </ClInclude>
-    <ClInclude Include="lights\LODProbeGridWidget.hpp">
-      <Filter>Header Files\lights</Filter>
-    </ClInclude>
-    <ClInclude Include="loaders\LODProbeGridLoader.hpp">
-      <Filter>Header Files\loaders</Filter>
-    </ClInclude>
-    <ClInclude Include="savers\LODProbeGridSaver.hpp">
-      <Filter>Header Files\savers</Filter>
-    </ClInclude>
-    <ClInclude Include="utils\HDRImage.hpp">
-      <Filter>Header Files\utils</Filter>
-    </ClInclude>
-    <ClInclude Include="loaders\HDRImageLoader.hpp">
-      <Filter>Header Files\loaders</Filter>
-    </ClInclude>
-    <ClInclude Include="savers\HDRImageSaver.hpp">
-      <Filter>Header Files\savers</Filter>
-    </ClInclude>
-    <ClInclude Include="utils\DDSImage.hpp">
-      <Filter>Header Files\utils</Filter>
-    </ClInclude>
-    <ClInclude Include="loaders\DDSImageLoader.hpp">
-      <Filter>Header Files\loaders</Filter>
-    </ClInclude>
-    <ClInclude Include="cameras\Reflector.hpp">
+    <ClInclude Include="cameras\WrapperCamera.h">
       <Filter>Header Files\cameras</Filter>
     </ClInclude>
-    <ClInclude Include="models\HeightField.hpp">
+    <ClInclude Include="cameras\WrapperPerspectiveCamera.h">
+      <Filter>Header Files\cameras</Filter>
+    </ClInclude>
+    <ClInclude Include="cameras\WrapperReflector.h">
+      <Filter>Header Files\cameras</Filter>
+    </ClInclude>
+    <ClInclude Include="backgrounds\WrapperBackground.h">
+      <Filter>Header Files\backgrounds</Filter>
+    </ClInclude>
+    <ClInclude Include="backgrounds\WrapperBackgroundScene.h">
+      <Filter>Header Files\backgrounds</Filter>
+    </ClInclude>
+    <ClInclude Include="scenes\WrapperScene.h">
+      <Filter>Header Files\scene</Filter>
+    </ClInclude>
+    <ClInclude Include="scenes\WrapperFog.h">
+      <Filter>Header Files\scene</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\WrapperGLRenderer.h">
+      <Filter>Header Files\renderers</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\WrapperGLRenderTarget.h">
+      <Filter>Header Files\renderers</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\WrapperCubeRenderTarget.h">
+      <Filter>Header Files\renderers</Filter>
+    </ClInclude>
+    <ClInclude Include="models\WrapperSimpleModel.h">
+      <Filter>Header Files\models</Filter>
+    </ClInclude>
+    <ClInclude Include="models\WrapperGLTFModel.h">
+      <Filter>Header Files\models</Filter>
+    </ClInclude>
+    <ClInclude Include="models\WrapperAnimationMixer.h">
+      <Filter>Header Files\models</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\WrapperImage.h">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\WrapperHDRImage.h">
+      <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\WrapperDDSImage.h">
+      <Filter>Header Files\models</Filter>
+    </ClInclude>
+    <ClInclude Include="lights\WrapperLight.h">
+      <Filter>Header Files\lights</Filter>
+    </ClInclude>
+    <ClInclude Include="lights\WrapperDirectionalLight.h">
+      <Filter>Header Files\lights</Filter>
+    </ClInclude>
+    <ClInclude Include="lights\WrapperIndirectLight.h">
+      <Filter>Header Files\lights</Filter>
+    </ClInclude>
+    <ClInclude Include="lights\WrapperEnvironmentMap.h">
+      <Filter>Header Files\lights</Filter>
+    </ClInclude>
+    <ClInclude Include="lights\WrapperProbeGrid.h">
+      <Filter>Header Files\lights</Filter>
+    </ClInclude>
+    <ClInclude Include="lights\WrapperLODProbeGrid.h">
+      <Filter>Header Files\lights</Filter>
+    </ClInclude>
+    <ClInclude Include="lights\WrapperEnvironmentMapCreator.h">
+      <Filter>Header Files\lights</Filter>
+    </ClInclude>
+    <ClInclude Include="lights\WrapperAmbientLight.h">
+      <Filter>Header Files\lights</Filter>
+    </ClInclude>
+    <ClInclude Include="lights\WrapperHemisphereLight.h">
+      <Filter>Header Files\lights</Filter>
+    </ClInclude>
+    <ClInclude Include="lights\WrapperProbeGridWidget.h">
+      <Filter>Header Files\lights</Filter>
+    </ClInclude>
+    <ClInclude Include="lights\WrapperLODProbeGridWidget.h">
+      <Filter>Header Files\lights</Filter>
+    </ClInclude>
+    <ClInclude Include="core\WrapperBoundingVolumeHierarchy.h">
+      <Filter>Header Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="gui\WrapperUIArea.h">
+      <Filter>Header Files\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="gui\WrapperUIElement.h">
+      <Filter>Header Files\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="gui\WrapperUIBlock.h">
+      <Filter>Header Files\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="gui\WrapperUIPanel.h">
+      <Filter>Header Files\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="gui\WrapperUIButton.h">
+      <Filter>Header Files\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="gui\WrapperUIScrollViewer.h">
+      <Filter>Header Files\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="gui\WrapperUILineEdit.h">
+      <Filter>Header Files\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="gui\WrapperUIText.h">
+      <Filter>Header Files\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="gui\WrapperUITextBlock.h">
+      <Filter>Header Files\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="gui\WrapperUIImage.h">
+      <Filter>Header Files\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="gui\WrapperUI3DViewer.h">
+      <Filter>Header Files\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="gui\WrapperUIDraggable.h">
+      <Filter>Header Files\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="multimedia\WrapperMMCamera.h">
+      <Filter>Header Files\multimedia</Filter>
+    </ClInclude>
+    <ClInclude Include="multimedia\WrapperMMLazyVideo.h">
+      <Filter>Header Files\multimedia</Filter>
+    </ClInclude>
+    <ClInclude Include="multimedia\WrapperMMAudio.h">
+      <Filter>Header Files\multimedia</Filter>
+    </ClInclude>
+    <ClInclude Include="multimedia\WrapperMMVideo.h">
+      <Filter>Header Files\multimedia</Filter>
+    </ClInclude>
+    <ClInclude Include="multimedia\WrapperOpusRecorder.h">
+      <Filter>Header Files\multimedia</Filter>
+    </ClInclude>
+    <ClInclude Include="multimedia\WrapperOpusPlayer.h">
+      <Filter>Header Files\multimedia</Filter>
+    </ClInclude>
+    <ClInclude Include="multimedia\WrapperAVCRecorder.h">
+      <Filter>Header Files\multimedia</Filter>
+    </ClInclude>
+    <ClInclude Include="multimedia\WrapperAVCPlayer.h">
+      <Filter>Header Files\multimedia</Filter>
+    </ClInclude>
+    <ClInclude Include="volume\WrapperVolumeData.h">
+      <Filter>Header Files\volume</Filter>
+    </ClInclude>
+    <ClInclude Include="volume\WrapperVolumeIsosurfaceModel.h">
+      <Filter>Header Files\volume</Filter>
+    </ClInclude>
+    <ClInclude Include="network\WrapperWSClient.h">
+      <Filter>Header Files\network</Filter>
+    </ClInclude>
+    <ClInclude Include="models\WrapperHeightField.h">
       <Filter>Header Files\models</Filter>
     </ClInclude>
   </ItemGroup>
@@ -284,8 +335,218 @@
     <ClCompile Include="GamePlayer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
+    <ClCompile Include="DefaultModule.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="loaders\WrapperFileLoader.cpp">
+      <Filter>Source Files\loaders</Filter>
+    </ClCompile>
+    <ClCompile Include="WrapperGamePlayer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gui\WrapperUIManager.cpp">
+      <Filter>Source Files\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="loaders\WrapperImageLoader.cpp">
+      <Filter>Source Files\loaders</Filter>
+    </ClCompile>
+    <ClCompile Include="loaders\WrapperHDRImageLoader.cpp">
+      <Filter>Source Files\loaders</Filter>
+    </ClCompile>
+    <ClCompile Include="loaders\WrapperDDSImageLoader.cpp">
+      <Filter>Source Files\loaders</Filter>
+    </ClCompile>
+    <ClCompile Include="loaders\WrapperGLTFLoader.cpp">
+      <Filter>Source Files\loaders</Filter>
+    </ClCompile>
+    <ClCompile Include="loaders\WrapperProbeGridLoader.cpp">
+      <Filter>Source Files\loaders</Filter>
+    </ClCompile>
+    <ClCompile Include="network\WrapperHttpClient.cpp">
+      <Filter>Source Files\network</Filter>
+    </ClCompile>
+    <ClCompile Include="loaders\WrapperLODProbeGridLoader.cpp">
+      <Filter>Source Files\loaders</Filter>
+    </ClCompile>
+    <ClCompile Include="savers\WrapperFileSaver.cpp">
+      <Filter>Source Files\savers</Filter>
+    </ClCompile>
+    <ClCompile Include="savers\WrapperImageSaver.cpp">
+      <Filter>Source Files\savers</Filter>
+    </ClCompile>
+    <ClCompile Include="savers\WrapperHDRImageSaver.cpp">
+      <Filter>Source Files\savers</Filter>
+    </ClCompile>
+    <ClCompile Include="savers\WrapperProbeGridSaver.cpp">
+      <Filter>Source Files\savers</Filter>
+    </ClCompile>
+    <ClCompile Include="savers\WrapperLODProbeGridSaver.cpp">
+      <Filter>Source Files\savers</Filter>
+    </ClCompile>
+    <ClCompile Include="volume\WrapperVolumeDataLoader.cpp">
+      <Filter>Source Files\volume</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\WrapperText.cpp">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="core\WrapperObject3D.cpp">
+      <Filter>Source Files\core</Filter>
+    </ClCompile>
+    <ClCompile Include="cameras\WrapperCamera.cpp">
+      <Filter>Source Files\cameras</Filter>
+    </ClCompile>
+    <ClCompile Include="cameras\WrapperPerspectiveCamera.cpp">
+      <Filter>Source Files\cameras</Filter>
+    </ClCompile>
+    <ClCompile Include="cameras\WrapperReflector.cpp">
+      <Filter>Source Files\cameras</Filter>
+    </ClCompile>
+    <ClCompile Include="backgrounds\WrapperBackground.cpp">
+      <Filter>Source Files\backgrounds</Filter>
+    </ClCompile>
+    <ClCompile Include="backgrounds\WrapperBackgroundScene.cpp">
+      <Filter>Source Files\backgrounds</Filter>
+    </ClCompile>
+    <ClCompile Include="scenes\WrapperScene.cpp">
+      <Filter>Source Files\scene</Filter>
+    </ClCompile>
+    <ClCompile Include="scenes\WrapperFog.cpp">
+      <Filter>Source Files\scene</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\WrapperGLRenderer.cpp">
+      <Filter>Source Files\renderers</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\WrapperGLRenderTarget.cpp">
+      <Filter>Source Files\renderers</Filter>
+    </ClCompile>
+    <ClCompile Include="renderers\WrapperCubeRenderTarget.cpp">
+      <Filter>Source Files\renderers</Filter>
+    </ClCompile>
+    <ClCompile Include="models\WrapperSimpleModel.cpp">
+      <Filter>Source Files\models</Filter>
+    </ClCompile>
+    <ClCompile Include="models\WrapperGLTFModel.cpp">
+      <Filter>Source Files\models</Filter>
+    </ClCompile>
+    <ClCompile Include="models\WrapperAnimationMixer.cpp">
+      <Filter>Source Files\models</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\WrapperImage.cpp">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\WrapperHDRImage.cpp">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\WrapperDDSImage.cpp">
+      <Filter>Source Files\models</Filter>
+    </ClCompile>
+    <ClCompile Include="lights\WrapperLight.cpp">
+      <Filter>Source Files\lights</Filter>
+    </ClCompile>
+    <ClCompile Include="lights\WrapperDirectionalLight.cpp">
+      <Filter>Source Files\lights</Filter>
+    </ClCompile>
+    <ClCompile Include="lights\WrapperIndirectLight.cpp">
+      <Filter>Source Files\lights</Filter>
+    </ClCompile>
+    <ClCompile Include="lights\WrapperEnvironmentMap.cpp">
+      <Filter>Source Files\lights</Filter>
+    </ClCompile>
+    <ClCompile Include="lights\WrapperProbeGrid.cpp">
+      <Filter>Source Files\lights</Filter>
+    </ClCompile>
+    <ClCompile Include="lights\WrapperLODProbeGrid.cpp">
+      <Filter>Source Files\lights</Filter>
+    </ClCompile>
+    <ClCompile Include="lights\WrapperEnvironmentMapCreator.cpp">
+      <Filter>Source Files\lights</Filter>
+    </ClCompile>
+    <ClCompile Include="lights\WrapperAmbientLight.cpp">
+      <Filter>Source Files\lights</Filter>
+    </ClCompile>
+    <ClCompile Include="lights\WrapperHemisphereLight.cpp">
+      <Filter>Source Files\lights</Filter>
+    </ClCompile>
+    <ClCompile Include="lights\WrapperProbeGridWidget.cpp">
+      <Filter>Source Files\lights</Filter>
+    </ClCompile>
+    <ClCompile Include="lights\WrapperLODProbeGridWidget.cpp">
+      <Filter>Source Files\lights</Filter>
+    </ClCompile>
+    <ClCompile Include="core\WrapperBoundingVolumeHierarchy.cpp">
+      <Filter>Source Files\core</Filter>
+    </ClCompile>
+    <ClCompile Include="gui\WrapperUIArea.cpp">
+      <Filter>Source Files\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="gui\WrapperUIElement.cpp">
+      <Filter>Source Files\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="gui\WrapperUIBlock.cpp">
+      <Filter>Source Files\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="gui\WrapperUIPanel.cpp">
+      <Filter>Source Files\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="gui\WrapperUIButton.cpp">
+      <Filter>Source Files\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="gui\WrapperUIScrollViewer.cpp">
+      <Filter>Source Files\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="gui\WrapperUILineEdit.cpp">
+      <Filter>Source Files\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="gui\WrapperUIText.cpp">
+      <Filter>Source Files\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="gui\WrapperUITextBlock.cpp">
+      <Filter>Source Files\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="gui\WrapperUIImage.cpp">
+      <Filter>Source Files\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="gui\WrapperUI3DViewer.cpp">
+      <Filter>Source Files\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="gui\WrapperUIDraggable.cpp">
+      <Filter>Source Files\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="multimedia\WrapperMMCamera.cpp">
+      <Filter>Source Files\multimedia</Filter>
+    </ClCompile>
+    <ClCompile Include="multimedia\WrapperMMLazyVideo.cpp">
+      <Filter>Source Files\multimedia</Filter>
+    </ClCompile>
+    <ClCompile Include="multimedia\WrapperMMAudio.cpp">
+      <Filter>Source Files\multimedia</Filter>
+    </ClCompile>
+    <ClCompile Include="multimedia\WrapperMMVideo.cpp">
+      <Filter>Source Files\multimedia</Filter>
+    </ClCompile>
+    <ClCompile Include="multimedia\WrapperOpusRecorder.cpp">
+      <Filter>Source Files\multimedia</Filter>
+    </ClCompile>
+    <ClCompile Include="multimedia\WrapperOpusPlayer.cpp">
+      <Filter>Source Files\multimedia</Filter>
+    </ClCompile>
+    <ClCompile Include="multimedia\WrapperAVCRecorder.cpp">
+      <Filter>Source Files\multimedia</Filter>
+    </ClCompile>
+    <ClCompile Include="multimedia\WrapperAVCPlayer.cpp">
+      <Filter>Source Files\multimedia</Filter>
+    </ClCompile>
+    <ClCompile Include="volume\WrapperVolumeData.cpp">
+      <Filter>Source Files\volume</Filter>
+    </ClCompile>
+    <ClCompile Include="volume\WrapperVolumeIsosurfaceModel.cpp">
+      <Filter>Source Files\volume</Filter>
+    </ClCompile>
+    <ClCompile Include="network\WrapperWSClient.cpp">
+      <Filter>Source Files\network</Filter>
+    </ClCompile>
+    <ClCompile Include="models\WrapperHeightField.cpp">
+      <Filter>Source Files\models</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

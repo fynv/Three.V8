@@ -1,6 +1,8 @@
 #include <assert.h>
-#include <utils/Utils.h>
+#include <cstdio>
+#include <utils/Logging.h>
 #include "binding.h"
+#include "WrapperUtils.hpp"
 
 V8VM::V8VM(const char* exec_path)
 {
@@ -28,193 +30,9 @@ V8VM::~V8VM()
 	delete m_array_buffer_allocator;
 }
 
-
-#include "utils/Image.hpp"
-#include "utils/HDRImage.hpp"
-#include "utils/DDSImage.hpp"
-
-#include "core/Object3D.hpp"
-
-#include "cameras/Camera.hpp"
-#include "cameras/PerspectiveCamera.hpp"
-#include "cameras/Reflector.hpp"
-
-#include "backgrounds/Background.hpp"
-#include "backgrounds/BackgroundScene.hpp"
-#include "lights/DirectionalLight.hpp"
-#include "lights/EnvironmentMap.hpp"
-#include "lights/ProbeGrid.hpp"
-#include "lights/LODProbeGrid.hpp"
-#include "lights/EnvironmentMapCreator.hpp"
-#include "lights/AmbientLight.hpp"
-#include "lights/HemisphereLight.hpp"
-#include "lights/ProbeGridWidget.hpp"
-#include "lights/LODProbeGridWidget.hpp"
-
-#include "models/SimpleModel.hpp"
-#include "models/GLTFModel.hpp"
-#include "models/AnimationMixer.hpp"
-
-#include "scenes/Scene.hpp"
-#include "scenes/Fog.hpp"
-
-#include "renderers/GLRenderer.hpp"
-#include "renderers/GLRenderTarget.hpp"
-#include "renderers/CubeRenderTarget.hpp"
-
-#include "core/BoundingVolumeHierarchy.hpp"
-
-#include "GamePlayer.hpp"
-#include "network/HttpClient.hpp"
-#include "network/WSClient.hpp"
-#include "loaders/FileLoader.hpp"
-#include "loaders/ImageLoader.hpp"
-#include "loaders/HDRImageLoader.hpp"
-#include "loaders/DDSImageLoader.hpp"
-#include "loaders/GLTFLoader.hpp"
-#include "loaders/ProbeGridLoader.hpp"
-#include "loaders/LODProbeGridLoader.hpp"
-#include "savers/FileSaver.hpp"
-#include "savers/ImageSaver.hpp"
-#include "savers/HDRImageSaver.hpp"
-#include "savers/ProbeGridSaver.hpp"
-#include "savers/LODProbeGridSaver.hpp"
-
-#include "gui/UIManager.hpp"
-#include "gui/UIArea.hpp"
-#include "gui/UIBlock.hpp"
-#include "gui/UIPanel.hpp"
-#include "gui/UIButton.hpp"
-#include "gui/UIScrollViewer.hpp"
-#include "gui/UILineEdit.hpp"
-#include "gui/UIText.hpp"
-#include "gui/UITextBlock.hpp"
-#include "gui/UIImage.hpp"
-#include "gui/UI3DViewer.hpp"
-#include "gui/UIDraggable.hpp"
-
-#if THREE_MM
-#include "multimedia/MMCamera.hpp"
-#include "multimedia/MMLazyVideo.hpp"
-#include "multimedia/MMAudio.hpp"
-#include "multimedia/MMVideo.hpp"
-#include "multimedia/OpusRecorder.hpp"
-#include "multimedia/OpusPlayer.hpp"
-#include "multimedia/AVCRecorder.hpp"
-#include "multimedia/AVCPlayer.hpp"
-#endif
-
-#include "volume/VolumeData.hpp"
-#include "volume/VolumeIsosurfaceModel.hpp"
-#include "volume/VolumeDataLoader.hpp"
-
-#include "models/HeightField.hpp"
-
-#include "utils/Text.hpp"
-
-GlobalDefinitions GameContext::s_globals =
+GameContext::GameContext(V8VM* vm, const WorldDefinition& world_definition, const char* filename): m_vm(vm)
 {
-	{
-		{"print", GameContext::Print},
-		{"setCallback", GameContext::SetCallback},
-		{"now", GameContext::Now},
-		{"getGLError", GameContext::GetGLError},
-#if THREE_MM
-		{"getListOfCameras", GameContext::GetListOfCameras},
-		{"getListOfAudioDevices", GameContext::GetListOfAudioDevices},
-#endif
-		{"generalCall", GameContext::GeneralCall},
-	},
-	{
-		{ "Object3D", WrapperObject3D::New,  WrapperObject3D::create_template },
-		{ "Camera", WrapperCamera::New,  WrapperCamera::create_template },
-		{ "PerspectiveCamera", WrapperPerspectiveCamera::New,  WrapperPerspectiveCamera::create_template },
-		{ "Reflector", WrapperReflector::New, WrapperReflector::create_template },
-		{ "ColorBackground", WrapperColorBackground::New,  WrapperColorBackground::create_template },
-		{ "CubeBackground", WrapperCubeBackground::New,  WrapperCubeBackground::create_template },
-		{ "HemisphereBackground", WrapperHemisphereBackground::New,  WrapperHemisphereBackground::create_template },
-		{ "BackgroundScene", WrapperBackgroundScene::New,  WrapperBackgroundScene::create_template },
-		{ "Scene", WrapperScene::New,  WrapperScene::create_template },
-		{ "Fog", WrapperFog::New,  WrapperFog::create_template },
-		{ "GLRenderer", WrapperGLRenderer::New,  WrapperGLRenderer::create_template },
-		{ "GLRenderTarget", WrapperGLRenderTarget::New,  WrapperGLRenderTarget::create_template },
-		{ "CubeRenderTarget", WrapperCubeRenderTarget::New,  WrapperCubeRenderTarget::create_template },
-		{ "SimpleModel", WrapperSimpleModel::New,  WrapperSimpleModel::create_template },
-		{ "GLTFModel", WrapperGLTFModel::New,  WrapperGLTFModel::create_template },
-		{ "AnimationMixer", WrapperAnimationMixer::New,  WrapperAnimationMixer::create_template },
-		{ "Image", WrapperImage::New,  WrapperImage::create_template },
-		{ "CubeImage", WrapperCubeImage::New,  WrapperCubeImage::create_template },
-		{ "HDRImage", WrapperHDRImage::New,  WrapperHDRImage::create_template },
-		{ "HDRCubeImage", WrapperHDRCubeImage::New,  WrapperHDRCubeImage::create_template },
-		{ "DDSImage", WrapperDDSImage::New,  WrapperDDSImage::create_template },
-		{ "DirectionalLight", WrapperDirectionalLight::New, WrapperDirectionalLight::create_template },
-		{ "EnvironmentMap", WrapperEnvironmentMap::New, WrapperEnvironmentMap::create_template },
-		{ "ProbeGrid", WrapperProbeGrid::New, WrapperProbeGrid::create_template },
-		{ "LODProbeGrid", WrapperLODProbeGrid::New, WrapperLODProbeGrid::create_template },
-		{ "EnvironmentMapCreator", WrapperEnvironmentMapCreator::New, WrapperEnvironmentMapCreator::create_template},
-		{ "AmbientLight", WrapperAmbientLight::New, WrapperAmbientLight::create_template},
-		{ "HemisphereLight", WrapperHemisphereLight::New, WrapperHemisphereLight::create_template},
-		{ "ProbeGridWidget", WrapperProbeGridWidget::New, WrapperProbeGridWidget::create_template},
-		{ "LODProbeGridWidget", WrapperLODProbeGridWidget::New, WrapperLODProbeGridWidget::create_template},
-		{ "BoundingVolumeHierarchy", WrappeBoundingVolumeHierarchy::New, WrappeBoundingVolumeHierarchy::create_template},
-
-		{ "UIArea", WrapperUIArea::New, WrapperUIArea::create_template},
-		{ "UIBlock", WrapperUIBlock::New, WrapperUIBlock::create_template},
-		{ "UIPanel", WrapperUIPanel::New, WrapperUIPanel::create_template},
-		{ "UIButton", WrapperUIButton::New, WrapperUIButton::create_template},
-		{ "UIScrollViewer", WrapperUIScrollViewer::New, WrapperUIScrollViewer::create_template},
-		{ "UILineEdit", WrapperUILineEdit::New, WrapperUILineEdit::create_template},
-		{ "UIText", WrapperUIText::New, WrapperUIText::create_template},
-		{ "UITextBlock", WrapperUITextBlock::New, WrapperUITextBlock::create_template},
-		{ "UIImage", WrapperUIImage::New, WrapperUIImage::create_template},
-		{ "UI3DViewer", WrapperUI3DViewer::New, WrapperUI3DViewer::create_template},
-		{ "UIDraggable", WrapperUIDraggable::New, WrapperUIDraggable::create_template},
-
-#if THREE_MM
-		{ "MMCamera", WrapperMMCamera::New, WrapperMMCamera::create_template},
-		{ "MMLazyVideo", WrapperMMLazyVideo::New, WrapperMMLazyVideo::create_template},
-		{ "MMAudio", WrapperMMAudio::New, WrapperMMAudio::create_template},
-		{ "MMVideo", WrapperMMVideo::New, WrapperMMVideo::create_template},
-		{ "OpusRecorder", WrapperOpusRecorder::New, WrapperOpusRecorder::create_template},
-		{ "OpusPlayer", WrapperOpusPlayer::New, WrapperOpusPlayer::create_template},
-		{ "AVCRecorder", WrapperAVCRecorder::New, WrapperAVCRecorder::create_template},
-		{ "AVCPlayer", WrapperAVCPlayer::New, WrapperAVCPlayer::create_template},
-#endif
-		{ "VolumeData", WrapperVolumeData::New, WrapperVolumeData::create_template},
-		{ "VolumeIsosurfaceModel", WrapperVolumeIsosurfaceModel::New, WrapperVolumeIsosurfaceModel::create_template},
-
-		{ "WSClient", WrapperWSClient::New, WrapperWSClient::create_template},
-
-		{ "HeightField", WrapperHeightField::New, WrapperHeightField::create_template},
-
-	},
-	{
-		{ "fileLoader", WrapperFileLoader::create_template },
-		{ "imageLoader", WrapperImageLoader::create_template},
-		{ "HDRImageLoader", WrapperHDRImageLoader::create_template},
-		{ "DDSImageLoader", WrapperDDSImageLoader::create_template},
-		{ "gltfLoader", WrapperGLTFLoader::create_template},	
-		{ "probeGridLoader", WrapperProbeGridLoader::create_template},
-		{ "LODProbeGridLoader", WrapperLODProbeGridLoader::create_template},
-		{ "fileSaver", WrapperFileSaver::create_template},
-		{ "imageSaver", WrapperImageSaver::create_template},
-		{ "HDRImageSaver", WrapperHDRImageSaver::create_template},
-		{ "probeGridSaver", WrapperProbeGridSaver::create_template},
-		{ "LODProbeGridSaver", WrapperLODProbeGridSaver::create_template},
-
-		{ "volumeDataLoader", WrapperVolumeDataLoader::create_template},
-
-		{ "text", WrapperText::create_template},
-	}
-};
-
-GameContext::GameContext(V8VM* vm, GamePlayer* gamePlayer, const char* filename)
-	: m_vm(vm)
-	, m_gamePlayer(gamePlayer)
-	, m_http(new HttpClient)
-	, m_ui_manager(new UIManager)
-{
-	_create_context();
+	_create_context(world_definition);
 	v8::HandleScope handle_scope(m_vm->m_isolate);
 	v8::Context::Scope context_scope(m_context.Get(m_vm->m_isolate));
 	_run_script(filename);
@@ -232,7 +50,26 @@ GameContext::~GameContext()
 	}
 }
 
-void GameContext::_create_context()
+void GameContext::GeneralNew(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	int idx_ctor_dtor;
+	lctx.jnum_to_num(info.Data(), idx_ctor_dtor);	
+	CtorDtor ctor_dtor = lctx.ctx()->m_cls_ctor_dtor[idx_ctor_dtor];
+	void* ptr = ctor_dtor.ctor(info);	
+	info.This()->SetAlignedPointerInInternalField(0, ptr);
+	lctx.ctx()->regiter_object(info.This(), ctor_dtor.dtor);
+}
+
+void GameContext::GeneralDispose(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	GameContext* ctx = lctx.ctx();
+	void* self = lctx.get_self();
+	ctx->remove_object(self);
+}
+
+void GameContext::_create_context(const WorldDefinition& world_definition)
 {
 	v8::Isolate* isolate = m_vm->m_isolate;
 	v8::HandleScope handle_scope(isolate);
@@ -240,52 +77,167 @@ void GameContext::_create_context()
 	v8::Local<v8::ObjectTemplate> global_tmpl = v8::ObjectTemplate::New(isolate);
 	global_tmpl->SetInternalFieldCount(1);	
 
-	for (size_t i = 0; i < s_globals.funcs.size(); i++)
+	const ModuleDefinition& default_module = world_definition.default_module;
+	
+	// functions
+	const std::vector<FunctionDefinition>& functions = default_module.functions;
+	for (size_t i = 0; i < functions.size(); i++)
 	{
-		const FunctionDefinition& func = s_globals.funcs[i];
+		const FunctionDefinition& func = functions[i];
 		global_tmpl->Set(isolate, func.name.c_str(), v8::FunctionTemplate::New(isolate, func.func));
 	}
 
-	for (size_t i = 0; i < s_globals.classes.size(); i++)
+	// classes
+	const std::vector<ClassDefiner>& classes = default_module.classes;
+	for (size_t i = 0; i < classes.size(); i++)
 	{
-		const ClassDefinition& cls = s_globals.classes[i];
-		global_tmpl->Set(isolate, cls.name.c_str(), cls.creator(isolate, cls.constructor));
+		const ClassDefiner& cls_define = classes[i];
+		ClassDefinition def;
+		cls_define(def);
+
+		int idx_ctor_dtor = (int)m_cls_ctor_dtor.size();
+		m_cls_ctor_dtor.push_back({ def.ctor, def.dtor });
+		v8::Local<v8::FunctionTemplate> templ = v8::FunctionTemplate::New(isolate, GeneralNew, v8::Number::New(isolate, idx_ctor_dtor));
+		templ->InstanceTemplate()->SetInternalFieldCount(2);
+		templ->InstanceTemplate()->Set(isolate, "dispose", v8::FunctionTemplate::New(isolate, GeneralDispose));
+
+		for (size_t j = 0; j < def.properties.size(); j++)
+		{
+			const AccessorDefinition& property = def.properties[j];
+			templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, property.name.c_str()).ToLocalChecked(), property.get, property.set);
+		}
+
+		for (size_t j = 0; j < def.methods.size(); j++)
+		{
+			const FunctionDefinition& method = def.methods[j];
+			templ->InstanceTemplate()->Set(isolate, method.name.c_str(), v8::FunctionTemplate::New(isolate, method.func));
+		}
+
+		global_tmpl->Set(isolate, def.name.c_str(), templ);	
 	}
-	
+
 	v8::Local<v8::Context> context = v8::Context::New(isolate, NULL, global_tmpl);
 	v8::Local<v8::Object> global_obj = context->Global();
 	global_obj->SetAlignedPointerInInternalField(0, this);
 
-	// gamePlayer
+	// global objects
+	const std::vector<ObjectDefiner>& objects = default_module.objects;
+	for (size_t i = 0; i < objects.size(); i++)
 	{
-		v8::Local<v8::ObjectTemplate> templ = WrapperGamePlayer::create_template(isolate);
+		const ObjectDefiner& obj_define = objects[i];
+		ObjectDefinition def;
+		obj_define(def);
+
+		v8::Local<v8::ObjectTemplate> templ = v8::ObjectTemplate::New(isolate);
+		if (def.ctor != nullptr)
+		{
+			templ->SetInternalFieldCount(2);
+		}
+
+		for (size_t j = 0; j < def.properties.size(); j++)
+		{
+			const AccessorDefinition& property = def.properties[j];
+			templ->SetAccessor(v8::String::NewFromUtf8(isolate, property.name.c_str()).ToLocalChecked(), property.get, property.set);
+		}
+
+		for (size_t j = 0; j < def.methods.size(); j++)
+		{
+			const FunctionDefinition& method = def.methods[j];
+			templ->Set(isolate, method.name.c_str(), v8::FunctionTemplate::New(isolate, method.func));
+		}
+
 		v8::Local<v8::Object> obj = templ->NewInstance(context).ToLocalChecked();
-		obj->SetAlignedPointerInInternalField(0, m_gamePlayer);
-		global_obj->Set(context, v8::String::NewFromUtf8(isolate, "gamePlayer").ToLocalChecked(), obj);
+		if (def.ctor != nullptr)
+		{
+			obj->SetAlignedPointerInInternalField(0, def.ctor());
+			regiter_object(obj, def.dtor);
+		}				
+		global_obj->Set(context, v8::String::NewFromUtf8(isolate, def.name.c_str()).ToLocalChecked(), obj);
 	}
 
-	// http
+	// additional modules
+	const std::vector<ModuleDefinition>& modules = world_definition.modules;
+	for (size_t m = 0; m < modules.size(); m++)
 	{
-		v8::Local<v8::ObjectTemplate> templ = WrapperHttpClient::create_template(isolate);
-		v8::Local<v8::Object> obj = templ->NewInstance(context).ToLocalChecked();
-		obj->SetAlignedPointerInInternalField(0, m_http.get());
-		global_obj->Set(context, v8::String::NewFromUtf8(isolate, "http").ToLocalChecked(), obj);
-	}
+		const ModuleDefinition& mod = modules[m];
+		
+		v8::Local<v8::ObjectTemplate> mod_tmpl = v8::ObjectTemplate::New(isolate);
 
-	// ui-manager
-	{
-		v8::Local<v8::ObjectTemplate> templ = WrapperUIManager::create_template(isolate);
-		v8::Local<v8::Object> obj = templ->NewInstance(context).ToLocalChecked();
-		obj->SetAlignedPointerInInternalField(0, m_ui_manager.get());
-		global_obj->Set(context, v8::String::NewFromUtf8(isolate, "UIManager").ToLocalChecked(), obj);
-	}
-	
-	for (size_t i = 0; i < s_globals.objects.size(); i++)
-	{
-		const ObjectDefinition& d_obj = s_globals.objects[i];
-		v8::Local<v8::ObjectTemplate> templ = d_obj.creator(isolate);
-		v8::Local<v8::Object> obj = templ->NewInstance(context).ToLocalChecked();
-		global_obj->Set(context, v8::String::NewFromUtf8(isolate, d_obj.name.c_str()).ToLocalChecked(), obj);
+		// functions
+		const std::vector<FunctionDefinition>& functions = mod.functions;
+		for (size_t i = 0; i < functions.size(); i++)
+		{
+			const FunctionDefinition& func = functions[i];
+			mod_tmpl->Set(isolate, func.name.c_str(), v8::FunctionTemplate::New(isolate, func.func));
+		}
+
+		// classes
+		const std::vector<ClassDefiner>& classes = mod.classes;
+		for (size_t i = 0; i < classes.size(); i++)
+		{
+			const ClassDefiner& cls_define = classes[i];
+			ClassDefinition def;
+			cls_define(def);
+
+			int idx_ctor_dtor = (int)m_cls_ctor_dtor.size();
+			m_cls_ctor_dtor.push_back({ def.ctor, def.dtor });
+			v8::Local<v8::FunctionTemplate> templ = v8::FunctionTemplate::New(isolate, GeneralNew, v8::Number::New(isolate, idx_ctor_dtor));
+			templ->InstanceTemplate()->SetInternalFieldCount(2);
+			templ->InstanceTemplate()->Set(isolate, "dispose", v8::FunctionTemplate::New(isolate, GeneralDispose));
+
+			for (size_t j = 0; j < def.properties.size(); j++)
+			{
+				const AccessorDefinition& property = def.properties[j];
+				templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(isolate, property.name.c_str()).ToLocalChecked(), property.get, property.set);
+			}
+
+			for (size_t j = 0; j < def.methods.size(); j++)
+			{
+				const FunctionDefinition& method = def.methods[j];
+				templ->InstanceTemplate()->Set(isolate, method.name.c_str(), v8::FunctionTemplate::New(isolate, method.func));
+			}
+
+			mod_tmpl->Set(isolate, def.name.c_str(), templ);
+		}
+
+		v8::Local<v8::Object> obj_mod = mod_tmpl->NewInstance(context).ToLocalChecked();
+
+		// objects
+		const std::vector<ObjectDefiner>& objects = mod.objects;
+		for (size_t i = 0; i < objects.size(); i++)
+		{
+			const ObjectDefiner& obj_define = objects[i];
+			ObjectDefinition def;
+			obj_define(def);
+
+			v8::Local<v8::ObjectTemplate> templ = v8::ObjectTemplate::New(isolate);
+			if (def.ctor != nullptr)
+			{
+				templ->SetInternalFieldCount(2);
+			}
+
+			for (size_t j = 0; j < def.properties.size(); j++)
+			{
+				const AccessorDefinition& property = def.properties[j];
+				templ->SetAccessor(v8::String::NewFromUtf8(isolate, property.name.c_str()).ToLocalChecked(), property.get, property.set);
+			}
+
+			for (size_t j = 0; j < def.methods.size(); j++)
+			{
+				const FunctionDefinition& method = def.methods[j];
+				templ->Set(isolate, method.name.c_str(), v8::FunctionTemplate::New(isolate, method.func));
+			}
+
+			v8::Local<v8::Object> obj = templ->NewInstance(context).ToLocalChecked();
+			if (def.ctor != nullptr)
+			{
+				obj->SetAlignedPointerInInternalField(0, def.ctor());
+				regiter_object(obj, def.dtor);
+			}
+			obj_mod->Set(context, v8::String::NewFromUtf8(isolate, def.name.c_str()).ToLocalChecked(), obj);
+		}
+
+		global_obj->Set(context, v8::String::NewFromUtf8(isolate, mod.name.c_str()).ToLocalChecked(), obj_mod);
 	}
 
 	//context->AllowCodeGenerationFromStrings(false);
@@ -294,7 +246,7 @@ void GameContext::_create_context()
 }
 
 // Extracts a C string from a V8 Utf8Value.
-const char* ToCString(const v8::String::Utf8Value& value) {
+inline const char* ToCString(const v8::String::Utf8Value& value) {
 	return *value ? *value : "<string conversion failed>";
 }
 
@@ -307,7 +259,7 @@ void GameContext::_report_exception(v8::TryCatch* try_catch)
 	if (message.IsEmpty()) {
 		// V8 didn't provide any extra information about this error; just
 		// print the exception.
-		print_err(exception_string);
+		Logging::print_err(exception_string);
 	}
 	else {
 		// Print (filename):(line number): (message).
@@ -319,13 +271,13 @@ void GameContext::_report_exception(v8::TryCatch* try_catch)
 		{
 			char line[1024];
 			sprintf(line, "%s:%i: %s", filename_string, linenum, exception_string);
-			print_err(line);
+			Logging::print_err(line);
 		}
 		// Print line of source code.
 		v8::String::Utf8Value sourceline(
 			m_vm->m_isolate, message->GetSourceLine(context).ToLocalChecked());
 		const char* sourceline_string = ToCString(sourceline);
-		print_err(sourceline_string);
+		Logging::print_err(sourceline_string);
 
 		{
 			std::string line = "";
@@ -340,7 +292,7 @@ void GameContext::_report_exception(v8::TryCatch* try_catch)
 			{
 				line += "^";
 			}
-			print_err(line.c_str());
+			Logging::print_err(line.c_str());
 		}
 		v8::Local<v8::Value> stack_trace_string;
 		if (try_catch->StackTrace(context).ToLocal(&stack_trace_string) &&
@@ -348,7 +300,7 @@ void GameContext::_report_exception(v8::TryCatch* try_catch)
 			stack_trace_string.As<v8::String>()->Length() > 0) {
 			v8::String::Utf8Value stack_trace(m_vm->m_isolate, stack_trace_string);
 			const char* err = ToCString(stack_trace);
-			print_err(err);
+			Logging::print_err(err);
 		}
 	}
 }
@@ -384,7 +336,7 @@ bool GameContext::_execute_string(v8::Local<v8::String> source, v8::Local<v8::Va
 				// the returned value.
 				v8::String::Utf8Value str(m_vm->m_isolate, result);
 				const char* cstr = ToCString(str);
-				print_std(cstr);
+				Logging::print_std(cstr);
 			}
 			return true;
 		}
@@ -406,31 +358,6 @@ void GameContext::_run_script(const char* filename)
 	v8::Local<v8::String> file_name = v8::String::NewFromUtf8(m_vm->m_isolate, filename).ToLocalChecked();
 
 	_execute_string(source, file_name, false, true);
-}
-
-
-void GameContext::Print(const v8::FunctionCallbackInfo<v8::Value>& args)
-{
-	std::string line = "";
-	bool first = true;
-	for (int i = 0; i < args.Length(); i++) {
-		v8::HandleScope handle_scope(args.GetIsolate());
-		if (first) {
-			first = false;
-		}
-		else 
-		{
-			line += " ";
-		}
-		v8::String::Utf8Value str(args.GetIsolate(), args[i]);
-		const char* cstr = ToCString(str);
-		line += cstr;
-	}
-
-	LocalContext lctx(args);
-	GameContext* self = lctx.ctx();
-	self->print_std(line.c_str());
-	
 }
 
 void GameContext::SetCallback(const v8::FunctionCallbackInfo<v8::Value>& args)
@@ -464,100 +391,6 @@ v8::MaybeLocal<v8::Value> GameContext::InvokeCallback(v8::Function* callback, co
 	return ret;
 }
 
-void GameContext::Now(const v8::FunctionCallbackInfo<v8::Value>& args)
-{
-	LocalContext lctx(args);
-	double now = time_sec() * 1000.0;
-	args.GetReturnValue().Set(lctx.num_to_jnum(now));
-}
-
-#include <GL/glew.h>
-
-void GameContext::GetGLError(const v8::FunctionCallbackInfo<v8::Value>& args)
-{
-	LocalContext lctx(args);
-	unsigned err = glGetError();
-	args.GetReturnValue().Set(lctx.num_to_jnum(err));	
-}
-
-#if THREE_MM
-void GameContext::GetListOfCameras(const v8::FunctionCallbackInfo<v8::Value>& args)
-{
-	LocalContext lctx(args);
-	const std::vector<std::string>& lst = MMCamera::s_get_list_devices();
-
-	v8::Local<v8::Array> ret = v8::Array::New(lctx.isolate);
-	for (size_t i = 0; i < lst.size(); i++)
-	{
-		v8::Local<v8::String> name = lctx.str_to_jstr(lst[i].c_str());
-		ret->Set(lctx.context, (unsigned)i, name);
-	}
-	args.GetReturnValue().Set(ret);
-}
-
-void GameContext::GetListOfAudioDevices(const v8::FunctionCallbackInfo<v8::Value>& args)
-{
-	LocalContext lctx(args);
-	const std::vector<std::string>& lst = GetNamesAudioDevices(false);
-
-	v8::Local<v8::Array> ret = v8::Array::New(lctx.isolate);
-	for (size_t i = 0; i < lst.size(); i++)
-	{
-		v8::Local<v8::String> name = lctx.str_to_jstr(lst[i].c_str());
-		ret->Set(lctx.context, (unsigned)i, name);
-	}
-	args.GetReturnValue().Set(ret);
-}
-#endif
-
-#ifdef _WIN32
-#include <commdlg.h>
-#endif
-
-void GameContext::GeneralCall(const v8::FunctionCallbackInfo<v8::Value>& args)
-{
-	LocalContext lctx(args);
-	v8::Local<v8::String> ret;
-	std::string cmd = lctx.jstr_to_str(args[0]);
-
-#ifdef _WIN32
-	if (cmd == "OpenFile")
-	{
-		v8::String::Value filter_name(lctx.isolate, args[1]);
-		v8::String::Value filter_ext(lctx.isolate, args[2]);
-
-		wchar_t filter[1024];
-		wsprintf(filter, L"%s", (wchar_t*)(*filter_name));
-
-		int pos = lstrlenW(filter);
-		wsprintf(filter+pos+1, L"%s", (wchar_t*)(*filter_ext));
-
-		int pos2 = lstrlenW(filter + pos + 1);
-		filter[pos + 1 + pos2 + 1] = 0;
-
-
-		wchar_t buffer[1024];
-		OPENFILENAMEW ofn{0};
-		ofn.lStructSize = sizeof(ofn);
-		ofn.hwndOwner = NULL;
-		ofn.lpstrFile = buffer;
-		ofn.lpstrFile[0] = 0;
-		ofn.nMaxFile = 1024;
-		ofn.lpstrFilter = filter;
-		ofn.nFilterIndex = 1;
-		ofn.lpstrFileTitle = NULL;
-		ofn.nMaxFileTitle = 0;
-		ofn.lpstrInitialDir = NULL;
-		ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
-		::GetOpenFileName(&ofn);
-
-		ret = v8::String::NewFromTwoByte(lctx.isolate, (uint16_t*)buffer).ToLocalChecked();
-	}
-#endif
-
-	args.GetReturnValue().Set(ret);
-}
-
 void GameContext::WeakCallback(v8::WeakCallbackInfo<GameContext> const& data)
 {
 	void* self = data.GetInternalField(0);	
@@ -581,36 +414,4 @@ void GameContext::remove_object(void* ptr)
 
 	m_objects[ptr].first.Reset();
 	m_objects.erase(ptr);
-}
-
-void GameContext::SetPrintCallbacks(void* ptr, PrintCallback print_callback, PrintCallback error_callback)
-{
-	m_print_callback_data = ptr;
-	m_print_callback = print_callback;
-	m_error_callback = error_callback;
-}
-
-void GameContext::print_std(const char* str)
-{
-	if (m_print_callback != nullptr)
-	{
-		m_print_callback(m_print_callback_data, str);
-	}
-	else
-	{
-		printf("%s\n", str);
-	}
-}
-
-void GameContext::print_err(const char* str)
-{
-	if (m_error_callback != nullptr)
-	{
-		m_error_callback(m_print_callback_data, str);
-	}
-	else
-	{
-		fprintf(stderr, "%s\n", str);
-	}
-
 }

@@ -7,6 +7,7 @@
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QMenu>
+#include <utils/Logging.h>
 #include "XMLEditor.h"
 #include "JsonUtils.h"
 #include "FogTuner.h"
@@ -215,8 +216,9 @@ void XMLEditor::OnInit()
 	QString path = QCoreApplication::applicationFilePath();
 	std::string cpath = path.toLocal8Bit().toStdString();
 	m_game_player = std::unique_ptr<GamePlayer>(new GamePlayer(cpath.c_str(), width, height));
-	m_game_player->SetPrintCallbacks(this, print_std, err_std);
 	m_game_player->SetUserMessageCallback(this, user_message_callback);
+
+	Logging::SetPrintCallbacks(this, print_std, err_std);
 	
 	QString local_path = QCoreApplication::applicationDirPath();
 	QString script_filename = local_path + "\\xmleditor\\bundle_index.js";

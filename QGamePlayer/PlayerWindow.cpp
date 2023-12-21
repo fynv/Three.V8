@@ -6,6 +6,7 @@
 #include <QJsonArray>
 #include <QMouseEvent>
 #include <QWindow>
+#include <utils/Logging.h>
 #include "PlayerWindow.h"
 
 PlayerWindow::PlayerWindow(const char* path_proj, int idx)
@@ -100,8 +101,7 @@ void PlayerWindow::OnInit()
 	QString path = QCoreApplication::applicationFilePath();
 	std::string cpath = path.toLocal8Bit().toStdString();
 	m_game_player = std::unique_ptr<GamePlayer>(new GamePlayer(cpath.c_str(), width, height));
-	m_game_player->SetPrintCallbacks(this, print_std, err_std);
-
+	Logging::SetPrintCallbacks(this, print_std, err_std);
 	LoadScript(m_script_path);
 }
 
