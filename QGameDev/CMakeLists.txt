@@ -174,6 +174,7 @@ set (LINK_DIR
 ../thirdparty/portaudio/lib
 ../thirdparty/webp/lib
 ../thirdparty/webview2/lib
+../packages/boost_url-vc143.1.84.0/lib/native
 ../packages/zeroc.openssl.v143.1.1.1.3/build/native/lib/x64/Release
 ../packages/FFmpeg.Nightly.20200831.1.0/build/native/lib/x64
 ../packages/v8-v143-x64.11.9.169.4/lib/Release
