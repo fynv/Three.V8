@@ -57,27 +57,26 @@ void WrapperHttpClient::Get(const v8::FunctionCallbackInfo<v8::Value>& info)
 
 }
 
-typedef v8::Persistent<v8::Function, v8::CopyablePersistentTraits<v8::Function>> CallbackT;
+typedef v8::Persistent<v8::Promise::Resolver, v8::CopyablePersistentTraits<v8::Promise::Resolver>> ResolverT;
 
 struct V8GetData
 {
 	GameContext* ctx;
 	bool is_string;
-	CallbackT callback;
+	ResolverT resolver;
 };
 
 static void HttpGetCallback(const GetResult& result, void* userData)
 {
 	V8GetData* v8data = (V8GetData*)(userData);
 	GameContext* ctx = v8data->ctx;
+
 	v8::Isolate* isolate = ctx->m_vm->m_isolate;
+	v8::HandleScope handle_scope(isolate);
+	v8::Context::Scope context_scope(ctx->m_context.Get(isolate));
 	LocalContext lctx(isolate);
 
-	v8::Context::Scope context_scope(ctx->m_context.Get(isolate));
-	v8::Function* callback = *v8data->callback.Get(isolate);
-
-	std::vector<v8::Local<v8::Value>> args(2);
-	args[0] = v8::Boolean::New(isolate, result.result);
+	v8::Promise::Resolver* resolver = *v8data->resolver.Get(isolate);
 
 	if (result.result)
 	{
@@ -85,21 +84,20 @@ static void HttpGetCallback(const GetResult& result, void* userData)
 		{
 			std::vector<char> str(result.data.size() + 1, 0);
 			memcpy(str.data(), result.data.data(), result.data.size());
-			args[1] = lctx.str_to_jstr(str.data());
+			resolver->Resolve(lctx.context, lctx.str_to_jstr(str.data()));
 		}
 		else
 		{
 			v8::Local<v8::ArrayBuffer> ret = v8::ArrayBuffer::New(isolate, result.data.size());
 			void* p_data = ret->GetBackingStore()->Data();
 			memcpy(p_data, result.data.data(), result.data.size());
-			args[1] = ret;
+			resolver->Resolve(lctx.context, ret);			
 		}
 	}
 	else
 	{
-		args[1] = v8::Null(isolate);
+		resolver->Reject(lctx.context, v8::Null(isolate));
 	}
-	ctx->InvokeCallback(callback, args);
 
 	delete v8data;
 }
@@ -110,14 +108,15 @@ void WrapperHttpClient::GetAsync(const v8::FunctionCallbackInfo<v8::Value>& info
 	HttpClient* self = lctx.self<HttpClient>();
 
 	std::string url = lctx.jstr_to_str(info[0]);
+	v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(lctx.context).ToLocalChecked();
 
 	V8GetData* v8data = new V8GetData;
 	v8data->ctx = lctx.ctx();
-	v8data->is_string = info[1].As<v8::Boolean>()->Value();
-
-	v8::Local<v8::Function> callback = info[2].As<v8::Function>();
-	v8data->callback = CallbackT(lctx.isolate, callback);
+	v8data->is_string = info[1].As<v8::Boolean>()->Value();	
+	v8data->resolver = ResolverT(lctx.isolate, resolver);
 
 	self->GetAsync(url.c_str(), HttpGetCallback, v8data);
+
+	info.GetReturnValue().Set(resolver->GetPromise());
 }
 

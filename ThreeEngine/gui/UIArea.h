@@ -2,7 +2,7 @@
 
 #include <glm.hpp>
 #include <vector>
-#include "renderers/GLRenderTarget.h"
+#include "renderers/UIAreaRenderTarget.h"
 
 class UIElement;
 class UI3DViewer;
@@ -18,7 +18,7 @@ public:
 	glm::vec2 origin = glm::vec2(0.0f, 0.0f);
 	glm::vec2 size = glm::vec2(0.0f, 0.0f);	
 
-	GLRenderTarget render_target;
+	UIAreaRenderTarget render_target;
 	bool appearance_changed = true;
 	bool need_render();	
 

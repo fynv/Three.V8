@@ -115,8 +115,7 @@ public:
 			area->render_target.update_framebuffers(w, h);
 		}
 
-		area->render_target.bind_buffer();
-		glDisable(GL_FRAMEBUFFER_SRGB);		
+		area->render_target.bind_buffer();		
 
 		glViewport(0, 0, w, h);
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -299,20 +298,28 @@ public:
 				block = block->block;
 			}
 
-			area->render_target.bind_buffer();
-			glEnable(GL_FRAMEBUFFER_SRGB);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, area->render_target.m_fbo);
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, view->render_target.m_fbo_video);
+			glDisable(GL_FRAMEBUFFER_SRGB);
+
+			glm::ivec2 upper_left_in = { 0,0 };
+			glm::ivec2 lower_right_in = { i_size.x, i_size.y };
 
 			if (scissor)
 			{
-				glEnable(GL_SCISSOR_TEST);
-				glScissor(scissor_upper_Left.x, scissor_upper_Left.y, scissor_lower_right.x - scissor_upper_Left.x, scissor_lower_right.y - scissor_upper_Left.y);
-			}
-			else
-			{
-				glDisable(GL_SCISSOR_TEST);
+				upper_left_in = glm::max(scissor_upper_Left - upper_left, upper_left_in);
+				lower_right_in = glm::min(scissor_lower_right - upper_left, lower_right_in);
 			}
 
-			blitter->render(view->render_target.m_tex_video->tex_id, upper_left.x, h - lower_right.y, i_size.x, i_size.y, false);
+			if (upper_left_in.x < lower_right_in.x && upper_left_in.y < lower_right_in.y)
+			{
+				lower_right = upper_left + lower_right_in;
+				upper_left = upper_left + upper_left_in;
+				glBlitFramebuffer(upper_left_in.x, i_size.y - lower_right_in.y, lower_right_in.x, i_size.y - upper_left_in.y,
+					upper_left.x, h - lower_right.y, lower_right.x, h - upper_left.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);				
+			}
+
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, area->render_target.m_fbo);
 
 		}
 		glDisable(GL_SCISSOR_TEST);
@@ -820,9 +827,8 @@ void GLUIRenderer::render(UIManager& UI, int width_wnd, int height_wnd, unsigned
 
 		arenderer.RenderViews(&blitter);
 
-		glBindFramebuffer(GL_FRAMEBUFFER, fbo_id);
-		glEnable(GL_FRAMEBUFFER_SRGB);
-		blitter.render(area->render_target.m_tex_video->tex_id, arenderer.x0, height_wnd - (arenderer.y0 + arenderer.h), arenderer.w, arenderer.h, true);
+		glBindFramebuffer(GL_FRAMEBUFFER, fbo_id);		
+		blitter.render(area->render_target.m_tex->tex_id, arenderer.x0, height_wnd - (arenderer.y0 + arenderer.h), arenderer.w, arenderer.h, true);
 
 	}
 

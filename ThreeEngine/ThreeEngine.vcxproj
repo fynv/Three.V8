@@ -251,6 +251,7 @@
     <ClCompile Include="renderers\routines\SSAO.cpp" />
     <ClCompile Include="renderers\routines\StandardRoutine.cpp" />
     <ClCompile Include="renderers\routines\WeightedOIT.cpp" />
+    <ClCompile Include="renderers\UIAreaRenderTarget.cpp" />
     <ClCompile Include="savers\FileSaver.cpp" />
     <ClCompile Include="savers\HDRImageSaver.cpp" />
     <ClCompile Include="savers\ImageSaver.cpp" />
@@ -403,6 +404,7 @@
     <ClInclude Include="renderers\routines\SSAO.h" />
     <ClInclude Include="renderers\routines\StandardRoutine.h" />
     <ClInclude Include="renderers\routines\WeightedOIT.h" />
+    <ClInclude Include="renderers\UIAreaRenderTarget.h" />
     <ClInclude Include="savers\FileSaver.h" />
     <ClInclude Include="savers\HDRImageSaver.h" />
     <ClInclude Include="savers\ImageSaver.h" />

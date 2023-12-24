@@ -1,7 +1,8 @@
+#include "renderers/GLUtils.h"
 #include "UIArea.h"
 #include "UIElement.h"
 
-UIArea::UIArea() : render_target(false, false)
+UIArea::UIArea()
 {
 
 }

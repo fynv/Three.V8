@@ -543,6 +543,9 @@
     <ClCompile Include="utils\Logging.cpp">
       <Filter>Source Files\utils</Filter>
     </ClCompile>
+    <ClCompile Include="renderers\UIAreaRenderTarget.cpp">
+      <Filter>Source Files\renderers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -1006,6 +1009,9 @@
     </ClInclude>
     <ClInclude Include="utils\Logging.h">
       <Filter>Header Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\UIAreaRenderTarget.h">
+      <Filter>Header Files\renderers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
