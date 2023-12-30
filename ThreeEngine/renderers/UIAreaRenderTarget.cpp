@@ -9,6 +9,13 @@ UIAreaRenderTarget::UIAreaRenderTarget()
 	m_tex = std::unique_ptr<GLTexture2D>(new GLTexture2D);
 }
 
+
+UIAreaRenderTarget::~UIAreaRenderTarget()
+{
+	glDeleteFramebuffers(1, &m_fbo);
+}
+
+
 bool UIAreaRenderTarget::update_framebuffers(int width, int height)
 {
 	if (m_width != width || m_height != height)
