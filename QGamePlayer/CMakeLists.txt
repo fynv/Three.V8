@@ -12,8 +12,14 @@ set(CMAKE_AUTORCC ON)
 
 SET(QT_ROOT ${QT_ROOT} CACHE PATH "Qt path" FORCE)
 SET(Qt6_DIR ${QT_ROOT}/lib/cmake/Qt6)
+SET(Qt6Core_DIR ${QT_ROOT}/lib/cmake/Qt6Core)
+SET(Qt6CoreTools_DIR ${QT_ROOT}/lib/cmake/Qt6CoreTools)
+SET(Qt6Gui_DIR ${QT_ROOT}/lib/cmake/Qt6Gui)
+SET(Qt6GuiTools_DIR ${QT_ROOT}/lib/cmake/Qt6GuiTools)
+SET(Qt6Widgets_DIR ${QT_ROOT}/lib/cmake/Qt6Widgets)
+SET(Qt6WidgetsTools_DIR ${QT_ROOT}/lib/cmake/Qt6WidgetsTools)
 
-find_package(Qt6 COMPONENTS Gui REQUIRED)
+
 find_package(Qt6 COMPONENTS Widgets REQUIRED)
 find_package(Qt6 COMPONENTS OpenGLWidgets REQUIRED)
 
@@ -137,6 +143,8 @@ set_property(TARGET QGamePlayer PROPERTY WIN32_EXECUTABLE true)
 
 target_link_directories(QGamePlayer PUBLIC ${LINK_DIR})
 target_link_libraries(QGamePlayer ${LINK_LIBS})
+
+SET(CMAKE_INSTALL_PREFIX  ../QBin CACHE PATH "Install path" FORCE)
 
 install(FILES ${QT_ROOT}/plugins/platforms/qwindows.dll DESTINATION ./platforms)
 install(FILES ${DLLS_TO_COPY} DESTINATION .)
