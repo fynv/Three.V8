@@ -246,6 +246,7 @@ void GetDefaultModule(ModuleDefinition& module)
 		WrapperReflector::define,
 		WrapperColorBackground::define,
 		WrapperCubeBackground::define,
+		WrapperPanoramaBackground::define,
 		WrapperHemisphereBackground::define,
 		WrapperBackgroundScene::define,
 		WrapperScene::define,

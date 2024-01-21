@@ -231,6 +231,7 @@
     <ClCompile Include="renderers\routines\DirectionalShadowCast.cpp" />
     <ClCompile Include="renderers\routines\DrawFog.cpp" />
     <ClCompile Include="renderers\routines\DrawHemisphere.cpp" />
+    <ClCompile Include="renderers\routines\DrawPanorama.cpp" />
     <ClCompile Include="renderers\routines\DrawSkyBox.cpp" />
     <ClCompile Include="renderers\routines\DrawTexture.cpp" />
     <ClCompile Include="renderers\routines\DrawWire.cpp" />
@@ -384,6 +385,7 @@
     <ClInclude Include="renderers\routines\DirectionalShadowCast.h" />
     <ClInclude Include="renderers\routines\DrawFog.h" />
     <ClInclude Include="renderers\routines\DrawHemisphere.h" />
+    <ClInclude Include="renderers\routines\DrawPanorama.h" />
     <ClInclude Include="renderers\routines\DrawSkyBox.h" />
     <ClInclude Include="renderers\routines\DrawTexture.h" />
     <ClInclude Include="renderers\routines\DrawWire.h" />

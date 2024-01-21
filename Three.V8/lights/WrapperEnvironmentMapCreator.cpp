@@ -62,6 +62,21 @@ void WrapperEnvironmentMapCreator::Create(const v8::FunctionCallbackInfo<v8::Val
 		CubeRenderTarget* target = lctx.jobj_to_obj<CubeRenderTarget>(holder_image);
 		creator->Create(target, self, irradiance_only);
 	}
+	else if (clsname == "Image")
+	{
+		Image* image = lctx.jobj_to_obj<Image>(holder_image);
+		creator->Create(image, self);
+	}
+	else if (clsname == "HDRImage")
+	{
+		HDRImage* image = lctx.jobj_to_obj<HDRImage>(holder_image);
+		creator->Create(image, self);
+	}
+	else if (clsname == "PanoramaBackground")
+	{
+		PanoramaBackground* background = lctx.jobj_to_obj<PanoramaBackground>(holder_image);
+		creator->Create(background, self);
+	}
 
 	info.GetReturnValue().Set(holder);
 }

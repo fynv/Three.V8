@@ -3244,6 +3244,18 @@ void GLRenderer::_render_scene(Scene& scene, Camera& camera, GLRenderTarget& tar
 			}
 		}
 		{
+			PanoramaBackground* bg = dynamic_cast<PanoramaBackground*>(scene.background);
+			if (bg != nullptr)
+			{
+				if (PanoramaDraw == nullptr)
+				{
+					PanoramaDraw = std::unique_ptr<DrawPanorama>(new DrawPanorama);
+				}
+				PanoramaDraw->render(&camera.m_constant, &bg->tex);
+				break;
+			}
+		}
+		{
 			HemisphereBackground* bg = dynamic_cast<HemisphereBackground*>(scene.background);
 			if (bg != nullptr)
 			{
@@ -3675,6 +3687,18 @@ void GLRenderer::_render_scene_simple(Scene& scene, Camera& camera, GLRenderTarg
 					SkyBoxDraw = std::unique_ptr<DrawSkyBox>(new DrawSkyBox);
 				}
 				SkyBoxDraw->render(&camera.m_constant, &bg->cubemap);
+				break;
+			}
+		}
+		{
+			PanoramaBackground* bg = dynamic_cast<PanoramaBackground*>(scene.background);
+			if (bg != nullptr)
+			{
+				if (PanoramaDraw == nullptr)
+				{
+					PanoramaDraw = std::unique_ptr<DrawPanorama>(new DrawPanorama);
+				}
+				PanoramaDraw->render(&camera.m_constant, &bg->tex);
 				break;
 			}
 		}

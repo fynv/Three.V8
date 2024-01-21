@@ -267,6 +267,188 @@ void main()
 }
 )";
 
+static std::string g_compute_from_panorama = 
+R"(#version 430
+layout (location = 0) uniform sampler2D tex_in;
+layout (binding=0, rgba16f) uniform imageCube tex_out;
+
+
+void get_dir_0( out vec3 dir, in float u, in float v )
+{
+    dir[0] = 1.0;
+    dir[1] = v;
+    dir[2] = -u;
+}
+void get_dir_1( out vec3 dir, in float u, in float v )
+{
+    dir[0] = -1.0;
+    dir[1] = v;
+    dir[2] = u;
+}
+void get_dir_2( out vec3 dir, in float u, in float v )
+{
+    dir[0] = u;
+    dir[1] = 1.0;
+    dir[2] = -v;
+}
+void get_dir_3( out vec3 dir, in float u, in float v )
+{
+    dir[0] = u;
+    dir[1] = -1.0;
+    dir[2] = v;
+}
+void get_dir_4( out vec3 dir, in float u, in float v )
+{
+    dir[0] = u;
+    dir[1] = v;
+    dir[2] = 1.0;
+}
+void get_dir_5( out vec3 dir, in float u, in float v )
+{
+    dir[0] = -u;
+    dir[1] = v;
+    dir[2] = -1.0;
+}
+
+#define PI 3.14159265359
+
+void dir_to_uv(in vec3 _dir, out vec2 uv)
+{
+	vec3 dir = normalize(_dir);
+	float alpha = asin(dir.y);
+    float beta = 0.0;
+    if (abs(dir.y)<1.0)
+    {
+        beta = atan(dir.z, dir.x);
+    }
+    uv = vec2(0.5 + beta / (PI * 2.0), 0.5 - alpha / PI);
+}
+
+float calcWeight( float u, float v )
+{
+    float val = u*u + v*v + 1.0;
+    return val*sqrt( val );
+}
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+void main()
+{
+	ivec3 id = ivec3(gl_GlobalInvocationID);
+	int res_out = imageSize(tex_out).x;
+	if (id.x < res_out && id.y < res_out)
+	{
+		float inv_res_out = 1.0 / float(res_out);
+		float u0 = ( float(id.x) * 2.0 + 1.0 - 0.75 ) * inv_res_out - 1.0;
+		float u1 = ( float(id.x) * 2.0 + 1.0 + 0.75 ) * inv_res_out - 1.0;
+
+		float v0 = ( float(id.y) * 2.0 + 1.0 - 0.75 ) * -inv_res_out + 1.0;
+		float v1 = ( float(id.y) * 2.0 + 1.0 + 0.75 ) * -inv_res_out + 1.0;
+
+		vec4 weights;
+		weights.x = calcWeight( u0, v0 );
+		weights.y = calcWeight( u1, v0 );
+		weights.z = calcWeight( u0, v1 );
+		weights.w = calcWeight( u1, v1 );
+
+		float wsum = 0.5 / ( weights.x + weights.y + weights.z + weights.w );
+		weights = weights*wsum + 0.125;
+
+		vec3 dir;
+		vec2 uv;
+		vec4 color;
+
+		switch ( id.z )
+		{
+		case 0:
+			get_dir_0( dir, u0, v0 ); dir_to_uv(dir, uv);
+			color = textureLod(tex_in, uv, 0.0) * weights.x;
+
+			get_dir_0( dir, u1, v0 ); dir_to_uv(dir, uv);
+			color += textureLod(tex_in, uv, 0.0) * weights.y;	
+
+			get_dir_0( dir, u0, v1 ); dir_to_uv(dir, uv);
+			color += textureLod(tex_in, uv, 0.0) * weights.z;
+
+			get_dir_0( dir, u1, v1 ); dir_to_uv(dir, uv);
+			color += textureLod(tex_in, uv, 0.0) * weights.w;
+			break;
+
+		case 1:
+			get_dir_1( dir, u0, v0 ); dir_to_uv(dir, uv);
+			color = textureLod(tex_in, uv, 0.0) * weights.x;
+
+			get_dir_1( dir, u1, v0 ); dir_to_uv(dir, uv);
+			color += textureLod(tex_in, uv, 0.0) * weights.y;			
+
+			get_dir_1( dir, u0, v1 ); dir_to_uv(dir, uv);
+			color += textureLod(tex_in, uv, 0.0) * weights.z;
+
+			get_dir_1( dir, u1, v1 ); dir_to_uv(dir, uv);
+			color += textureLod(tex_in, uv, 0.0) * weights.w;
+			break;
+
+		case 2:
+			get_dir_2( dir, u0, v0 ); dir_to_uv(dir, uv);
+			color = textureLod(tex_in, uv, 0.0) * weights.x;
+
+			get_dir_2( dir, u1, v0 ); dir_to_uv(dir, uv);
+			color += textureLod(tex_in, uv, 0.0) * weights.y;			
+
+			get_dir_2( dir, u0, v1 ); dir_to_uv(dir, uv);
+			color += textureLod(tex_in, uv, 0.0) * weights.z;
+
+			get_dir_2( dir, u1, v1 ); dir_to_uv(dir, uv);
+			color += textureLod(tex_in, uv, 0.0) * weights.w;
+			break;
+
+		case 3:
+			get_dir_3( dir, u0, v0 ); dir_to_uv(dir, uv);
+			color = textureLod(tex_in, uv, 0.0) * weights.x;
+
+			get_dir_3( dir, u1, v0 ); dir_to_uv(dir, uv);
+			color += textureLod(tex_in, uv, 0.0) * weights.y;			
+
+			get_dir_3( dir, u0, v1 ); dir_to_uv(dir, uv);
+			color += textureLod(tex_in, uv, 0.0) * weights.z;
+
+			get_dir_3( dir, u1, v1 ); dir_to_uv(dir, uv);
+			color += textureLod(tex_in, uv, 0.0) * weights.w;
+			break;
+
+		case 4:
+			get_dir_4( dir, u0, v0 ); dir_to_uv(dir, uv);
+			color = textureLod(tex_in, uv, 0.0) * weights.x;
+
+			get_dir_4( dir, u1, v0 ); dir_to_uv(dir, uv);
+			color += textureLod(tex_in, uv, 0.0) * weights.y;			
+
+			get_dir_4( dir, u0, v1 ); dir_to_uv(dir, uv);
+			color += textureLod(tex_in, uv, 0.0) * weights.z;
+
+			get_dir_4( dir, u1, v1 ); dir_to_uv(dir, uv);
+			color += textureLod(tex_in, uv, 0.0) * weights.w;
+			break;
+
+		case 5:
+			get_dir_5( dir, u0, v0 ); dir_to_uv(dir, uv);
+			color = textureLod(tex_in, uv, 0.0) * weights.x;
+
+			get_dir_5( dir, u1, v0 ); dir_to_uv(dir, uv);
+			color += textureLod(tex_in, uv, 0.0) * weights.y;			
+
+			get_dir_5( dir, u0, v1 ); dir_to_uv(dir, uv);
+			color += textureLod(tex_in, uv, 0.0) * weights.z;
+
+			get_dir_5( dir, u1, v1 ); dir_to_uv(dir, uv);
+			color += textureLod(tex_in, uv, 0.0) * weights.w;
+			break;
+		}
+		imageStore(tex_out, id, color);
+	}
+}
+)";
+
 static std::string g_compute_filter =
 R"(#version 430
 layout (location = 0) uniform samplerCube tex_in;
@@ -533,6 +715,9 @@ EnvironmentMapCreator::EnvironmentMapCreator() : m_buf_coeffs(sizeof(s_coeffs), 
 	GLShader comp_downsample(GL_COMPUTE_SHADER, g_compute_downsample.c_str());
 	m_prog_downsample = (std::unique_ptr<GLProgram>)(new GLProgram(comp_downsample));
 
+	GLShader comp_from_panorama(GL_COMPUTE_SHADER, g_compute_from_panorama.c_str());
+	m_prog_from_panorama = (std::unique_ptr<GLProgram>)(new GLProgram(comp_from_panorama));
+
 	GLShader comp_filter(GL_COMPUTE_SHADER, g_compute_filter.c_str());
 	m_prog_filter = (std::unique_ptr<GLProgram>)(new GLProgram(comp_filter));
 	 
@@ -776,6 +961,71 @@ void EnvironmentMapCreator::CreateReflection(ReflectionMap& reflection, const GL
 
 }
 
+void EnvironmentMapCreator::CreateReflection(ReflectionMap& reflection, const GLTexture2D* tex)
+{
+	// panorama to cubemap
+	glUseProgram(m_prog_from_panorama->m_id);	
+
+	{
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, tex->tex_id);
+		glUniform1i(0, 0);
+
+		glBindImageTexture(0, m_tex_src, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+
+		glDispatchCompute(128 / 8, 128 / 8, 6);
+	}
+
+	glUseProgram(m_prog_downsample->m_id);
+
+	for (int level = 0; level < 7; level++)
+	{
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex_src);
+		glUniform1i(0, 0);
+
+		glBindImageTexture(0, m_tex_src, level + 1, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+
+		glUniform1f(1, (float)level);
+
+		int w, h;
+		glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, level + 1, GL_TEXTURE_WIDTH, &w);
+		glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, level + 1, GL_TEXTURE_HEIGHT, &h);
+		glDispatchCompute((w + 7) / 8, (h + 7) / 8, 6);
+	}
+
+	reflection.allocate();
+
+	// filter pass
+	glUseProgram(m_prog_filter->m_id);
+
+	{
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, m_tex_src);
+		glUniform1i(0, 0);
+
+		glBindImageTexture(0, reflection.tex_id, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+		glBindImageTexture(1, reflection.tex_id, 1, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+		glBindImageTexture(2, reflection.tex_id, 2, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+		glBindImageTexture(3, reflection.tex_id, 3, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+		glBindImageTexture(4, reflection.tex_id, 4, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+		glBindImageTexture(5, reflection.tex_id, 5, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+		glBindImageTexture(6, reflection.tex_id, 6, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+
+		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_buf_coeffs.m_id);
+
+		glDispatchCompute((128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2 + 63) / 64, 6, 1);
+	}
+
+	glUseProgram(0);
+
+}
+
 void EnvironmentMapCreator::Create(const CubeImage* image, EnvironmentMap* envMap)
 {
 	GLCubemap cubemap;
@@ -827,4 +1077,41 @@ void EnvironmentMapCreator::Create(const CubeRenderTarget* target, EnvironmentMa
 		CreateReflection(*envMap->reflection, cubemap);		
 	}
 	CreateSH(envMap->shCoefficients, cubemap->tex_id, target->m_width);
+}
+
+void EnvironmentMapCreator::Create(const Image* image, EnvironmentMap* envMap)
+{
+	GLTexture2D tex;
+	tex.load_memory_rgba(image->width(), image->height(), image->data(), true);
+
+	if (envMap->reflection == nullptr)
+	{
+		envMap->reflection = std::unique_ptr<ReflectionMap>(new ReflectionMap);
+	}
+	CreateReflection(*envMap->reflection, &tex);
+	CreateSH(envMap->shCoefficients, m_tex_src);
+}
+
+void EnvironmentMapCreator::Create(const HDRImage* image, EnvironmentMap* envMap)
+{
+	GLTexture2D tex;
+	tex.load_memory_rgbe(image->width(), image->height(), image->data());
+
+	if (envMap->reflection == nullptr)
+	{
+		envMap->reflection = std::unique_ptr<ReflectionMap>(new ReflectionMap);
+	}
+	CreateReflection(*envMap->reflection, &tex);
+	CreateSH(envMap->shCoefficients, m_tex_src);
+}
+
+void EnvironmentMapCreator::Create(const PanoramaBackground* background, EnvironmentMap* envMap)
+{
+	const GLTexture2D& tex = background->tex;
+	if (envMap->reflection == nullptr)
+	{
+		envMap->reflection = std::unique_ptr<ReflectionMap>(new ReflectionMap);
+	}
+	CreateReflection(*envMap->reflection, &tex);
+	CreateSH(envMap->shCoefficients, m_tex_src);
 }

@@ -25,14 +25,21 @@ public:
 	static void CreateSH(glm::vec4 shCoefficients[9], unsigned tex_id, int tex_dim = 128, const glm::quat& rotation = glm::identity<glm::quat>());
 	static void PresampleSH(const glm::vec4 shCoefficients[9], glm::vec3* tex_data, int res);
 	void CreateReflection(ReflectionMap& reflection, const GLCubemap* cubemap);
+	void CreateReflection(ReflectionMap& reflection, const GLTexture2D* tex);
 	
 	void Create(const CubeImage* image, EnvironmentMap* envMap);
 	void Create(const HDRCubeImage* image, EnvironmentMap* envMap);
 	void Create(const CubeBackground* background, EnvironmentMap* envMap);
 	void Create(const CubeRenderTarget* target, EnvironmentMap* envMap, bool irradiance_only);
 
+	void Create(const Image* image, EnvironmentMap* envMap);
+	void Create(const HDRImage* image, EnvironmentMap* envMap);
+	void Create(const PanoramaBackground* background, EnvironmentMap* envMap);
+
+
 private:	
 	std::unique_ptr<GLProgram> m_prog_downsample;	
+	std::unique_ptr<GLProgram> m_prog_from_panorama;
 	std::unique_ptr<GLProgram> m_prog_filter;
 
 	unsigned m_tex_src; // downsampled mipmaps	

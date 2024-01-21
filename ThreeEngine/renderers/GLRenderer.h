@@ -12,6 +12,7 @@
 #include "renderers/routines/CopyDepth.h"
 #include "renderers/routines/DrawTexture.h"
 #include "renderers/routines/DrawSkyBox.h"
+#include "renderers/routines/DrawPanorama.h"
 #include "renderers/routines/DrawHemisphere.h"
 #include "renderers/routines/DrawFog.h"
 #include "renderers/routines/FogRayMarching.h"
@@ -166,6 +167,7 @@ private:
 	
 
 	std::unique_ptr<DrawSkyBox> SkyBoxDraw;
+	std::unique_ptr<DrawPanorama> PanoramaDraw;
 	std::unique_ptr<DrawHemisphere> HemisphereDraw;
 
 	std::unique_ptr<DepthOnly> DepthRenderer;

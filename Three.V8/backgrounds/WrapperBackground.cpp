@@ -99,6 +99,45 @@ void WrapperCubeBackground::SetCubemap(const v8::FunctionCallbackInfo<v8::Value>
 	}
 }
 
+
+void WrapperPanoramaBackground::define(ClassDefinition& cls)
+{
+	cls.name = "PanoramaBackground";
+	cls.ctor = ctor;
+	cls.dtor = dtor;
+	cls.methods = {
+		{"setTexture", SetTexture },
+	};
+}
+
+void* WrapperPanoramaBackground::ctor(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	return new PanoramaBackground;
+}
+
+void WrapperPanoramaBackground::dtor(void* ptr, GameContext* ctx)
+{
+	delete (PanoramaBackground*)ptr;
+}
+
+
+void WrapperPanoramaBackground::SetTexture(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+	LocalContext lctx(info);
+	PanoramaBackground* self = lctx.self<PanoramaBackground>();
+
+	if (info[0]->IsNull())
+	{
+		self->tex.unload();
+	}
+	else
+	{
+		Image* image = lctx.jobj_to_obj<Image>(info[0]);
+		self->tex.load_memory_rgba(image->width(), image->height(), image->data(), true);
+	}
+}
+
+
 void WrapperHemisphereBackground::define(ClassDefinition& cls)
 {
 	cls.name = "HemisphereBackground";

@@ -35,3 +35,9 @@ public:
 	GLCubemap cubemap;
 };
 
+class PanoramaBackground : public Background
+{
+public:
+	GLTexture2D tex;
+};
+

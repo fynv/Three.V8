@@ -178,6 +178,17 @@ void GLTexture2D::load_memory_bgra(int width, int height, const uint8_t* data, b
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+void GLTexture2D::load_memory_rgbe(int width, int height, const float* data)
+{
+	glBindTexture(GL_TEXTURE_2D, tex_id);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);	
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB9_E5, width, height, 0, GL_RGB, GL_FLOAT, data);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
 void GLTexture2D::load_file(const char* filename, bool is_srgb)
 {
 	Image img;

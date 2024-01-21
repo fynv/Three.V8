@@ -37,6 +37,7 @@ public:
 	void load_memory_rgba(int width, int height, const uint8_t* data, bool is_srgb);
 	void load_memory_bgr(int width, int height, const uint8_t* data, bool is_srgb);
 	void load_memory_bgra(int width, int height, const uint8_t* data, bool is_srgb);
+	void load_memory_rgbe(int width, int height, const float* data);
 	void load_file(const char* filename, bool is_srgb);
 
 	void unload();

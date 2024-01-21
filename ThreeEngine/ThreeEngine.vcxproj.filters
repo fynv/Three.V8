@@ -546,6 +546,9 @@
     <ClCompile Include="renderers\UIAreaRenderTarget.cpp">
       <Filter>Source Files\renderers</Filter>
     </ClCompile>
+    <ClCompile Include="renderers\routines\DrawPanorama.cpp">
+      <Filter>Source Files\renderers\routines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scenes\Scene.h">
@@ -1012,6 +1015,9 @@
     </ClInclude>
     <ClInclude Include="renderers\UIAreaRenderTarget.h">
       <Filter>Header Files\renderers</Filter>
+    </ClInclude>
+    <ClInclude Include="renderers\routines\DrawPanorama.h">
+      <Filter>Header Files\renderers\routines</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
