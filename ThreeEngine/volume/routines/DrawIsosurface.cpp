@@ -277,6 +277,7 @@ vec3 getReflRadiance(in vec3 reflectVec, float roughness)
 layout (std140, binding = BINDING_ENVIRONMEN_MAP) uniform EnvironmentMap
 {
 	vec4 uSHCoefficients[9];
+	float uIntensity;
 	float uDiffuseThresh;
 	float uDiffuseHigh;
 	float uDiffuseLow;
@@ -287,7 +288,7 @@ layout (std140, binding = BINDING_ENVIRONMEN_MAP) uniform EnvironmentMap
 
 vec3 getIrradiance(in vec3 world_pos, in vec3 normal)
 {
-	return shGetIrradianceAt(normal, uSHCoefficients);
+	return shGetIrradianceAt(normal, uSHCoefficients) * uIntensity;
 }
 
 #endif

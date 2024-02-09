@@ -23,11 +23,12 @@ layout (location = 0) uniform sampler2D uDepthTex;
 layout (std140, binding = 1) uniform EnvironmentMap
 {
 	vec4 uSHCoefficients[9];
+	float uIntensity;
 };
 
 vec3 GetIrradiance()
 {
-	return uSHCoefficients[0].xyz * 0.886227;
+	return uSHCoefficients[0].xyz * 0.886227 * uIntensity;
 }
 #elif HAS_AMBIENT_LIGHT
 layout (std140, binding = 1) uniform AmbientLight

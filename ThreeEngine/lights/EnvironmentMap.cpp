@@ -4,12 +4,14 @@
 struct EnvironmentMapConst
 {
 	glm::vec4 shCoefficients[9];
+	float intensity;
 	float diffuseThresh;
 	float diffuseHigh;
 	float diffuseLow;
 	float specularThresh;
 	float specularHigh;
 	float specularLow;
+	float padding;
 };
 
 EnvironmentMap::EnvironmentMap(): m_constant(sizeof(EnvironmentMapConst), GL_UNIFORM_BUFFER)
@@ -27,6 +29,7 @@ void EnvironmentMap::updateConstant()
 {
 	EnvironmentMapConst c;
 	memcpy(c.shCoefficients, shCoefficients, sizeof(glm::vec4) * 9);
+	c.intensity = intensity;
 	c.diffuseThresh = diffuse_thresh;
 	c.diffuseHigh = diffuse_high;
 	c.diffuseLow = diffuse_low;

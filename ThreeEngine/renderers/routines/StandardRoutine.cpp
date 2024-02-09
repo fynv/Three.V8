@@ -682,7 +682,7 @@ vec3 getRadiance(in vec3 worldPos, in vec3 viewDir, in vec3 norm, const in vec3 
 }
 #endif
 
-vec3 shGetIrradianceAt( in vec3 normal, in vec4 shCoefficients[ 9 ] ) 
+vec3 shGetIrradianceAt( in vec3 normal, in vec4 shCoefficients[ 9 ]) 
 {
 	// normal is assumed to have unit length
 
@@ -783,6 +783,7 @@ vec3 getReflectionDir(in vec3 dir, in vec3 norm)
 layout (std140, binding = BINDING_ENVIRONMEN_MAP) uniform EnvironmentMap
 {
 	vec4 uSHCoefficients[9];
+	float uIntensity;
 	float uDiffuseThresh;
 	float uDiffuseHigh;
 	float uDiffuseLow;
@@ -793,7 +794,7 @@ layout (std140, binding = BINDING_ENVIRONMEN_MAP) uniform EnvironmentMap
 
 vec3 getIrradiance(in vec3 normal)
 {
-	return shGetIrradianceAt(normal, uSHCoefficients);
+	return shGetIrradianceAt(normal, uSHCoefficients) * uIntensity;
 }
 
 #endif

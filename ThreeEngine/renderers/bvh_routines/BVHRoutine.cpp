@@ -571,7 +571,7 @@ R"(
 layout (location = LOCATION_TEX_LIGHTMAP) uniform sampler2D uTexLightmap;
 #endif 
 
-vec3 shGetIrradianceAt( in vec3 normal, in vec4 shCoefficients[ 9 ] ) 
+vec3 shGetIrradianceAt( in vec3 normal, in vec4 shCoefficients[ 9 ]) 
 {
 	// normal is assumed to have unit length
 
@@ -599,6 +599,7 @@ vec3 shGetIrradianceAt( in vec3 normal, in vec4 shCoefficients[ 9 ] )
 layout (std140, binding = BINDING_ENVIRONMEN_MAP) uniform EnvironmentMap
 {
 	vec4 uSHCoefficients[9];
+	float uIntensity;
 	float uDiffuseThresh;
 	float uDiffuseHigh;
 	float uDiffuseLow;
@@ -609,7 +610,7 @@ layout (std140, binding = BINDING_ENVIRONMEN_MAP) uniform EnvironmentMap
 
 vec3 getIrradiance(in vec3 normal)
 {
-	return shGetIrradianceAt(normal, uSHCoefficients);
+	return shGetIrradianceAt(normal, uSHCoefficients) * uIntensity;
 }
 
 #endif

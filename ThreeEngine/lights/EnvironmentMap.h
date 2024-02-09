@@ -11,6 +11,7 @@ public:
 	~EnvironmentMap();
 
 	glm::vec4 shCoefficients[9];
+	float intensity = 1.0f;
 
 	GLBuffer m_constant;
 	void updateConstant();
