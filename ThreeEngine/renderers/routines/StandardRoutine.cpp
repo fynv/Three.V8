@@ -1146,6 +1146,9 @@ vec3 getIrradiance(in vec3 normal)
 vec3 getRadiance(in vec3 worldPos, in vec3 reflectVec, float roughness, in vec3 irradiance)
 {
 	vec3 rad = getReflRadiance(reflectVec, roughness);
+#if HAS_ENVIRONMENT_MAP
+	rad *= uIntensity;
+#endif
 
 	if (roughness > 0.053)
 	{
